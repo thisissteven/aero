@@ -1,0 +1,10 @@
+{
+  "name": "@aero/docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit"
+  }
+}
