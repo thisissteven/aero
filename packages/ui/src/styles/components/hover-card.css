@@ -1,0 +1,52 @@
+@layer components {
+  .hover-card__trigger {
+    display: inline-flex;
+  }
+  .hover-card__content {
+    background-color: var(--overlay);
+    border-radius: calc(var(--radius) * 2);
+    box-shadow: var(--overlay-shadow);
+    max-width: 24rem;
+    outline: none;
+    padding: 1rem;
+  }
+  .hover-card__content[data-entering] {
+    animation: hover-card-enter 0.15s var(--ease-out);
+  }
+  .hover-card__content[data-exiting] {
+    animation: hover-card-exit 0.1s var(--ease-out);
+  }
+  .hover-card__arrow {
+    display: block;
+  }
+  .hover-card__arrow svg {
+    fill: var(--overlay);
+  }
+  .hover-card__arrow[data-placement='bottom'] svg {
+    rotate: 180deg;
+  }
+  .hover-card__arrow[data-placement='left'] svg {
+    rotate: -90deg;
+  }
+  .hover-card__arrow[data-placement='right'] svg {
+    rotate: 90deg;
+  }
+  @keyframes hover-card-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes hover-card-exit {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hover-card__content[data-entering],
+    .hover-card__content[data-exiting] {
+      animation: none;
+    }
+  }
+}

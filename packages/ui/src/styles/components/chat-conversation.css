@@ -1,0 +1,71 @@
+@layer components {
+  .chat-conversation {
+    --chat-conversation-shadow-size: 32px;
+    --chat-conversation-scrollbar-mask-size: 10px;
+    position: relative;
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    scrollbar-width: var(--scrollbar-width);
+    scrollbar-color: var(--scrollbar-color);
+    scrollbar-gutter: var(--scrollbar-gutter);
+    mask-image:
+      linear-gradient(
+        to bottom,
+        transparent,
+        black var(--chat-conversation-shadow-size),
+        black calc(100% - var(--chat-conversation-shadow-size)),
+        transparent
+      ),
+      linear-gradient(black, black);
+    mask-position:
+      0 0,
+      100% 0;
+    mask-repeat: no-repeat;
+    mask-size:
+      calc(100% - var(--chat-conversation-scrollbar-mask-size)) 100%,
+      var(--chat-conversation-scrollbar-mask-size) 100%;
+  }
+
+  .chat-conversation__content {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    margin-inline: auto;
+  }
+
+  .chat-conversation__scroll-anchor {
+    width: 100%;
+    height: 1px;
+    flex-shrink: 0;
+    scroll-margin-top: 1rem;
+  }
+
+  .chat-conversation__scroll-button-container {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 10;
+    width: max-content;
+    margin-inline: auto;
+  }
+
+  .chat-conversation__scroll-button-container[data-state='hidden'] {
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .chat-conversation__scroll-button {
+    --button-bg: var(--surface);
+    --button-bg-hover: var(--surface);
+    --button-bg-pressed: var(--surface);
+    --button-fg: var(--foreground);
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--foreground);
+    box-shadow: var(--surface-shadow);
+  }
+}

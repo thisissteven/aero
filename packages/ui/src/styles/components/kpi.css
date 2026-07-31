@@ -1,0 +1,103 @@
+@layer components {
+  .kpi {
+    border-radius: calc(var(--radius) * 2);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    position: relative;
+  }
+  .kpi__header {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  .kpi__content {
+    align-items: center;
+    column-gap: 0.5rem;
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto;
+  }
+  .kpi__icon {
+    align-items: center;
+    border-radius: var(--radius);
+    display: flex;
+    flex-shrink: 0;
+    height: 2rem;
+    justify-content: center;
+    width: 2rem;
+  }
+  .kpi__icon svg {
+    height: 1rem;
+    width: 1rem;
+  }
+  .kpi__icon[data-status='success'] {
+    background-color: color-mix(in oklab, var(--success) 10%, transparent);
+    color: var(--success);
+  }
+  .kpi__icon[data-status='warning'] {
+    background-color: color-mix(in oklab, var(--warning) 10%, transparent);
+    color: var(--warning);
+  }
+  .kpi__icon[data-status='danger'] {
+    background-color: color-mix(in oklab, var(--danger) 10%, transparent);
+    color: var(--danger);
+  }
+  .kpi__actions {
+    inset-inline-end: 0.625rem;
+    position: absolute;
+    top: 0.625rem;
+  }
+  .kpi__title {
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+  }
+  .kpi__value {
+    color: var(--foreground);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 2rem;
+  }
+  .kpi__trend {
+    flex-shrink: 0;
+  }
+  .kpi__progress {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+  }
+  .kpi__chart {
+    --kpi-chart-fade: 10%;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black var(--kpi-chart-fade),
+      black calc(100% - var(--kpi-chart-fade)),
+      transparent 100%
+    );
+    overflow: hidden;
+  }
+  .kpi > .kpi__chart {
+    border-bottom-left-radius: calc(var(--radius) * 2);
+    border-bottom-right-radius: calc(var(--radius) * 2);
+    margin: 0.5rem -1rem -1rem;
+  }
+  .kpi > .kpi__chart:has(+ .kpi__separator, + .kpi__footer) {
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+  .kpi__separator {
+    margin-inline: -1rem;
+    width: calc(100% + 2rem);
+  }
+  .kpi__footer {
+    margin-bottom: -0.25rem;
+  }
+  .kpi__separator + .kpi__footer {
+    margin-top: 0;
+  }
+}

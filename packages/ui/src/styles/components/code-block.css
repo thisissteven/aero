@@ -1,0 +1,78 @@
+@layer components {
+  .code-block {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    overflow: clip;
+    margin-block: 0.5rem;
+    border-radius: calc(var(--radius) * 2);
+    background: var(--surface-secondary);
+    color: var(--surface-secondary-foreground);
+  }
+  .code-block__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem 0;
+  }
+  .code-block__code {
+    width: 100%;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.625;
+  }
+  .code-block__code pre {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: transparent !important;
+  }
+  .code-block__code code {
+    font-family: var(--font-mono);
+  }
+  .code-block__code .line {
+    padding-inline: 0 !important;
+  }
+  .code-block__code[data-line-numbers] code {
+    counter-reset: code-line;
+  }
+  .code-block__code[data-line-numbers] .line::before {
+    display: inline-block;
+    width: 2rem;
+    margin-right: 1rem;
+    color: var(--muted);
+    content: counter(code-line);
+    counter-increment: code-line;
+    text-align: right;
+    user-select: none;
+  }
+  .code-block__code .shiki,
+  .code-block__code .shiki span {
+    color: var(--shiki-light, var(--surface-secondary-foreground));
+  }
+  :is(.dark, [data-theme='dark']) .code-block__code .shiki,
+  :is(.dark, [data-theme='dark']) .code-block__code .shiki span {
+    color: var(--shiki-dark, var(--surface-secondary-foreground));
+  }
+  .code-block__copy-button {
+    flex-shrink: 0;
+    cursor: pointer;
+    color: var(--muted);
+    outline: none;
+  }
+  .code-block__copy-button:hover,
+  .code-block__copy-button[data-hovered='true'] {
+    color: var(--foreground);
+  }
+  .code-block__copy-button-icon {
+    display: flex;
+    width: 0.875rem;
+    height: 0.875rem;
+    align-items: center;
+    justify-content: center;
+  }
+  .code-block__copy-button-icon svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}

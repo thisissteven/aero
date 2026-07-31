@@ -4,4 +4,5 @@ export default {
   jsxSingleQuote: true,
   tabWidth: 2,
   semi: true,
+  plugins: ['prettier-plugin-tailwindcss'],
 };

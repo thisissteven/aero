@@ -1,0 +1,93 @@
+@layer components {
+  .cell-switch {
+    gap: 0;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.cell-switch .cell-switch__trigger {
+  display: flex;
+  width: 100%;
+  height: calc(var(--spacing) * 9);
+  align-items: center;
+  gap: calc(var(--spacing) * 3);
+  border-width: var(--border-width-field);
+  border-color: var(--color-field-border);
+  border-radius: var(--field-radius, calc(var(--radius) * 1.5));
+  background-color: var(--field-background, var(--default));
+  padding-inline: calc(var(--spacing) * 3) 0.75rem;
+  color: var(--field-foreground, var(--foreground));
+  box-shadow: var(--field-shadow);
+  transition:
+    background-color 0.15s var(--ease-smooth),
+    border-color 0.15s var(--ease-smooth),
+    box-shadow 0.15s var(--ease-out);
+}
+
+.cell-switch .cell-switch__trigger--secondary {
+  background-color: var(--color-default);
+  box-shadow: none;
+}
+
+.cell-switch .cell-switch__control--secondary {
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+}
+
+.cell-switch .cell-switch__label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-sm--line-height);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-switch .cell-switch__control {
+  flex-shrink: 0;
+}
+
+.cell-switch .cell-switch__trigger[data-hovered='true'] {
+  border-color: var(--color-field-border-hover);
+  background-color: var(--field-hover);
+}
+
+.cell-switch .cell-switch__trigger--secondary[data-hovered='true'] {
+  background-color: var(--color-default-hover);
+}
+
+.cell-switch
+  .cell-switch__trigger[data-hovered='true']
+  .cell-switch__control--secondary {
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+}
+
+.cell-switch .cell-switch__trigger[data-focus-visible='true'] {
+  border-color: var(--color-field-border-focus);
+  background-color: var(--color-field-focus);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--focus);
+  outline: none;
+}
+
+.cell-switch .cell-switch__trigger--secondary[data-focus-visible='true'] {
+  background-color: var(--color-default);
+}
+
+.cell-switch[data-disabled='true'] .cell-switch__trigger,
+.cell-switch .cell-switch__trigger[data-disabled='true'] {
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+  opacity: var(--disabled-opacity);
+}
+
+.cell-switch
+  .cell-switch__trigger[data-pressed='true']
+  .cell-switch__control--secondary {
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+}

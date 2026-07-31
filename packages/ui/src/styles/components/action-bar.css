@@ -1,0 +1,35 @@
+@layer components {
+  .action-bar {
+    bottom: 1.5rem;
+    display: flex;
+    inset-inline: 0;
+    justify-content: center;
+    pointer-events: none;
+    position: fixed;
+    z-index: 50;
+  }
+  .action-bar__wrapper {
+    box-shadow: var(--overlay-shadow);
+    padding: 6px 12px;
+    pointer-events: auto;
+  }
+  .action-bar__prefix {
+    align-items: center;
+    display: flex;
+    gap: 0.625rem;
+  }
+  .action-bar__content {
+    align-items: center;
+    display: flex;
+    gap: 0.25rem;
+  }
+  .action-bar__suffix {
+    align-items: center;
+    display: flex;
+  }
+  .action-bar__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+  }
+}

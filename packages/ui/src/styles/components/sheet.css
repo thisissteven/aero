@@ -1,0 +1,401 @@
+@layer components {
+  [data-sheet-drawer] {
+    touch-action: none;
+    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+    user-select: none;
+  }
+
+  [data-sheet-drawer][data-entering],
+  [data-sheet-drawer][data-exiting],
+  [data-sheet-drawer].sheet-dragging {
+    will-change: transform;
+  }
+
+  [data-sheet-drawer][data-exiting] {
+    animation-fill-mode: forwards;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='bottom'][data-entering] {
+    animation-name: sheet-slide-from-bottom;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='bottom'][data-exiting] {
+    animation-name: sheet-slide-to-bottom;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='top'][data-entering] {
+    animation-name: sheet-slide-from-top;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='top'][data-exiting] {
+    animation-name: sheet-slide-to-top;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='left'][data-entering] {
+    animation-name: sheet-slide-from-left;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='left'][data-exiting] {
+    animation-name: sheet-slide-to-left;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='right'][data-entering] {
+    animation-name: sheet-slide-from-right;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='false'][data-sheet-drawer-direction='right'][data-exiting] {
+    animation-name: sheet-slide-to-right;
+  }
+
+  [data-sheet-overlay] {
+    background: transparent !important;
+  }
+
+  [data-sheet-overlay]::before {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+  }
+
+  [data-sheet-overlay][data-sheet-snap-points='false']::before {
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  [data-sheet-overlay][data-sheet-snap-points='true']::before {
+    opacity: var(--sheet-backdrop-opacity, 0);
+  }
+
+  [data-sheet-drawer]:not([data-sheet-custom-container='true'])::after {
+    position: absolute;
+    pointer-events: none;
+    background-color: var(--overlay);
+    content: '';
+  }
+
+  [data-sheet-drawer][data-sheet-drawer-direction='top']::after {
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 200%;
+  }
+
+  [data-sheet-drawer][data-sheet-drawer-direction='bottom']::after {
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 200%;
+  }
+
+  [data-sheet-drawer][data-sheet-drawer-direction='left']::after {
+    top: 0;
+    right: 100%;
+    bottom: 0;
+    width: 200%;
+  }
+
+  [data-sheet-drawer][data-sheet-drawer-direction='right']::after {
+    top: 0;
+    bottom: 0;
+    left: 100%;
+    width: 200%;
+  }
+
+  .sheet__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+
+  .sheet__backdrop--opaque::before {
+    background-color: var(--backdrop);
+  }
+
+  .sheet__backdrop--blur::before {
+    background-color: color-mix(in oklab, var(--background) 1%, transparent);
+    backdrop-filter: blur(var(--blur-sm));
+  }
+
+  .sheet__backdrop--transparent::before {
+    background: transparent;
+  }
+
+  .sheet__content {
+    position: fixed;
+    z-index: 50;
+    outline: none;
+  }
+
+  .sheet__content--bottom {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 96vh;
+    border-radius: calc(var(--radius) * 2) calc(var(--radius) * 2) 0 0;
+  }
+
+  .sheet__content--top {
+    top: 0;
+    right: 0;
+    left: 0;
+    max-height: 96vh;
+    border-radius: 0 0 calc(var(--radius) * 2) calc(var(--radius) * 2);
+  }
+
+  .sheet__content--left {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100dvh;
+    max-width: 96vw;
+    border-radius: 0 calc(var(--radius) * 2) calc(var(--radius) * 2) 0;
+  }
+
+  .sheet__content--right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    height: 100dvh;
+    max-width: 96vw;
+    border-radius: calc(var(--radius) * 2) 0 0 calc(var(--radius) * 2);
+  }
+
+  [data-sheet-detached] {
+    overflow: hidden;
+    border-radius: calc(var(--radius) * 2);
+  }
+
+  [data-sheet-detached]::after {
+    content: none;
+  }
+
+  [data-sheet-detached].sheet__content--bottom {
+    right: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
+  }
+
+  [data-sheet-detached].sheet__content--top {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+  }
+
+  [data-sheet-detached].sheet__content--left {
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
+  }
+
+  [data-sheet-detached].sheet__content--right {
+    top: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='true'][data-sheet-drawer-direction='bottom'],
+  [data-sheet-drawer][data-sheet-snap-points='true'][data-sheet-drawer-direction='top'] {
+    display: flex;
+    height: 100vh;
+    max-height: none;
+    flex-direction: column;
+  }
+
+  [data-sheet-drawer][data-sheet-snap-points='true'][data-sheet-drawer-direction='left'],
+  [data-sheet-drawer][data-sheet-snap-points='true'][data-sheet-drawer-direction='right'] {
+    display: flex;
+    width: 100vw;
+    max-width: none;
+    flex-direction: row;
+  }
+
+  .sheet__dialog {
+    position: relative;
+    display: flex;
+    min-height: 0;
+    flex: auto;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--overlay-foreground);
+    background-color: var(--overlay);
+    box-shadow: var(--overlay-shadow);
+    outline: none;
+  }
+
+  .sheet__dialog--bottom {
+    max-height: 96vh;
+    border-radius: calc(var(--radius) * 2) calc(var(--radius) * 2) 0 0;
+  }
+
+  .sheet__dialog--top {
+    max-height: 96vh;
+    border-radius: 0 0 calc(var(--radius) * 2) calc(var(--radius) * 2);
+  }
+
+  [data-sheet-snap-points='true'] .sheet__dialog--bottom,
+  [data-sheet-snap-points='true'] .sheet__dialog--top {
+    max-height: none;
+  }
+
+  .sheet__dialog--left {
+    height: 100%;
+    border-radius: 0 calc(var(--radius) * 2) calc(var(--radius) * 2) 0;
+  }
+
+  .sheet__dialog--right {
+    height: 100%;
+    border-radius: calc(var(--radius) * 2) 0 0 calc(var(--radius) * 2);
+  }
+
+  [data-sheet-detached] .sheet__dialog {
+    border-radius: calc(var(--radius) * 2);
+  }
+
+  .sheet__header {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 1.25rem 0.5rem;
+  }
+
+  .sheet__heading {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--text-lg--line-height);
+  }
+
+  .sheet__body {
+    flex: auto;
+    padding: 0.5rem 1.25rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sheet__footer {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem 1rem;
+  }
+
+  .sheet__handle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 0;
+    cursor: grab;
+    touch-action: pan-y;
+  }
+
+  .sheet__handle[data-vaul-handle] {
+    width: auto;
+    height: auto;
+    margin: 0;
+    opacity: 1;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .sheet__handle [data-vaul-handle-hitarea] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet__handle:active {
+    cursor: grabbing;
+  }
+
+  .sheet__handle-bar {
+    display: block;
+    width: 2rem;
+    height: 0.3rem;
+    background-color: var(--default);
+    border-radius: 9999px;
+    transition: background-color 0.15s;
+  }
+
+  .sheet__handle:hover .sheet__handle-bar,
+  .sheet__handle:active .sheet__handle-bar {
+    background-color: var(--default-hover);
+  }
+
+  .sheet__close-trigger {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    color: var(--muted);
+  }
+
+  .sheet__close-trigger:hover,
+  .sheet__close-trigger[data-hovered='true'] {
+    color: var(--foreground);
+  }
+
+  @keyframes sheet-slide-from-bottom {
+    from {
+      transform: translate3d(0, var(--initial-transform, 100%), 0);
+    }
+    to {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes sheet-slide-to-bottom {
+    to {
+      transform: translate3d(0, var(--initial-transform, 100%), 0);
+    }
+  }
+
+  @keyframes sheet-slide-from-top {
+    from {
+      transform: translate3d(0, calc(var(--initial-transform, 100%) * -1), 0);
+    }
+    to {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes sheet-slide-to-top {
+    to {
+      transform: translate3d(0, calc(var(--initial-transform, 100%) * -1), 0);
+    }
+  }
+
+  @keyframes sheet-slide-from-left {
+    from {
+      transform: translate3d(calc(var(--initial-transform, 100%) * -1), 0, 0);
+    }
+    to {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes sheet-slide-to-left {
+    to {
+      transform: translate3d(calc(var(--initial-transform, 100%) * -1), 0, 0);
+    }
+  }
+
+  @keyframes sheet-slide-from-right {
+    from {
+      transform: translate3d(var(--initial-transform, 100%), 0, 0);
+    }
+    to {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes sheet-slide-to-right {
+    to {
+      transform: translate3d(var(--initial-transform, 100%), 0, 0);
+    }
+  }
+}

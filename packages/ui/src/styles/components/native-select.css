@@ -1,0 +1,143 @@
+@layer components {
+  .native-select {
+    display: inline-flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+  }
+}
+
+.native-select[data-invalid='true'] [data-slot='description'],
+.native-select[aria-invalid='true'] [data-slot='description'] {
+  display: none;
+}
+
+.native-select [data-slot='label'] {
+  width: fit-content;
+}
+
+.native-select [data-slot='description'] {
+  padding-inline: calc(var(--spacing) * 1);
+}
+
+.native-select__trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.native-select__select {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  min-height: calc(var(--spacing) * 9);
+  appearance: none;
+  cursor: var(--cursor-interactive);
+  border-width: var(--border-width-field);
+  border-color: var(--color-field-border);
+  border-radius: var(--field-radius, calc(var(--radius) * 1.5));
+  background-color: var(--field-background, var(--default));
+  padding-inline: calc(var(--spacing) * 3)
+    calc(
+      var(--native-select-indicator-offset, 0.5rem) +
+        var(--native-select-indicator-size, 1rem) + 0.5rem
+    );
+  padding-block: calc(var(--spacing) * 2);
+  color: var(--field-foreground, var(--foreground));
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  box-shadow: var(--field-shadow);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.15s var(--ease-smooth),
+    border-color 0.15s var(--ease-smooth),
+    box-shadow 0.15s var(--ease-out);
+}
+
+.native-select__select:hover {
+  border-color: var(--color-field-border-hover);
+  background-color: var(--field-hover);
+}
+
+.native-select__select:focus {
+  border-color: var(--color-field-border-focus);
+  background-color: var(--color-field-focus);
+  outline: none;
+}
+
+.native-select__select:focus-visible:not(:focus),
+.native-select__select[data-focus-visible='true'] {
+  border-color: var(--color-field-border-focus);
+  background-color: var(--color-field-focus);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--focus);
+  outline: none;
+}
+
+.native-select[data-invalid='true'] .native-select__select,
+.native-select[aria-invalid='true'] .native-select__select {
+  background-color: var(--color-field-focus);
+  outline: 1px solid var(--danger);
+}
+
+.native-select[data-invalid='true'] .native-select__select:focus,
+.native-select[data-invalid='true'] .native-select__select:focus-visible,
+.native-select[aria-invalid='true'] .native-select__select:focus,
+.native-select[aria-invalid='true'] .native-select__select:focus-visible {
+  box-shadow: 0 0 0 2px var(--danger);
+}
+
+.native-select__select:disabled,
+.native-select__select[aria-disabled='true'] {
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+  opacity: var(--disabled-opacity);
+}
+
+.native-select__select:has(option[value='']:checked) {
+  color: var(--field-placeholder, var(--muted));
+}
+
+.native-select__select::-ms-expand {
+  display: none;
+}
+
+.native-select__indicator {
+  pointer-events: none;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: calc(var(--spacing) * 2);
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-block: auto;
+  color: var(--field-placeholder, var(--muted));
+}
+
+.native-select__indicator svg {
+  --native-select-indicator-size: 1rem;
+  width: calc(var(--spacing) * 4);
+  height: calc(var(--spacing) * 4);
+}
+
+.native-select--secondary .native-select__select {
+  background-color: var(--color-default);
+  box-shadow: none;
+}
+
+.native-select--secondary .native-select__select:hover {
+  background-color: var(--color-default-hover);
+}
+
+.native-select--secondary .native-select__select:focus-visible:not(:focus),
+.native-select--secondary .native-select__select[data-focus-visible='true'],
+.native-select--secondary .native-select__select:focus {
+  background-color: var(--color-default);
+}
+
+.native-select--full-width,
+.native-select__trigger--full-width {
+  width: 100%;
+}

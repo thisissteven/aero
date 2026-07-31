@@ -1,0 +1,255 @@
+@layer components {
+  .stepper {
+    --stepper-indicator-size: 28px;
+    --stepper-separator-size: 2px;
+    --stepper-vertical-gap: 16px;
+    --stepper-active-color: var(--accent);
+    --stepper-complete-color: var(--accent);
+    --stepper-complete-fg: var(--accent-foreground);
+    --stepper-inactive-border: var(--border);
+    --stepper-inactive-fg: var(--muted);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .stepper--horizontal {
+    align-items: flex-start;
+    display: flex;
+  }
+  .stepper--vertical {
+    display: flex;
+    flex-direction: column;
+  }
+  .stepper__step {
+    position: relative;
+  }
+  .stepper__step--horizontal {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: visible;
+    position: relative;
+  }
+  .stepper__step--vertical {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--stepper-vertical-gap);
+    position: relative;
+  }
+  .stepper__step--vertical:last-child {
+    padding-bottom: 0;
+  }
+  .stepper__step-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    display: flex;
+    outline: none;
+    padding: 0;
+    transition: opacity 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stepper__step-button[data-clickable='true'] {
+    cursor: var(--cursor-interactive);
+  }
+  .stepper__step-button[data-clickable='true']:hover .stepper__indicator {
+    opacity: 0.8;
+  }
+  .stepper__step-button[data-clickable='true']:active {
+    opacity: 0.8;
+  }
+  .stepper__step-button[data-focus-visible='true'] {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .stepper__step-button--horizontal {
+    align-items: center;
+    flex-direction: column;
+    gap: 0.375rem;
+    position: relative;
+    z-index: 10;
+  }
+  .stepper__step-button--vertical {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 0.625rem;
+    position: relative;
+    z-index: 10;
+  }
+  .stepper__indicator {
+    align-items: center;
+    border: 2px solid;
+    border-radius: 9999px;
+    display: flex;
+    flex-shrink: 0;
+    height: var(--stepper-indicator-size);
+    justify-content: center;
+    width: var(--stepper-indicator-size);
+  }
+  .stepper__indicator[data-status='inactive'] {
+    background: transparent;
+    border-color: var(--stepper-inactive-border);
+    color: var(--stepper-inactive-fg);
+  }
+  .stepper__indicator[data-status='active'] {
+    background: transparent;
+    border-color: var(--stepper-active-color);
+    color: var(--stepper-active-color);
+  }
+  .stepper__indicator[data-status='complete'] {
+    animation: stepper-indicator-complete 0.3s ease-out;
+    background-color: var(--stepper-complete-color);
+    border-color: var(--stepper-complete-color);
+    box-shadow: 0 1px 3px #0000001a;
+    color: var(--stepper-complete-fg);
+  }
+  .stepper__indicator--sm {
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .stepper__indicator--md {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1rem;
+  }
+  .stepper__indicator--lg {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+  }
+  .stepper__separator {
+    display: flex;
+  }
+  .stepper__separator--horizontal {
+    left: calc(50% + var(--stepper-indicator-size) / 2);
+    position: absolute;
+    right: calc(-50% + var(--stepper-indicator-size) / 2);
+    top: calc(
+      var(--stepper-indicator-size) / 2 - var(--stepper-separator-size) / 2
+    );
+  }
+  .stepper__separator--vertical {
+    bottom: 0;
+    left: calc(
+      var(--stepper-indicator-size) / 2 - var(--stepper-separator-size) / 2
+    );
+    position: absolute;
+    top: var(--stepper-indicator-size);
+  }
+  .stepper__separator-track {
+    background-color: var(--separator);
+    overflow: hidden;
+    position: relative;
+  }
+  .stepper__separator-track--horizontal {
+    height: var(--stepper-separator-size);
+    width: 100%;
+  }
+  .stepper__separator-track--vertical {
+    height: 100%;
+    width: var(--stepper-separator-size);
+  }
+  .stepper__separator-fill {
+    background-color: var(--stepper-complete-color);
+    inset: 0;
+    position: absolute;
+  }
+  .stepper__separator-fill--horizontal {
+    transform: scaleX(var(--stepper-separator-progress, 0));
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .stepper__separator-fill--vertical {
+    transform: scaleY(var(--stepper-separator-progress, 0));
+    transform-origin: top;
+    transition: transform 0.3s;
+  }
+  .stepper__content {
+    display: flex;
+    flex-direction: column;
+  }
+  .stepper__content--horizontal {
+    align-items: center;
+    text-align: center;
+  }
+  .stepper__content--vertical {
+    align-items: flex-start;
+    min-height: var(--stepper-indicator-size);
+    text-align: left;
+  }
+  .stepper__title {
+    color: var(--foreground);
+    font-weight: 500;
+    line-height: 1.25;
+    transition: color 0.3s;
+  }
+  .stepper__step[data-status='inactive'] .stepper__title {
+    color: var(--muted);
+  }
+  .stepper__title--sm {
+    font-size: 11px;
+  }
+  .stepper__title--md {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  .stepper__title--lg {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .stepper__description {
+    color: var(--muted);
+    line-height: 1.375;
+    transition: color 0.3s;
+  }
+  .stepper__step[data-status='inactive'] .stepper__description {
+    opacity: 0.6;
+  }
+  .stepper__description--sm {
+    font-size: 10px;
+    margin-top: 0.125rem;
+  }
+  .stepper__description--md,
+  .stepper__description--lg {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    margin-top: 0.125rem;
+  }
+  .stepper__icon {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+  }
+  .stepper__icon svg {
+    height: 55%;
+    width: 55%;
+  }
+  .stepper__icon [data-slot='stepper-default-checkmark'] {
+    height: 44%;
+    width: 44%;
+  }
+  .stepper--sm {
+    --stepper-indicator-size: 22px;
+    --stepper-vertical-gap: 12px;
+  }
+  .stepper--md {
+    --stepper-indicator-size: 28px;
+    --stepper-vertical-gap: 16px;
+  }
+  .stepper--lg {
+    --stepper-indicator-size: 36px;
+    --stepper-vertical-gap: 24px;
+  }
+  @keyframes stepper-indicator-complete {
+    from {
+      opacity: 0.6;
+      scale: 0.8;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+}

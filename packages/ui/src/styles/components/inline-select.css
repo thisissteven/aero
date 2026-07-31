@@ -1,0 +1,77 @@
+@layer components {
+  .inline-select {
+    --inline-select-value-max-width: 12rem;
+    --inline-select-indicator-size: 0.75rem;
+    flex-shrink: 0;
+  }
+}
+
+.inline-select .inline-select__trigger {
+  display: flex;
+  min-height: 0;
+  cursor: var(--cursor-interactive);
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  border-width: 0;
+  border-radius: calc(var(--radius) * 0.75);
+  background-color: transparent;
+  padding-inline: calc(var(--spacing) * 1) 0.25rem;
+  padding-block: calc(var(--spacing) * 0.5);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  box-shadow: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.1s,
+    background-color 0.1s,
+    border-color 0.1s;
+}
+
+.inline-select .inline-select__trigger:hover,
+.inline-select .inline-select__trigger[data-hovered='true'] {
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--foreground);
+}
+
+.inline-select .inline-select__trigger:focus-visible,
+.inline-select .inline-select__trigger[data-focus-visible='true'] {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--focus);
+  outline: none;
+}
+
+.inline-select .inline-select__trigger:disabled,
+.inline-select .inline-select__trigger[aria-disabled='true'] {
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+  opacity: var(--disabled-opacity);
+}
+
+.inline-select .inline-select__value {
+  max-width: var(--inline-select-value-max-width);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-select .inline-select__indicator {
+  position: static;
+  width: var(--inline-select-indicator-size);
+  height: var(--inline-select-indicator-size);
+  margin-block: 0;
+  color: var(--muted);
+}
+
+.inline-select .inline-select__indicator[data-open='true'] {
+  rotate: 0deg;
+}
+
+.inline-select .inline-select__popover {
+  min-width: calc(var(--spacing) * 48);
+}

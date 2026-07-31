@@ -1,0 +1,123 @@
+@layer components {
+  .number-stepper {
+    @apply inline-flex shrink-0;
+  }
+
+  .number-stepper__group {
+    @apply bg-default inline-flex items-center gap-0 rounded-full border-0 p-0 shadow-none;
+  }
+
+  .number-stepper__input {
+    @apply sr-only;
+  }
+
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button {
+    @apply bg-surface text-muted shadow-surface relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 outline-none;
+    transform: translateZ(0);
+    transition:
+      background-color 100ms ease-out,
+      box-shadow 100ms ease-out,
+      transform 250ms var(--ease-smooth);
+  }
+
+  .number-stepper__decrement-button:hover,
+  .number-stepper__decrement-button[data-hovered],
+  .number-stepper__increment-button:hover,
+  .number-stepper__increment-button[data-hovered] {
+    @apply text-foreground;
+  }
+
+  .number-stepper__decrement-button:focus-visible,
+  .number-stepper__decrement-button[data-focus-visible],
+  .number-stepper__increment-button:focus-visible,
+  .number-stepper__increment-button[data-focus-visible] {
+    @apply ring-focus ring-offset-background ring-2 ring-offset-2;
+  }
+
+  .number-stepper__decrement-button:disabled,
+  .number-stepper__decrement-button[data-disabled],
+  .number-stepper__increment-button:disabled,
+  .number-stepper__increment-button[data-disabled] {
+    @apply pointer-events-none cursor-not-allowed opacity-50;
+  }
+
+  .number-stepper__decrement-button > svg,
+  .number-stepper__increment-button > svg {
+    @apply shrink-0;
+  }
+
+  .number-stepper__value {
+    @apply text-foreground flex items-center justify-center leading-[0.85] font-semibold tabular-nums;
+  }
+
+  .number-stepper__group--sm,
+  .number-stepper__group--md,
+  .number-stepper__group--lg {
+    @apply p-0.5;
+  }
+
+  .number-stepper__decrement-button--sm,
+  .number-stepper__increment-button--sm {
+    @apply size-8 md:size-7;
+  }
+
+  .number-stepper__decrement-button--sm > svg,
+  .number-stepper__increment-button--sm > svg {
+    @apply size-3.5;
+  }
+
+  .number-stepper__decrement-button--sm:active,
+  .number-stepper__decrement-button--sm[data-pressed],
+  .number-stepper__increment-button--sm:active,
+  .number-stepper__increment-button--sm[data-pressed],
+  .number-stepper__decrement-button--md:active,
+  .number-stepper__decrement-button--md[data-pressed],
+  .number-stepper__increment-button--md:active,
+  .number-stepper__increment-button--md[data-pressed] {
+    transform: scale(0.98) translateZ(0);
+  }
+
+  .number-stepper__value--sm {
+    @apply h-8 min-w-6 text-xs md:h-7 md:min-w-5;
+  }
+
+  .number-stepper__decrement-button--md,
+  .number-stepper__increment-button--md {
+    @apply size-9 md:size-8;
+  }
+
+  .number-stepper__decrement-button--md > svg,
+  .number-stepper__increment-button--md > svg {
+    @apply size-4;
+  }
+
+  .number-stepper__value--md {
+    @apply h-9 min-w-7 text-sm md:h-8 md:min-w-6;
+  }
+
+  .number-stepper__group--lg {
+    @apply gap-0.5;
+  }
+
+  .number-stepper__decrement-button--lg,
+  .number-stepper__increment-button--lg {
+    @apply size-10 md:size-9;
+  }
+
+  .number-stepper__decrement-button--lg > svg,
+  .number-stepper__increment-button--lg > svg {
+    @apply size-5 md:size-4;
+  }
+
+  .number-stepper__decrement-button--lg:active,
+  .number-stepper__decrement-button--lg[data-pressed],
+  .number-stepper__increment-button--lg:active,
+  .number-stepper__increment-button--lg[data-pressed] {
+    transform: scale(0.96) translateZ(0);
+  }
+
+  .number-stepper__value--lg {
+    @apply h-10 min-w-8 text-base md:h-9 md:min-w-7;
+  }
+}

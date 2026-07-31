@@ -1,0 +1,204 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+@layer components {
+  .map {
+    --map-control-size: 2rem;
+    --map-control-offset: 0.5rem;
+    --map-control-attribution-clearance: 3rem;
+    --map-popup-max-width: 248px;
+    --map-marker-color: var(--accent);
+    --map-marker-ring-color: var(--surface);
+    --map-route-color: #4285f4;
+    --map-route-opacity: 0.8;
+    --map-route-width: 3;
+    background-color: var(--default);
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+  }
+  .map__loader {
+    align-items: center;
+    backdrop-filter: blur(4px);
+    background-color: color-mix(in oklab, var(--overlay) 50%, transparent);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: absolute;
+    z-index: 10;
+  }
+  .map__loader-spinner {
+    color: var(--muted);
+  }
+  .map__marker,
+  .map__marker-content {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+  }
+  .map__marker-content {
+    cursor: pointer;
+    position: relative;
+  }
+  .map__default-marker {
+    background-color: var(--map-marker-color);
+    border: 2px solid var(--map-marker-ring-color);
+    border-radius: 9999px;
+    box-shadow: var(--overlay-shadow);
+    display: block;
+    height: 1rem;
+    position: relative;
+    width: 1rem;
+  }
+  .map__marker-label {
+    color: var(--foreground);
+    font-size: 10px;
+    font-weight: 500;
+    left: 50%;
+    pointer-events: none;
+    position: absolute;
+    translate: -50%;
+    white-space: nowrap;
+  }
+  .map__marker-label--top {
+    bottom: 100%;
+    margin-bottom: 0.25rem;
+  }
+  .map__marker-label--bottom {
+    margin-top: 0.25rem;
+    top: 100%;
+  }
+  .map__popup-content {
+    background-color: var(--overlay);
+    border-radius: min(32px, calc(var(--radius) * 3));
+    box-shadow: var(--overlay-shadow);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    max-width: var(--map-popup-max-width);
+    padding: 1rem;
+    position: relative;
+  }
+  .map__popup-content[data-close-button] {
+    padding-right: 2.5rem;
+  }
+  .map__popup-close-button {
+    height: 1.25rem;
+    position: absolute;
+    right: 0.5rem;
+    top: 0.5rem;
+    width: 1.25rem;
+    z-index: 10;
+  }
+  .map__tooltip {
+    background-color: var(--foreground);
+    border-radius: calc(var(--radius) * 0.75);
+    box-shadow: var(--overlay-shadow);
+    color: var(--background);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    max-width: var(--map-popup-max-width);
+    padding: 0.25rem 0.5rem;
+    pointer-events: none;
+  }
+  .map__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    position: absolute;
+    z-index: 10;
+  }
+  .map__controls--top-left {
+    left: var(--map-control-offset);
+    top: var(--map-control-offset);
+  }
+  .map__controls--top-right {
+    right: var(--map-control-offset);
+    top: var(--map-control-offset);
+  }
+  .map__controls--bottom-left {
+    bottom: calc(
+      var(--map-control-offset) + var(--map-control-attribution-clearance)
+    );
+    left: var(--map-control-offset);
+  }
+  .map__controls--bottom-right {
+    bottom: calc(
+      var(--map-control-offset) + var(--map-control-attribution-clearance)
+    );
+    right: var(--map-control-offset);
+  }
+  .map__control-button {
+    color: var(--foreground);
+    height: var(--map-control-size);
+    min-width: var(--map-control-size);
+    padding: 0;
+    width: var(--map-control-size);
+  }
+  .map__control-icon {
+    align-items: center;
+    display: flex;
+    font-size: 1rem;
+    height: 1rem;
+    justify-content: center;
+    width: 1rem;
+  }
+  .map__compass-icon {
+    height: 1.25rem;
+    transform-style: preserve-3d;
+    transition: transform 0.2s;
+    width: 1.25rem;
+  }
+  .map__compass-icon [data-needle='north-right'] {
+    fill: #fb2c36;
+  }
+  .map__compass-icon [data-needle='north-left'] {
+    fill: #ff6568;
+  }
+  .map__compass-icon [data-needle='south-right'] {
+    fill: color-mix(in oklch, var(--muted) 70%, transparent);
+  }
+  .map__compass-icon [data-needle='south-left'] {
+    fill: color-mix(in oklch, var(--muted) 38%, transparent);
+  }
+}
+
+/* MapLibre ships these selectors unlayered, so the reset must also be
+   unlayered to take precedence over its default popup chrome. */
+.maplibregl-popup-content {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.maplibregl-popup-tip {
+  display: none;
+}
+.maplibregl-ctrl-attrib-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-width: 0;
+  background-color: transparent;
+  padding: 0;
+  color: #020202;
+}
+.maplibregl-ctrl-attrib-button::before {
+  display: flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #020202;
+  color: #fff;
+  content: 'i';
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+}

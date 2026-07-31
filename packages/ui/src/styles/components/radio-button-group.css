@@ -1,0 +1,89 @@
+@layer components {
+  .radio-button-group {
+    --radio-button-group-item-radius: var(--radius-2xl);
+    display: flex;
+    gap: calc(var(--spacing) * 3);
+  }
+
+  .radio-button-group--grid {
+    display: grid;
+  }
+
+  .radio-button-group > [data-slot='radio-button-group-item'] {
+    display: contents;
+  }
+
+  .radio-button-group__item {
+    position: relative;
+    display: flex;
+    cursor: var(--cursor-interactive);
+    flex-direction: column;
+    align-items: stretch;
+    gap: calc(var(--spacing) * 4);
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: var(--radio-button-group-item-radius);
+    background-color: var(--surface);
+    padding-inline: calc(var(--spacing) * 5);
+    padding-block: calc(var(--spacing) * 4);
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .radio-button-group__item[data-selected='true'] {
+    --tw-ring-color: var(--accent);
+    --tw-ring-shadow: 0 0 0 2px var(--tw-ring-color);
+    border-color: transparent;
+    box-shadow: var(--tw-ring-shadow);
+  }
+
+  .radio-button-group__item:focus-visible,
+  .radio-button-group__item[data-focus-visible='true'] {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--focus);
+    outline: none;
+  }
+
+  .radio-button-group__item[data-disabled='true'] {
+    pointer-events: none;
+    cursor: var(--cursor-disabled);
+    opacity: var(--disabled-opacity);
+  }
+
+  .radio-button-group__indicator {
+    position: absolute;
+    top: calc(var(--spacing) * 3);
+    inset-inline-end: calc(var(--spacing) * 4);
+  }
+
+  .radio-button-group__indicator[data-custom='true'] {
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .radio-button-group__indicator[data-custom='true'] svg {
+    width: calc(var(--spacing) * 5);
+    height: calc(var(--spacing) * 5);
+  }
+
+  [data-selected='true'] > .radio-button-group__indicator[data-custom='true'] {
+    opacity: 1;
+  }
+
+  .radio-button-group__item-content {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .radio-button-group__item-icon {
+    flex-shrink: 0;
+  }
+
+  .radio-button-group__item-icon svg {
+    width: calc(var(--spacing) * 6);
+    height: calc(var(--spacing) * 6);
+  }
+}

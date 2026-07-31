@@ -75,6 +75,7 @@ export default tseslint.config(
     files: [
       'packages/cli/**/*.ts',
       'packages/web/src/server/**/*.ts',
+      '**/scripts/**/*.{js,mjs,ts}',
       'vite.config.ts',
       '*.config.js',
       '*.config.cjs',
@@ -95,6 +96,8 @@ export default tseslint.config(
       'unused-imports': unusedImports,
     },
     rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+
       'no-console': 'warn',
 
       '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -141,6 +144,18 @@ export default tseslint.config(
           ],
         },
       ],
+    },
+  },
+
+  // UI library exceptions
+  {
+    files: ['packages/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/immutability': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
+      'no-empty': 'off',
     },
   },
 

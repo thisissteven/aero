@@ -1,0 +1,33 @@
+@layer components {
+  .chart-tooltip {
+    @apply border-separator bg-overlay shadow-overlay flex min-w-[140px] flex-col gap-1.5 rounded-lg border px-3 py-2 tabular-nums;
+  }
+
+  .chart-tooltip__header {
+    @apply text-muted text-xs font-medium;
+  }
+
+  .chart-tooltip__item {
+    @apply flex items-center gap-2;
+  }
+
+  .chart-tooltip__indicator {
+    @apply shrink-0;
+  }
+
+  .chart-tooltip__indicator--dot {
+    @apply size-2 rounded-full;
+  }
+
+  .chart-tooltip__indicator--line {
+    @apply h-3 w-1 rounded-full;
+  }
+
+  .chart-tooltip__label {
+    @apply text-muted flex-1 text-xs;
+  }
+
+  .chart-tooltip__value {
+    @apply text-foreground text-xs font-semibold;
+  }
+}

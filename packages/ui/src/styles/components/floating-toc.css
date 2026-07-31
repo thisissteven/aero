@@ -1,0 +1,142 @@
+@layer components {
+  .floating-toc__trigger {
+    --floating-toc-bar-width: 16px;
+    --floating-toc-bar-active-width: 24px;
+    --floating-toc-bar-height: 2px;
+    --floating-toc-bar-active-height: 2px;
+    --floating-toc-bar-level-step: 3px;
+    --floating-toc-bar-gap: 12px;
+    align-items: flex-end;
+    cursor: var(--cursor-interactive);
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--floating-toc-bar-gap);
+    outline: none;
+    padding: 0.25rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .floating-toc__trigger[data-placement='left'] {
+    align-items: flex-start;
+  }
+  .floating-toc__trigger:focus-visible,
+  .floating-toc__trigger[data-focus-visible='true'] {
+    box-shadow:
+      0 0 0 var(--ring-offset-width) var(--background),
+      0 0 0 calc(var(--ring-offset-width) + 2px) var(--focus);
+  }
+  .floating-toc__bar {
+    align-items: center;
+    display: flex;
+    height: var(--floating-toc-bar-active-height);
+    justify-content: flex-end;
+    width: var(--floating-toc-bar-active-width);
+  }
+  [data-placement='left'] > .floating-toc__bar {
+    justify-content: flex-start;
+  }
+  .floating-toc__bar::after {
+    background-color: var(--border);
+    border-radius: calc(var(--radius) * 0.5);
+    content: '';
+    display: block;
+    height: var(--floating-toc-bar-height);
+    transition: all 0.15s;
+    width: calc(
+      var(--floating-toc-bar-width) - (var(--floating-toc-level, 1) - 1) *
+        var(--floating-toc-bar-level-step)
+    );
+  }
+  .floating-toc__bar[data-active='true']::after {
+    background-color: var(--accent);
+    height: var(--floating-toc-bar-active-height);
+    width: calc(
+      var(--floating-toc-bar-active-width) -
+        (var(--floating-toc-level, 1) - 1) * var(--floating-toc-bar-level-step)
+    );
+  }
+  .floating-toc__content {
+    --floating-toc-item-indent: 0.75rem;
+    background-color: var(--overlay);
+    border-radius: calc(var(--radius) * 2);
+    box-shadow: var(--overlay-shadow);
+    max-height: min(60vh, 400px);
+    outline: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.375rem;
+  }
+  .floating-toc__content[data-entering] {
+    animation: floating-toc-enter 0.15s var(--ease-out);
+  }
+  .floating-toc__content[data-exiting] {
+    animation: floating-toc-exit 0.1s var(--ease-out);
+  }
+  .floating-toc__item {
+    align-items: center;
+    border-radius: var(--radius);
+    color: var(--muted);
+    cursor: var(--cursor-interactive);
+    display: flex;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    padding-block: 0.375rem;
+    padding-inline: 0.75rem;
+    padding-inline-start: calc(
+      0.75rem + (var(--floating-toc-level, 1) - 1) *
+        var(--floating-toc-item-indent)
+    );
+    position: relative;
+    text-align: start;
+    user-select: none;
+    white-space: nowrap;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) {
+    .floating-toc__item:hover,
+    .floating-toc__item[data-hovered='true'] {
+      background-color: var(--default);
+    }
+  }
+  .floating-toc__item[data-focused='true'] {
+    background-color: var(--default);
+  }
+  .floating-toc__item:active,
+  .floating-toc__item[data-pressed='true'] {
+    background-color: var(--default-hover);
+  }
+  .floating-toc__item:focus-visible,
+  .floating-toc__item[data-focus-visible='true'] {
+    box-shadow:
+      0 0 0 var(--ring-offset-width) var(--background),
+      0 0 0 calc(var(--ring-offset-width) + 2px) var(--focus);
+  }
+  .floating-toc__item:disabled,
+  .floating-toc__item[aria-disabled='true'] {
+    cursor: var(--cursor-disabled);
+    opacity: var(--disabled-opacity);
+    pointer-events: none;
+  }
+  .floating-toc__item[data-active='true'] {
+    color: var(--accent);
+  }
+  @keyframes floating-toc-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes floating-toc-exit {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .floating-toc__content[data-entering],
+    .floating-toc__content[data-exiting] {
+      animation: none;
+    }
+  }
+}

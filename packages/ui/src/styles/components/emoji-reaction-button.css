@@ -1,0 +1,61 @@
+@layer components {
+  .emoji-reaction-button {
+    @apply bg-default inline-flex items-center gap-1.5 rounded-full border border-transparent outline-none select-none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: var(--cursor-interactive);
+    transition:
+      transform 0.2s var(--ease-smooth),
+      background-color 0.1s var(--ease-out),
+      border-color 0.1s var(--ease-out),
+      box-shadow 0.1s var(--ease-out);
+    transform: translateZ(0);
+  }
+  .emoji-reaction-button[data-selected='true'] {
+    border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+    background-color: color-mix(in oklab, var(--accent) 10%, transparent);
+  }
+  .emoji-reaction-button[data-hovered='true'] {
+    background-color: var(--default);
+  }
+  .emoji-reaction-button[data-selected='true'][data-hovered='true'] {
+    background-color: color-mix(in oklab, var(--accent) 15%, transparent);
+  }
+  .emoji-reaction-button[data-focus-visible='true'] {
+    @apply ring-focus ring-offset-background ring-2 ring-offset-[var(--ring-offset-width)] outline-none;
+  }
+  .emoji-reaction-button[data-pressed='true'] {
+    transform: scale(0.95);
+  }
+  .emoji-reaction-button[data-readonly='true'] {
+    pointer-events: none;
+    cursor: default;
+  }
+  .emoji-reaction-button[data-pressed='true'][data-readonly='true'] {
+    transform: none;
+  }
+  .emoji-reaction-button:disabled,
+  .emoji-reaction-button[aria-disabled='true'] {
+    opacity: var(--disabled-opacity);
+    cursor: var(--cursor-disabled);
+    pointer-events: none;
+  }
+  .emoji-reaction-button--sm {
+    @apply px-1.5 py-1 text-xs;
+  }
+  .emoji-reaction-button--md {
+    @apply px-1.5 py-1 text-sm;
+  }
+  .emoji-reaction-button--lg {
+    @apply px-2.5 py-1.5 text-base;
+  }
+  .emoji-reaction-button__emoji {
+    line-height: 1;
+  }
+  .emoji-reaction-button__count {
+    @apply text-muted font-medium tabular-nums;
+    line-height: 1;
+  }
+  .emoji-reaction-button[data-selected='true'] .emoji-reaction-button__count {
+    color: var(--accent);
+  }
+}

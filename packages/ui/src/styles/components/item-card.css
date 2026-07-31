@@ -1,0 +1,77 @@
+@layer components {
+  .item-card {
+    align-items: center;
+    border-radius: calc(var(--radius) * 2);
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  .item-card--default {
+    background-color: var(--surface);
+    box-shadow: var(--surface-shadow);
+  }
+  .item-card--secondary {
+    background-color: var(--surface-secondary);
+  }
+  .item-card--tertiary {
+    background-color: var(--surface-tertiary);
+  }
+  :is(.item-card--secondary, .item-card--tertiary)
+    > [data-slot='item-card-icon'] {
+    background-color: color-mix(in oklab, var(--surface) 50%, transparent);
+  }
+  .item-card--outline {
+    background-color: transparent;
+    border: 1px solid var(--border);
+  }
+  .item-card--transparent {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  .item-card__icon {
+    align-items: center;
+    background-color: var(--default);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    display: flex;
+    flex-shrink: 0;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+  }
+  .item-card__icon svg {
+    height: 1rem;
+    width: 1rem;
+  }
+  .item-card__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .item-card__title {
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: fit-content;
+  }
+  .item-card__description {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    margin-top: 0.125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: fit-content;
+  }
+  .item-card__action {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    padding-inline-start: 0.5rem;
+  }
+}

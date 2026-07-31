@@ -1,0 +1,162 @@
+@layer components {
+  .emoji-picker__trigger {
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 150ms ease;
+  }
+  .emoji-picker__trigger[data-pressed='true'] {
+    transform: scale(0.97);
+  }
+  .emoji-picker__trigger[data-focus-visible='true'],
+  .emoji-picker__item[data-focus-visible='true'],
+  .emoji-picker__skin-tone-picker[data-focus-visible='true'],
+  .emoji-picker__skin-tone-option:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .emoji-picker__trigger[aria-disabled='true'],
+  .emoji-picker__item[aria-disabled='true'],
+  .emoji-picker__skin-tone-picker[aria-disabled='true'],
+  .emoji-picker__skin-tone-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .emoji-picker__value {
+    line-height: 1;
+  }
+  .emoji-picker__popover {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: calc(var(--radius) * 2);
+    background: var(--overlay);
+    color: var(--overlay-foreground);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 18%);
+    outline: none;
+  }
+  .emoji-picker__popover--sm {
+    width: 240px;
+    height: 280px;
+  }
+  .emoji-picker__popover--md {
+    width: 280px;
+    height: 350px;
+  }
+  .emoji-picker__popover--lg {
+    width: 320px;
+    height: 420px;
+  }
+  .emoji-picker__content {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    overflow: hidden;
+  }
+  .emoji-picker__grid {
+    flex: 1;
+    padding-top: 0.25rem;
+    overflow: auto;
+    scroll-padding: 4px;
+    outline: none;
+  }
+  .emoji-picker__grid:has(~ [data-slot='emoji-picker-footer']) {
+    padding-bottom: 2.5rem;
+  }
+  .emoji-picker__item {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .emoji-picker__item:hover,
+  .emoji-picker__item[data-hovered='true'],
+  .emoji-picker__item[data-focused='true'] {
+    background: var(--default);
+  }
+  .emoji-picker__item[data-pressed='true'],
+  .emoji-picker__item[data-selected='true'] {
+    background: var(--default-hover, var(--default));
+  }
+  .emoji-picker__item--sm {
+    font-size: 20px;
+  }
+  .emoji-picker__item--md {
+    font-size: 24px;
+  }
+  .emoji-picker__item--lg {
+    font-size: 28px;
+  }
+  .emoji-picker__footer {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+    background: var(--surface);
+    padding: 0.375rem 0.25rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .emoji-picker__empty {
+    display: flex;
+    height: 100%;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding-block: 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  .emoji-picker__skin-tone-options {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem;
+  }
+  .emoji-picker__skin-tone-picker {
+    display: flex;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius) * 0.75);
+    font-size: 1rem;
+    line-height: 1;
+    outline: none;
+  }
+  .emoji-picker__skin-tone-picker:hover,
+  .emoji-picker__skin-tone-picker[data-hovered='true'] {
+    background: var(--default);
+  }
+  .emoji-picker__skin-tone-option {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius) * 2);
+    padding: 0.25rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    outline: none;
+  }
+  .emoji-picker__skin-tone-option:hover,
+  .emoji-picker__skin-tone-option[data-selected='true'] {
+    background: var(--default-hover, var(--default));
+  }
+}

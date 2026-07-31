@@ -1,0 +1,120 @@
+@layer components {
+  .carousel {
+    position: relative;
+    width: 100%;
+  }
+  .carousel:focus-visible {
+    border-radius: var(--radius-lg);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .carousel__viewport-wrapper {
+    position: relative;
+  }
+  .carousel__viewport {
+    overflow: hidden;
+  }
+  .carousel__content {
+    display: flex;
+    margin-left: -0.75rem;
+    touch-action: pan-y pinch-zoom;
+  }
+  .carousel__item {
+    flex: 0 0 100%;
+    min-width: 0;
+    padding-left: 0.75rem;
+  }
+  .carousel__previous,
+  .carousel__next {
+    position: absolute;
+    top: 50%;
+    z-index: 10;
+    transform: translateY(-50%);
+  }
+  .carousel__previous {
+    left: 0.75rem;
+  }
+  .carousel__next {
+    right: 0.75rem;
+  }
+  .carousel--modal .carousel__previous {
+    left: -3rem;
+  }
+  .carousel--modal .carousel__next {
+    right: -3rem;
+  }
+  .carousel--miniatures {
+    align-items: center;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: auto 1fr auto;
+  }
+  .carousel--miniatures .carousel__viewport-wrapper {
+    grid-column: 1 / -1;
+  }
+  .carousel--miniatures .carousel__previous,
+  .carousel--miniatures .carousel__next {
+    position: static;
+    transform: none;
+  }
+  .carousel__dots {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .carousel__dot {
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--default);
+    border-radius: calc(var(--radius) * 9999);
+    cursor: var(--cursor-interactive);
+    height: 0.5rem;
+    outline: none;
+    transition: background-color 0.2s;
+    width: 0.5rem;
+  }
+  .carousel__dot:hover,
+  .carousel__dot[data-hovered='true'] {
+    background-color: var(--default-hover);
+  }
+  .carousel__dot:focus-visible,
+  .carousel__dot[data-focus-visible='true'] {
+    box-shadow: 0 0 0 2px var(--focus);
+    outline: 2px solid var(--background);
+    outline-offset: 2px;
+  }
+  .carousel__dot[data-selected='true'] {
+    background-color: var(--accent);
+  }
+  .carousel__thumbnails {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    padding: 0.125rem;
+  }
+  .carousel__thumbnails--hide-scrollbar {
+    scrollbar-width: none;
+  }
+  .carousel__thumbnails--hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .carousel__thumbnail {
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    flex: 0 0 auto;
+    height: 3.5rem;
+    overflow: hidden;
+    padding: 0;
+    width: 3.5rem;
+  }
+  .carousel__thumbnail[data-selected] {
+    border-color: var(--accent);
+  }
+  .carousel__thumbnail img {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+}

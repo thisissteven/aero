@@ -1,0 +1,96 @@
+@layer components {
+  .empty-state {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  }
+  .empty-state--sm {
+    gap: 0.75rem;
+    padding-block: 1.5rem;
+    padding-inline: 1rem;
+  }
+  .empty-state--md {
+    gap: 1rem;
+    padding-block: 2rem;
+    padding-inline: 1.5rem;
+  }
+  .empty-state--lg {
+    gap: 1.25rem;
+    padding-block: 3rem;
+    padding-inline: 2rem;
+  }
+  .empty-state__header {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .empty-state__media {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+  .empty-state__media[data-variant='icon'] {
+    background-color: var(--default);
+    border-radius: 9999px;
+    color: var(--foreground);
+  }
+  .empty-state--sm .empty-state__media[data-variant='icon'] {
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+  .empty-state--sm .empty-state__media[data-variant='icon'] svg {
+    height: 1rem;
+    width: 1rem;
+  }
+  .empty-state--md .empty-state__media[data-variant='icon'] {
+    height: 3rem;
+    width: 3rem;
+  }
+  .empty-state--md .empty-state__media[data-variant='icon'] svg {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+  .empty-state--lg .empty-state__media[data-variant='icon'] {
+    height: 3.5rem;
+    width: 3.5rem;
+  }
+  .empty-state--lg .empty-state__media[data-variant='icon'] svg {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+  .empty-state__title {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  .empty-state--sm .empty-state__title {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .empty-state--md .empty-state__title {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  .empty-state--lg .empty-state__title {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .empty-state__description {
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .empty-state--sm .empty-state__description {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  .empty-state__content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

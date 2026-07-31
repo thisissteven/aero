@@ -1,0 +1,145 @@
+@layer components {
+  .resizable {
+    --resizable-handle-size: 1px;
+    --resizable-handle-hit-area: 8px;
+    --resizable-handle-color: var(--color-separator);
+    --resizable-handle-color-hover: var(--color-separator-secondary);
+    --resizable-handle-color-active: var(--color-accent-soft);
+    --resizable-indicator-pill-width: 6px;
+    --resizable-indicator-pill-height: 32px;
+    --resizable-indicator-drag-radius: var(--radius-sm, 6px);
+    --resizable-indicator-drag-bg: var(--color-default);
+    --resizable-indicator-drag-bg-hover: var(--color-default-hover);
+    --resizable-indicator-drag-fg: var(--color-muted);
+    --resizable-indicator-drag-fg-hover: var(--color-foreground);
+    --resizable-indicator-drag-long: 20px;
+    --resizable-indicator-drag-short: 13px;
+    --resizable-indicator-drag-icon-size: 10px;
+    --resizable-indicator-radius: var(--radius-full, 9999px);
+    --resizable-transition-duration: 0.12s;
+    @apply flex size-full min-h-0 min-w-0;
+  }
+  .resizable--horizontal {
+    flex-direction: row;
+  }
+  .resizable--vertical {
+    flex-direction: column;
+  }
+  .resizable__panel {
+    @apply relative min-h-0 min-w-0 overflow-hidden;
+  }
+  .resizable__handle {
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--resizable-handle-color);
+    cursor: var(--cursor-interactive, col-resize);
+    touch-action: none;
+    user-select: none;
+    transition: background-color var(--resizable-transition-duration) ease;
+    @apply relative flex flex-none items-center justify-center outline-none;
+  }
+  .resizable__handle--horizontal {
+    width: var(--resizable-handle-size);
+    cursor: col-resize;
+  }
+  .resizable__handle--vertical {
+    height: var(--resizable-handle-size);
+    cursor: row-resize;
+  }
+  .resizable__handle::before {
+    content: '';
+    background: transparent;
+    position: absolute;
+  }
+  .resizable__handle--horizontal::before {
+    inset-block: 0;
+    left: calc(
+      (var(--resizable-handle-size) - var(--resizable-handle-hit-area)) / 2
+    );
+    right: calc(
+      (var(--resizable-handle-size) - var(--resizable-handle-hit-area)) / 2
+    );
+  }
+  .resizable__handle--vertical::before {
+    inset-inline: 0;
+    top: calc(
+      (var(--resizable-handle-size) - var(--resizable-handle-hit-area)) / 2
+    );
+    bottom: calc(
+      (var(--resizable-handle-size) - var(--resizable-handle-hit-area)) / 2
+    );
+  }
+  .resizable__handle--primary {
+    --resizable-handle-color: var(--color-separator);
+  }
+  .resizable__handle--secondary {
+    --resizable-handle-color: var(--color-separator-secondary);
+  }
+  .resizable__handle--tertiary {
+    --resizable-handle-color: var(--color-separator-tertiary);
+  }
+  .resizable__handle:hover {
+    background-color: var(--resizable-handle-color-hover);
+  }
+  .resizable__handle[data-separator='active'],
+  .resizable__handle:active {
+    background-color: var(--resizable-handle-color-active);
+  }
+  .resizable__handle:focus-visible {
+    @apply ring-focus ring-offset-background ring-2 ring-offset-[var(--ring-offset-width)] outline-none;
+  }
+  .resizable__handle[aria-disabled='true'] {
+    opacity: var(--disabled-opacity);
+    cursor: default;
+    pointer-events: none;
+  }
+  .resizable__handle-indicator {
+    @apply pointer-events-none absolute top-1/2 left-1/2 z-1 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center;
+  }
+  .resizable__handle-indicator--pill {
+    width: var(--resizable-indicator-pill-width);
+    height: var(--resizable-indicator-pill-height);
+    border-radius: var(--resizable-indicator-radius);
+    background-color: var(--color-default);
+    transition:
+      background-color var(--resizable-transition-duration) ease,
+      transform var(--resizable-transition-duration) ease;
+  }
+  .resizable__handle--vertical .resizable__handle-indicator--pill {
+    width: var(--resizable-indicator-pill-height);
+    height: var(--resizable-indicator-pill-width);
+  }
+  .resizable__handle--pill:hover .resizable__handle-indicator--pill {
+    background-color: var(--color-default-hover);
+  }
+  .resizable__handle-indicator--drag {
+    border-radius: var(--resizable-indicator-drag-radius);
+    background-color: var(--resizable-indicator-drag-bg);
+    color: var(--resizable-indicator-drag-fg);
+    transition:
+      background-color var(--resizable-transition-duration) ease,
+      color var(--resizable-transition-duration) ease;
+    @apply inline-flex items-center justify-center;
+  }
+  .resizable__handle-indicator-icon {
+    width: var(--resizable-indicator-drag-icon-size);
+    height: var(--resizable-indicator-drag-icon-size);
+    display: block;
+  }
+  .resizable__handle--horizontal .resizable__handle-indicator--drag {
+    width: var(--resizable-indicator-drag-short);
+    height: var(--resizable-indicator-drag-long);
+  }
+  .resizable__handle--vertical .resizable__handle-indicator--drag {
+    width: var(--resizable-indicator-drag-long);
+    height: var(--resizable-indicator-drag-short);
+  }
+  .resizable__handle--drag:hover .resizable__handle-indicator--drag {
+    background-color: var(--resizable-indicator-drag-bg-hover);
+    color: var(--resizable-indicator-drag-fg-hover);
+  }
+  .resizable__handle--handle,
+  .resizable__handle--handle:hover,
+  .resizable__handle--handle:active {
+    background-color: transparent;
+  }
+}

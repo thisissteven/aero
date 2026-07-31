@@ -39,3 +39,8 @@ yarn-error.log*
 CHANGELOG.md
 
 next-env.d.ts
+
+.turbo/
+storybook-static/
+
+bun.lock

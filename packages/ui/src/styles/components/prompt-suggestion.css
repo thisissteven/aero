@@ -1,0 +1,110 @@
+@layer components {
+  .prompt-suggestion {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .prompt-suggestion__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .prompt-suggestion__title {
+    color: var(--foreground);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .prompt-suggestion__description {
+    max-width: 640px;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  .prompt-suggestion__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .prompt-suggestion__group-label {
+    color: var(--foreground);
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+  .prompt-suggestion__group-description {
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  .prompt-suggestion__items {
+    display: grid;
+    width: 100%;
+    gap: 0.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .prompt-suggestion__items--card {
+    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .prompt-suggestion__item--pill {
+    display: flex;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    background: transparent;
+    padding: 0.75rem 1rem;
+    color: var(--foreground);
+    text-align: start;
+    white-space: normal;
+  }
+  .prompt-suggestion__item--pill:hover {
+    background: color-mix(in oklab, var(--default) 40%, transparent);
+  }
+  .prompt-suggestion__item-label {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    text-wrap: pretty;
+  }
+  .prompt-suggestion__item-end-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 150ms;
+  }
+  .prompt-suggestion__item--pill:hover .prompt-suggestion__item-end-icon {
+    opacity: 1;
+  }
+  .prompt-suggestion__item--card {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-radius: calc(var(--radius) * 2);
+  }
+  .prompt-suggestion__item-description {
+    font-size: 0.875rem;
+  }
+  .prompt-suggestion__item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 0;
+  }
+  .prompt-suggestion__item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+  .prompt-suggestion__item-meta {
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,81 @@
+@layer components {
+  .item-card-group {
+    border-radius: calc(var(--radius) * 2);
+  }
+  .item-card-group > [data-slot='item-card'] {
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .item-card-group--default {
+    background-color: var(--surface);
+    box-shadow: var(--surface-shadow);
+  }
+  .item-card-group--secondary {
+    background-color: var(--surface-secondary);
+  }
+  .item-card-group--tertiary {
+    background-color: var(--surface-tertiary);
+  }
+  :is(.item-card-group--secondary, .item-card-group--tertiary)
+    [data-slot='separator'] {
+    background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  }
+  :is(.item-card-group--secondary, .item-card-group--tertiary)
+    > [data-slot='item-card']
+    > [data-slot='item-card-icon'] {
+    background-color: color-mix(in oklab, var(--surface) 50%, transparent);
+  }
+  .item-card-group--outline {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+  .item-card-group--transparent {
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .item-card-group__header {
+    padding: 1rem 1rem 0.5rem;
+  }
+  .item-card-group__title {
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+  }
+  .item-card-group__description {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    margin-top: 0.125rem;
+  }
+  .item-card-group--list {
+    display: flex;
+    flex-direction: column;
+  }
+  .item-card-group--grid {
+    --item-card-group-columns: 2;
+    background-color: transparent;
+    box-shadow: none;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(
+      var(--item-card-group-columns),
+      minmax(0, 1fr)
+    );
+  }
+  .item-card-group--grid .item-card-group__header {
+    padding: 0;
+  }
+  .item-card-group--grid > [data-slot='item-card-group-header'] {
+    grid-column: 1 / -1;
+  }
+  .item-card-group--grid > [data-slot='item-card'] {
+    background-color: var(--surface);
+    border-radius: calc(var(--radius) * 2);
+    box-shadow: var(--surface-shadow);
+  }
+}
