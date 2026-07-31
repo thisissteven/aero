@@ -1,0 +1,61 @@
+<script>
+  window.__STORYBOOK_MODULE_GLOBAL__ ??= { global: window };
+
+  if (!window.__STORYBOOK_MODULE_CLIENT_LOGGER__) {
+    const levels = ["trace", "debug", "info", "warn", "error", "log"];
+    const logger = Object.fromEntries(
+      levels.map((level) => [
+        level,
+        (...args) => {
+          console[level]?.(...args);
+        },
+      ]),
+    );
+    const seenMessages = new Set();
+    const once = (level) => {
+      const seen = new Set();
+
+      return (message, ...args) => {
+        if (seen.has(message)) return;
+
+        seen.add(message);
+        logger[level](message, ...args);
+      };
+    };
+    once.clear = () => seenMessages.clear();
+    levels.forEach((level) => {
+      once[level] = (message, ...args) => {
+        const key = `${level}:${message}`;
+
+        if (seenMessages.has(key)) return;
+
+        seenMessages.add(key);
+        logger[level](message, ...args);
+      };
+    });
+
+    window.__STORYBOOK_MODULE_CLIENT_LOGGER__ = {
+      deprecate: once.warn,
+      logger,
+      once,
+      pretty: Object.assign((level) => logger[level], {
+        debug: logger.debug,
+        error: logger.error,
+        info: logger.info,
+        trace: logger.trace,
+        warn: logger.warn,
+      }),
+    };
+  }
+</script>
+
+<style>
+  html,
+  body,
+  #storybook-root {
+    height: 100%;
+    font-family:
+      ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+  }
+</style>

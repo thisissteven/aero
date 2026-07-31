@@ -5,4 +5,12 @@ export default {
   tabWidth: 2,
   semi: true,
   plugins: ['prettier-plugin-tailwindcss'],
+  overrides: [
+    {
+      files: '*.code-workspace',
+      options: {
+        trailingComma: 'none',
+      },
+    },
+  ],
 };

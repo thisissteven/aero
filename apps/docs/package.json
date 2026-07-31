@@ -1,0 +1,10 @@
+{
+  "name": "@aero/docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "lint": "bunx --bun eslint . --fix-dry-run --cache",
+    "check-types": "tsc --noEmit"
+  }
+}

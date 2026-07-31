@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+@import '@aero/ui/styles';
+
+@source '../.storybook/**/*.{ts,tsx,mdx}';
+@source '../src/components/**/*.{ts,tsx,js,jsx}';
+@source '../../../packages/uikit/src/**/*.{ts,tsx}';
+
+:root {
+  --cursor-interactive: pointer;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark theme overrides using data-theme or class */
+[data-theme='dark'],
+.dark {
+  --cursor-interactive: pointer;
+}
+
+body {
+  background-color: var(--background);
+}

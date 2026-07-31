@@ -7,6 +7,8 @@ import storybook from 'eslint-plugin-storybook';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default tseslint.config(
   // Ignore
@@ -34,12 +36,25 @@ export default tseslint.config(
     },
   },
 
+  {
+    files: ['apps/storybook/**/*.{ts,tsx}'],
+    plugins: {
+      'react-refresh': reactRefresh,
+      'jsx-a11y': jsxA11y,
+    },
+    rules: {
+      'react-refresh/only-export-components': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'jsx-a11y/anchor-is-valid': 'warn',
+    },
+  },
+
   // React projects
   {
     files: [
       'packages/ui/**/*.{ts,tsx}',
       'packages/web/src/client/**/*.{ts,tsx}',
-      'app/storybook/**/*.{ts,tsx}',
+      'apps/storybook/**/*.{ts,tsx}',
     ],
     plugins: {
       react,
@@ -60,6 +75,7 @@ export default tseslint.config(
 
       'react/no-unescaped-entities': 'off',
       'react/display-name': 'off',
+
       'react/jsx-curly-brace-presence': [
         'warn',
         {
@@ -149,7 +165,7 @@ export default tseslint.config(
 
   // UI library exceptions
   {
-    files: ['packages/ui/**/*.{ts,tsx}'],
+    files: ['packages/ui/**/*.{ts,tsx}', 'apps/storybook/**/*.{ts,tsx}'],
     rules: {
       'react-hooks/immutability': 'off',
       'react-hooks/refs': 'off',

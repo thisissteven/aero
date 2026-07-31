@@ -1,0 +1,51 @@
+{
+  "name": "@aero/storybook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev --host 127.0.0.1 --port 6006 --no-open",
+    "build": "storybook build",
+    "lint": "bunx --bun eslint . --fix-dry-run --cache"
+  },
+  "dependencies": {
+    "@heroui/react": "catalog:",
+    "@heroui/styles": "catalog:",
+    "@internationalized/date": "catalog:",
+    "@react-stately/data": "catalog:",
+    "@react-types/shared": "catalog:",
+    "@aero/ui": "workspace:*",
+    "apcach": "0.6.4",
+    "culori": "4.0.2",
+    "react": "catalog:",
+    "react-aria-components": "catalog:",
+    "react-dom": "catalog:",
+    "react-scan": "0.5.7",
+    "react-stately": "catalog:",
+    "streamdown": "^2.5.0",
+    "tailwind-merge": "3.6.0",
+    "tailwind-variants": "3.3.0"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "10.5.5",
+    "@storybook/addon-docs": "10.5.5",
+    "@storybook/icons": "2.1.0",
+    "@storybook/react": "10.5.5",
+    "@storybook/react-vite": "10.5.5",
+    "@tailwindcss/postcss": "4.3.3",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "6.0.4",
+    "embla-carousel": "^8.6.0",
+    "embla-carousel-autoplay": "^8.6.0",
+    "emojibase-data": "17.0.0",
+    "glob": "13.0.6",
+    "postcss": "8.5.24",
+    "storybook": "10.5.5",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "8.1.5"
+  }
+}

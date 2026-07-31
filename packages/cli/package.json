@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup",
-    "lint": "eslint .",
+    "lint": "bunx --bun eslint . --fix-dry-run --cache",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {},

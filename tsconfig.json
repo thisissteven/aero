@@ -10,13 +10,13 @@
     "moduleResolution": "Bundler",
 
     "resolveJsonModule": true,
-    "allowJs": false,
-
     "isolatedModules": true,
     "noEmit": true,
 
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+
+    "incremental": true,
 
     "baseUrl": "."
   }

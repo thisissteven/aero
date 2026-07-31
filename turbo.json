@@ -10,7 +10,10 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "cache": true,
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "eslint.config.js"],
+      "outputs": []
     },
     "check-types": {
       "dependsOn": ["^check-types"]
