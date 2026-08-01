@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "bunx --bun eslint . --fix-dry-run --cache",
+    "lint": "bun run lint:ts && bun run lint:css",
+    "lint:ts": "bunx --bun eslint . --fix-dry-run --cache",
+    "lint:css": "stylelint \"src/**/*.css\" --fix",
     "preview": "vite preview"
   },
   "dependencies": {
