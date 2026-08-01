@@ -13,7 +13,7 @@ const meta = {
   title: 'Components/Buttons/Segment',
 } satisfies Meta<typeof Segment>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const items = [
   { id: 'dashboard', label: 'Dashboard' },

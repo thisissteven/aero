@@ -40,7 +40,7 @@ const meta = {
   title: 'Components/Forms/RichTextEditor',
 } satisfies Meta<typeof RichTextEditor>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const article: JSONContent = {
   type: 'doc',

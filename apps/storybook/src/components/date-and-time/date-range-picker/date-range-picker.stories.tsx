@@ -25,7 +25,7 @@ const meta: Meta<typeof DateRangePicker> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 type DateRange = {
   start: DateValue;

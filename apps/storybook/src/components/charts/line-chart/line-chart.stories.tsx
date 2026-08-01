@@ -20,7 +20,7 @@ const meta = {
 } satisfies Meta<typeof LineChart>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const trafficData = [
   { month: 'Jan', organic: 2000, paidAds: 1000 },

@@ -20,7 +20,7 @@ const meta = {
   title: 'Components/Forms/CheckboxButtonGroup',
 } satisfies Meta<typeof CheckboxButtonGroup>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const features = [
   {

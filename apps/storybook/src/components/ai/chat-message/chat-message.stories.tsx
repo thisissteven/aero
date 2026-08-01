@@ -9,7 +9,7 @@ const meta = {
   title: 'Components/AI/ChatMessage',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <div className='mx-auto flex w-full max-w-[714px] flex-col gap-8'>
     {children}

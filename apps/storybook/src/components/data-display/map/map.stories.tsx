@@ -22,7 +22,7 @@ const meta = {
   title: 'Components/Data Display/Map',
 } satisfies Meta<typeof Map>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const styles = {
   dark: '/assets/maps/dark-matter.json',

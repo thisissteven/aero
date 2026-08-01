@@ -23,7 +23,7 @@ const meta = {
   title: 'Components/Buttons/ActionBar',
 } satisfies Meta<typeof ActionBar>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const files = [
   'Project proposal.pdf',

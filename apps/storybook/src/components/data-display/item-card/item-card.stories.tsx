@@ -22,7 +22,7 @@ const meta = {
   title: 'Components/Data Display/ItemCard',
 } satisfies Meta<typeof ItemCard>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const Glyph = ({ icon }: { icon: string }) => <Icon icon={icon} />;
 const Arrow = () => (
   <Icon className='text-muted size-4' icon='solar:alt-arrow-right-linear' />

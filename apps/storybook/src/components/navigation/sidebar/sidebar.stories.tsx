@@ -48,7 +48,7 @@ const meta = {
   title: 'Components/Navigation/Sidebar',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const nav = [
   { icon: Home01Icon, label: 'Dashboard' },
   {

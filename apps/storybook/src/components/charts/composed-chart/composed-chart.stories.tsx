@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Charts/ComposedChart',
 } satisfies Meta<typeof ComposedChart>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 function Legend({
   items,

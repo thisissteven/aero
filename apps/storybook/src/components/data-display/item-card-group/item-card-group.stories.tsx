@@ -22,7 +22,7 @@ const meta = {
   title: 'Components/Data Display/ItemCardGroup',
 } satisfies Meta<typeof ItemCardGroup>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 type Item = {
   action?: React.ReactNode;
   description?: string;

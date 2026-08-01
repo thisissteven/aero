@@ -14,7 +14,7 @@ const meta = {
   title: 'Components/Navigation/Stepper',
 } satisfies Meta<typeof Stepper>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const basic = ['Cart', 'Shipping', 'Payment', 'Confirmation'];
 const detailed = [
   ['Account', 'Create your account'],

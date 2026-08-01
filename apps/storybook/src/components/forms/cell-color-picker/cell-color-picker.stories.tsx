@@ -17,7 +17,7 @@ const meta = {
   title: 'Components/Forms/CellColorPicker',
 } satisfies Meta<typeof CellColorPicker>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 function PickerControls() {
   return (

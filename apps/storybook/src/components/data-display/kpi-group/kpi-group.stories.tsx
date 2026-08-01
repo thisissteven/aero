@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Data Display/KPIGroup',
 } satisfies Meta<typeof KPIGroup>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const horizontal = [
   {
     title: 'Total Subscribers',

@@ -32,7 +32,7 @@ const meta = {
   title: 'Components/AI/PromptSuggestion',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 export const Default: Story = {
   render: () => (
     <div className='mx-auto w-full max-w-[714px]'>

@@ -1,7 +1,7 @@
-@layer components {
-  .radar-chart {
-    width: 100%;
-  }
+/*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
+
+.radar-chart {
+  width: 100%;
 }
 
 .radar-chart .recharts-polar-angle-axis-tick-value {

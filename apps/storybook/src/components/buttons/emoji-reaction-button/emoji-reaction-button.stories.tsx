@@ -10,7 +10,7 @@ const meta = {
   title: 'Components/Buttons/EmojiReactionButton',
 } satisfies Meta<typeof EmojiReactionButton>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const initial = {
   '❤️': { count: 12, selected: true },

@@ -18,7 +18,7 @@ const meta = {
 } satisfies Meta<typeof BarChart>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const sales = [18, 32, 28, 45, 38, 52, 42, 55, 48, 60, 53, 58].map(
   (value, index) => ({

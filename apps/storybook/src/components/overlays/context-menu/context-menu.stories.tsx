@@ -13,7 +13,7 @@ const meta = {
   title: 'Components/Overlays/ContextMenu',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const Trigger = ({ children = 'Right-click here' }: { children?: string }) => (
   <ContextMenu.Trigger>
     <div className='border-border text-muted flex h-48 w-80 items-center justify-center rounded-xl border border-dashed text-sm select-none'>

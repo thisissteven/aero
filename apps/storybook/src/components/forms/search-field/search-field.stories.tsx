@@ -24,7 +24,7 @@ const meta: Meta<typeof SearchField> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 export const Default: Story = {
   render: () => (

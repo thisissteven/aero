@@ -26,7 +26,7 @@ const meta = {
   title: 'Components/Collections/FileTree',
 } satisfies Meta<typeof FileTree>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const FolderIcon = ({ isExpanded }: FileTreeItemRenderProps) => (
   <Icon icon={isExpanded ? 'lucide:folder-open' : 'lucide:folder'} />

@@ -1,31 +1,35 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+import { readFileSync as fsReadFileSync } from 'fs';
 import { sync as globSync } from 'glob';
-import { existsSync, readFileSync as fsReadFileSync } from 'node:fs';
-import { dirname, join as pathJoin } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'module';
+import { dirname, join as pathJoin } from 'path';
+import { fileURLToPath } from 'url';
 
-const filename = fileURLToPath(import.meta.url);
-const storybookConfigDir = dirname(filename);
-const componentStoryGlob = pathJoin(
-  storybookConfigDir,
-  '../src/components/**/*.stories.@(ts|tsx)',
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
+const reactScanDist = pathJoin(
+  dirname(require.resolve('react-scan/package.json')),
+  'dist',
 );
-const sharedAssetsDir = pathJoin(
-  storybookConfigDir,
-  '../../docs/public/assets',
-);
-const hasAssetCdn = Boolean(process.env.NEXT_PUBLIC_CDN_URL);
 
 export const getStories = () => {
-  const isStorybookReadyOnly = process.env.STORYBOOK_READY_ONLY === 'true';
+  const __STORYBOOK_READY_ONLY__ = process.env.STORYBOOK_READY_ONLY === 'true';
 
-  if (!isStorybookReadyOnly) return [componentStoryGlob];
+  if (!__STORYBOOK_READY_ONLY__)
+    return ['../src/components/**/*.stories.@(ts|tsx)'];
 
-  const readyStories = globSync(componentStoryGlob).filter((file) => {
-    const content = fsReadFileSync(file, 'utf-8');
+  const absoluteGlobForSearching = pathJoin(
+    __dirname,
+    '../src/components/**/*.stories.@(ts|tsx)',
+  ).replace(/\\/g, '/');
 
-    return /title:\s*["']Components/.test(content);
-  });
+  const readyStories = globSync(absoluteGlobForSearching).filter(
+    (file: string) => {
+      const content = fsReadFileSync(file, 'utf-8');
+      return /title:\s*["']Components/.test(content);
+    },
+  );
 
   return readyStories;
 };
@@ -42,10 +46,11 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: [
-    pathJoin(storybookConfigDir, '../public'),
-    ...(!hasAssetCdn && existsSync(sharedAssetsDir)
-      ? [{ from: sharedAssetsDir, to: '/assets' }]
-      : []),
+    pathJoin(__dirname, '../public'),
+    {
+      from: reactScanDist,
+      to: '/react-scan',
+    },
   ],
   stories: [
     './welcome.mdx',

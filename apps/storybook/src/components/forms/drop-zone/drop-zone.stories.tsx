@@ -22,7 +22,7 @@ const meta = {
   title: 'Components/Forms/DropZone',
 } satisfies Meta<typeof DropZone>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 type Upload = {
   id: string;

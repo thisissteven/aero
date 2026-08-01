@@ -832,7 +832,7 @@ export const CustomPortal = () => {
             <Button>Open Alert Dialog</Button>
             <AlertDialog.Backdrop
               className='h-full'
-              UNSTABLE_portalContainer={portalContainer}
+              UNSTABLE_portalContainer={portalContainer ?? undefined}
             >
               <AlertDialog.Container className='h-full max-h-full'>
                 <AlertDialog.Dialog className='h-full max-h-full sm:max-w-md'>

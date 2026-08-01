@@ -80,7 +80,7 @@ const meta = {
   title: 'Components/Navigation/FloatingTOC',
 } satisfies Meta<typeof FloatingToc>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 function Basic({
   placement = 'right',

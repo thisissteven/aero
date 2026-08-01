@@ -13,7 +13,7 @@ const meta = {
   title: 'Components/Layout/Resizable',
 } satisfies Meta<typeof Resizable>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const Content = ({
   children,

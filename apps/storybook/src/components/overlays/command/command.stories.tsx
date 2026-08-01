@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Overlays/Command',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const actions = [
   ['Create new file...', 'lucide:file-plus-2'],
   ['Create new folder...', 'lucide:folder-plus'],

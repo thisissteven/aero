@@ -1,12 +1,15 @@
 import type { Preview } from '@storybook/react';
 
-// oxlint-disable-next-line import/no-unassigned-import
 import './globals.css';
 
 import { withInternationalization } from './addons/i18n/decorator';
 import { i18nGlobalType } from './addons/i18n/preview';
+import { DEFAULT_REACT_SCAN } from './addons/react-scan/constants';
 import { withReactScan } from './addons/react-scan/decorator';
-import { reactScanGlobalType } from './addons/react-scan/preview';
+import {
+  REACT_SCAN_GLOBAL_TYPE_ID,
+  reactScanGlobalType,
+} from './addons/react-scan/preview';
 import { withReduceMotion } from './addons/reduce-motion/decorator';
 import { reduceMotionGlobalType } from './addons/reduce-motion/preview';
 import { withReactStrictMode } from './addons/strict-mode/decorator';
@@ -54,6 +57,9 @@ const preview: Preview = {
   decorators,
   parameters,
   globalTypes,
+  initialGlobals: {
+    [REACT_SCAN_GLOBAL_TYPE_ID]: DEFAULT_REACT_SCAN,
+  },
   tags: ['autodocs'],
 };
 

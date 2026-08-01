@@ -7,7 +7,7 @@ const meta = {
   title: 'Components/AI/ChatTool',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const Assistant = ({ children }: { children: React.ReactNode }) => (
   <ChatMessage.Assistant>
     <ChatMessage.Avatar show alt='Assistant' fallback='AI' />

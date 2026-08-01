@@ -13,7 +13,7 @@ const meta = {
   title: 'Components/Charts/RadialChart',
 } satisfies Meta<typeof RadialChart>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 interface RadialTooltipProps {
   payload?: Array<{

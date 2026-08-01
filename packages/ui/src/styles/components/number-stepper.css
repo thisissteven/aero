@@ -1,123 +1,542 @@
-@layer components {
-  .number-stepper {
-    @apply inline-flex shrink-0;
+/*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
+@layer properties {
+  @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or
+    ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
+    *,
+    ::before,
+    ::after,
+    ::backdrop {
+      --tw-border-style: solid;
+      --tw-shadow: 0 0 #0000;
+      --tw-shadow-color: initial;
+      --tw-shadow-alpha: 100%;
+      --tw-inset-shadow: 0 0 #0000;
+      --tw-inset-shadow-color: initial;
+      --tw-inset-shadow-alpha: 100%;
+      --tw-ring-color: initial;
+      --tw-ring-shadow: 0 0 #0000;
+      --tw-inset-ring-color: initial;
+      --tw-inset-ring-shadow: 0 0 #0000;
+      --tw-ring-inset: initial;
+      --tw-ring-offset-width: 0px;
+      --tw-ring-offset-color: #fff;
+      --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-font-weight: initial;
+    }
   }
+}
 
-  .number-stepper__group {
-    @apply bg-default inline-flex items-center gap-0 rounded-full border-0 p-0 shadow-none;
-  }
+.number-stepper {
+  flex-shrink: 0;
+  display: inline-flex;
+}
 
-  .number-stepper__input {
-    @apply sr-only;
-  }
+.number-stepper__group {
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 0);
+  border-style: var(--tw-border-style);
+  background-color: var(--default);
+  padding: calc(var(--spacing, 0.25rem) * 0);
+  --tw-shadow: 0 0 #0000;
+  box-shadow:
+    var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  border-width: 0;
+  border-radius: 3.40282e38px;
+  display: inline-flex;
+}
 
+.number-stepper__input {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+
+.number-stepper__decrement-button,
+.number-stepper__increment-button {
+  height: calc(var(--spacing, 0.25rem) * 9);
+  width: calc(var(--spacing, 0.25rem) * 9);
+  border-style: var(--tw-border-style);
+  background-color: var(--surface);
+  --tw-shadow: var(--surface-shadow);
+  box-shadow:
+    var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  --tw-outline-style: none;
+  -webkit-tap-highlight-color: transparent;
+  border-width: 0;
+  border-radius: 3.40282e38px;
+  outline-style: none;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+
+@media (width >=48rem) {
   .number-stepper__decrement-button,
   .number-stepper__increment-button {
-    @apply bg-surface text-muted shadow-surface relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 outline-none;
-    transform: translateZ(0);
-    transition:
-      background-color 100ms ease-out,
-      box-shadow 100ms ease-out,
-      transform 250ms var(--ease-smooth);
+    height: calc(var(--spacing, 0.25rem) * 8);
+    width: calc(var(--spacing, 0.25rem) * 8);
   }
+}
 
-  .number-stepper__decrement-button:hover,
-  .number-stepper__decrement-button[data-hovered],
-  .number-stepper__increment-button:hover,
-  .number-stepper__increment-button[data-hovered] {
-    @apply text-foreground;
+.number-stepper__decrement-button,
+.number-stepper__increment-button {
+  cursor: var(--cursor-interactive);
+  transition:
+    background-color 0.1s var(--ease-out),
+    box-shadow 0.1s var(--ease-out),
+    transform 0.25s var(--ease-smooth);
+  transform: translateZ(0) var(--tw-rotate-x,) var(--tw-rotate-y,)
+    var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
+}
+
+:is(.number-stepper__decrement-button, .number-stepper__increment-button):is(
+  [data-reduce-motion='true'],
+  [data-reduce-motion='true'] *
+),
+:is(.number-stepper__decrement-button, .number-stepper__increment-button):is(
+    [data-reduce-motion='true'],
+    [data-reduce-motion='true'] *
+  )::before,
+:is(.number-stepper__decrement-button, .number-stepper__increment-button):is(
+    [data-reduce-motion='true'],
+    [data-reduce-motion='true'] *
+  )::after {
+  transition-property: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button):not(
+    :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+  ),
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button):not(
+      :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+    )::before,
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button):not(
+      :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+    )::after {
+    transition-property: none;
   }
+}
 
-  .number-stepper__decrement-button:focus-visible,
-  .number-stepper__decrement-button[data-focus-visible],
-  .number-stepper__increment-button:focus-visible,
-  .number-stepper__increment-button[data-focus-visible] {
-    @apply ring-focus ring-offset-background ring-2 ring-offset-2;
+:is(.number-stepper__decrement-button, .number-stepper__increment-button) svg {
+  width: calc(var(--spacing, 0.25rem) * 4);
+  height: calc(var(--spacing, 0.25rem) * 4);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+:is(.number-stepper__decrement-button, .number-stepper__increment-button)
+  svg:is([data-reduce-motion='true'], [data-reduce-motion='true'] *),
+:is(.number-stepper__decrement-button, .number-stepper__increment-button)
+  svg:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::before,
+:is(.number-stepper__decrement-button, .number-stepper__increment-button)
+  svg:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::after {
+  transition-property: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button)
+    svg:not(:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)),
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button)
+    svg:not(
+      :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+    )::before,
+  :is(.number-stepper__decrement-button, .number-stepper__increment-button)
+    svg:not(
+      :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+    )::after {
+    transition-property: none;
   }
+}
 
-  .number-stepper__decrement-button:disabled,
-  .number-stepper__decrement-button[data-disabled],
-  .number-stepper__increment-button:disabled,
-  .number-stepper__increment-button[data-disabled] {
-    @apply pointer-events-none cursor-not-allowed opacity-50;
+@media (hover: hover) {
+  :is(
+      :is(
+        .number-stepper__decrement-button,
+        .number-stepper__increment-button
+      ):hover,
+      :is(
+        .number-stepper__decrement-button,
+        .number-stepper__increment-button
+      )[data-hovered='true']
+    )
+    svg {
+    color: var(--foreground);
   }
+}
 
-  .number-stepper__decrement-button > svg,
-  .number-stepper__increment-button > svg {
-    @apply shrink-0;
+:is(
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button
+):active,
+:is(
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button
+)[data-pressed='true'] {
+  transform: scale(0.97);
+}
+
+:is(
+    .number-stepper__decrement-button,
+    .number-stepper__increment-button
+  ):focus-visible:not(:focus),
+:is(
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button
+)[data-focus-visible='true'] {
+  --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0
+    calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+  box-shadow:
+    var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  --tw-ring-color: var(--focus);
+  --tw-ring-offset-width: var(--ring-offset-width);
+  --tw-ring-offset-shadow: var(--tw-ring-inset,) 0 0 0
+    var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-offset-color: var(--background);
+  --tw-outline-style: none;
+  outline-style: none;
+}
+
+:is(
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button
+):disabled,
+:is(
+  .number-stepper__decrement-button,
+  .number-stepper__increment-button
+)[aria-disabled='true'] {
+  opacity: var(--disabled-opacity);
+  cursor: var(--cursor-disabled);
+  pointer-events: none;
+}
+
+.number-stepper__value {
+  --tw-font-weight: var(--font-weight-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  justify-content: center;
+  align-items: center;
+  line-height: 0.85;
+  display: flex;
+}
+
+.number-stepper__group--sm {
+  gap: calc(var(--spacing, 0.25rem) * 0);
+  padding: calc(var(--spacing, 0.25rem) * 0.5);
+  border-radius: 3.40282e38px;
+}
+
+@media (width >=48rem) {
+  .number-stepper__group--sm {
+    padding: calc(var(--spacing, 0.25rem) * 0.5);
   }
+}
 
-  .number-stepper__value {
-    @apply text-foreground flex items-center justify-center leading-[0.85] font-semibold tabular-nums;
-  }
+.number-stepper__decrement-button--sm,
+.number-stepper__increment-button--sm {
+  height: calc(var(--spacing, 0.25rem) * 8);
+  width: calc(var(--spacing, 0.25rem) * 8);
+}
 
-  .number-stepper__group--sm,
-  .number-stepper__group--md,
-  .number-stepper__group--lg {
-    @apply p-0.5;
-  }
-
+@media (width >=48rem) {
   .number-stepper__decrement-button--sm,
   .number-stepper__increment-button--sm {
-    @apply size-8 md:size-7;
+    height: calc(var(--spacing, 0.25rem) * 7);
+    width: calc(var(--spacing, 0.25rem) * 7);
   }
+}
 
-  .number-stepper__decrement-button--sm > svg,
-  .number-stepper__increment-button--sm > svg {
-    @apply size-3.5;
-  }
+:is(
+    .number-stepper__decrement-button--sm,
+    .number-stepper__increment-button--sm
+  )
+  svg {
+  width: calc(var(--spacing, 0.25rem) * 3.5);
+  height: calc(var(--spacing, 0.25rem) * 3.5);
+}
 
-  .number-stepper__decrement-button--sm:active,
-  .number-stepper__decrement-button--sm[data-pressed],
-  .number-stepper__increment-button--sm:active,
-  .number-stepper__increment-button--sm[data-pressed],
-  .number-stepper__decrement-button--md:active,
-  .number-stepper__decrement-button--md[data-pressed],
-  .number-stepper__increment-button--md:active,
-  .number-stepper__increment-button--md[data-pressed] {
-    transform: scale(0.98) translateZ(0);
-  }
+:is(
+  .number-stepper__decrement-button--sm,
+  .number-stepper__increment-button--sm
+):active,
+:is(
+  .number-stepper__decrement-button--sm,
+  .number-stepper__increment-button--sm
+)[data-pressed='true'] {
+  transform: scale(0.98);
+}
 
+.number-stepper__value--sm {
+  min-width: calc(var(--spacing, 0.25rem) * 6);
+  font-size: var(--text-xs, 0.75rem);
+  line-height: var(--tw-leading, var(--text-xs--line-height, calc(1 / 0.75)));
+}
+
+@media (width >=48rem) {
   .number-stepper__value--sm {
-    @apply h-8 min-w-6 text-xs md:h-7 md:min-w-5;
+    min-width: calc(var(--spacing, 0.25rem) * 5);
   }
+}
 
+.number-stepper__value--sm {
+  height: calc(var(--spacing, 0.25rem) * 8);
+}
+
+@media (width >=48rem) {
+  .number-stepper__value--sm {
+    height: calc(var(--spacing, 0.25rem) * 7);
+  }
+}
+
+.number-stepper__group--md {
+  gap: calc(var(--spacing, 0.25rem) * 0);
+  padding: calc(var(--spacing, 0.25rem) * 0.5);
+  border-radius: 3.40282e38px;
+}
+
+@media (width >=48rem) {
+  .number-stepper__group--md {
+    padding: calc(var(--spacing, 0.25rem) * 0.5);
+  }
+}
+
+.number-stepper__decrement-button--md,
+.number-stepper__increment-button--md {
+  height: calc(var(--spacing, 0.25rem) * 9);
+  width: calc(var(--spacing, 0.25rem) * 9);
+}
+
+@media (width >=48rem) {
   .number-stepper__decrement-button--md,
   .number-stepper__increment-button--md {
-    @apply size-9 md:size-8;
+    height: calc(var(--spacing, 0.25rem) * 8);
+    width: calc(var(--spacing, 0.25rem) * 8);
   }
+}
 
-  .number-stepper__decrement-button--md > svg,
-  .number-stepper__increment-button--md > svg {
-    @apply size-4;
-  }
+:is(
+    .number-stepper__decrement-button--md,
+    .number-stepper__increment-button--md
+  )
+  svg {
+  width: calc(var(--spacing, 0.25rem) * 4);
+  height: calc(var(--spacing, 0.25rem) * 4);
+}
 
+:is(
+  .number-stepper__decrement-button--md,
+  .number-stepper__increment-button--md
+):active,
+:is(
+  .number-stepper__decrement-button--md,
+  .number-stepper__increment-button--md
+)[data-pressed='true'] {
+  transform: scale(0.98);
+}
+
+.number-stepper__value--md {
+  min-width: calc(var(--spacing, 0.25rem) * 7);
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(
+    --tw-leading,
+    var(--text-sm--line-height, calc(1.25 / 0.875))
+  );
+}
+
+@media (width >=48rem) {
   .number-stepper__value--md {
-    @apply h-9 min-w-7 text-sm md:h-8 md:min-w-6;
+    min-width: calc(var(--spacing, 0.25rem) * 6);
   }
+}
 
+.number-stepper__value--md {
+  height: calc(var(--spacing, 0.25rem) * 9);
+}
+
+@media (width >=48rem) {
+  .number-stepper__value--md {
+    height: calc(var(--spacing, 0.25rem) * 8);
+  }
+}
+
+.number-stepper__group--lg {
+  gap: calc(var(--spacing, 0.25rem) * 0.5);
+  padding: calc(var(--spacing, 0.25rem) * 0.5);
+  border-radius: 3.40282e38px;
+}
+
+@media (width >=48rem) {
   .number-stepper__group--lg {
-    @apply gap-0.5;
+    padding: calc(var(--spacing, 0.25rem) * 0.5);
   }
+}
 
+.number-stepper__decrement-button--lg,
+.number-stepper__increment-button--lg {
+  height: calc(var(--spacing, 0.25rem) * 10);
+  width: calc(var(--spacing, 0.25rem) * 10);
+}
+
+@media (width >=48rem) {
   .number-stepper__decrement-button--lg,
   .number-stepper__increment-button--lg {
-    @apply size-10 md:size-9;
+    height: calc(var(--spacing, 0.25rem) * 9);
+    width: calc(var(--spacing, 0.25rem) * 9);
   }
+}
 
-  .number-stepper__decrement-button--lg > svg,
-  .number-stepper__increment-button--lg > svg {
-    @apply size-5 md:size-4;
+:is(
+    .number-stepper__decrement-button--lg,
+    .number-stepper__increment-button--lg
+  )
+  svg {
+  width: calc(var(--spacing, 0.25rem) * 5);
+  height: calc(var(--spacing, 0.25rem) * 5);
+}
+
+@media (width >=48rem) {
+  :is(
+      .number-stepper__decrement-button--lg,
+      .number-stepper__increment-button--lg
+    )
+    svg {
+    width: calc(var(--spacing, 0.25rem) * 4);
+    height: calc(var(--spacing, 0.25rem) * 4);
   }
+}
 
-  .number-stepper__decrement-button--lg:active,
-  .number-stepper__decrement-button--lg[data-pressed],
-  .number-stepper__increment-button--lg:active,
-  .number-stepper__increment-button--lg[data-pressed] {
-    transform: scale(0.96) translateZ(0);
-  }
+:is(
+  .number-stepper__decrement-button--lg,
+  .number-stepper__increment-button--lg
+):active,
+:is(
+  .number-stepper__decrement-button--lg,
+  .number-stepper__increment-button--lg
+)[data-pressed='true'] {
+  transform: scale(0.96);
+}
 
+.number-stepper__value--lg {
+  min-width: calc(var(--spacing, 0.25rem) * 8);
+  font-size: var(--text-base, 1rem);
+  line-height: var(--tw-leading, var(--text-base--line-height, calc(1.5 / 1)));
+}
+
+@media (width >=48rem) {
   .number-stepper__value--lg {
-    @apply h-10 min-w-8 text-base md:h-9 md:min-w-7;
+    min-width: calc(var(--spacing, 0.25rem) * 7);
   }
+}
+
+.number-stepper__value--lg {
+  height: calc(var(--spacing, 0.25rem) * 10);
+}
+
+@media (width >=48rem) {
+  .number-stepper__value--lg {
+    height: calc(var(--spacing, 0.25rem) * 9);
+  }
+}
+
+@property --tw-border-style {
+  syntax: '*';
+  inherits: false;
+  initial-value: solid;
+}
+
+@property --tw-shadow {
+  syntax: '*';
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+
+@property --tw-shadow-color {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --tw-shadow-alpha {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --tw-inset-shadow {
+  syntax: '*';
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+
+@property --tw-inset-shadow-color {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --tw-inset-shadow-alpha {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --tw-ring-color {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --tw-ring-shadow {
+  syntax: '*';
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+
+@property --tw-inset-ring-color {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --tw-inset-ring-shadow {
+  syntax: '*';
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+
+@property --tw-ring-inset {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --tw-ring-offset-width {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --tw-ring-offset-color {
+  syntax: '*';
+  inherits: false;
+  initial-value: #fff;
+}
+
+@property --tw-ring-offset-shadow {
+  syntax: '*';
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+
+@property --tw-font-weight {
+  syntax: '*';
+  inherits: false;
 }

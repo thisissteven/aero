@@ -35,7 +35,7 @@ const meta: Meta<typeof ComboBox> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const handleComboBoxRequiredSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();

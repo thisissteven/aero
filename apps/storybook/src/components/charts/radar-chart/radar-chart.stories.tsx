@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Charts/RadarChart',
 } satisfies Meta<typeof RadarChart>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const skills = [
   { category: 'Design', score: 86 },

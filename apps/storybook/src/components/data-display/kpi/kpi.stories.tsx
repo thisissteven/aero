@@ -15,7 +15,7 @@ const meta = {
   title: 'Components/Data Display/KPI (Key Performance Indicator)',
 } satisfies Meta<typeof KPI>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const up = [
   { value: 30 },
   { value: 35 },

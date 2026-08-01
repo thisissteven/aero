@@ -62,7 +62,7 @@ const meta = {
   title: 'Components/Collections/DataGrid',
 } satisfies Meta<typeof DataGrid>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 type Payment = {
   amount: number;

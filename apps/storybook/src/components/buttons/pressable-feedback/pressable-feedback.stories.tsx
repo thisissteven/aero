@@ -20,7 +20,7 @@ const meta = {
   title: 'Components/Buttons/PressableFeedback',
 } satisfies Meta<typeof PressableFeedback>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const variants = [
   'primary',

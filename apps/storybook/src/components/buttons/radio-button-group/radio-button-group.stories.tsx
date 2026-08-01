@@ -21,7 +21,7 @@ const meta = {
   title: 'Components/Buttons/RadioButtonGroup',
 } satisfies Meta<typeof RadioButtonGroup>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const plans = [
   {

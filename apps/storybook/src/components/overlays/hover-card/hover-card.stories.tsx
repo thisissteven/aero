@@ -14,7 +14,7 @@ const meta = {
   title: 'Components/Overlays/HoverCard',
 } satisfies Meta<typeof HoverCard>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 function Profile() {
   return (

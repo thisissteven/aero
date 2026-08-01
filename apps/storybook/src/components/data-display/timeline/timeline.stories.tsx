@@ -38,7 +38,7 @@ const meta = {
   title: 'Components/Data Display/Timeline',
 } satisfies Meta<typeof Timeline>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const TimelineGlyph = ({ icon }: { icon: IconSvgElement }) => (
   <HugeiconsIcon aria-hidden icon={icon} strokeWidth={2} />

@@ -266,7 +266,7 @@ const meta = {
 } satisfies Meta;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 export const Default: Story = { render: () => <DefaultDemo /> };
 export const Sizes: Story = { render: () => <SizesDemo /> };

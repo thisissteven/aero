@@ -22,7 +22,7 @@ const meta: Meta<typeof ColorField> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const DEFAULT_COLOR = parseColor('#0485F7');
 

@@ -7,7 +7,7 @@ const meta = {
   title: 'Components/AI/ChatLoader',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 export const Default: Story = {
   render: () => (
     <div className='flex w-[420px] flex-col gap-8'>

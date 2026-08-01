@@ -19,7 +19,7 @@ const meta = {
   title: 'Components/Data Display/Widget',
 } satisfies Meta<typeof Widget>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const months = [
   'Jan',
   'Feb',

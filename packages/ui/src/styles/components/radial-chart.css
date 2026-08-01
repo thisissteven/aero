@@ -1,17 +1,17 @@
-@layer components {
-  .radial-chart {
-    @apply w-full;
-  }
+/*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
 
-  .radial-chart .recharts-tooltip-cursor {
-    display: none;
-  }
+.radial-chart {
+  width: 100%;
+}
 
-  .radial-chart .recharts-tooltip-wrapper {
-    z-index: 10;
-  }
+.radial-chart .recharts-tooltip-cursor {
+  display: none;
+}
 
-  .radial-chart .recharts-radial-bar-background-sector {
-    fill: var(--separator);
-  }
+.radial-chart .recharts-tooltip-wrapper {
+  z-index: 10;
+}
+
+.radial-chart .recharts-radial-bar-background-sector {
+  fill: var(--separator);
 }

@@ -9,7 +9,7 @@ const meta = {
   title: 'Components/Data Display/NumberValue',
 } satisfies Meta<typeof NumberValue>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 export const Currency: Story = {
   render: () => (

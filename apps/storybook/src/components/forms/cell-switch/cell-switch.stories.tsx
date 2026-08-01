@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Forms/CellSwitch',
 } satisfies Meta<typeof CellSwitch>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 function SwitchContents({ label }: { label: string }) {
   return (

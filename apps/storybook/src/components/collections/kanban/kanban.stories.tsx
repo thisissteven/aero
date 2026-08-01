@@ -45,7 +45,7 @@ const meta = {
   title: 'Components/Collections/Kanban',
 } satisfies Meta<typeof Kanban>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const people: Record<string, string> = {
   Alex: 'orange',

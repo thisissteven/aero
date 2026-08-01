@@ -9,7 +9,7 @@ const meta: Meta<typeof ChartTooltip> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 export const Default: Story = {
   parameters: {

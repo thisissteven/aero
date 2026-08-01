@@ -10,7 +10,7 @@ const meta = {
   title: 'Components/Forms/CellSlider',
 } satisfies Meta<typeof CellSlider>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const decimalProps = {
   formatOptions: { maximumFractionDigits: 2, minimumFractionDigits: 2 },

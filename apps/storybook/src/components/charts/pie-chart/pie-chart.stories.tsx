@@ -12,7 +12,7 @@ const meta = {
   title: 'Components/Charts/PieChart',
 } satisfies Meta<typeof PieChart>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const colors = [
   'var(--chart-4)',

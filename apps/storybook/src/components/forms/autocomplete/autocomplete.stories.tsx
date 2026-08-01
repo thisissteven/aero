@@ -41,7 +41,7 @@ const meta: Meta<typeof Autocomplete> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const handleAutocompleteRequiredSubmit = (
   e: React.FormEvent<HTMLFormElement>,

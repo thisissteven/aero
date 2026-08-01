@@ -33,7 +33,7 @@ const meta = {
   title: 'Components/Navigation/Navbar',
 } satisfies Meta;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 const links = ['Features', 'Customers', 'Integrations', 'Pricing'];
 const Logo = ({ compact = false }: { compact?: boolean }) => (
   <div className='flex items-center gap-2 font-semibold'>

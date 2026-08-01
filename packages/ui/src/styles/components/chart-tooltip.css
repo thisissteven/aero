@@ -1,33 +1,85 @@
-@layer components {
-  .chart-tooltip {
-    @apply border-separator bg-overlay shadow-overlay flex min-w-[140px] flex-col gap-1.5 rounded-lg border px-3 py-2 tabular-nums;
+/*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
+@layer properties {
+  @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or
+    ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
+    *,
+    ::before,
+    ::after,
+    ::backdrop {
+      --tw-border-style: solid;
+      --tw-font-weight: initial;
+    }
   }
+}
 
-  .chart-tooltip__header {
-    @apply text-muted text-xs font-medium;
-  }
+.chart-tooltip {
+  gap: calc(var(--spacing, 0.25rem) * 1.5);
+  border-radius: calc(var(--radius) * 1);
+  border-style: var(--tw-border-style);
+  min-width: 140px;
+  padding-inline: calc(var(--spacing, 0.25rem) * 3);
+  padding-block: calc(var(--spacing, 0.25rem) * 2);
+  border-width: 1px;
+  border-color: var(--separator);
+  background-color: var(--overlay);
+  box-shadow: var(--overlay-shadow);
+  font-variant-numeric: tabular-nums;
+  flex-direction: column;
+  display: flex;
+}
 
-  .chart-tooltip__item {
-    @apply flex items-center gap-2;
-  }
+.chart-tooltip__header {
+  font-size: var(--text-xs, 0.75rem);
+  line-height: var(--tw-leading, var(--text-xs--line-height, calc(1 / 0.75)));
+  --tw-font-weight: var(--font-weight-medium, 500);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--muted);
+}
 
-  .chart-tooltip__indicator {
-    @apply shrink-0;
-  }
+.chart-tooltip__item {
+  align-items: center;
+  gap: calc(var(--spacing, 0.25rem) * 2);
+  display: flex;
+}
 
-  .chart-tooltip__indicator--dot {
-    @apply size-2 rounded-full;
-  }
+.chart-tooltip__indicator {
+  flex-shrink: 0;
+}
 
-  .chart-tooltip__indicator--line {
-    @apply h-3 w-1 rounded-full;
-  }
+.chart-tooltip__indicator--dot {
+  width: calc(var(--spacing, 0.25rem) * 2);
+  height: calc(var(--spacing, 0.25rem) * 2);
+  border-radius: 3.40282e38px;
+}
 
-  .chart-tooltip__label {
-    @apply text-muted flex-1 text-xs;
-  }
+.chart-tooltip__indicator--line {
+  height: calc(var(--spacing, 0.25rem) * 3);
+  width: calc(var(--spacing, 0.25rem) * 1);
+  border-radius: 3.40282e38px;
+}
 
-  .chart-tooltip__value {
-    @apply text-foreground text-xs font-semibold;
-  }
+.chart-tooltip__label {
+  font-size: var(--text-xs, 0.75rem);
+  line-height: var(--tw-leading, var(--text-xs--line-height, calc(1 / 0.75)));
+  color: var(--muted);
+  flex: 1;
+}
+
+.chart-tooltip__value {
+  font-size: var(--text-xs, 0.75rem);
+  line-height: var(--tw-leading, var(--text-xs--line-height, calc(1 / 0.75)));
+  --tw-font-weight: var(--font-weight-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--foreground);
+}
+
+@property --tw-border-style {
+  syntax: '*';
+  inherits: false;
+  initial-value: solid;
+}
+
+@property --tw-font-weight {
+  syntax: '*';
+  inherits: false;
 }

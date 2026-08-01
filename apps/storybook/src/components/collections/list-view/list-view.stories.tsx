@@ -19,7 +19,7 @@ const meta = {
   title: 'Components/Collections/ListView',
 } satisfies Meta<typeof ListView>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const files = [
   { icon: 'folder', id: '1', name: 'Documents', updated: '2 days ago' },

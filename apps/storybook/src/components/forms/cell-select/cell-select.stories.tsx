@@ -15,7 +15,7 @@ const meta = {
   title: 'Components/Forms/CellSelect',
 } satisfies Meta<typeof CellSelect>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const themes = [
   { id: 'default', name: 'Default' },

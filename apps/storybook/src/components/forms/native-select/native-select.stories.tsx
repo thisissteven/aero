@@ -18,7 +18,7 @@ const meta = {
   title: 'Components/Forms/NativeSelect',
 } satisfies Meta<typeof NativeSelect>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const statuses = [
   ['', 'Select status'],

@@ -34,7 +34,7 @@ const meta: Meta<typeof Select> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const handleSelectRequiredSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();

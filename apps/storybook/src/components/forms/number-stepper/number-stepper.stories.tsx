@@ -25,7 +25,7 @@ const meta: Meta<typeof NumberStepper> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 interface StepperContentProps {
   decrementLabel?: string;

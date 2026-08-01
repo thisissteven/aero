@@ -40,7 +40,7 @@ const meta = {
   title: 'Components/Data Display/Carousel',
 } satisfies Meta<typeof Carousel>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const ImageSlides = ({ modal = false }: { modal?: boolean }) => (
   <>

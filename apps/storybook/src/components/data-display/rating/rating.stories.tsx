@@ -14,7 +14,7 @@ const meta = {
   title: 'Components/Data Display/Rating',
 } satisfies Meta<typeof Rating>;
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const Items = () => (
   <>

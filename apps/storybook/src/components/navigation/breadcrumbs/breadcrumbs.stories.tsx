@@ -15,7 +15,7 @@ const meta: Meta<typeof Breadcrumbs> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<any>;
 
 const DefaultTemplate = () => (
   <Breadcrumbs>
