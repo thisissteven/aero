@@ -17,7 +17,9 @@ const updateManagerTheme = (theme: string) => {
   addons.setConfig({
     ...currentConfig,
     theme: selectedTheme,
-    enableShortcuts: currentConfig.enableShortcuts ?? false,
+    ui: {
+      enableShortcuts: currentConfig.enableShortcuts ?? false,
+    },
     sidebar: {
       ...currentConfig.sidebar,
       showRoots: currentConfig.sidebar?.showRoots ?? false,
@@ -26,7 +28,7 @@ const updateManagerTheme = (theme: string) => {
 };
 
 // Register addon to hook into the manager lifecycle properly
-addons.register('namespace-theme-manager', (api) => {
+addons.register('aero-theme-manager', (api) => {
   let lastTheme = DEFAULT_THEME;
 
   const applyTheme = (theme: string) => {

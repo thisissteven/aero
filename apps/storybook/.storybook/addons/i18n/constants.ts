@@ -1,6 +1,6 @@
-export const I18N_ADDON_ID = 'namespace-i18n-addon';
-export const I18N_GLOBAL_TYPE_ID = 'namespace-i18n';
-export const I18N_PARAM_KEY = 'namespace-i18n';
+export const I18N_ADDON_ID = 'aero-i18n-addon';
+export const I18N_GLOBAL_TYPE_ID = 'aero-i18n';
+export const I18N_PARAM_KEY = 'aero-i18n';
 
 export const LOCALES = [
   {

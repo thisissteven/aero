@@ -45,7 +45,7 @@ type Story = StoryObj<any>;
 
 export const Default: Story = {
   args: {
-    children: 'Namespace Typography',
+    children: 'Aeor Typography',
     type: 'body',
   },
 };
@@ -249,7 +249,7 @@ export const ArticleExample: Story = {
       <Typography.Paragraph>
         Start with a base size — <Typography.Code>16px</Typography.Code> (1rem)
         is the industry standard — and derive heading sizes using a consistent
-        ratio. Namespace uses a tracking-tight heading stack from{' '}
+        ratio. Aero uses a tracking-tight heading stack from{' '}
         <Typography.Code>text-base</Typography.Code> through{' '}
         <Typography.Code>text-4xl</Typography.Code>, giving six levels of
         hierarchy.
@@ -264,7 +264,7 @@ export const ArticleExample: Story = {
       <Typography.Paragraph color='muted' size='sm'>
         Shorter paragraphs, generous whitespace, and intentional weight contrast
         all contribute to readability. These defaults work out of the box with
-        Namespace's Typography primitive.
+        Aero's Typography primitive.
       </Typography.Paragraph>
     </article>
   ),
@@ -273,9 +273,9 @@ export const ArticleExample: Story = {
 export const ProseBlock: Story = {
   render: () => (
     <Typography.Prose className='max-w-2xl'>
-      <h1>Getting Started with Namespace</h1>
+      <h1>Getting Started with Aero</h1>
       <p>
-        Namespace is a modern React component library built on top of{' '}
+        Aero is a modern React component library built on top of{' '}
         <strong>Tailwind CSS v4</strong> and <strong>React Aria</strong>. It
         provides accessible, customizable primitives that you can compose into
         complex interfaces.
@@ -336,9 +336,9 @@ export const ProseBlock: Story = {
 
       <h2>Next Steps</h2>
       <p>
-        Explore the <a href='https://namespace.ninja'>component stories</a> in
-        Storybook to see every variant and composition in action. Each component
-        ships with comprehensive documentation and live examples.
+        Explore the <a href='https://aero.ui'>component stories</a> in Storybook
+        to see every variant and composition in action. Each component ships
+        with comprehensive documentation and live examples.
       </p>
     </Typography.Prose>
   ),

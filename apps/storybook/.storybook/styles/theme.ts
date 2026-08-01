@@ -57,7 +57,7 @@ const fontCode = [
 const lightTheme = create({
   ...storybookThemes.light,
   base: 'light',
-  brandTitle: `<img src="/logo-dark.svg" style="width: 120px; height: auto;" alt="Namespace"/>`,
+  brandTitle: `<img src="/logo-dark.svg" style="width: 100px; height: auto;" alt="Aero"/>`,
   brandTarget: '_self',
   // Colors
   colorPrimary: colors.accent.DEFAULT,
@@ -90,7 +90,7 @@ const lightTheme = create({
 const darkTheme = create({
   ...storybookThemes.dark,
   base: 'dark',
-  brandTitle: `<img src="/logo-light.svg" style="width: 120px; height: auto;" alt="Namespace"/>`,
+  brandTitle: `<img src="/logo-light.svg" style="width: 100px; height: auto;" alt="Aero"/>`,
   brandTarget: '_self',
   // Colors
   colorPrimary: colors.accent.DEFAULT,

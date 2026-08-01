@@ -20,7 +20,7 @@ Default.parameters = {
   docs: {
     description: {
       story:
-        "An interactive color palette generator showcasing Namespace's color system. Adjust the base tone and gray chroma to see how colors change across light and dark themes.",
+        "An interactive color palette generator showcasing @aero/ui's color system. Adjust the base tone and gray chroma to see how colors change across light and dark themes.",
     },
   },
 };

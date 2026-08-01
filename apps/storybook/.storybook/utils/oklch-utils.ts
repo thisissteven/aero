@@ -133,7 +133,7 @@ export function adjustGrayChroma(
 }
 
 /**
- * List of CSS color variable names that use Oklch values in Namespace
+ * List of CSS color variable names that use Oklch values in Aero
  */
 export const COLOR_VARIABLES = [
   // Primitive colors

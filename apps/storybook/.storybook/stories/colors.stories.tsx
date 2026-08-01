@@ -221,7 +221,7 @@ export const AllColors = () => {
           Color System
         </h1>
         <p className='text-muted'>
-          Namespace's color palette with CSS variables and computed values
+          @aero/ui's color palette with CSS variables and computed values
         </p>
       </div>
 
@@ -273,7 +273,7 @@ AllColors.parameters = {
   docs: {
     description: {
       story:
-        'A comprehensive overview of all color tokens available in the Namespace design system. Each color shows its CSS variable name and computed value.',
+        'A comprehensive overview of all color tokens available in the Aero design system. Each color shows its CSS variable name and computed value.',
     },
   },
 };

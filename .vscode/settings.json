@@ -14,6 +14,7 @@
     "containerClassName"
   ],
   "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
+  "tailwindCSS.lint.cssConflict": "ignore",
   "js/ts.preferences.importModuleSpecifier": "non-relative",
   "js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }

@@ -169,10 +169,8 @@
   );
 }
 
-@document url-prefix() {
-  .text-shimmer {
-    --_duration: calc(375000 / var(--_speed));
-  }
+.text-shimmer {
+  --_duration: calc(375000 / var(--_speed));
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -42,7 +42,7 @@ const decorators: Preview['decorators'] = [
   withTheme,
   withInternationalization,
   withReduceMotion,
-  withReactScan,
+  ...(process.env.NODE_ENV === 'development' ? [withReactScan] : []),
 ];
 
 const globalTypes = {

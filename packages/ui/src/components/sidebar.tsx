@@ -666,8 +666,9 @@ export function SidebarMenuIndicator({
   className,
   ...props
 }: ComponentPropsWithRef<'svg'>): ReactElement {
+  const { ref: _, ...svgProps } = props;
   const indicatorProps = {
-    ...props,
+    ...svgProps,
     className:
       cn('sidebar__menu-indicator', className) ?? 'sidebar__menu-indicator',
     'data-slot': 'sidebar-menu-indicator',

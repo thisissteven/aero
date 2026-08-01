@@ -18,11 +18,11 @@ import {
   ToastQueue,
   ToastTitle,
 } from './index';
-import type { NamespaceToastOptions } from './toast-queue';
+import type { AeroToastOptions } from './toast-queue';
 
 type Placement = NonNullable<ToastVariants['placement']>;
 
-interface ToastStoryProps extends Omit<NamespaceToastOptions, 'variant'> {
+interface ToastStoryProps extends Omit<AeroToastOptions, 'variant'> {
   placement?: Placement;
 }
 
@@ -73,7 +73,7 @@ const Template = () => {
                 onPress: () => toast.clear(),
                 variant: 'tertiary',
               },
-              description: 'Bob sent you an invitation to join Namespace team',
+              description: 'Bob sent you an invitation to join Aero team',
               indicator: <Icon icon='hugeicons:persons' />,
               variant: 'default',
             });
@@ -104,7 +104,7 @@ const Template = () => {
                 className: 'bg-success text-success-foreground',
                 onPress: noop,
               },
-              description: 'You can continue using Namespace Chat',
+              description: 'You can continue using Aero Chat',
             })
           }
         >

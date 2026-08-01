@@ -9,7 +9,7 @@ import type {
 export { toast, ToastQueue, toastQueue } from '@aero/ui';
 export type { ToastContentValue, ToastQueueOptions };
 
-export interface NamespaceToastOptions {
+export interface AeroToastOptions {
   actionProps?: ButtonProps;
   description?: ReactNode;
   indicator?: ReactNode;

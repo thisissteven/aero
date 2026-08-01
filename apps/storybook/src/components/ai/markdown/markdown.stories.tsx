@@ -7,7 +7,7 @@ import 'streamdown/styles.css';
 
 import { CodeBlock, Markdown } from './index';
 
-const markdown = `# Namespace UIKit AI Markdown
+const markdown = `# @aero/ui AI Markdown
 
 This component uses **react-markdown** with block-level memoization for streaming performance.
 

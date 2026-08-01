@@ -13,6 +13,8 @@ export const withReactScan: Decorator = (Story) => {
   // eslint-disable-next-line react-hooks/rules-of-hooks -- Storybook decorators are valid hook consumers
   useEffect(() => {
     scan({
+      dangerouslyForceRunInProduction: true,
+      allowInIframe: true,
       enabled: isEnabled,
     });
   }, [isEnabled]);

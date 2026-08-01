@@ -804,7 +804,7 @@ function WithSuggestionsDemo() {
       <div className='flex flex-col items-center gap-2 text-center'>
         <h2 className='text-foreground text-3xl font-normal tracking-tight'>
           Build something useful with{' '}
-          <TextShimmer className='text-muted'>Namespace UIKit AI</TextShimmer>
+          <TextShimmer className='text-muted'>@aero/ui AI</TextShimmer>
         </h2>
         <p className='text-muted text-sm'>
           Start with a prompt, add files, or pick a suggestion to shape the

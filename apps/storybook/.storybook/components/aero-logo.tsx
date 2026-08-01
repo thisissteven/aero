@@ -1,18 +1,16 @@
-import React from 'react';
-
-interface NamespaceLogoProps {
+interface AeroLogoProps {
   className?: string;
   size?: number;
   height?: number;
   width?: number;
 }
 
-export function NamespaceLogo({
+export function AeroLogo({
   className,
   height,
   size = 26,
   width,
-}: NamespaceLogoProps) {
+}: AeroLogoProps) {
   // Calculate dimensions based on original aspect ratio (140:44)
   const aspectRatio = 140 / 44;
   const svgHeight = height || size;
@@ -64,7 +62,7 @@ export function NamespaceLogo({
           width: '1px',
         }}
       >
-        Namespace
+        Aero
       </span>
     </>
   );

@@ -37,7 +37,7 @@ export const Default = () => {
               <Modal.Icon className='bg-default text-foreground'>
                 <Icon className='size-5' icon='hugeicons:rocket' />
               </Modal.Icon>
-              <Modal.Heading>Welcome to Namespace</Modal.Heading>
+              <Modal.Heading>Welcome to Aero</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
               <p>

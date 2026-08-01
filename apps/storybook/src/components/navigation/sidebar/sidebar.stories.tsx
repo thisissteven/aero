@@ -165,6 +165,7 @@ function Menu({
     </Sidebar.Menu>
   );
 }
+
 function UserMenu() {
   return (
     <Dropdown>
@@ -188,6 +189,7 @@ function UserMenu() {
     </Dropdown>
   );
 }
+
 function Demo({
   collapsible = 'icon',
   defaultOpen = true,
@@ -311,7 +313,7 @@ function CollapsibleDemo() {
               className='text-foreground text-sm font-semibold'
               data-sidebar='label'
             >
-              Namespace
+              Aero
             </span>
           </div>
         </Sidebar.Header>
@@ -466,7 +468,7 @@ function WithGroupsDemo() {
               className='text-foreground text-sm font-semibold'
               data-sidebar='label'
             >
-              Namespace
+              Aero
             </span>
           </div>
         </Sidebar.Header>
@@ -632,7 +634,7 @@ function ReducedMotionDemo() {
               className='text-foreground text-sm font-semibold'
               data-sidebar='label'
             >
-              Namespace
+              Aero
             </span>
           </div>
         </Sidebar.Header>
@@ -716,7 +718,7 @@ function FloatingVariantDemo() {
               className='text-foreground text-sm font-semibold'
               data-sidebar='label'
             >
-              Namespace
+              Aero
             </span>
           </div>
         </Sidebar.Header>
@@ -854,7 +856,7 @@ function InsetVariantDemo() {
             </span>
             <span className='flex flex-col'>
               <span className='text-foreground text-sm leading-tight font-semibold'>
-                Namespace Inc.
+                Aero Inc.
               </span>
               <span className='text-muted text-xs leading-tight'>
                 Enterprise
@@ -936,7 +938,7 @@ function CompactWithUserMenuDemo() {
               className='text-foreground text-sm font-semibold'
               data-sidebar='label'
             >
-              Namespace Labs
+              Aero Labs
             </span>
           </div>
         </Sidebar.Header>
@@ -1064,7 +1066,7 @@ function CompactWithUserMenuDemo() {
                       Junior Garcia
                     </p>
                     <p className='text-muted text-xs leading-none'>
-                      junior@namespace.ninja
+                      junior@aero.ui
                     </p>
                   </div>
                 </div>
@@ -2222,7 +2224,7 @@ function AgentWorkspaceDemo() {
   );
 }
 export const Default: Story = {
-  render: () => <Demo nested title='Namespace' />,
+  render: () => <Demo nested title='Aero' />,
 };
 export const RightSide: Story = {
   render: () => (
@@ -2230,7 +2232,7 @@ export const RightSide: Story = {
       description='Main content area with the sidebar attached to the right. Resize to mobile to see the Sheet open from the right.'
       nested
       side='right'
-      title='Namespace'
+      title='Aero'
     />
   ),
 };
@@ -2241,7 +2243,7 @@ export const RightSideOffcanvas: Story = {
       description='Right-side offcanvas sidebar. Use the trigger or rail to collapse the sidebar off the right edge. Resize to mobile to verify the Sheet also opens from the right.'
       nested
       side='right'
-      title='Namespace'
+      title='Aero'
     />
   ),
 };

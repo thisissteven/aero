@@ -75,6 +75,7 @@ function Row({
     </ItemCard>
   );
 }
+
 function Rows({
   items,
   pressable = false,
@@ -282,7 +283,7 @@ export const GridThreeColumns: Story = {
 const accounts = [
   {
     connected: true,
-    description: 'junior@namespace.ninja',
+    description: 'junior@aero.ui',
     icon: 'logos:google-icon',
     name: 'Google',
   },

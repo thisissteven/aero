@@ -40,7 +40,7 @@ const Logo = ({ compact = false }: { compact?: boolean }) => (
     <span className='bg-accent text-accent-foreground flex size-7 items-center justify-center rounded-lg'>
       N
     </span>
-    {compact ? null : <span>Namespace</span>}
+    {compact ? null : <span>Aero</span>}
   </div>
 );
 const User = () => (
@@ -189,7 +189,7 @@ export const DocsSite: Story = {
       <Navbar.Header>
         <Navbar.MenuToggle className='md:hidden' />
         <Navbar.Brand>
-          <span className='font-semibold'>Namespace</span>
+          <span className='font-semibold'>Aero</span>
         </Navbar.Brand>
         <Navbar.Content className='hidden md:flex'>
           {['Docs', 'Pro', 'Blog'].map((label) => (
@@ -267,7 +267,7 @@ export const WithDropdowns: Story = {
               </Dropdown.Trigger>
               <Dropdown.Popover>
                 <Dropdown.Menu>
-                  {['Acme Inc.', 'Namespace', 'Namespace'].map((x) => (
+                  {['Acme Inc.', 'Aero', 'Aero'].map((x) => (
                     <Dropdown.Item id={x} key={x}>
                       {x}
                     </Dropdown.Item>
@@ -317,7 +317,7 @@ function DashboardNavbar() {
     <Navbar position='static'>
       <Navbar.Header className='gap-2'>
         <Navbar.Brand className='mr-1'>
-          <span className='font-semibold'>Namespace</span>
+          <span className='font-semibold'>Aero</span>
         </Navbar.Brand>
         <InlineSelect
           aria-label='Workspace'

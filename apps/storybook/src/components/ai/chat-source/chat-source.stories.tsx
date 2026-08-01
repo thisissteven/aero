@@ -23,10 +23,10 @@ export const Default: Story = {
         Here is an answer backed by a single web source.
       </ChatMessage.Content>
       <ChatSource
-        description='Namespace UIKit ships presentation-only AI chat compounds for React.'
-        faviconUrl={favicon('https://namespace.ninja')}
-        href='https://namespace.ninja'
-        title='Namespace UIKit'
+        description='Aero ships presentation-only AI chat compounds for React.'
+        faviconUrl={favicon('https://aero.ui')}
+        href='https://aero.ui'
+        title='Aero'
       />
     </Assistant>
   ),
@@ -52,9 +52,9 @@ export const Grouped: Story = {
         <ChatSources.Content>
           <ChatSources.List>
             <ChatSource
-              faviconUrl={favicon('https://namespace.ninja')}
-              href='https://namespace.ninja'
-              title='Namespace'
+              faviconUrl={favicon('https://aero.ui')}
+              href='https://aero.ui'
+              title='Aero'
             />
             <ChatSource
               description='Tailwind Variants powers slot-based styling in UIKit components.'

@@ -176,7 +176,7 @@ export const EmailSetting: Story = {
       <ItemCard>
         <ItemCard.Content>
           <ItemCard.Title>
-            junior@namespace.ninja{' '}
+            junior@aero.ui{' '}
             <Chip className='ml-2 align-middle' size='sm' variant='soft'>
               Primary
             </Chip>
@@ -327,11 +327,13 @@ function SelectCard({ multiple = false }: { multiple?: boolean }) {
             selectionMode={multiple ? 'multiple' : 'single'}
             style={
               multiple
-                ? { '--inline-select-value-max-width': '8rem' }
+                ? ({
+                    ['--inline-select-value-max-width' as any]: '8rem',
+                  } as any)
                 : undefined
             }
             value={value}
-            onChange={setValue}
+            onChange={(v) => setValue(v as any)}
           >
             <InlineSelect.Trigger>
               <InlineSelect.Value />

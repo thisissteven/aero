@@ -143,6 +143,7 @@ function CarouselRoot({
     </Context>
   );
 }
+
 function CarouselContent({
   children,
   className,
@@ -171,6 +172,7 @@ function CarouselContent({
     </div>
   );
 }
+
 function CarouselItem({
   className,
   ...props
@@ -225,6 +227,7 @@ function CarouselPrevious({
       ? createPortal(button, viewportWrapper)
       : null;
 }
+
 function CarouselNext({
   children,
   className,

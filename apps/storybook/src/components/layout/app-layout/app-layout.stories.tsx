@@ -61,7 +61,7 @@ function Brand({ mobile = false }: { mobile?: boolean }) {
         className='text-foreground text-sm font-semibold'
         data-sidebar={mobile ? undefined : 'label'}
       >
-        Namespace
+        Aero
       </span>
     </div>
   );

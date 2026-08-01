@@ -40,7 +40,7 @@ export const Default: Story = {
         </Avatar>
         <div className='flex flex-col'>
           <Label>Bob</Label>
-          <Description>bob@namespace.ninja</Description>
+          <Description>bob@aero.ui</Description>
         </div>
         <ListBox.ItemIndicator />
       </ListBox.Item>
@@ -51,7 +51,7 @@ export const Default: Story = {
         </Avatar>
         <div className='flex flex-col'>
           <Label>Fred</Label>
-          <Description>fred@namespace.ninja</Description>
+          <Description>fred@aero.ui</Description>
         </div>
         <ListBox.ItemIndicator />
       </ListBox.Item>
@@ -62,7 +62,7 @@ export const Default: Story = {
         </Avatar>
         <div className='flex flex-col'>
           <Label>Martha</Label>
-          <Description>martha@namespace.ninja</Description>
+          <Description>martha@aero.ui</Description>
         </div>
         <ListBox.ItemIndicator />
       </ListBox.Item>
@@ -230,7 +230,7 @@ export const MultiSelect: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Bob</Label>
-            <Description>bob@namespace.ninja</Description>
+            <Description>bob@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator />
         </ListBox.Item>
@@ -241,7 +241,7 @@ export const MultiSelect: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Fred</Label>
-            <Description>fred@namespace.ninja</Description>
+            <Description>fred@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator />
         </ListBox.Item>
@@ -252,7 +252,7 @@ export const MultiSelect: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Martha</Label>
-            <Description>martha@namespace.ninja</Description>
+            <Description>martha@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator />
         </ListBox.Item>
@@ -272,7 +272,7 @@ export const CustomCheckIcon: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Bob</Label>
-            <Description>bob@namespace.ninja</Description>
+            <Description>bob@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator>
             {({ isSelected }) =>
@@ -289,7 +289,7 @@ export const CustomCheckIcon: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Fred</Label>
-            <Description>fred@namespace.ninja</Description>
+            <Description>fred@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator>
             {({ isSelected }) =>
@@ -306,7 +306,7 @@ export const CustomCheckIcon: Story = {
           </Avatar>
           <div className='flex flex-col'>
             <Label>Martha</Label>
-            <Description>martha@namespace.ninja</Description>
+            <Description>martha@aero.ui</Description>
           </div>
           <ListBox.ItemIndicator>
             {({ isSelected }) =>
@@ -343,7 +343,7 @@ export const Controlled: Story = {
               </Avatar>
               <div className='flex flex-col'>
                 <Label>Bob</Label>
-                <Description>bob@namespace.ninja</Description>
+                <Description>bob@aero.ui</Description>
               </div>
               <ListBox.ItemIndicator>
                 {({ isSelected }) =>
@@ -363,7 +363,7 @@ export const Controlled: Story = {
               </Avatar>
               <div className='flex flex-col'>
                 <Label>Fred</Label>
-                <Description>fred@namespace.ninja</Description>
+                <Description>fred@aero.ui</Description>
               </div>
               <ListBox.ItemIndicator>
                 {({ isSelected }) =>
@@ -383,7 +383,7 @@ export const Controlled: Story = {
               </Avatar>
               <div className='flex flex-col'>
                 <Label>Martha</Label>
-                <Description>martha@namespace.ninja</Description>
+                <Description>martha@aero.ui</Description>
               </div>
               <ListBox.ItemIndicator>
                 {({ isSelected }) =>

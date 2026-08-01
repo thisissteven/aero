@@ -36,7 +36,7 @@ export const Streaming: Story = {
     <Assistant>
       <ChatTool
         defaultExpanded
-        argsText='{"query":"Namespace UIKit'
+        argsText='{"query":"Aero'
         state='input-streaming'
         toolName='searchDocs'
         triggerPrefix='Running tool: '

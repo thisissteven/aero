@@ -14,7 +14,7 @@ const themeValues = new Set<string>(THEME_VALUES);
 export const themeGlobalType = {
   [THEME_GLOBAL_TYPE_ID]: {
     name: 'Theme',
-    description: 'Namespace theme for components',
+    description: 'Aero theme for components',
     defaultValue: DEFAULT_THEME,
     toolbar: {
       icon: 'paintbrush',

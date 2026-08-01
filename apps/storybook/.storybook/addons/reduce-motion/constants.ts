@@ -1,6 +1,6 @@
-export const REDUCE_MOTION_ADDON_ID = 'namespace-reduce-motion-addon';
-export const REDUCE_MOTION_GLOBAL_TYPE_ID = 'namespace-reduce-motion';
-export const REDUCE_MOTION_PARAM_KEY = 'namespace-reduce-motion';
+export const REDUCE_MOTION_ADDON_ID = 'aero-reduce-motion-addon';
+export const REDUCE_MOTION_GLOBAL_TYPE_ID = 'aero-reduce-motion';
+export const REDUCE_MOTION_PARAM_KEY = 'aero-reduce-motion';
 
 export const REDUCE_MOTION_VALUES = ['true', 'false'] as const;
 export type ReduceMotionKey = (typeof REDUCE_MOTION_VALUES)[number];

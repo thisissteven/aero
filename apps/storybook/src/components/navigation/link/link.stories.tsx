@@ -30,7 +30,7 @@ const DefaultTemplate = (_props: Link['RootProps']) => (
       <Link.Icon />
     </Link>
     <Link
-      href='https://namespace.ninja'
+      href='https://aero.ui'
       rel='noopener noreferrer'
       target='_blank'
       className={buttonVariants({
@@ -39,7 +39,7 @@ const DefaultTemplate = (_props: Link['RootProps']) => (
         variant: 'tertiary',
       })}
     >
-      Namespace
+      Aero
       <Link.Icon className='h-2 w-2' />
     </Link>
   </div>

@@ -11,19 +11,17 @@ export function XProfileDemo() {
         <div className='flex items-center gap-3'>
           <Avatar size='sm'>
             <Avatar.Image
-              alt='Namespace'
+              alt='Aero'
               src='https://pbs.twimg.com/profile_images/1987571645599346689/lmCqz52H_400x400.jpg'
             />
             <Avatar.Fallback>H</Avatar.Fallback>
           </Avatar>
           <div className='flex h-full flex-col items-start justify-center'>
             <div className='flex items-center gap-0.5'>
-              <span className='text-sm leading-4 font-semibold'>Namespace</span>
+              <span className='text-sm leading-4 font-semibold'>Aero</span>
               <VerifiedBadgeIcon height={18} width={18} />
             </div>
-            <span className='text-muted text-sm tracking-tight'>
-              @namespace_eth
-            </span>
+            <span className='text-muted text-sm tracking-tight'>@aero/ui</span>
           </div>
         </div>
       </Card.Header>

@@ -6,7 +6,7 @@ const code = `function greet(name: string) {
   return \`Hello, \${name}!\`;
 }
 
-console.log(greet("Namespace"));`;
+console.log(greet("Aero"));`;
 const meta = {
   parameters: { layout: 'centered' },
   tags: ['autodocs'],
