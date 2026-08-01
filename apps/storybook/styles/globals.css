@@ -4,6 +4,7 @@
 /* Important: This source is important to make sure storybook styles are compiled */
 
 /* Custom theme overrides - Just use CSS! */
+
 :root {
   /* Your values */
   /* --radius: 2.5rem; */
@@ -45,6 +46,7 @@
 }
 
 /* Dark theme overrides using data-theme or class */
+
 [data-theme='dark'],
 .dark {
   /* Your values */

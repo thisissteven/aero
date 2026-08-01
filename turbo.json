@@ -19,6 +19,7 @@
       "inputs": ["src/**/*.ts", "src/**/*.tsx", "eslint.config.js"],
       "outputs": []
     },
+    "lint:css": {},
     "check-types": {
       "dependsOn": ["^check-types"]
     }

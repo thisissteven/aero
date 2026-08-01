@@ -8,7 +8,7 @@
     "build": "storybook build",
     "lint": "bun run lint:ts && bun run lint:css",
     "lint:ts": "bunx --bun eslint . --fix-dry-run --cache",
-    "lint:css": "stylelint \"src/**/*.css\" --fix",
+    "lint:css": "stylelint \"styles/**/*.css\" --fix",
     "preview": "vite preview --outDir storybook-static --port 6006"
   },
   "dependencies": {
