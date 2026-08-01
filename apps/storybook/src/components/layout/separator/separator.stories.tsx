@@ -55,17 +55,17 @@ export const Vertical: Story = {
 
 const items = [
   {
-    iconUrl: '/assets/docs/3dicons/bell-small.png',
+    iconUrl: 'https://api.dicebear.com/10.x/glass/svg?seed=Mia',
     subtitle: 'Receive account activity updates',
     title: 'Set Up Notifications',
   },
   {
-    iconUrl: '/assets/docs/3dicons/compass-small.png',
+    iconUrl: 'https://api.dicebear.com/10.x/glass/svg?seed=Aneka',
     subtitle: 'Connect your browser to your account',
     title: 'Set up Browser Extension',
   },
   {
-    iconUrl: '/assets/docs/3dicons/mint-collective-small.png',
+    iconUrl: 'https://api.dicebear.com/10.x/glass/svg?seed=Felix',
     subtitle: 'Create your first collectible',
     title: 'Mint Collectible',
   },

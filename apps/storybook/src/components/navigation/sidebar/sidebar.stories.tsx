@@ -40,6 +40,8 @@ import {
   UserMultipleIcon,
 } from '@aero/ui/icons';
 
+import { getRandomUserImage } from '@/seed';
+
 import { Sidebar, useSidebar } from './index';
 
 const meta = {
@@ -370,15 +372,13 @@ function CollapsibleDemo() {
 }
 
 function IconOnlyDemo() {
+  const src = getRandomUserImage();
   return (
     <Sidebar.Provider collapsible='none'>
       <Sidebar className='[--sidebar-width:56px]'>
         <Sidebar.Header className='items-center justify-center p-0 py-4'>
           <Avatar className='size-8 shrink-0'>
-            <Avatar.Image
-              alt='Kate Moore'
-              src='/assets/avatars/blue-light.jpg'
-            />
+            <Avatar.Image alt='Kate Moore' src={src} />
             <Avatar.Fallback>KM</Avatar.Fallback>
           </Avatar>
         </Sidebar.Header>
@@ -752,16 +752,14 @@ function FloatingVariantDemo() {
 }
 
 function WithAvatarDemo() {
+  const src = getRandomUserImage();
   return (
     <Sidebar.Provider collapsible='icon'>
       <Sidebar className='group'>
         <Sidebar.Header>
           <div className='flex items-center gap-3 px-1 py-2'>
             <Avatar className='size-8 shrink-0'>
-              <Avatar.Image
-                alt='Kate Moore'
-                src='/assets/avatars/blue-light.jpg'
-              />
+              <Avatar.Image alt='Kate Moore' src={src} />
               <Avatar.Fallback>KM</Avatar.Fallback>
             </Avatar>
             <div
@@ -926,6 +924,7 @@ const compactMainNav = [
 const compactLibraryItems = ['Design Tokens', 'Color Palette', 'Typography'];
 
 function CompactWithUserMenuDemo() {
+  const src = getRandomUserImage();
   return (
     <Sidebar.Provider>
       <Sidebar style={{ '--spacing': '0.2rem' } as React.CSSProperties}>
@@ -1033,10 +1032,7 @@ function CompactWithUserMenuDemo() {
           <Dropdown>
             <Dropdown.Trigger className='hover:bg-default flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left outline-none'>
               <Avatar size='sm'>
-                <Avatar.Image
-                  alt='Junior Garcia'
-                  src='/assets/avatars/orange.jpg'
-                />
+                <Avatar.Image alt='Junior Garcia' src={src} />
                 <Avatar.Fallback delayMs={600}>JG</Avatar.Fallback>
               </Avatar>
               <span
@@ -1055,10 +1051,7 @@ function CompactWithUserMenuDemo() {
               <div className='px-3 pt-3 pb-1'>
                 <div className='flex items-center gap-2'>
                   <Avatar size='sm'>
-                    <Avatar.Image
-                      alt='Junior Garcia'
-                      src='/assets/avatars/orange.jpg'
-                    />
+                    <Avatar.Image alt='Junior Garcia' src={src} />
                     <Avatar.Fallback delayMs={600}>JG</Avatar.Fallback>
                   </Avatar>
                   <div className='flex flex-col gap-0'>
@@ -1701,6 +1694,7 @@ const agentHubChats = [
 function AgentHubContent() {
   const { collapsible, isMobile, isOpen } = useSidebar();
   const isCollapsed = collapsible === 'icon' && !isMobile && !isOpen;
+  const src = getRandomUserImage();
 
   return (
     <>
@@ -1941,10 +1935,7 @@ function AgentHubContent() {
           <Dropdown>
             <Dropdown.Trigger className='hover:bg-default flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left outline-none'>
               <Avatar size='sm'>
-                <Avatar.Image
-                  alt='Junior Garcia'
-                  src='/assets/avatars/orange.jpg'
-                />
+                <Avatar.Image alt='Junior Garcia' src={src} />
                 <Avatar.Fallback delayMs={600}>JG</Avatar.Fallback>
               </Avatar>
               <span
@@ -2050,6 +2041,7 @@ const workspaceGroups = [
 ] as const;
 
 function AgentWorkspaceDemo() {
+  const src = getRandomUserImage();
   return (
     <Sidebar.Provider>
       <Sidebar style={{ '--spacing': '0.2rem' } as React.CSSProperties}>
@@ -2172,10 +2164,7 @@ function AgentWorkspaceDemo() {
           <Dropdown>
             <Dropdown.Trigger className='hover:bg-default flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left outline-none'>
               <Avatar size='sm'>
-                <Avatar.Image
-                  alt='Alex Chen'
-                  src='/assets/avatars/blue-light.jpg'
-                />
+                <Avatar.Image alt='Alex Chen' src={src} />
                 <Avatar.Fallback delayMs={600}>AC</Avatar.Fallback>
               </Avatar>
               <div className='flex min-w-0 flex-col' data-sidebar='label'>

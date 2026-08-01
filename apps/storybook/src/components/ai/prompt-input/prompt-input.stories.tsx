@@ -371,13 +371,13 @@ const sampleAttachments: PendingAttachment[] = [
     id: 'attachment-1',
     mimeType: 'image/png',
     name: 'hero.png',
-    src: '/assets/docs/demo/hero.png',
+    src: 'https://api.dicebear.com/9.x/identicon/svg',
   },
   {
     id: 'attachment-2',
     mimeType: 'image/jpeg',
     name: 'dashboard.jpg',
-    src: '/assets/docs/demo/dashboard.jpg',
+    src: 'https://api.dicebear.com/9.x/identicon/svg',
   },
   { id: 'attachment-3', mimeType: 'application/pdf', name: 'brief.pdf' },
 ];

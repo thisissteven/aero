@@ -31,27 +31,27 @@ const defaultArgs: Avatar['RootProps'] = {};
 const users = [
   {
     id: 1,
-    image_url: '/assets/generated/avatar-3.jpg',
+    image_url: 'https://api.dicebear.com/10.x/big-ears/svg',
     name: 'John',
   },
   {
     id: 2,
-    image_url: '/assets/generated/avatar-5.jpg',
+    image_url: 'https://api.dicebear.com/10.x/big-ears/svg',
     name: 'Kate',
   },
   {
     id: 3,
-    image_url: '/assets/generated/avatar-20.jpg',
+    image_url: 'https://api.dicebear.com/10.x/big-ears/svg',
     name: 'Emily',
   },
   {
     id: 4,
-    image_url: '/assets/generated/avatar-23.jpg',
+    image_url: 'https://api.dicebear.com/10.x/big-ears/svg',
     name: 'Michael',
   },
   {
     id: 5,
-    image_url: '/assets/generated/avatar-16.jpg',
+    image_url: 'https://api.dicebear.com/10.x/big-ears/svg',
     name: 'Olivia',
   },
 ];
@@ -59,27 +59,27 @@ const users = [
 const circles = [
   {
     id: 1,
-    image_url: '/assets/avatars/red.jpg',
+    image_url: 'https://api.dicebear.com/10.x/thumbs/svg',
     name: 'R',
   },
   {
     id: 2,
-    image_url: '/assets/avatars/orange.jpg',
+    image_url: 'https://api.dicebear.com/10.x/thumbs/svg',
     name: 'O',
   },
   {
     id: 3,
-    image_url: '/assets/avatars/green.jpg',
+    image_url: 'https://api.dicebear.com/10.x/thumbs/svg',
     name: 'G',
   },
   {
     id: 4,
-    image_url: '/assets/avatars/white.jpg',
+    image_url: 'https://api.dicebear.com/10.x/thumbs/svg',
     name: 'W',
   },
   {
     id: 5,
-    image_url: '/assets/avatars/black.jpg',
+    image_url: 'https://api.dicebear.com/10.x/thumbs/svg',
     name: 'B',
   },
 ];
@@ -107,48 +107,69 @@ const Template = ({ color, size }: Avatar['RootProps']) => (
 
     <div className='flex flex-col gap-4'>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='John Doe' src='/assets/generated/avatar-3.jpg' />
+        <Avatar.Image
+          alt='John Doe'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
+        />
         <Avatar.Fallback delayMs={600}>JD</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
         <Avatar.Image
           alt='Junior Garcia'
-          src='/assets/generated/avatar-4.jpg'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
         />
         <Avatar.Fallback delayMs={600}>JG</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
         <Avatar.Image
           alt='Junior Garcia'
-          src='/assets/generated/avatar-5.jpg'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
         />
         <Avatar.Fallback delayMs={600}>JG</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='Paul' src='/assets/generated/avatar-8.jpg' />
+        <Avatar.Image
+          alt='Paul'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
+        />
         <Avatar.Fallback delayMs={600}>PG</Avatar.Fallback>
       </Avatar>
     </div>
 
     <div className='flex flex-col gap-4'>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='Red' src='/assets/avatars/red.jpg' />
+        <Avatar.Image
+          alt='Red'
+          src='https://api.dicebear.com/10.x/thumbs/svg'
+        />
         <Avatar.Fallback>R</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='Orange' src='/assets/avatars/orange.jpg' />
+        <Avatar.Image
+          alt='Orange'
+          src='https://api.dicebear.com/10.x/thumbs/svg'
+        />
         <Avatar.Fallback>O</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='Green' src='/assets/avatars/green.jpg' />
+        <Avatar.Image
+          alt='Green'
+          src='https://api.dicebear.com/10.x/thumbs/svg'
+        />
         <Avatar.Fallback>G</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='White' src='/assets/avatars/white.jpg' />
+        <Avatar.Image
+          alt='White'
+          src='https://api.dicebear.com/10.x/thumbs/svg'
+        />
         <Avatar.Fallback>W</Avatar.Fallback>
       </Avatar>
       <Avatar color={color} size={size}>
-        <Avatar.Image alt='Black' src='/assets/avatars/black.jpg' />
+        <Avatar.Image
+          alt='Black'
+          src='https://api.dicebear.com/10.x/thumbs/svg'
+        />
         <Avatar.Fallback>B</Avatar.Fallback>
       </Avatar>
     </div>
@@ -166,7 +187,7 @@ const TemplateWithDelay = ({
   return (
     <div className='flex flex-col gap-4'>
       <Avatar color={color} size={size}>
-        <Avatar.Image src='/assets/generated/avatar-3.jpg' />
+        <Avatar.Image src='https://api.dicebear.com/10.x/big-ears/svg' />
       </Avatar>
     </div>
   );
@@ -211,7 +232,7 @@ const FallbackTemplate = () => {
       <Avatar>
         <Avatar.Image
           alt='Delayed Avatar'
-          src='https://invalid-url-to-show-fallback.com/image.jpg'
+          src='https://api.dicebear.com/10.x/micah/svg'
         />
         <Avatar.Fallback delayMs={600}>NA</Avatar.Fallback>
       </Avatar>
@@ -280,15 +301,24 @@ export const Sizes = {
   render: () => (
     <div className='flex items-center gap-4'>
       <Avatar size='sm'>
-        <Avatar.Image alt='Small' src='/assets/generated/avatar-3.jpg' />
+        <Avatar.Image
+          alt='Small'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
+        />
         <Avatar.Fallback>SM</Avatar.Fallback>
       </Avatar>
       <Avatar size='md'>
-        <Avatar.Image alt='Medium' src='/assets/generated/avatar-4.jpg' />
+        <Avatar.Image
+          alt='Medium'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
+        />
         <Avatar.Fallback>MD</Avatar.Fallback>
       </Avatar>
       <Avatar size='lg'>
-        <Avatar.Image alt='Large' src='/assets/generated/avatar-5.jpg' />
+        <Avatar.Image
+          alt='Large'
+          src='https://api.dicebear.com/10.x/big-ears/svg'
+        />
         <Avatar.Fallback>LG</Avatar.Fallback>
       </Avatar>
     </div>
@@ -310,11 +340,11 @@ const VariantsTemplate = (props: AvatarRootProps) => {
       label: 'img',
       type: 'img',
       content: [
-        '/assets/avatars/blue.jpg',
-        '/assets/avatars/black.jpg',
-        '/assets/avatars/green.jpg',
-        '/assets/avatars/orange.jpg',
-        '/assets/avatars/red.jpg',
+        'https://api.dicebear.com/10.x/thumbs/svg',
+        'https://api.dicebear.com/10.x/thumbs/svg',
+        'https://api.dicebear.com/10.x/thumbs/svg',
+        'https://api.dicebear.com/10.x/thumbs/svg',
+        'https://api.dicebear.com/10.x/thumbs/svg',
       ],
     },
   ] as const;

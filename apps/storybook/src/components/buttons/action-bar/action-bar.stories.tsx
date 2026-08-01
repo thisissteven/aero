@@ -82,6 +82,7 @@ function Bar({ clear, count }: { clear: () => void; count: number }) {
     </ActionBar>
   );
 }
+
 function DefaultDemo() {
   const [selected, setSelected] = useState<Selection>(new Set());
   const count = selected === 'all' ? files.length : selected.size;
@@ -118,7 +119,7 @@ type Employee = {
 };
 const employees: Employee[] = [
   {
-    avatar: '/assets/generated/avatar-20.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Product',
     email: 'elena.rodriguez@company.com',
     id: 1,
@@ -127,7 +128,7 @@ const employees: Employee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-21.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Design',
     email: 'marcus.chen@company.com',
     id: 2,
@@ -136,7 +137,7 @@ const employees: Employee[] = [
     status: 'Pending',
   },
   {
-    avatar: '/assets/generated/avatar-22.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Product',
     email: 'priya.patel@company.com',
     id: 3,
@@ -145,7 +146,7 @@ const employees: Employee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-23.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Support',
     email: 'james.o.brien@company.com',
     id: 4,
@@ -154,7 +155,7 @@ const employees: Employee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-24.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Support',
     email: 'yuki.tanaka@company.com',
     id: 5,
@@ -163,7 +164,7 @@ const employees: Employee[] = [
     status: 'Inactive',
   },
   {
-    avatar: '/assets/generated/avatar-25.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Sales',
     email: 'amara.okafor@company.com',
     id: 6,
@@ -172,7 +173,7 @@ const employees: Employee[] = [
     status: 'Pending',
   },
   {
-    avatar: '/assets/generated/avatar-26.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Engineering',
     email: 'luca.bianchi@company.com',
     id: 7,
@@ -181,7 +182,7 @@ const employees: Employee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-27.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Design',
     email: 'sofia.andersson@company.com',
     id: 8,

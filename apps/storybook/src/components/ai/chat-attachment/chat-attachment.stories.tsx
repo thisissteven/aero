@@ -11,7 +11,7 @@ import {
   ChatMessage,
   PromptInput,
 } from './index';
-const image = '/assets/images/egg.webp';
+const image = 'https://api.dicebear.com/9.x/identicon/svg';
 const meta = {
   parameters: { layout: 'padded' },
   tags: ['autodocs'],

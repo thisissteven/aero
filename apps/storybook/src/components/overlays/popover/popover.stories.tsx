@@ -6,6 +6,7 @@ import { Avatar } from '@/components/data-display/avatar';
 import { Card } from '@/components/layout/card';
 
 import { Icon } from '@/icon';
+import { getRandomUserImage } from '@/seed';
 
 import { Popover } from './index';
 
@@ -86,6 +87,7 @@ const TemplateWithArrow = (props: Popover['ContentProps']) => (
 
 const TemplateWithCustomContent = (props: Popover['ContentProps']) => {
   const [isFollowing, setIsFollowing] = React.useState(false);
+  const src = getRandomUserImage();
 
   return (
     <div className='flex items-center gap-3'>
@@ -93,7 +95,7 @@ const TemplateWithCustomContent = (props: Popover['ContentProps']) => {
         <Popover.Trigger aria-label='Popover trigger'>
           <div className='flex items-center gap-2'>
             <Avatar size='sm'>
-              <Avatar.Image alt='Zoe' src='/assets/generated/avatar-5.jpg' />
+              <Avatar.Image alt='Zoe' src={src} />
               <Avatar.Fallback>Z</Avatar.Fallback>
             </Avatar>
             <div className='flex flex-col gap-0'>
@@ -108,10 +110,7 @@ const TemplateWithCustomContent = (props: Popover['ContentProps']) => {
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-3'>
                   <Avatar size='md'>
-                    <Avatar.Image
-                      alt='Zoe'
-                      src='/assets/generated/avatar-5.jpg'
-                    />
+                    <Avatar.Image alt='Zoe' src={src} />
                     <Avatar.Fallback>Z</Avatar.Fallback>
                   </Avatar>
                   <div className='flex h-full flex-col items-start justify-center'>

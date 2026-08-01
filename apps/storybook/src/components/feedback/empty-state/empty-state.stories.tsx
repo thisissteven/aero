@@ -38,6 +38,7 @@ function DefaultDemo() {
     </div>
   );
 }
+
 function OutlineDemo() {
   return (
     <div className='w-[420px]'>
@@ -60,6 +61,7 @@ function OutlineDemo() {
     </div>
   );
 }
+
 function WithBackgroundDemo() {
   return (
     <div className='w-[420px]'>
@@ -83,6 +85,7 @@ function WithBackgroundDemo() {
     </div>
   );
 }
+
 function UserAvatar({ alt, src }: { alt: string; src: string }) {
   return (
     <Avatar className='ring-background ring-2'>
@@ -96,6 +99,7 @@ function UserAvatar({ alt, src }: { alt: string; src: string }) {
     </Avatar>
   );
 }
+
 function WithAvatarDemo() {
   return (
     <div className='w-[420px]'>
@@ -104,7 +108,10 @@ function WithAvatarDemo() {
           <EmptyState.Media>
             <Badge.Anchor>
               <Avatar className='size-12'>
-                <Avatar.Image alt='John Doe' src='/assets/avatars/blue.jpg' />
+                <Avatar.Image
+                  alt='John Doe'
+                  src='https://api.dicebear.com/10.x/adventurer-neutral/svg'
+                />
                 <Avatar.Fallback>JD</Avatar.Fallback>
               </Avatar>
               <Badge
@@ -130,6 +137,7 @@ function WithAvatarDemo() {
     </div>
   );
 }
+
 function WithAvatarGroupDemo() {
   return (
     <div className='w-[420px]'>
@@ -137,9 +145,18 @@ function WithAvatarGroupDemo() {
         <EmptyState.Header>
           <EmptyState.Media>
             <div className='flex -space-x-2'>
-              <UserAvatar alt='John Doe' src='/assets/avatars/blue.jpg' />
-              <UserAvatar alt='Kate Wilson' src='/assets/avatars/green.jpg' />
-              <UserAvatar alt='Emily Chen' src='/assets/avatars/purple.jpg' />
+              <UserAvatar
+                alt='John Doe'
+                src='https://api.dicebear.com/10.x/adventurer-neutral/svg'
+              />
+              <UserAvatar
+                alt='Kate Wilson'
+                src='https://api.dicebear.com/10.x/adventurer-neutral/svg'
+              />
+              <UserAvatar
+                alt='Emily Chen'
+                src='https://api.dicebear.com/10.x/adventurer-neutral/svg'
+              />
             </div>
           </EmptyState.Media>
           <EmptyState.Title>No Team Members</EmptyState.Title>
@@ -157,6 +174,7 @@ function WithAvatarGroupDemo() {
     </div>
   );
 }
+
 function SizesDemo() {
   return (
     <div className='flex flex-wrap items-start gap-6'>
@@ -188,6 +206,7 @@ function SizesDemo() {
     </div>
   );
 }
+
 function MinimalDemo() {
   return (
     <div className='w-[420px]'>
@@ -202,6 +221,7 @@ function MinimalDemo() {
     </div>
   );
 }
+
 function FullHeightDemo() {
   return (
     <div className='border-border flex h-[400px] w-[500px] items-center justify-center rounded-2xl border border-dashed'>

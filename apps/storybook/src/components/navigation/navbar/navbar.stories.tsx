@@ -43,11 +43,16 @@ const Logo = ({ compact = false }: { compact?: boolean }) => (
     {compact ? null : <span>Aero</span>}
   </div>
 );
-const User = () => (
-  <Avatar className='size-7'>
-    <Avatar.Image alt='User avatar' src='/assets/avatars/purple.jpg' />
-  </Avatar>
-);
+
+const User = () => {
+  const src = getRandomUserImage();
+  return (
+    <Avatar className='size-7'>
+      <Avatar.Image alt='User avatar' src={src} />
+    </Avatar>
+  );
+};
+
 function BaseHeader({ mobile = false }: { mobile?: boolean }) {
   return (
     <Navbar.Header>
@@ -312,6 +317,7 @@ function DashboardNavbar() {
   const [timezone, setTimezone] = useState('utc');
   const timezoneLabel =
     dashboardTimezones.find(([id]) => id === timezone)?.[1] ?? 'UTC';
+  const src = getRandomUserImage();
 
   return (
     <Navbar position='static'>
@@ -326,7 +332,7 @@ function DashboardNavbar() {
         >
           <InlineSelect.Trigger className='gap-2'>
             <Avatar className='size-5'>
-              <Avatar.Image alt={workspace} src='/assets/avatars/purple.jpg' />
+              <Avatar.Image alt={workspace} src={src} />
             </Avatar>
             <span className='text-foreground text-sm font-medium'>
               {workspace}

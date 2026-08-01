@@ -225,7 +225,10 @@ function AccountMenu({ image = false }: { image?: boolean }) {
       <Button isIconOnly aria-label='Account menu' variant='ghost'>
         <Avatar className='size-6' color='success' variant='soft'>
           {image ? (
-            <Avatar.Image alt='User avatar' src='/assets/avatars/purple.jpg' />
+            <Avatar.Image
+              alt='User avatar'
+              src='https://api.dicebear.com/10.x/fun-emoji/svg'
+            />
           ) : null}
           <Avatar.Fallback className='text-xs font-semibold'>
             JG

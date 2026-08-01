@@ -35,7 +35,7 @@ export default {
   title: 'Components/Data Display/Badge',
 } as Meta<typeof Badge>;
 
-const AVATAR_URL = '/assets/avatars/green.jpg';
+const AVATAR_URL = 'https://api.dicebear.com/10.x/micah/svg';
 
 const defaultArgs: BadgeProps = {
   color: 'accent',

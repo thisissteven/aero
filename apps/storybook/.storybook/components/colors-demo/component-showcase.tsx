@@ -29,10 +29,14 @@ import {
   Tabs,
 } from '@aero/ui';
 
+import { getRandomFruitImage, getRandomUserImage } from '@/seed';
+
 import { AeroLogo } from '../aero-logo';
 import { Icon } from '../../../src/icon';
 
 export function ComponentShowcase() {
+  const src = getRandomFruitImage();
+  const avatarSrc = getRandomUserImage();
   return (
     <div>
       {/* Navigation */}
@@ -171,7 +175,7 @@ export function ComponentShowcase() {
                     alt='Cherries'
                     className='pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover select-none'
                     loading='lazy'
-                    src='/assets/docs/cherries.jpeg'
+                    src={src}
                   />
                 </div>
                 <div className='flex flex-1 flex-col gap-3'>
@@ -242,10 +246,7 @@ export function ComponentShowcase() {
                     <Card className='col-span-12 gap-2 sm:col-span-6'>
                       <Card.Header>
                         <Avatar className='size-[56px] rounded-xl'>
-                          <Avatar.Image
-                            alt='Demo 1'
-                            src='/assets/docs/demo1.jpg'
-                          />
+                          <Avatar.Image alt='Demo 1' src={src} />
                           <Avatar.Fallback>JK</Avatar.Fallback>
                         </Avatar>
                       </Card.Header>
@@ -257,10 +258,7 @@ export function ComponentShowcase() {
                       </Card.Content>
                       <Card.Footer className='flex items-center gap-2'>
                         <Avatar className='size-4'>
-                          <Avatar.Image
-                            alt='John'
-                            src='/assets/avatars/red.jpg'
-                          />
+                          <Avatar.Image alt='John' src={src} />
                           <Avatar.Fallback>JK</Avatar.Fallback>
                         </Avatar>
                         <p className='text-muted text-xs'>By John</p>
@@ -270,10 +268,7 @@ export function ComponentShowcase() {
                     <Card className='col-span-12 gap-2 sm:col-span-6'>
                       <Card.Header>
                         <Avatar className='size-[56px] rounded-xl'>
-                          <Avatar.Image
-                            alt='Demo 2'
-                            src='/assets/docs/demo2.jpg'
-                          />
+                          <Avatar.Image alt='Demo 2' src={src} />
                           <Avatar.Fallback>AB</Avatar.Fallback>
                         </Avatar>
                       </Card.Header>
@@ -285,10 +280,7 @@ export function ComponentShowcase() {
                       </Card.Content>
                       <Card.Footer className='flex items-center gap-2'>
                         <Avatar className='size-4'>
-                          <Avatar.Image
-                            alt='John'
-                            src='/assets/avatars/blue.jpg'
-                          />
+                          <Avatar.Image alt='John' src={src} />
                           <Avatar.Fallback>M</Avatar.Fallback>
                         </Avatar>
                         <p className='text-muted text-xs'>By Martha</p>
@@ -311,7 +303,7 @@ export function ComponentShowcase() {
                       alt='Avocado'
                       className='aspect-square h-16 w-16 shrink-0 rounded-xl object-cover select-none sm:h-20 sm:w-20'
                       loading='lazy'
-                      src='/assets/docs/avocado.jpeg'
+                      src={src}
                     />
                     <div className='flex flex-1 flex-col justify-center gap-1'>
                       <Card.Title className='text-sm'>
@@ -331,7 +323,7 @@ export function ComponentShowcase() {
                       alt='Sound Electro event'
                       className='aspect-square h-16 w-16 shrink-0 rounded-xl object-cover select-none sm:h-20 sm:w-20'
                       loading='lazy'
-                      src='/assets/docs/oranges.jpeg'
+                      src={src}
                     />
                     <div className='flex flex-1 flex-col justify-center gap-1'>
                       <Card.Title className='text-sm'>
@@ -442,7 +434,7 @@ export function ComponentShowcase() {
                 <Avatar.Fallback>DG</Avatar.Fallback>
               </Avatar>
               <Avatar>
-                <Avatar.Image alt='User' src='/assets/generated/avatar-3.jpg' />
+                <Avatar.Image alt='User' src={avatarSrc} />
                 <Avatar.Fallback>US</Avatar.Fallback>
               </Avatar>
             </div>
@@ -782,10 +774,7 @@ export function ComponentShowcase() {
               >
                 <div className='flex cursor-pointer items-center gap-2'>
                   <Avatar className='size-5' size='sm'>
-                    <Avatar.Image
-                      alt='Zoe'
-                      src='/assets/generated/avatar-5.jpg'
-                    />
+                    <Avatar.Image alt='Zoe' src={avatarSrc} />
                     <Avatar.Fallback>Z</Avatar.Fallback>
                   </Avatar>
                   <span className='text-sm font-medium'>Zoe</span>
@@ -796,10 +785,7 @@ export function ComponentShowcase() {
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-3'>
                       <Avatar size='md'>
-                        <Avatar.Image
-                          alt='Zoe'
-                          src='/assets/generated/avatar-5.jpg'
-                        />
+                        <Avatar.Image alt='Zoe' src={avatarSrc} />
                         <Avatar.Fallback>Z</Avatar.Fallback>
                       </Avatar>
                       <div className='flex flex-col'>

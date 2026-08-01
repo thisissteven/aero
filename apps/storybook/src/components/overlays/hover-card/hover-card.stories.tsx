@@ -5,6 +5,8 @@ import { Avatar } from '@aero/ui/avatar';
 import { Button } from '@aero/ui/button';
 import { Link } from '@aero/ui/link';
 
+import { getRandomUserImage } from '@/seed';
+
 import { HoverCard } from './index';
 
 const meta = {
@@ -17,11 +19,12 @@ export default meta;
 type Story = StoryObj<any>;
 
 function Profile() {
+  const src = getRandomUserImage();
   return (
     <>
       <div className='flex items-center gap-3'>
         <Avatar size='sm'>
-          <Avatar.Image alt='Aero' src='/assets/docs/aero_isotipo.png' />
+          <Avatar.Image alt='Aero' src={src} />
           <Avatar.Fallback>H</Avatar.Fallback>
         </Avatar>
         <div className='flex flex-col items-start justify-center'>
@@ -158,7 +161,7 @@ function ImageCard() {
       <img
         alt='Neo Brutalism design'
         className='h-36 w-full rounded-t-2xl object-cover'
-        src='/assets/hover-card/chat-message.webp'
+        src='https://api.dicebear.com/10.x/bottts-neutral/svg'
       />
       <div className='p-4'>
         <p className='text-sm font-semibold'>Neo Brutalism</p>

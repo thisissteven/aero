@@ -172,6 +172,15 @@ const payments: Payment[] = [
   },
 ];
 
+const statusColor: Record<
+  BulkEmployee['status'],
+  'danger' | 'success' | 'warning'
+> = {
+  Active: 'success',
+  Inactive: 'danger',
+  Pending: 'warning',
+};
+
 const paymentStatusColor = {
   failed: 'danger',
   processing: 'warning',
@@ -1097,7 +1106,7 @@ const products: Product[] = Array.from({ length: 1000 }, (_, index) => {
   return {
     cost: Math.round(price * (0.3 + random(7) * 0.4)),
     id: index + 1,
-    image: `/assets/generated/avatar-${(index % 26) + 1}.jpg`,
+    image: 'https://api.dicebear.com/10.x/big-ears-neutral/svg',
     name: `${brand} ${prefix} ${kind}`,
     price,
     rating: Math.round((2.5 + random(10) * 2.5) * 10) / 10,
@@ -1487,7 +1496,7 @@ const workers: Worker[] = Array.from({ length: 100 }, (_, index) => {
   const statusIndex =
     (index * 3 + Math.floor(random(5) * 7)) % workerStatuses.length;
   return {
-    avatar: `/assets/generated/avatar-${(index % 26) + 1}.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/big-ears-neutral/svg',
     country: countries[Math.floor(random(3) * countries.length)]!,
     email: `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
     externalWorkerId: externalId(index * 17 + 5),
@@ -1539,6 +1548,7 @@ function CopyValue({ children }: { children: string }) {
     </span>
   );
 }
+
 function CountryCell({ country }: { country: Country }) {
   return (
     <span className='inline-flex items-center gap-2'>
@@ -1546,13 +1556,14 @@ function CountryCell({ country }: { country: Country }) {
         alt={country.name}
         className='shrink-0 rounded-sm object-cover'
         height={14}
-        src={`/assets/flags/${country.code}.png`}
+        src='https://api.dicebear.com/10.x/shape-grid/svg'
         width={20}
       />
       <span className='text-sm'>{country.name}</span>
     </span>
   );
 }
+
 function TeamChips({ teams }: { teams: string[] }) {
   return (
     <span className='inline-flex items-center gap-1'>
@@ -2546,7 +2557,7 @@ type BulkEmployee = {
 
 const bulkEmployees: BulkEmployee[] = [
   {
-    avatar: '/assets/generated/avatar-20.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'HR',
     email: 'elena.rodriguez@company.com',
     id: 1,
@@ -2555,7 +2566,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-21.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Design',
     email: 'marcus.chen@company.com',
     id: 2,
@@ -2564,7 +2575,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Pending',
   },
   {
-    avatar: '/assets/generated/avatar-22.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'HR',
     email: 'priya.patel@company.com',
     id: 3,
@@ -2573,7 +2584,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-23.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Finance',
     email: 'james.o.brien@company.com',
     id: 4,
@@ -2582,7 +2593,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Active',
   },
   {
-    avatar: '/assets/generated/avatar-24.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Product',
     email: 'yuki.tanaka@company.com',
     id: 5,
@@ -2591,7 +2602,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Inactive',
   },
   {
-    avatar: '/assets/generated/avatar-25.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Support',
     email: 'amara.okafor@company.com',
     id: 6,
@@ -2600,7 +2611,7 @@ const bulkEmployees: BulkEmployee[] = [
     status: 'Pending',
   },
   {
-    avatar: '/assets/generated/avatar-26.jpg',
+    avatar: 'https://api.dicebear.com/9.x/lorelei/svg',
     department: 'Engineering',
     email: 'luca.bianchi@company.com',
     id: 7,

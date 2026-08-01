@@ -281,21 +281,21 @@ export const WithPrefix: Story = {
         <TagGroup.List>
           <Tag>
             <Avatar className='size-4'>
-              <Avatar.Image src='/assets/avatars/blue.jpg' />
+              <Avatar.Image src='https://api.dicebear.com/10.x/initial-face/svg' />
               <Avatar.Fallback>F</Avatar.Fallback>
             </Avatar>
             Fred
           </Tag>
           <Tag>
             <Avatar className='size-4'>
-              <Avatar.Image src='/assets/avatars/green.jpg' />
+              <Avatar.Image src='https://api.dicebear.com/10.x/initial-face/svg' />
               <Avatar.Fallback>M</Avatar.Fallback>
             </Avatar>
             Michael
           </Tag>
           <Tag>
             <Avatar className='size-4'>
-              <Avatar.Image src='/assets/avatars/purple.jpg' />
+              <Avatar.Image src='https://api.dicebear.com/10.x/initial-face/svg' />
               <Avatar.Fallback>J</Avatar.Fallback>
             </Avatar>
             Jane
@@ -426,37 +426,37 @@ export const WithListData: Story = {
         {
           id: 'fred',
           name: 'Fred',
-          avatar: '/assets/avatars/blue.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'F',
         },
         {
           id: 'michael',
           name: 'Michael',
-          avatar: '/assets/avatars/green.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'M',
         },
         {
           id: 'jane',
           name: 'Jane',
-          avatar: '/assets/avatars/purple.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'J',
         },
         {
           id: 'alice',
           name: 'Alice',
-          avatar: '/assets/avatars/red.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'A',
         },
         {
           id: 'bob',
           name: 'Bob',
-          avatar: '/assets/avatars/orange.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'B',
         },
         {
           id: 'charlie',
           name: 'Charlie',
-          avatar: '/assets/avatars/black.jpg',
+          avatar: 'https://api.dicebear.com/10.x/initial-face/svg',
           fallback: 'C',
         },
       ],

@@ -37,9 +37,9 @@ const LoremContent = () => (
 
 const LoremCards = () => {
   const images = [
-    '/assets/docs/robot1.jpeg',
-    '/assets/docs/avocado.jpeg',
-    '/assets/docs/oranges.jpeg',
+    'https://api.dicebear.com/10.x/bottts/svg',
+    'https://api.dicebear.com/10.x/bottts/svg',
+    'https://api.dicebear.com/10.x/bottts/svg',
   ];
 
   const getRandomImage = (idx: number) => {

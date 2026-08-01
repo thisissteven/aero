@@ -47,16 +47,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<any>;
 
-const people: Record<string, string> = {
-  Alex: 'orange',
-  Diego: 'black',
-  Emily: 'white',
-  Jake: 'green',
-  Maria: 'red',
-  Sam: 'purple',
-};
-const avatar = (name: string) =>
-  `/assets/avatars/${people[name] ?? 'blue'}.jpg`;
+const avatar = (_: string) =>
+  'https://api.dicebear.com/10.x/big-ears-neutral/svg';
 
 interface Ticket {
   assignees?: { avatar: string; name: string }[];
@@ -75,12 +67,12 @@ interface Ticket {
 }
 
 const ticketAvatars = {
-  Anna: '/assets/avatars/red.jpg',
-  Dave: '/assets/avatars/orange.jpg',
-  Lena: '/assets/avatars/green.jpg',
-  Mike: '/assets/avatars/white.jpg',
-  Nina: '/assets/avatars/black.jpg',
-  Omar: '/assets/avatars/red.jpg',
+  Anna: 'https://api.dicebear.com/10.x/lorelei/svg',
+  Dave: 'https://api.dicebear.com/10.x/lorelei/svg',
+  Lena: 'https://api.dicebear.com/10.x/lorelei/svg',
+  Mike: 'https://api.dicebear.com/10.x/lorelei/svg',
+  Nina: 'https://api.dicebear.com/10.x/lorelei/svg',
+  Omar: 'https://api.dicebear.com/10.x/lorelei/svg',
 } as const;
 const assignee = (name: keyof typeof ticketAvatars) => ({
   avatar: ticketAvatars[name],
@@ -93,7 +85,7 @@ const tickets: Ticket[] = [
     comments: 8,
     description: 'Integrate Third-Party API Services',
     id: '1',
-    image: '/assets/docs/cherries.jpeg',
+    image: 'https://api.dicebear.com/9.x/shapes/svg',
     progress: 0,
     status: 'Open',
     tags: [
@@ -117,7 +109,7 @@ const tickets: Ticket[] = [
     comments: 12,
     description: 'Create reusable component library for the design system',
     id: '3',
-    image: '/assets/docs/oranges.jpeg',
+    image: 'https://api.dicebear.com/9.x/shapes/svg',
     progress: 45,
     status: 'In Progress',
     tags: [
@@ -155,7 +147,7 @@ const tickets: Ticket[] = [
     comments: 2,
     description: 'Optimize lazy loading and reduce initial bundle size',
     id: '6',
-    image: '/assets/docs/robot1.jpeg',
+    image: 'https://api.dicebear.com/9.x/shapes/svg',
     progress: 100,
     status: 'Closed',
     tags: [{ color: 'success', label: 'Done' }],
@@ -951,12 +943,12 @@ interface ProjectTask {
   title: string;
 }
 const projectAvatars = {
-  Alex: '/assets/avatars/orange.jpg',
-  Emily: '/assets/avatars/white.jpg',
-  Jake: '/assets/avatars/black.jpg',
-  Maria: '/assets/avatars/green.jpg',
-  Sam: '/assets/avatars/red.jpg',
-  Sarah: '/assets/avatars/orange.jpg',
+  Alex: 'https://api.dicebear.com/10.x/glass/svg',
+  Emily: 'https://api.dicebear.com/10.x/glass/svg',
+  Jake: 'https://api.dicebear.com/10.x/glass/svg',
+  Maria: 'https://api.dicebear.com/10.x/glass/svg',
+  Sam: 'https://api.dicebear.com/10.x/glass/svg',
+  Sarah: 'https://api.dicebear.com/10.x/glass/svg',
 } as const;
 const projectAssignee = (name: keyof typeof projectAvatars) => ({
   avatar: projectAvatars[name],

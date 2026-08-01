@@ -152,7 +152,7 @@ export const PressableCards: Story = {
           alt='NEO Home Robot'
           aria-hidden='true'
           className='pointer-events-none absolute inset-0 z-0 h-full w-full object-cover'
-          src='/assets/docs/neo1.jpeg'
+          src='/neo1.jpeg'
         />
         <Card.Header className='z-10'>
           <Card.Title className='text-xs font-semibold tracking-wide text-black/70'>
@@ -177,18 +177,18 @@ export const PressableCards: Story = {
         {
           name: 'Indie Hackers',
           members: 148,
-          image: 'demo1.jpg',
+          image: 'https://api.dicebear.com/10.x/dylan/svg',
           color: 'text-rose-200',
           author: 'John',
-          authorAvatar: '/assets/avatars/red.jpg',
+          authorAvatar: 'https://api.dicebear.com/9.x/avataaars/svg',
         },
         {
           name: 'AI Builders',
           members: 362,
-          image: 'demo2.jpg',
+          image: 'https://api.dicebear.com/10.x/dylan/svg',
           color: 'text-sky-300',
           author: 'Martha',
-          authorAvatar: '/assets/avatars/blue.jpg',
+          authorAvatar: 'https://api.dicebear.com/9.x/avataaars/svg',
         },
       ].map((item) => (
         <Card
@@ -198,10 +198,7 @@ export const PressableCards: Story = {
           <PressableFeedback.Ripple className={item.color} />
           <Card.Header>
             <Avatar className='size-14 rounded-xl'>
-              <Avatar.Image
-                alt={item.name}
-                src={`/assets/docs/${item.image}`}
-              />
+              <Avatar.Image alt={item.name} src={item.image} />
               <Avatar.Fallback>
                 {item.name === 'Indie Hackers' ? 'IH' : 'AB'}
               </Avatar.Fallback>
@@ -224,13 +221,13 @@ export const PressableCards: Story = {
         {
           title: 'Bridging the Future',
           time: 'Today, 6:30 PM',
-          image: 'robot1.jpeg',
+          image: 'https://api.dicebear.com/10.x/dylan/svg',
           imageAlt: 'Futuristic Robot',
         },
         {
           title: 'Avocado Hackathon',
           time: 'Wed, 4:30 PM',
-          image: 'avocado.jpeg',
+          image: 'https://api.dicebear.com/10.x/dylan/svg',
           imageAlt: 'Avocado Hackathon',
         },
       ].map((item) => (
@@ -243,7 +240,7 @@ export const PressableCards: Story = {
           <img
             alt={item.imageAlt}
             className='aspect-square h-20 w-20 shrink-0 rounded-xl object-cover'
-            src={`/assets/docs/${item.image}`}
+            src={item.image}
           />
           <div className='flex flex-1 flex-col justify-center gap-1'>
             <Card.Title className='text-sm'>{item.title}</Card.Title>

@@ -78,7 +78,7 @@ const Template = (props: DisclosureGroupProps) => {
                 <img
                   alt='Expo Go QR Code'
                   className='aspect-square w-full max-w-54 object-cover'
-                  src='/assets/images/qr-code-native.png'
+                  src='https://api.dicebear.com/10.x/disco/svg'
                 />
                 <p className='text-muted text-sm'>
                   Expo must be installed on your device.
@@ -121,7 +121,7 @@ const Template = (props: DisclosureGroupProps) => {
                 <img
                   alt='Expo Go QR Code'
                   className='aspect-square w-full max-w-54 object-cover'
-                  src='/assets/images/qr-code-native.png'
+                  src='https://api.dicebear.com/10.x/disco/svg'
                 />
                 <p className='text-muted text-sm'>
                   Expo must be installed on your device.
@@ -208,7 +208,7 @@ const ControlledTemplate = (props: DisclosureGroupProps) => {
                 <img
                   alt='Expo Go QR Code'
                   className='aspect-square w-full max-w-54 object-cover'
-                  src='/assets/images/qr-code-native.png'
+                  src='https://api.dicebear.com/10.x/disco/svg'
                 />
                 <p className='text-muted text-sm'>
                   Expo must be installed on your device.
@@ -251,7 +251,7 @@ const ControlledTemplate = (props: DisclosureGroupProps) => {
                 <img
                   alt='Expo Go QR Code'
                   className='aspect-square w-full max-w-54 object-cover'
-                  src='/assets/images/qr-code-native.png'
+                  src='https://api.dicebear.com/10.x/disco/svg'
                 />
                 <p className='text-muted text-sm'>
                   Expo must be installed on your device.
@@ -314,55 +314,49 @@ const showcase1Items = [
     label: 'Colors',
     content:
       'Choose from three bold finishes. iPhone 17 Pro shown in Cosmic Orange.',
-    imgSrc:
-      '/assets/apple/product-viewer/colors_orange__f2ug4x6ry8uq_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'aluminum',
     label: 'Aluminum unibody',
     content:
       'Optimized for performance and battery. Aluminum alloy is remarkably light and has exceptional thermal conductivity.',
-    imgSrc:
-      '/assets/apple/product-viewer/viewer_aluminum_endframe__fypyvk9kkg2m_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'vapor-chamber',
     label: 'Vapor chamber',
     content:
       'Deionized water sealed inside moves heat away from the A19 Pro chip, allowing for even higher sustained performance.',
-    imgSrc:
-      '/assets/apple/product-viewer/viewer_vapor_chamber_endframe__dst8qkmuys4m_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'ceramic-shield',
     label: 'Ceramic shield',
     content:
       'Protects the back of iPhone 17 Pro, making it 4x more resistant to cracks. New Ceramic Shield 2 on the front has 3x better scratch resistance.',
-    imgSrc:
-      '/assets/apple/product-viewer/ceramic_shield__de0653vp43cm_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'immersive-pro-display',
     label: 'Immersive pro display',
     content:
       'Our best‑ever 6.3‑inch and 6.9‑inch Super Retina XDR displays.5 Brighter. Better anti‑reflection. ProMotion up to 120Hz.',
-    imgSrc: '/assets/apple/product-viewer/display__c0jmzc5emcae_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'camera-control',
     label: 'Camera control',
     content:
       'Instantly take a photo, record video, adjust settings, and more. So you never miss a moment.',
-    imgSrc:
-      '/assets/apple/product-viewer/camera_control__cy5kilwa0kwi_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     id: 'action-button',
     label: 'Action button',
     content:
       ' A customizable fast track to your favorite feature. Long press to launch the action you want — Silent mode, Translation, Shortcuts, and more.',
-    imgSrc:
-      '/assets/apple/product-viewer/viewer_action_button_startframe__bb2coc4lpj2a_large_2x.jpg',
+    imgSrc: 'https://api.dicebear.com/10.x/glass/svg',
   },
 ];
 

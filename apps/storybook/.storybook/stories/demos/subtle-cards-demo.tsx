@@ -3,6 +3,8 @@ import { tv } from 'tailwind-variants';
 
 import { Avatar, Card } from '@aero/ui';
 
+import { getRandomUserImage } from '@/seed';
+
 const cardStyles = tv({
   slots: {
     avatar: 'size-[56px] rounded-xl',
@@ -15,13 +17,14 @@ const cardStyles = tv({
 
 export function SubtleCardsDemo() {
   const { avatar, card, cardContent, footer, footerAvatar } = cardStyles();
+  const src = getRandomUserImage();
 
   return (
     <div className='flex w-full flex-row gap-4'>
       <Card className={card()}>
         <Card.Header>
           <Avatar className={avatar()}>
-            <Avatar.Image alt='Demo 1' src='/assets/docs/demo1.jpg' />
+            <Avatar.Image alt='Demo 1' src={src} />
             <Avatar.Fallback>JK</Avatar.Fallback>
           </Avatar>
         </Card.Header>
@@ -31,7 +34,7 @@ export function SubtleCardsDemo() {
         </Card.Content>
         <Card.Footer className={footer()}>
           <Avatar className={footerAvatar()}>
-            <Avatar.Image alt='John' src='/assets/avatars/red.jpg' />
+            <Avatar.Image alt='John' src={src} />
             <Avatar.Fallback>JK</Avatar.Fallback>
           </Avatar>
           <p className='text-muted text-xs'>By John</p>
@@ -40,7 +43,7 @@ export function SubtleCardsDemo() {
       <Card className={card()}>
         <Card.Header>
           <Avatar className={avatar()}>
-            <Avatar.Image alt='AI Builders' src='/assets/docs/demo2.jpg' />
+            <Avatar.Image alt='AI Builders' src={src} />
             <Avatar.Fallback>J</Avatar.Fallback>
           </Avatar>
         </Card.Header>
@@ -50,7 +53,7 @@ export function SubtleCardsDemo() {
         </Card.Content>
         <Card.Footer className={footer()}>
           <Avatar className={footerAvatar()}>
-            <Avatar.Image alt='Martha' src='/assets/avatars/blue.jpg' />
+            <Avatar.Image alt='Martha' src={src} />
             <Avatar.Fallback>M</Avatar.Fallback>
           </Avatar>
           <p className='text-muted text-xs'>By Martha</p>

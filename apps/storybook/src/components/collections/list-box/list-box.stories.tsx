@@ -35,7 +35,7 @@ export const Default: Story = {
     <ListBox aria-label='Users' className='w-55' selectionMode='single'>
       <ListBox.Item id='1' textValue='Bob'>
         <Avatar size='sm'>
-          <AvatarImage src='/assets/avatars/blue.jpg' />
+          <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
           <AvatarFallback>B</AvatarFallback>
         </Avatar>
         <div className='flex flex-col'>
@@ -46,7 +46,7 @@ export const Default: Story = {
       </ListBox.Item>
       <ListBox.Item id='2' textValue='Fred'>
         <Avatar size='sm'>
-          <AvatarImage src='/assets/avatars/green.jpg' />
+          <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
           <AvatarFallback>F</AvatarFallback>
         </Avatar>
         <div className='flex flex-col'>
@@ -57,7 +57,7 @@ export const Default: Story = {
       </ListBox.Item>
       <ListBox.Item id='3' textValue='Martha'>
         <Avatar size='sm'>
-          <AvatarImage src='/assets/avatars/purple.jpg' />
+          <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
           <AvatarFallback>M</AvatarFallback>
         </Avatar>
         <div className='flex flex-col'>
@@ -225,7 +225,7 @@ export const MultiSelect: Story = {
       <ListBox aria-label='Users' selectionMode='multiple'>
         <ListBox.Item id='1' textValue='Bob'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/blue.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>B</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -236,7 +236,7 @@ export const MultiSelect: Story = {
         </ListBox.Item>
         <ListBox.Item id='2' textValue='Fred'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/green.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>F</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -247,7 +247,7 @@ export const MultiSelect: Story = {
         </ListBox.Item>
         <ListBox.Item id='3' textValue='Martha'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/purple.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>M</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -267,7 +267,7 @@ export const CustomCheckIcon: Story = {
       <ListBox aria-label='Users' selectionMode='multiple'>
         <ListBox.Item id='1' textValue='Bob'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/blue.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>B</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -284,7 +284,7 @@ export const CustomCheckIcon: Story = {
         </ListBox.Item>
         <ListBox.Item id='2' textValue='Fred'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/green.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>F</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -301,7 +301,7 @@ export const CustomCheckIcon: Story = {
         </ListBox.Item>
         <ListBox.Item id='3' textValue='Martha'>
           <Avatar size='sm'>
-            <AvatarImage src='/assets/avatars/purple.jpg' />
+            <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
             <AvatarFallback>M</AvatarFallback>
           </Avatar>
           <div className='flex flex-col'>
@@ -338,7 +338,7 @@ export const Controlled: Story = {
           >
             <ListBox.Item id='1' textValue='Bob'>
               <Avatar size='sm'>
-                <AvatarImage src='/assets/avatars/blue.jpg' />
+                <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
                 <AvatarFallback>B</AvatarFallback>
               </Avatar>
               <div className='flex flex-col'>
@@ -358,7 +358,7 @@ export const Controlled: Story = {
             </ListBox.Item>
             <ListBox.Item id='2' textValue='Fred'>
               <Avatar size='sm'>
-                <AvatarImage src='/assets/avatars/green.jpg' />
+                <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
                 <AvatarFallback>F</AvatarFallback>
               </Avatar>
               <div className='flex flex-col'>
@@ -378,7 +378,7 @@ export const Controlled: Story = {
             </ListBox.Item>
             <ListBox.Item id='3' textValue='Martha'>
               <Avatar size='sm'>
-                <AvatarImage src='/assets/avatars/purple.jpg' />
+                <AvatarImage src='https://api.dicebear.com/10.x/initial-face/svg' />
                 <AvatarFallback>M</AvatarFallback>
               </Avatar>
               <div className='flex flex-col'>

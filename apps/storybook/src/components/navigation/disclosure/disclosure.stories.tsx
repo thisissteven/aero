@@ -59,7 +59,7 @@ const Template = (props: Disclosure['RootProps']) => {
             <img
               alt='Expo Go QR Code'
               className='aspect-square w-full max-w-54 object-cover'
-              src='/assets/images/qr-code-native.png'
+              src='https://api.dicebear.com/10.x/glass/svg?seed=James'
             />
             <p className='text-muted text-sm'>
               Expo must be installed on your device.

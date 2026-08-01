@@ -2,33 +2,37 @@ import React from 'react';
 
 import { Avatar } from '@aero/ui';
 
+import { getRandomUserImage } from '@/seed';
+
+const src = getRandomUserImage();
+
 const avatars = [
   {
-    image: '/assets/avatars/blue.jpg',
+    image: src,
     name: 'Blue',
   },
   {
-    image: '/assets/avatars/green.jpg',
+    image: src,
     name: 'Green',
   },
   {
-    image: '/assets/avatars/purple.jpg',
+    image: src,
     name: 'Purple',
   },
   {
-    image: '/assets/avatars/orange.jpg',
+    image: src,
     name: 'Orange',
   },
   {
-    image: '/assets/avatars/red.jpg',
+    image: src,
     name: 'red',
   },
   {
-    image: '/assets/avatars/blue.jpg',
+    image: src,
     name: 'Blue',
   },
   {
-    image: '/assets/avatars/black.jpg',
+    image: src,
     name: 'Black',
   },
 ];

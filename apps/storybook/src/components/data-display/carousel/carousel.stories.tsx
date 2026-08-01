@@ -10,27 +10,27 @@ import { Carousel } from './index';
 const images = [
   {
     alt: 'Sneakers front view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/1.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     alt: 'Sneakers side view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/2.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     alt: 'Sneakers back view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/3.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     alt: 'Sneakers top view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/4.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     alt: 'Sneakers detail view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/5.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
   {
     alt: 'Sneakers sole view',
-    src: 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/shoes/product-view/6.jpeg',
+    src: 'https://api.dicebear.com/10.x/glass/svg',
   },
 ];
 const meta = {

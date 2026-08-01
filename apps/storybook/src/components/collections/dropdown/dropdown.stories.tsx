@@ -938,7 +938,10 @@ export const CustomTrigger: Story = {
     <Dropdown>
       <Dropdown.Trigger className='rounded-full'>
         <Avatar>
-          <Avatar.Image alt='Junior Garcia' src='/assets/avatars/orange.jpg' />
+          <Avatar.Image
+            alt='Junior Garcia'
+            src='https://api.dicebear.com/9.x/lorelei/svg'
+          />
           <Avatar.Fallback delayMs={600}>JD</Avatar.Fallback>
         </Avatar>
       </Dropdown.Trigger>
@@ -946,7 +949,10 @@ export const CustomTrigger: Story = {
         <div className='px-3 pt-3 pb-1'>
           <div className='flex items-center gap-2'>
             <Avatar size='sm'>
-              <Avatar.Image alt='Jane' src='/assets/avatars/orange.jpg' />
+              <Avatar.Image
+                alt='Jane'
+                src='https://api.dicebear.com/9.x/lorelei/svg'
+              />
               <Avatar.Fallback delayMs={600}>JD</Avatar.Fallback>
             </Avatar>
             <div className='flex flex-col gap-0'>

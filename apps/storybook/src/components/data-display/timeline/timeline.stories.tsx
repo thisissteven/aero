@@ -371,7 +371,7 @@ export const StudioReview: Story = {
               <Avatar className='size-full' size='sm'>
                 <Avatar.Image
                   alt=''
-                  src={`/assets/avatars/${avatars[index]}.jpg`}
+                  src='https://api.dicebear.com/10.x/big-smile/svg'
                 />
                 <Avatar.Fallback>
                   {item[1]
@@ -408,7 +408,7 @@ export const StudioReview: Story = {
                       alt='Side profile of the runner product asset'
                       className='aspect-[4/3] w-full object-cover select-none sm:aspect-auto sm:h-full'
                       draggable={false}
-                      src='/assets/components-images/shoes/product-view/2.jpeg'
+                      src='https://api.dicebear.com/10.x/glass/svg'
                     />
                     <div className='flex min-w-0 flex-col gap-3 p-3'>
                       <p className='text-muted m-0 text-xs leading-5'>
@@ -493,9 +493,9 @@ export const CompactLog: Story = {
 };
 
 const incidentAvatars = {
-  blue: '/assets/avatars/blue.jpg',
-  green: '/assets/avatars/green.jpg',
-  orange: '/assets/avatars/orange.jpg',
+  blue: 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
+  green: 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
+  orange: 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
 };
 const incident = [
   {
@@ -736,9 +736,9 @@ const revisions = [
   ],
 ];
 const revisionAvatars: Record<string, string> = {
-  'Eli Wong': '/assets/avatars/orange.jpg',
-  'Maya Chen': '/assets/avatars/blue.jpg',
-  'Nora Vazquez': '/assets/avatars/green.jpg',
+  'Eli Wong': 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
+  'Maya Chen': 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
+  'Nora Vazquez': 'https://api.dicebear.com/10.x/adventurer-neutral/svg',
 };
 export const VersionHistory: Story = {
   render: () => (

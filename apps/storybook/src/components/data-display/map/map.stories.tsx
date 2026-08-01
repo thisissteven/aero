@@ -1663,10 +1663,9 @@ function IncidentMonitorDemo() {
 
 export const IncidentMonitor: Story = { render: () => <IncidentMonitorDemo /> };
 
-const avatarRoot = '/assets/avatars';
 const visitors = [
   {
-    avatar: `${avatarRoot}/blue.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'London',
     fallback: 'LN',
     latitude: 51.5072,
@@ -1674,7 +1673,7 @@ const visitors = [
     name: 'Visitor from London',
   },
   {
-    avatar: `${avatarRoot}/red.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Paris',
     fallback: 'PA',
     latitude: 48.8566,
@@ -1682,7 +1681,7 @@ const visitors = [
     name: 'Visitor from Paris',
   },
   {
-    avatar: `${avatarRoot}/purple.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Berlin',
     fallback: 'BE',
     latitude: 52.52,
@@ -1690,7 +1689,7 @@ const visitors = [
     name: 'Visitor from Berlin',
   },
   {
-    avatar: `${avatarRoot}/green.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Madrid',
     fallback: 'MA',
     latitude: 40.4168,
@@ -1698,7 +1697,7 @@ const visitors = [
     name: 'Visitor from Madrid',
   },
   {
-    avatar: `${avatarRoot}/orange.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Rome',
     fallback: 'RO',
     latitude: 41.9028,
@@ -1706,7 +1705,7 @@ const visitors = [
     name: 'Visitor from Rome',
   },
   {
-    avatar: `${avatarRoot}/white.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Kyiv',
     fallback: 'KY',
     latitude: 50.4501,
@@ -1714,7 +1713,7 @@ const visitors = [
     name: 'Visitor from Kyiv',
   },
   {
-    avatar: `${avatarRoot}/blue-light.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Cairo',
     fallback: 'CA',
     latitude: 30.0444,
@@ -1722,7 +1721,7 @@ const visitors = [
     name: 'Visitor from Cairo',
   },
   {
-    avatar: `${avatarRoot}/red.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Istanbul',
     fallback: 'IS',
     latitude: 41.0082,
@@ -1730,7 +1729,7 @@ const visitors = [
     name: 'Visitor from Istanbul',
   },
   {
-    avatar: `${avatarRoot}/purple.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Dubai',
     fallback: 'DU',
     latitude: 25.2048,
@@ -1738,7 +1737,7 @@ const visitors = [
     name: 'Visitor from Dubai',
   },
   {
-    avatar: `${avatarRoot}/green.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Riyadh',
     fallback: 'RI',
     latitude: 24.7136,
@@ -1746,7 +1745,7 @@ const visitors = [
     name: 'Visitor from Riyadh',
   },
   {
-    avatar: `${avatarRoot}/blue.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'New York',
     fallback: 'NY',
     latitude: 40.7128,
@@ -1754,7 +1753,7 @@ const visitors = [
     name: 'Visitor from New York',
   },
   {
-    avatar: `${avatarRoot}/orange.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'San Francisco',
     fallback: 'SF',
     latitude: 37.7749,
@@ -1762,7 +1761,7 @@ const visitors = [
     name: 'Visitor from San Francisco',
   },
   {
-    avatar: `${avatarRoot}/green.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Mexico City',
     fallback: 'MX',
     latitude: 19.4326,
@@ -1770,7 +1769,7 @@ const visitors = [
     name: 'Visitor from Mexico City',
   },
   {
-    avatar: `${avatarRoot}/purple.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Bogota',
     fallback: 'BO',
     latitude: 4.711,
@@ -1778,7 +1777,7 @@ const visitors = [
     name: 'Visitor from Bogota',
   },
   {
-    avatar: `${avatarRoot}/red.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Sao Paulo',
     fallback: 'SP',
     latitude: -23.5558,
@@ -1786,7 +1785,7 @@ const visitors = [
     name: 'Visitor from Sao Paulo',
   },
   {
-    avatar: `${avatarRoot}/white.jpg`,
+    avatar: 'https://api.dicebear.com/10.x/toon-head/svg',
     city: 'Buenos Aires',
     fallback: 'BA',
     latitude: -34.6037,
@@ -2123,7 +2122,7 @@ function TrackingDemo() {
           <Avatar size='sm'>
             <Avatar.Image
               alt='Noah the courier'
-              src={`${avatarRoot}/green.jpg`}
+              src='https://api.dicebear.com/10.x/toon-head/svg'
             />
             <Avatar.Fallback>NO</Avatar.Fallback>
           </Avatar>
