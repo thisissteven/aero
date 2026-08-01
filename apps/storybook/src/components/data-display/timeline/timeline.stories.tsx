@@ -326,7 +326,6 @@ export const CenteredMilestones: Story = {
   ),
 };
 
-const avatars = ['blue', 'orange', 'green', 'blue'];
 const studio = [
   ['Product asset uploaded', 'Mina Sol', '10:18 AM', 'current', 'asset'],
   [
@@ -361,7 +360,7 @@ export const StudioReview: Story = {
         </h3>
       </div>
       <Timeline density='compact' size='sm'>
-        {studio.map((item, index) => (
+        {studio.map((item) => (
           <Timeline.Item
             align='center'
             key={item[0]}
