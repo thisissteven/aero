@@ -1,4 +1,30 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts"]
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    "allowJs": true,
+
+    "jsx": "react-jsx",
+
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }
