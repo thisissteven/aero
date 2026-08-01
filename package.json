@@ -40,10 +40,17 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "preview": "turbo run preview",
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "check-types": "turbo run check-types",
-    "prepare": "husky"
+    "prepare": "husky",
+    "storybook:dev": "turbo run dev --filter=@aero/storybook",
+    "storybook:build": "turbo run build --filter=@aero/storybook",
+    "storybook:preview": "turbo run preview --filter=@aero/storybook",
+    "web:dev": "turbo run dev --filter=@aero/web",
+    "web:build": "turbo run build --filter=@aero/web",
+    "web:preview": "turbo run preview --filter=@aero/web"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
@@ -64,6 +71,8 @@
     "lint-staged": "^15.3.0",
     "prettier": "^3.4.0",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
     "turbo": "^2.5.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.18.0"

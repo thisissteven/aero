@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "storybook-static/**"]
     },
+    "preview": {
+      "dependsOn": ["build"],
+      "persistent": true
+    },
     "dev": {
       "cache": false,
       "persistent": true
