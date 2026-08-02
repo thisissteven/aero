@@ -12,14 +12,26 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aero/ui": "workspace:*",
+    "@hookform/resolvers": "^5.7.1",
+    "@iconify/react": "^6.0.2",
+    "@opencode-ai/sdk": "^1.18.11",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-router": "^1.170.18",
+    "@tanstack/react-virtual": "^3.14.9",
     "hono": "^4.12.32",
+    "motion": "^12.43.0",
+    "next-themes": "^0.4.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "@aero/ui": "workspace:*"
+    "react-hook-form": "^7.84.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "4.3.3",
+    "@tanstack/router-plugin": "^1.168.23",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
