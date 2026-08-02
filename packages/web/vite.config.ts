@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
   plugins: [
     tanstackRouter({
       target: 'react',
@@ -12,6 +15,7 @@ export default defineConfig({
       generatedRouteTree: './src/routeTree.gen.ts',
       autoCodeSplitting: true,
     }),
+
     react(),
     tailwindcss(),
   ],
