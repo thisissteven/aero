@@ -65,3 +65,13 @@
 @import './components/number-stepper.css';
 @import './components/chart-tooltip.css';
 @import './components/table.css';
+
+@layer theme {
+  :root {
+    --chart-1: oklch(from var(--accent) calc(l - 0.24) c h);
+    --chart-2: oklch(from var(--accent) calc(l - 0.12) c h);
+    --chart-3: var(--accent);
+    --chart-4: oklch(from var(--accent) calc(l + 0.12) c h);
+    --chart-5: oklch(from var(--accent) calc(l + 0.24) c h);
+  }
+}

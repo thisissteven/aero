@@ -70,7 +70,7 @@
   scrollbar-gutter: var(--scrollbar-gutter);
   overscroll-behavior-y: contain;
   min-height: 0;
-  overflow-y: auto;
+  /* overflow-y: auto; */
 }
 
 [data-app-layout][data-scroll-mode='content'] .app-layout__main:focus-visible {

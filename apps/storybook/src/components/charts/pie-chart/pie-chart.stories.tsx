@@ -87,10 +87,10 @@ function Legend({
 }
 
 const browsers = [
-  { name: 'Chrome', value: 62 },
-  { name: 'Safari', value: 19 },
-  { name: 'Firefox', value: 10 },
-  { name: 'Edge', value: 9 },
+  { name: 'Chrome', value: 62, fill: 'var(--chart-4)' },
+  { name: 'Safari', value: 19, fill: 'var(--chart-3)' },
+  { name: 'Firefox', value: 10, fill: 'var(--chart-2)' },
+  { name: 'Edge', value: 9, fill: 'var(--chart-1)' },
 ];
 
 export const Default: Story = {
@@ -127,10 +127,10 @@ export const Default: Story = {
 };
 
 const traffic = [
-  { name: 'Organic', value: 4500 },
-  { name: 'Direct', value: 3200 },
-  { name: 'Referral', value: 2100 },
-  { name: 'Social', value: 1400 },
+  { name: 'Organic', value: 4500, fill: 'var(--chart-4)' },
+  { name: 'Direct', value: 3200, fill: 'var(--chart-3)' },
+  { name: 'Referral', value: 2100, fill: 'var(--chart-2)' },
+  { name: 'Social', value: 1400, fill: 'var(--chart-1)' },
 ];
 
 export const Donut: Story = {
@@ -177,10 +177,10 @@ export const Donut: Story = {
 };
 
 const storage = [
-  { name: 'Documents', value: 42 },
-  { name: 'Media', value: 28 },
-  { name: 'Apps', value: 18 },
-  { name: 'Other', value: 12 },
+  { name: 'Documents', value: 42, fill: 'var(--chart-4)' },
+  { name: 'Media', value: 28, fill: 'var(--chart-3)' },
+  { name: 'Apps', value: 18, fill: 'var(--chart-2)' },
+  { name: 'Other', value: 12, fill: 'var(--chart-1)' },
 ];
 
 export const DonutWithLabel: Story = {
@@ -239,9 +239,9 @@ export const DonutWithLabel: Story = {
 };
 
 const devices = [
-  { name: 'Mobile', value: 2800 },
-  { name: 'Desktop', value: 1200 },
-  { name: 'Tablet', value: 500 },
+  { name: 'Mobile', value: 2800, fill: 'var(--chart-4)' },
+  { name: 'Desktop', value: 1200, fill: 'var(--chart-3)' },
+  { name: 'Tablet', value: 500, fill: 'var(--chart-2)' },
 ];
 
 export const DonutWithContent: Story = {
@@ -311,9 +311,9 @@ export const DonutWithContent: Story = {
 };
 
 const plans = [
-  { name: 'Enterprise', value: 340 },
-  { name: 'Pro', value: 520 },
-  { name: 'Starter', value: 280 },
+  { name: 'Enterprise', value: 340, fill: 'var(--chart-4)' },
+  { name: 'Pro', value: 520, fill: 'var(--chart-3)' },
+  { name: 'Starter', value: 280, fill: 'var(--chart-2)' },
 ];
 
 export const WithBreakdown: Story = {
@@ -429,16 +429,16 @@ export const CustomTooltip: Story = {
 };
 
 const lastYear = [
-  { name: 'Q1', value: 3200 },
-  { name: 'Q2', value: 4100 },
-  { name: 'Q3', value: 3800 },
-  { name: 'Q4', value: 5200 },
+  { name: 'Q1', value: 3200, fill: 'var(--chart-4)' },
+  { name: 'Q2', value: 4100, fill: 'var(--chart-3)' },
+  { name: 'Q3', value: 3800, fill: 'var(--chart-2)' },
+  { name: 'Q4', value: 5200, fill: 'var(--chart-1)' },
 ];
 const thisYear = [
-  { name: 'Q1', value: 4800 },
-  { name: 'Q2', value: 5600 },
-  { name: 'Q3', value: 5100 },
-  { name: 'Q4', value: 6800 },
+  { name: 'Q1', value: 4800, fill: 'var(--chart-4)' },
+  { name: 'Q2', value: 5600, fill: 'var(--chart-3)' },
+  { name: 'Q3', value: 5100, fill: 'var(--chart-2)' },
+  { name: 'Q4', value: 6800, fill: 'var(--chart-1)' },
 ];
 
 export const NestedDonut: Story = {
