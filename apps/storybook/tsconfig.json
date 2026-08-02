@@ -8,9 +8,8 @@
     "strictNullChecks": false,
     "skipDefaultLibCheck": false,
     "skipLibCheck": false,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
