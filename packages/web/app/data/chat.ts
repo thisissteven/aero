@@ -1,6 +1,8 @@
 import { Compass, CopyPicture, SquarePlus } from '@gravity-ui/icons';
 import type { ComponentType } from 'react';
 
+import { AeroMessage } from '../../server/services/harness/types';
+
 export type ChatNavItemId = 'new' | 'library' | 'explore';
 
 export type ChatNavItem = {
@@ -39,6 +41,21 @@ export type ChatMessage = {
 };
 
 export type ChatThread = {
+  id: string;
+  title: string;
+  preview: string;
+  updatedAt: string;
+  modelId: string;
+  searchModeId: string;
+  user: {
+    avatar: string;
+    email: string;
+    name: string;
+  };
+  messages: readonly AeroMessage[];
+};
+
+type ChatThreadMock = {
   id: string;
   title: string;
   preview: string;
@@ -102,7 +119,7 @@ export const SUGGESTED_PROMPTS: readonly string[] = [
   'Compare three pricing models and recommend one for a usage-based SaaS.',
 ] as const;
 
-export const CHAT_THREADS: readonly ChatThread[] = [
+export const CHAT_THREADS: readonly ChatThreadMock[] = [
   {
     id: 'quick-recipes-for-dinner',
     messages: [
@@ -414,8 +431,8 @@ export const EXPLORE_CATEGORIES: readonly ExploreCategory[] = [
 
 export const DEFAULT_CHAT_THREAD_ID = CHAT_THREADS[0]?.id ?? '';
 
-export function getChatThread(chatId: string) {
-  return CHAT_THREADS.find((thread) => thread.id === chatId);
+export function getChatThread(_: string) {
+  return undefined;
 }
 
 export type ChatPageKind = 'thread' | 'new' | 'library' | 'explore';
@@ -441,10 +458,5 @@ export function resolveChatActivePage(
   if (firstSegment === 'library') return { kind: 'library' };
   if (firstSegment === 'explore') return { kind: 'explore' };
 
-  const threadId = firstSegment || DEFAULT_CHAT_THREAD_ID;
-  const thread = getChatThread(threadId) ?? CHAT_THREADS[0];
-
-  if (!thread) return { kind: 'new' };
-
-  return { kind: 'thread', thread };
+  return { kind: 'new' };
 }

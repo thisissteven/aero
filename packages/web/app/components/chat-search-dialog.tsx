@@ -3,13 +3,16 @@ import { Comment, Magnifier } from '@gravity-ui/icons';
 import { Kbd } from '@aero/ui';
 import { Command } from '@aero/ui';
 
+import { formatCompactRelativeTime } from '@/lib';
+
 import type { ChatThread } from '../data/chat';
+import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSearchDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  threads: readonly ChatThread[];
-  onSelect: (thread: ChatThread) => void;
+  threads: readonly (ChatThread | AeroSessionSummary)[];
+  onSelect: (thread: ChatThread | AeroSessionSummary) => void;
 }
 
 export function ChatSearchDialog({
@@ -43,26 +46,34 @@ export function ChatSearchDialog({
               )}
             >
               <Command.Group heading='Recent chats'>
-                {threads.map((thread) => (
-                  <Command.Item
-                    key={thread.id}
-                    textValue={`${thread.title} ${thread.preview}`}
-                    onAction={() => onSelect(thread)}
-                  >
-                    <Comment />
-                    <div className='flex min-w-0 flex-col'>
-                      <span className='text-foreground truncate text-sm font-medium'>
-                        {thread.title}
+                {threads.map((thread) => {
+                  const preview =
+                    'preview' in thread ? thread.preview : 'Recent chat';
+                  const updatedAtStr = formatCompactRelativeTime(
+                    thread.updatedAt,
+                  );
+
+                  return (
+                    <Command.Item
+                      key={thread.id}
+                      textValue={`${thread.title} ${preview}`}
+                      onAction={() => onSelect(thread)}
+                    >
+                      <Comment />
+                      <div className='flex min-w-0 flex-col'>
+                        <span className='text-foreground truncate text-sm font-medium'>
+                          {thread.title}
+                        </span>
+                        <span className='text-muted truncate text-xs'>
+                          {preview}
+                        </span>
+                      </div>
+                      <span className='text-muted ml-auto shrink-0 text-[11px]'>
+                        {updatedAtStr}
                       </span>
-                      <span className='text-muted truncate text-xs'>
-                        {thread.preview}
-                      </span>
-                    </div>
-                    <span className='text-muted ml-auto shrink-0 text-[11px]'>
-                      {thread.updatedAt}
-                    </span>
-                  </Command.Item>
-                ))}
+                    </Command.Item>
+                  );
+                })}
               </Command.Group>
             </Command.List>
             <Command.Footer className='justify-between [&_kbd]:h-5 [&_kbd]:text-xs'>

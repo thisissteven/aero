@@ -7,9 +7,10 @@ import {
   DEFAULT_CHAT_THREAD_ID,
   resolveChatActivePage,
 } from '../data/chat';
+import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSidebarProps {
-  threads: readonly ChatThread[];
+  threads: readonly (ChatThread | AeroSessionSummary)[];
   pathname: string;
   basePath: string;
   disableNavigation?: boolean;
@@ -57,24 +58,24 @@ function SidebarContents({
   threads,
 }: SidebarContentsProps) {
   const activePage = resolveChatActivePage(pathname, basePath);
+  const firstThread = threads[0];
+  const user =
+    firstThread && 'user' in firstThread ? firstThread.user : undefined;
 
   return (
     <>
       <Sidebar.Header>
         <div className='flex items-center gap-3 px-1 py-1'>
           <Avatar className='size-9'>
-            <Avatar.Image
-              alt={threads[0]?.user.name ?? 'User'}
-              src={threads[0]?.user.avatar}
-            />
+            <Avatar.Image alt={user?.name ?? 'User'} src={user?.avatar} />
             <Avatar.Fallback>DH</Avatar.Fallback>
           </Avatar>
           <div className='flex min-w-0 flex-col' data-sidebar='label'>
             <span className='text-foreground text-sm leading-tight font-medium'>
-              {threads[0]?.user.name ?? 'Darnell Howe'}
+              {user?.name ?? 'Darnell Howe'}
             </span>
             <span className='text-muted text-xs leading-tight font-medium'>
-              {threads[0]?.user.email ?? 'darnell@email.com'}
+              {user?.email ?? 'darnell@email.com'}
             </span>
           </div>
         </div>
@@ -168,7 +169,7 @@ interface ChatSidebarThreadItemProps {
   disableNavigation: boolean;
   idPrefix: string;
   pathname: string;
-  thread: ChatThread;
+  thread: ChatThread | AeroSessionSummary;
 }
 
 function ChatSidebarThreadItem({

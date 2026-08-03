@@ -4,16 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AppLayout } from '@aero/ui';
 
+import { useSessions } from '@/hooks/sessions';
+
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
 import type { ChatActivePage, ChatNavItemId, ChatThread } from '../data/chat';
 import {
   CHAT_NAV_ITEMS,
-  CHAT_THREADS,
   DEFAULT_CHAT_THREAD_ID,
   resolveChatActivePage,
 } from '../data/chat';
+import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatShellProps {
   children: ReactNode;
@@ -28,10 +30,16 @@ export function ChatShell({
 }: ChatShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: sessions = [] } = useSessions();
 
   const pathname = location.pathname;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const displayThreads = useMemo(() => {
+    const sessionsList = Array.isArray(sessions) ? sessions : [];
+    return sessionsList;
+  }, [sessions]);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -65,7 +73,7 @@ export function ChatShell({
   );
 
   const handleThreadSelect = useCallback(
-    (thread: ChatThread) => {
+    (thread: ChatThread | AeroSessionSummary) => {
       setIsSearchOpen(false);
 
       if (!disableNavigation) {
@@ -114,7 +122,7 @@ export function ChatShell({
           basePath={basePath}
           disableNavigation={disableNavigation}
           pathname={pathname || `/${DEFAULT_CHAT_THREAD_ID}`}
-          threads={CHAT_THREADS}
+          threads={displayThreads}
           onAction={handleNavAction}
         />
       }
@@ -125,7 +133,7 @@ export function ChatShell({
 
       <ChatSearchDialog
         isOpen={isSearchOpen}
-        threads={CHAT_THREADS}
+        threads={displayThreads}
         onOpenChange={setIsSearchOpen}
         onSelect={handleThreadSelect}
       />

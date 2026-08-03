@@ -6,10 +6,9 @@
 //   2. add a case to buildAdapter() below
 // No route or frontend change required if the interface holds.
 
-import { createOpencodeAdapter } from '@/adapters/opencode';
-import { readHarnessesConfig } from '@/storage/harnesses';
-
 import type { HarnessAdapter, HarnessId } from './types';
+import { createOpencodeAdapter } from '../../adapters/opencode';
+import { readHarnessesConfig } from '../../storage/harnesses';
 
 const adapters = new Map<HarnessId, Promise<HarnessAdapter>>();
 

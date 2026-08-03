@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import type { HarnessId } from '@/services/harness/types';
+import type { HarnessId } from '../services/harness/types';
 
 interface HarnessesConfig {
   defaultHarness: HarnessId;

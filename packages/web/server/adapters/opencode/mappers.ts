@@ -16,7 +16,7 @@ import type {
   AeroMessage,
   AeroPart,
   AeroSessionSummary,
-} from '@/services/harness/types';
+} from '../../services/harness/types';
 
 export function toAeroSession(s: Session): AeroSessionSummary {
   return {

@@ -6,17 +6,16 @@
 
 import type { Event } from '@opencode-ai/sdk';
 
+import { getOpencodeClient } from './client';
+import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
+import { unwrap } from './unwrap';
 import type {
   AeroEvent,
   CreateSessionInput,
   HarnessAdapter,
   SendMessageInput,
   StreamEventsOptions,
-} from '@/services/harness/types';
-
-import { getOpencodeClient } from './client';
-import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
-import { unwrap } from './unwrap';
+} from '../../services/harness/types';
 
 export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   const client = await getOpencodeClient();

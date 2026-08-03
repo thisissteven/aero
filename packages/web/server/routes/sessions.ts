@@ -10,8 +10,8 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
-import { getActiveAdapter } from '@/services/harness/registry';
-import type { AeroPart } from '@/services/harness/types';
+import { getActiveAdapter } from '../services/harness/registry';
+import type { AeroPart } from '../services/harness/types';
 
 // reusable schemas for request validation
 const querySchema = z.object({

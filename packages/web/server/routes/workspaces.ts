@@ -9,7 +9,7 @@ import {
   deleteWorkspace,
   getWorkspace,
   listWorkspaces,
-} from '@/storage/workspaces';
+} from '../storage/workspaces';
 
 const createWorkspaceSchema = z.object({
   name: z.string(),
