@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { getChatThread } from '@/data/chat';
 
-import { ChatPage } from '@/views/chat-page';
+import { ChatPage } from '@/features/chat-page';
 
 export const Route = createFileRoute('/_app/sessions/$sessionId')({
   component: SessionPage,

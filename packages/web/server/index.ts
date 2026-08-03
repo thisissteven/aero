@@ -3,8 +3,12 @@
 import { Hono } from 'hono';
 
 import sessions from './routes/sessions';
+import workspaces from './routes/workspaces';
 
-const app = new Hono().basePath('/api').route('/sessions', sessions);
+const app = new Hono()
+  .basePath('/api')
+  .route('/sessions', sessions)
+  .route('/workspaces', workspaces);
 
 export default app;
 

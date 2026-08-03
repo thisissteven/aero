@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 @import '@aero/ui/styles';
 
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 @font-face {
   font-family: 'DM Sans';
   src: url('./assets/fonts/DMSans-VariableFont_opsz,wght.ttf')

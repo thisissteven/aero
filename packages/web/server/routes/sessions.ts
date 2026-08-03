@@ -15,7 +15,7 @@ import type { AeroPart } from '@/services/harness/types';
 
 // reusable schemas for request validation
 const querySchema = z.object({
-  workspaceId: z.string().min(1, 'workspaceId is required'),
+  workspaceId: z.string().min(1).optional(),
 });
 
 const idParamSchema = z.object({

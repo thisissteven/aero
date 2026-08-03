@@ -1,4 +1,4 @@
-import { ArrowRightToSquare, Magnifier } from '@gravity-ui/icons';
+import { Magnifier } from '@gravity-ui/icons';
 
 import { Button, Kbd, Tooltip } from '@aero/ui';
 import { AppLayout, Navbar, Sidebar } from '@aero/ui';
@@ -70,12 +70,12 @@ export function ChatNavbar({ activePage, onSearch }: ChatNavbarProps) {
               </div>
             </Tooltip.Content>
           </Tooltip>
-          {isThread ? (
+          {/* {isThread ? (
             <Button className='hidden md:inline-flex' size='sm'>
               <ArrowRightToSquare className='size-4' />
               Share
             </Button>
-          ) : null}
+          ) : null} */}
         </div>
       </Navbar.Header>
     </Navbar>

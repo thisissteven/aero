@@ -1,0 +1,157 @@
+// app/hooks/sessions.ts
+//
+// All queries/mutations are scoped by workspaceId in the query key, since a
+// harness is resolved per-workspace server-side (see server/services/harness/registry.ts).
+// Pass workspaceId=undefined to operate against the default harness while
+// workspace-switching isn't built in the UI yet.
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { InferRequestType, InferResponseType } from 'hono/client';
+
+import { honoClient } from '@/lib';
+
+const $sessions = honoClient.api.sessions;
+const $session = honoClient.api.sessions[':id'];
+const $messages = honoClient.api.sessions[':id'].message;
+const $abort = honoClient.api.sessions[':id'].abort;
+
+export const sessionKeys = {
+  all: (workspaceId?: string) =>
+    ['sessions', workspaceId ?? 'default'] as const,
+  detail: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId] as const,
+  messages: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'messages'] as const,
+};
+
+type SessionListResponse = InferResponseType<typeof $sessions.$get>;
+type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
+type SendMessageInput = InferRequestType<typeof $messages.$post>['json'];
+
+export function useSessions(workspaceId?: string) {
+  return useQuery({
+    queryKey: sessionKeys.all(workspaceId),
+    queryFn: async (): Promise<SessionListResponse> => {
+      const res = await $sessions.$get({ query: { workspaceId } });
+      if (!res.ok) throw new Error('Failed to fetch sessions');
+      return res.json();
+    },
+  });
+}
+
+export function useSession(workspaceId: string | undefined, sessionId: string) {
+  return useQuery({
+    queryKey: sessionKeys.detail(workspaceId, sessionId),
+    queryFn: async () => {
+      const res = await $session.$get({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch session');
+      return res.json();
+    },
+    enabled: !!sessionId,
+  });
+}
+
+export function useCreateSession(workspaceId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateSessionInput) => {
+      const res = await $sessions.$post({
+        json: input,
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to create session');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+    },
+  });
+}
+
+export function useDeleteSession(workspaceId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await $session.$delete({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to delete session');
+      return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+      queryClient.removeQueries({
+        queryKey: sessionKeys.detail(workspaceId, sessionId),
+      });
+    },
+  });
+}
+
+export function useSessionMessages(
+  workspaceId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.messages(workspaceId, sessionId),
+    queryFn: async () => {
+      const res = await $messages.$get({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      return res.json();
+    },
+    enabled: !!sessionId,
+  });
+}
+
+export function useSendMessage(
+  workspaceId: string | undefined,
+  sessionId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SendMessageInput) => {
+      const res = await $messages.$post({
+        param: { id: sessionId },
+        query: { workspaceId },
+        json: input,
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      return res.json();
+    },
+    onSuccess: () => {
+      // Note: session.prompt() waits for the full assistant reply before
+      // resolving, so this invalidation lands after the whole turn — not
+      // per-token. Live streaming updates go through the SSE route
+      // (/api/sessions/:id/stream) separately; ask if you want a hook that
+      // wires that into the query cache incrementally instead.
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.messages(workspaceId, sessionId),
+      });
+    },
+  });
+}
+
+export function useAbortSession(workspaceId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await $abort.$post({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to abort session');
+      return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(workspaceId, sessionId),
+      });
+    },
+  });
+}

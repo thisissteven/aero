@@ -1,5 +1,3 @@
-import { Comment } from '@gravity-ui/icons';
-
 import { Avatar, Kbd } from '@aero/ui';
 import { Sidebar } from '@aero/ui';
 
@@ -197,9 +195,6 @@ function ChatSidebarThreadItem({
       isCurrent={isCurrent}
       textValue={thread.title}
     >
-      <Sidebar.MenuIcon>
-        <Comment className='size-4' />
-      </Sidebar.MenuIcon>
       <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
     </Sidebar.MenuItem>
   );

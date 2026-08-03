@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 
-import { ThemeProvider } from '@/theme';
+import { QueryProvider, ThemeProvider } from '@/providers';
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -9,7 +9,9 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <ThemeProvider>
-      <Outlet />
+      <QueryProvider>
+        <Outlet />
+      </QueryProvider>
     </ThemeProvider>
   );
 }
