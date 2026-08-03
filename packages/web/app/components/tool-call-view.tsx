@@ -1,8 +1,21 @@
 import { memo } from 'react';
 
-import { CodeBlock } from '@aero/ui';
+import { CodeBlock, Disclosure } from '@aero/ui';
 
 import type { AeroPart } from '../../server/services/harness/types';
+
+function formatOutput(output: unknown): string {
+  if (typeof output === 'string') return output;
+  if (!output) return '';
+  return JSON.stringify(output, null, 2);
+}
+
+function getInputField(input: unknown, key: string): string {
+  if (typeof input === 'object' && input !== null && key in input) {
+    return String((input as Record<string, unknown>)[key]);
+  }
+  return '';
+}
 
 export const ToolCallView = memo(
   function ToolCallView({
@@ -10,42 +23,221 @@ export const ToolCallView = memo(
   }: {
     part: Extract<AeroPart, { type: 'tool' }>;
   }) {
-    const command =
-      typeof part.input === 'object' &&
-      part.input !== null &&
-      'command' in part.input
-        ? String(part.input.command)
-        : '';
+    const { toolName, input, output, status } = part;
+    const isCompleted = status === 'completed';
+    const rawOutput = formatOutput(output);
 
-    const output =
-      typeof part.output === 'string'
-        ? part.output
-        : JSON.stringify(part.output, null, 2);
+    const renderContent = () => {
+      switch (toolName) {
+        case 'bash': {
+          const command = getInputField(input, 'command');
+          return {
+            title: command ? `bash: ${command}` : 'bash',
+            code: rawOutput,
+            language: 'bash',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'edit':
+        case 'write': {
+          const path =
+            getInputField(input, 'path') || getInputField(input, 'filePath');
+          const content =
+            getInputField(input, 'content') || getInputField(input, 'newText');
+          const oldText = getInputField(input, 'oldText');
+
+          let code = '';
+          if (oldText && content) {
+            code = `// --- REMOVE ---\n${oldText}\n\n// +++ ADD +++\n${content}`;
+          } else {
+            code = content || rawOutput;
+          }
+
+          return {
+            title: `${toolName}: ${path}`,
+            code,
+            language: 'diff',
+            copyText: code,
+          };
+        }
+
+        case 'apply_patch': {
+          const patchText = getInputField(input, 'patchText') || rawOutput;
+          return {
+            title: 'apply_patch',
+            code: patchText,
+            language: 'diff',
+            copyText: patchText,
+          };
+        }
+
+        case 'read': {
+          const path =
+            getInputField(input, 'path') || getInputField(input, 'filePath');
+          return {
+            title: path ? `read: ${path}` : 'read',
+            code: rawOutput,
+            language: path.split('.').pop() || 'text',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'grep': {
+          const pattern =
+            getInputField(input, 'pattern') || getInputField(input, 'query');
+          const path = getInputField(input, 'path');
+          return {
+            title: pattern
+              ? `grep "${pattern}"${path ? ` in ${path}` : ''}`
+              : 'grep',
+            code: rawOutput,
+            language: 'log',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'glob': {
+          const pattern = getInputField(input, 'pattern');
+          return {
+            title: pattern ? `glob: ${pattern}` : 'glob',
+            code: rawOutput,
+            language: 'text',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'lsp': {
+          const operation = getInputField(input, 'operation');
+          const path = getInputField(input, 'path');
+          return {
+            title: `lsp (${operation})${path ? `: ${path}` : ''}`,
+            code: rawOutput,
+            language: 'json',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'skill': {
+          const name =
+            getInputField(input, 'name') || getInputField(input, 'skill');
+          return {
+            title: `skill: ${name}`,
+            code: rawOutput,
+            language: 'markdown',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'webfetch': {
+          const url = getInputField(input, 'url');
+          return {
+            title: url ? `webfetch: ${url}` : 'webfetch',
+            code: rawOutput,
+            language: 'markdown',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'websearch': {
+          const query = getInputField(input, 'query');
+          return {
+            title: query ? `websearch: "${query}"` : 'websearch',
+            code: rawOutput,
+            language: 'json',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'question': {
+          const header = getInputField(input, 'header');
+          const questionText = getInputField(input, 'question');
+          return {
+            title: header ? `question: ${header}` : 'question',
+            code: questionText
+              ? `Q: ${questionText}\n\nAnswer:\n${rawOutput}`
+              : rawOutput,
+            language: 'markdown',
+            copyText: rawOutput,
+          };
+        }
+
+        case 'todowrite': {
+          const todos =
+            typeof input === 'object' && input !== null && 'todos' in input
+              ? JSON.stringify(
+                  (input as Record<string, unknown>).todos,
+                  null,
+                  2,
+                )
+              : rawOutput;
+          return {
+            title: 'todowrite',
+            code: todos,
+            language: 'json',
+            copyText: todos,
+          };
+        }
+
+        default: {
+          const formattedInput =
+            typeof input === 'string' ? input : JSON.stringify(input, null, 2);
+          const fullDisplay = `// Input:\n${formattedInput}\n\n// Output:\n${rawOutput}`;
+          return {
+            title: toolName,
+            code: fullDisplay,
+            language: 'json',
+            copyText: fullDisplay,
+          };
+        }
+      }
+    };
+
+    const { title, code, language, copyText } = renderContent();
 
     return (
       <div className='my-3'>
-        <CodeBlock>
-          <CodeBlock.Header>
-            <span>
-              {part.toolName}
-              {part.status === 'completed' ? ' ✓' : ''}
-            </span>
-            <CodeBlock.CopyButton code={`${command}\n\n${output ?? ''}`} />
-          </CodeBlock.Header>
+        <Disclosure defaultExpanded={false}>
+          <Disclosure.Heading>
+            <Disclosure.Trigger
+              className='flex w-full items-center justify-between border px-3 py-2 font-mono text-xs transition-colors'
+              style={{
+                backgroundColor: 'var(--surface-secondary)',
+                color: 'var(--muted)',
+                borderColor: 'var(--border)',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              <span className='flex items-center gap-2 truncate'>
+                <span>{title}</span>
+                <span style={{ color: 'var(--muted)' }}>
+                  {isCompleted ? '✓' : '⏳'}
+                </span>
+              </span>
+              <Disclosure.Indicator />
+            </Disclosure.Trigger>
+          </Disclosure.Heading>
 
-          <CodeBlock.Code
-            code={command ? `$ ${command}\n\n${output ?? ''}` : (output ?? '')}
-            language='shell'
-          />
-        </CodeBlock>
+          <Disclosure.Content className='mt-2'>
+            <CodeBlock>
+              <CodeBlock.Header>
+                <CodeBlock.CopyButton
+                  code={copyText}
+                  className='absolute top-13 right-2'
+                />
+              </CodeBlock.Header>
+              <CodeBlock.Code code={code} language={language} />
+            </CodeBlock>
+          </Disclosure.Content>
+        </Disclosure>
       </div>
     );
   },
   (prev, next) => {
-    // Prevent re-render if the execution contents match perfectly
     return (
       prev.part.status === next.part.status &&
-      prev.part.output === next.part.output
+      prev.part.output === next.part.output &&
+      JSON.stringify(prev.part.input) === JSON.stringify(next.part.input)
     );
   },
 );

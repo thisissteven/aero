@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { ChatConversation, PromptInput } from '@aero/ui';
+import { ChatConversation, PromptInput, ScrollShadow } from '@aero/ui';
 
 import { ConversationItem, MessageView } from '@/components/message-view';
 
@@ -33,6 +33,7 @@ export function groupMessages(messages: AeroMessage[]): ConversationItem[] {
 
 export function ChatPage({ thread }: ChatPageProps) {
   const [value, setValue] = useState('');
+  const [contentReady, setContentReady] = useState(false);
 
   const groups = useMemo(
     () => groupMessages(thread.messages),
@@ -45,8 +46,8 @@ export function ChatPage({ thread }: ChatPageProps) {
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 180, // Elevated to better accommodate tool logs & code blocks
-    overscan: 10, // Increased buffer to minimize blank frames on quick scrolls
+    estimateSize: () => 180,
+    overscan: 10,
   });
 
   // Track scroll position to determine if the user is pinned to the bottom
@@ -60,15 +61,25 @@ export function ChatPage({ thread }: ChatPageProps) {
 
   // Enforce stick-to-bottom positioning during active incoming streaming data
   useLayoutEffect(() => {
-    if (isAtBottomRef.current && groups.length > 0) {
-      virtualizer.scrollToIndex(groups.length - 1, { align: 'end' });
-    }
-  }, [groups.length, virtualizer]);
+    if (!groups.length) return;
 
-  // Recalculate layout dimensions whenever new complex elements render inside streams
-  useEffect(() => {
-    virtualizer.measure();
-  }, [thread.messages, virtualizer]);
+    setContentReady(false);
+
+    requestAnimationFrame(() => {
+      setContentReady(true);
+
+      requestAnimationFrame(() => {
+        virtualizer.measure();
+
+        requestAnimationFrame(() => {
+          virtualizer.scrollToIndex(groups.length - 1, {
+            align: 'end',
+            behavior: 'auto',
+          });
+        });
+      });
+    });
+  }, [groups.length]);
 
   function send() {
     const text = value.trim();
@@ -81,13 +92,13 @@ export function ChatPage({ thread }: ChatPageProps) {
   return (
     <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
       <ChatConversation>
-        <div
+        <ScrollShadow
           ref={scrollRef}
           onScroll={handleScroll}
-          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain'
+          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
         >
           <div
-            className='relative mx-auto w-full max-w-[800px] px-4 pt-10 pb-6'
+            className='relative mx-auto w-full max-w-[800px] px-4'
             style={{
               height: `${virtualizer.getTotalSize()}px`,
             }}
@@ -105,26 +116,27 @@ export function ChatPage({ thread }: ChatPageProps) {
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
                 >
-                  <MessageView group={group} />
+                  <MessageView group={group} hidden={!contentReady} />
                 </div>
               );
             })}
           </div>
+        </ScrollShadow>
+
+        <div className='absolute right-4 bottom-4 z-10'>
+          <ChatConversation.ScrollButton
+            aria-label='Scroll to bottom'
+            tooltip='Scroll to bottom'
+            onClick={() => {
+              isAtBottomRef.current = true;
+              virtualizer.scrollToIndex(groups.length - 1, { align: 'end' });
+            }}
+          />
         </div>
-
-        <ChatConversation.ScrollButton
-          aria-label='Scroll to bottom'
-          tooltip='Scroll to bottom'
-          onClick={() => {
-            isAtBottomRef.current = true;
-            virtualizer.scrollToIndex(groups.length - 1, { align: 'end' });
-          }}
-        />
-
         <ChatConversation.ScrollAnchor />
       </ChatConversation>
 
-      <div className='bg-background shrink-0 px-4 pt-3 pb-4'>
+      <div className='bg-background shrink-0 px-4 pb-4'>
         <div className='mx-auto w-full max-w-[714px]'>
           <PromptInput
             value={value}
@@ -144,7 +156,7 @@ export function ChatPage({ thread }: ChatPageProps) {
               </PromptInput.Toolbar>
             </PromptInput.Shell>
 
-            <PromptInput.Footer>
+            <PromptInput.Footer className='pt-1'>
               AI can make mistakes. Check important info.
             </PromptInput.Footer>
           </PromptInput>

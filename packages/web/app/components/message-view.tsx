@@ -1,10 +1,11 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 
 import {
   ChainOfThought,
   ChatMessage,
   ChatMessageActions,
   Markdown,
+  Skeleton,
 } from '@aero/ui';
 
 import { ToolCallView } from '@/components/tool-call-view';
@@ -15,12 +16,39 @@ export type ConversationItem =
   | { role: 'user'; messages: AeroMessage[] }
   | { role: 'assistant'; messages: AeroMessage[] };
 
+function MessageSkeleton({ role }: { role: ConversationItem['role'] }) {
+  if (role === 'user') {
+    return (
+      <div className='flex justify-end'>
+        <Skeleton className='h-12 w-48 rounded-2xl' />
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-3'>
+      <Skeleton className='h-4 w-3/4 rounded-lg' />
+      <Skeleton className='h-4 w-1/2 rounded-lg' />
+      <Skeleton className='h-4 w-2/3 rounded-lg' />
+    </div>
+  );
+}
+
 export const MessageView = memo(
-  function MessageView({ group }: { group: ConversationItem }) {
+  function MessageView({
+    group,
+    hidden,
+  }: {
+    group: ConversationItem;
+    hidden?: boolean;
+  }) {
     const messages = group.messages;
 
-    // Extract parts safely
     const parts = messages.flatMap((message) => message.parts);
+
+    if (hidden) {
+      return <MessageSkeleton role={group.role} />;
+    }
 
     if (group.role === 'user') {
       const text = parts
@@ -30,14 +58,13 @@ export const MessageView = memo(
 
       return (
         <ChatMessage.User>
-          <ChatMessage.Bubble>
+          <ChatMessage.Bubble className='max-w-4/5 wrap-break-word'>
             <ChatMessage.Content>{text}</ChatMessage.Content>
           </ChatMessage.Bubble>
         </ChatMessage.User>
       );
     }
 
-    // Use a stable foundation key compound from actual message identities rather than map indices
     const baseKey = messages.map((m) => m.id).join('-');
 
     return (
@@ -97,12 +124,14 @@ export const MessageView = memo(
     );
   },
   (prev, next) => {
-    // Deep equality verification bypass to strictly avoid re-renders unless data properties adjust
+    if (prev.hidden !== next.hidden) return false;
+
     if (prev.group.role !== next.group.role) return false;
     if (prev.group.messages.length !== next.group.messages.length) return false;
 
     return prev.group.messages.every((msg, idx) => {
       const nextMsg = next.group.messages[idx];
+
       return msg.id === nextMsg.id && msg.createdAt === nextMsg.createdAt;
     });
   },
