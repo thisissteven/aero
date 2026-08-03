@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["vite.config.ts", "src/server/**/*.ts"]
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./server/*"]
+    }
+  },
+  "include": ["vite.config.ts", "server/**/*.ts"]
 }
