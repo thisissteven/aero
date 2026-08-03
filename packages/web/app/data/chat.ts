@@ -52,7 +52,7 @@ export type ChatThread = {
     email: string;
     name: string;
   };
-  messages: readonly AeroMessage[];
+  messages: AeroMessage[];
 };
 
 type ChatThreadMock = {
@@ -435,13 +435,15 @@ export function getChatThread(_: string) {
   return undefined;
 }
 
-export type ChatPageKind = 'thread' | 'new' | 'library' | 'explore';
+export type ChatPageKind =
+  'thread' | 'new' | 'library' | 'explore' | 'sessions';
 
 export type ChatActivePage =
   | { kind: 'thread'; thread: ChatThread }
   | { kind: 'new' }
   | { kind: 'library' }
-  | { kind: 'explore' };
+  | { kind: 'explore' }
+  | { kind: 'sessions' };
 
 export function resolveChatActivePage(
   pathname: string,
@@ -457,6 +459,7 @@ export function resolveChatActivePage(
   if (firstSegment === 'new') return { kind: 'new' };
   if (firstSegment === 'library') return { kind: 'library' };
   if (firstSegment === 'explore') return { kind: 'explore' };
+  if (firstSegment === 'sessions') return { kind: 'sessions' };
 
   return { kind: 'new' };
 }

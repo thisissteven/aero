@@ -15,12 +15,22 @@ import type {
   ReactNode,
   SVGProps,
 } from 'react';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { codeToHtml } from 'shiki';
 
 const Context = createContext(true);
 const part = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
+
+// ⚡ GLOBAL GLOBAL MEMORY CACHE MAP FOR HIGHLIGHTED HTML
+const SHIKI_HIGHLIGHT_CACHE = new Map<string, string>();
 
 export async function highlightCode(
   code: string,
@@ -34,15 +44,25 @@ export async function highlightCode(
     theme?: string;
   } = {},
 ): Promise<string> {
-  return codeToHtml(code, {
+  const cacheKey = `${language}:${theme}:${darkTheme}:${code}`;
+  if (SHIKI_HIGHLIGHT_CACHE.has(cacheKey)) {
+    return SHIKI_HIGHLIGHT_CACHE.get(cacheKey)!;
+  }
+
+  const html = await codeToHtml(code, {
     defaultColor: false,
     lang: language,
     themes: { dark: darkTheme, light: theme },
   });
+
+  SHIKI_HIGHLIGHT_CACHE.set(cacheKey, html);
+  return html;
 }
+
 export interface CodeBlockRootProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
+
 export function CodeBlockRoot({
   children,
   className,
@@ -60,10 +80,11 @@ export function CodeBlockRoot({
     </Context>
   );
 }
+
 export interface CodeBlockHeaderProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
-export function CodeBlockHeader({
+export const CodeBlockHeader = memo(function CodeBlockHeader({
   children,
   className,
   ...props
@@ -78,7 +99,8 @@ export function CodeBlockHeader({
       {children}
     </div>
   );
-}
+});
+
 export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   code: string;
   darkTheme?: string;
@@ -87,7 +109,9 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   showLineNumbers?: boolean;
   theme?: string;
 }
-export function CodeBlockCode({
+
+// ⚡ MEMOIZED FOR THE VIRTUALIZER VIEWPORT
+export const CodeBlockCode = memo(function CodeBlockCode({
   className,
   code,
   darkTheme,
@@ -101,13 +125,23 @@ export function CodeBlockCode({
   const light = theme ?? 'github-light';
   const dark = darkTheme ?? (theme ? undefined : 'github-dark');
   const key = `${language}:${light}:${dark ?? 'none'}:${code}`;
+
+  // Synchronously seed the initial state from cache if it exists
+  const initialHtml = highlightedHtml || SHIKI_HIGHLIGHT_CACHE.get(key);
+
   const [highlighted, setHighlighted] = useState<{
     html: string;
     key: string;
-  } | null>(highlightedHtml ? { html: highlightedHtml, key } : null);
+  } | null>(initialHtml ? { html: initialHtml, key } : null);
+
   useEffect(() => {
-    if (highlightedHtml) {
-      setHighlighted({ html: highlightedHtml, key });
+    // If state matches current key, skip parsing
+    if (highlighted?.key === key) return;
+
+    // Check memory cache synchronously first
+    const cachedHtml = SHIKI_HIGHLIGHT_CACHE.get(key);
+    if (cachedHtml) {
+      setHighlighted({ html: cachedHtml, key });
       return;
     }
 
@@ -126,6 +160,10 @@ export function CodeBlockCode({
               theme: light,
             })
           : await codeToHtml(code, { lang: language, theme: light });
+
+        // Cache the newly processed code block
+        SHIKI_HIGHLIGHT_CACHE.set(key, html);
+
         if (!cancelled) setHighlighted({ html, key });
       } catch {
         if (!cancelled) setHighlighted(null);
@@ -135,17 +173,23 @@ export function CodeBlockCode({
     return () => {
       cancelled = true;
     };
-  }, [code, dark, highlightedHtml, key, language, light]);
+  }, [code, dark, key, language, light, highlighted?.key]);
+
   const codeClass = part('code-block__code', className);
-  return highlighted?.key === key ? (
-    <div
-      className={codeClass}
-      dangerouslySetInnerHTML={{ __html: highlighted.html }}
-      data-line-numbers={showLineNumbers || undefined}
-      data-slot='code-block-code'
-      {...props}
-    />
-  ) : (
+
+  if (highlighted?.key === key) {
+    return (
+      <div
+        className={codeClass}
+        dangerouslySetInnerHTML={{ __html: highlighted.html }}
+        data-line-numbers={showLineNumbers || undefined}
+        data-slot='code-block-code'
+        {...props}
+      />
+    );
+  }
+
+  return (
     <div
       className={codeClass}
       data-line-numbers={showLineNumbers || undefined}
@@ -153,11 +197,12 @@ export function CodeBlockCode({
       {...props}
     >
       <pre>
-        <code>{code}</code>
+        <code className='break-all whitespace-pre-wrap'>{code}</code>
       </pre>
     </div>
   );
-}
+});
+
 const icon =
   (path: string) =>
   (props: SVGProps<SVGSVGElement>): ReactElement => (

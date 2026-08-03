@@ -19,6 +19,10 @@ const NAV_TITLES: Record<
   },
   new: { subtitle: 'Start a brand new conversation', title: 'New Chat' },
   thread: { subtitle: '', title: '' },
+  sessions: {
+    subtitle: 'Latest Hero (master)',
+    title: 'Autonomous Github PR Creation',
+  },
 };
 
 export interface ChatNavbarProps {
