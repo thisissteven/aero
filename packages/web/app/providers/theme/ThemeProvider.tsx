@@ -1,10 +1,4 @@
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, useEffect, useState } from 'react';
 
 import { useKeyPress } from '@/hooks/useKeyPress';
 
@@ -16,7 +10,9 @@ interface ThemeContextValue {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextValue | undefined>(
+  undefined,
+);
 
 const STORAGE_KEY = 'theme';
 
@@ -128,14 +124,4 @@ export function ThemeProvider({
       {children}
     </ThemeContext.Provider>
   );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-
-  if (!context) {
-    throw new Error('useTheme must be used inside ThemeProvider');
-  }
-
-  return context;
 }

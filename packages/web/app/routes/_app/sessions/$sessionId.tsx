@@ -1,6 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useSession, useSessionMessages } from '@/hooks/api/sessions';
+import {
+  useSession,
+  useSessionMessages,
+  useSessionToc,
+} from '@/hooks/api/sessions';
 
 import type { ChatThread } from '@/data/chat';
 
@@ -26,7 +30,13 @@ function SessionPage() {
   const { data: messages = [], isLoading: isMessagesLoading } =
     useSessionMessages(undefined, sessionId);
 
-  if (isSessionLoading || isMessagesLoading) {
+  // Fetch TOC items
+  const { data: tocItems = [], isLoading: isTocLoading } = useSessionToc(
+    undefined,
+    sessionId,
+  );
+
+  if (isSessionLoading || isMessagesLoading || isTocLoading) {
     return (
       <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] items-center justify-center'>
         <span className='text-muted text-sm'>Loading session...</span>
@@ -68,5 +78,5 @@ function SessionPage() {
     messages,
   };
 
-  return <ChatPage thread={thread} />;
+  return <ChatPage thread={thread} tocItems={tocItems} />;
 }

@@ -14,6 +14,7 @@ const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
 const $messages = honoClient.api.sessions[':id'].message;
 const $abort = honoClient.api.sessions[':id'].abort;
+const $toc = honoClient.api.sessions[':id'].toc;
 
 export const sessionKeys = {
   all: (workspaceId?: string) =>
@@ -22,6 +23,8 @@ export const sessionKeys = {
     ['sessions', workspaceId ?? 'default', sessionId] as const,
   messages: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId, 'messages'] as const,
+  toc: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'toc'] as const,
 };
 
 type SessionListResponse = InferResponseType<typeof $sessions.$get>;
@@ -103,6 +106,28 @@ export function useSessionMessages(
         query: { workspaceId },
       });
       if (!res.ok) throw new Error('Failed to fetch messages');
+      return res.json();
+    },
+    enabled: !!sessionId,
+  });
+}
+
+export type TocItem = NonNullable<
+  ReturnType<typeof useSessionToc>['data']
+>[number];
+
+export function useSessionToc(
+  workspaceId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.toc(workspaceId, sessionId),
+    queryFn: async () => {
+      const res = await $toc.$get({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch session TOC');
       return res.json();
     },
     enabled: !!sessionId,

@@ -92,6 +92,52 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/toc?workspaceId=...
+  .get(
+    '/:id/toc',
+    zValidator('param', idParamSchema),
+    zValidator('query', querySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { workspaceId } = c.req.valid('query');
+      const harness = await getActiveAdapter(workspaceId);
+      const messages = await harness.listMessages(id);
+
+      // Group messages by consecutive roles to track virtualized group indices
+      const items: { groupIndex: number; id: string; label: string }[] = [];
+      let groupIndex = -1;
+      let currentRole: string | null = null;
+
+      for (const msg of messages) {
+        if (msg.role !== currentRole) {
+          groupIndex++;
+          currentRole = msg.role;
+        }
+
+        // Only extract items for user messages (taking the first user message in a group)
+        if (msg.role === 'user') {
+          const userText = (msg.parts ?? [])
+            .filter((p) => p.type === 'text')
+            .map((p) => (p as { type: 'text'; text: string }).text)
+            .join(' ')
+            .trim();
+
+          // Avoid duplicate TOC entries if multiple user messages are grouped together
+          const lastItem = items.at(-1);
+          if (!lastItem || lastItem.groupIndex !== groupIndex) {
+            items.push({
+              id: msg.id,
+              groupIndex,
+              label: userText.slice(0, 80) || `Prompt ${items.length + 1}`,
+            });
+          }
+        }
+      }
+
+      return c.json(items);
+    },
+  )
+
   // POST /api/sessions/:id/message?workspaceId=...   body: { parts, model? }
   .post(
     '/:id/message',

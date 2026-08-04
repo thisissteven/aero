@@ -1,7 +1,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { PromptInput, ScrollShadow } from '@aero/ui';
+import { FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
+
+import { TocItem } from '@/hooks/api/sessions';
 
 import { ConversationItem, MessageView } from '@/components/message-view';
 import { ScrollToBottomButton } from '@/components/scroll-to-bottom';
@@ -11,9 +13,10 @@ import type { AeroMessage } from '../../server/services/harness/types';
 
 export interface ChatPageProps {
   thread: ChatThread;
+  tocItems?: TocItem[];
 }
 
-export function groupMessages(messages: AeroMessage[]): ConversationItem[] {
+function groupMessages(messages: AeroMessage[]): ConversationItem[] {
   const groups: ConversationItem[] = [];
 
   for (const message of messages) {
@@ -32,9 +35,10 @@ export function groupMessages(messages: AeroMessage[]): ConversationItem[] {
   return groups;
 }
 
-export function ChatPage({ thread }: ChatPageProps) {
+export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
   const [value, setValue] = useState('');
   const [contentReady, setContentReady] = useState(false);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
 
   const groups = useMemo(
     () => groupMessages(thread.messages),
@@ -51,16 +55,29 @@ export function ChatPage({ thread }: ChatPageProps) {
     overscan: 10,
   });
 
-  // Track scroll position to determine if the user is pinned to the bottom
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const threshold = 30; // pixels from the bottom
+
+    const threshold = 30;
     const distanceToBottom =
       target.scrollHeight - target.scrollTop - target.clientHeight;
+
     isAtBottomRef.current = distanceToBottom <= threshold;
+
+    const scrollTop = target.scrollTop;
+
+    const visibleItems = virtualizer.getVirtualItems();
+
+    // Find the item currently occupying the top of viewport
+    const activeItem = visibleItems.find(
+      (item) => item.start <= scrollTop + 20 && item.end >= scrollTop + 20,
+    );
+
+    if (activeItem) {
+      setActiveGroupIndex(activeItem.index);
+    }
   };
 
-  // Enforce stick-to-bottom positioning during active incoming streaming data
   useLayoutEffect(() => {
     if (!groups.length) return;
 
@@ -87,12 +104,60 @@ export function ChatPage({ thread }: ChatPageProps) {
     if (!text) return;
 
     setValue('');
-    // call your API here
   }
+
+  const handleSelectTocItem = (index: number) => {
+    virtualizer.scrollToIndex(index, {
+      align: 'start',
+      behavior: 'smooth',
+    });
+  };
+
+  const getIsActive = (index: number) => {
+    const tocItem = tocItems[index];
+    const nextTocItem = tocItems[index + 1];
+
+    if (!nextTocItem) {
+      return activeGroupIndex >= tocItem.groupIndex;
+    }
+
+    return (
+      activeGroupIndex >= tocItem.groupIndex &&
+      activeGroupIndex < nextTocItem.groupIndex
+    );
+  };
 
   return (
     <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
       <div className='relative flex min-h-0 flex-1 flex-col'>
+        <div className='absolute top-1/2 right-6 z-40 -translate-y-1/2'>
+          <FloatingToc placement='right' triggerMode='hover'>
+            <FloatingToc.Trigger aria-label='Table of contents'>
+              {tocItems.map((tocItem, idx) => (
+                <FloatingToc.Bar
+                  key={tocItem.id}
+                  active={getIsActive(idx)}
+                  onClick={() => handleSelectTocItem(tocItem.groupIndex)}
+                />
+              ))}
+            </FloatingToc.Trigger>
+
+            <FloatingToc.Content>
+              {tocItems.map((tocItem, idx) => (
+                <FloatingToc.Item
+                  key={tocItem.id}
+                  active={getIsActive(idx)}
+                  onClick={() => handleSelectTocItem(tocItem.groupIndex)}
+                >
+                  <span className='block max-w-[200px] truncate'>
+                    {tocItem.label}
+                  </span>
+                </FloatingToc.Item>
+              ))}
+            </FloatingToc.Content>
+          </FloatingToc>
+        </div>
+
         <ScrollShadow
           ref={scrollRef}
           onScroll={handleScroll}
@@ -112,7 +177,7 @@ export function ChatPage({ thread }: ChatPageProps) {
                   key={virtualItem.key}
                   ref={virtualizer.measureElement}
                   data-index={virtualItem.index}
-                  className='absolute top-0 left-0 w-full pb-8' // Padding moved to layout anchor
+                  className='absolute top-0 left-0 w-full pb-8'
                   style={{
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
@@ -123,6 +188,7 @@ export function ChatPage({ thread }: ChatPageProps) {
             })}
           </div>
         </ScrollShadow>
+
         <div className='pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2'>
           <div className='pointer-events-auto'>
             <ScrollToBottomButton

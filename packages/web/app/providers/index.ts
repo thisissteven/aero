@@ -1,2 +1,2 @@
-export { QueryProvider } from './QueryProvider';
-export { ThemeProvider, useTheme } from './ThemeProvider';
+export * from './QueryProvider';
+export * from './theme';
