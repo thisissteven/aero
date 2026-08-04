@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @import '@aero/ui/styles';
+@source './components/**/*.tsx';
+@source './features/**/*.tsx';
+@source './routes/**/*.tsx';
 
 @layer base {
   button:not(:disabled),

@@ -55,7 +55,7 @@ export function ChatSearchDialog({
     <Command>
       <Command.Backdrop isOpen={isOpen} onOpenChange={handleOpenChange}>
         <Command.Container>
-          <Command.Dialog filter={() => true}>
+          <Command.Dialog filter={() => true} allowEscape>
             <Command.InputGroup>
               <Command.InputGroup.Prefix>
                 <Magnifier />
