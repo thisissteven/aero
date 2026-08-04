@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import {
   ChainOfThought,
@@ -67,6 +67,18 @@ export const MessageView = memo(
 
     const baseKey = messages.map((m) => m.id).join('-');
 
+    const copyText = useMemo(
+      () =>
+        parts
+          .filter((part) => part.type === 'text')
+          .map((part) => part.text.trim())
+          .filter(Boolean)
+          .join('\n\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim(),
+      [parts],
+    );
+
     return (
       <ChatMessage.Assistant>
         <ChatMessage.Avatar alt='Assistant' fallback='AI' />
@@ -111,7 +123,15 @@ export const MessageView = memo(
           </ChatMessage.Content>
 
           <ChatMessageActions>
-            <ChatMessageActions.Copy aria-label='Copy' tooltip='Copy' />
+            <ChatMessageActions.Copy
+              aria-label='Copy'
+              tooltip='Copy'
+              onPress={async () => {
+                if (!copyText) return;
+
+                await navigator.clipboard.writeText(copyText);
+              }}
+            />
             <ChatMessageActions.Regenerate
               aria-label='Regenerate'
               tooltip='Regenerate'

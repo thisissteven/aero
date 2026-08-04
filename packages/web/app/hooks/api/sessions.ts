@@ -5,10 +5,15 @@
 // Pass workspaceId=undefined to operate against the default harness while
 // workspace-switching isn't built in the UI yet.
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { InferRequestType, InferResponseType } from 'hono/client';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import type { InferRequestType } from 'hono/client';
 
-import { honoClient } from '@/lib';
+import { honoClient, PAGINATION_LIMIT } from '@/lib';
 
 const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
@@ -27,18 +32,33 @@ export const sessionKeys = {
     ['sessions', workspaceId ?? 'default', sessionId, 'toc'] as const,
 };
 
-type SessionListResponse = InferResponseType<typeof $sessions.$get>;
+// type SessionListResponse = InferResponseType<typeof $sessions.$get>;
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $messages.$post>['json'];
 
 export function useSessions(workspaceId?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: sessionKeys.all(workspaceId),
-    queryFn: async (): Promise<SessionListResponse> => {
-      const res = await $sessions.$get({ query: { workspaceId } });
-      if (!res.ok) throw new Error('Failed to fetch sessions');
+
+    initialPageParam: undefined,
+
+    queryFn: async ({ pageParam }) => {
+      const res = await $sessions.$get({
+        query: {
+          workspaceId,
+          cursor: pageParam,
+          limit: PAGINATION_LIMIT,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+
       return res.json();
     },
+
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 }
 

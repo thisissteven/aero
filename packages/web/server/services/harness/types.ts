@@ -73,7 +73,9 @@ export interface StreamEventsOptions {
 export interface HarnessAdapter {
   readonly id: HarnessId;
 
-  listSessions(): Promise<AeroSessionSummary[]>;
+  listSessions(
+    params?: PaginationParams,
+  ): Promise<PaginatedResponse<AeroSessionSummary>>;
   createSession(input: CreateSessionInput): Promise<AeroSessionSummary>;
   getSession(sessionId: string): Promise<AeroSessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
@@ -84,4 +86,14 @@ export interface HarnessAdapter {
 
   /** Live event stream, already normalized to AeroEvent. */
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
+}
+
+export interface PaginationParams {
+  cursor?: string;
+  limit?: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  nextCursor?: string;
 }

@@ -27,3 +27,24 @@ export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   }
   return result.data;
 }
+
+export function unwrapResponse<T extends { data: unknown }>(
+  result: (T & { error?: undefined }) | { data: undefined; error: unknown },
+): T {
+  if ('error' in result && result.error) {
+    const message =
+      typeof result.error === 'object' &&
+      result.error !== null &&
+      'message' in result.error
+        ? String((result.error as { message: unknown }).message)
+        : String(result.error);
+
+    throw new Error(`opencode request failed: ${message}`);
+  }
+
+  if (result.data === undefined) {
+    throw new Error('opencode request returned no data and no error');
+  }
+
+  return result as T;
+}

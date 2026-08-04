@@ -31,51 +31,6 @@
   --scroll-shadow-size: 360px;
 }
 
-/* Softer HeroUI scroll-shadow fade */
-.scroll-shadow--fade {
-  --scroll-shadow-mask-color: #fff;
-}
-
-.scroll-shadow--fade.scroll-shadow--vertical {
-  &[data-top-scroll='true'] {
-    --scroll-linear-gradient:
-      0deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-  }
-
-  &[data-bottom-scroll='true'] {
-    --scroll-linear-gradient:
-      180deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-  }
-
-  &[data-top-bottom-scroll='true'] {
-    --scroll-linear-gradient:
-      #888, #888, transparent 0, #888 var(--scroll-shadow-size),
-      #888 calc(100% - var(--scroll-shadow-size)), transparent;
-  }
-}
-
-.scroll-shadow--fade.scroll-shadow--horizontal {
-  &[data-left-scroll='true'] {
-    --scroll-linear-gradient:
-      270deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-
-    &:dir(rtl) {
-      --scroll-linear-gradient:
-        90deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-    }
-  }
-
-  &[data-right-scroll='true'] {
-    --scroll-linear-gradient:
-      90deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-
-    &:dir(rtl) {
-      --scroll-linear-gradient:
-        270deg, #888 calc(100% - var(--scroll-shadow-size)), transparent;
-    }
-  }
-}
-
 /* Disable all layout and color transitions during theme toggle */
 .disable-transitions,
 .disable-transitions * {

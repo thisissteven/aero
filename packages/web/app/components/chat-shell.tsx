@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AppLayout } from '@aero/ui';
 
-import { useSessions } from '@/hooks/api/sessions';
-
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
@@ -30,16 +28,10 @@ export function ChatShell({
 }: ChatShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: sessions = [] } = useSessions();
 
   const pathname = location.pathname;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const displayThreads = useMemo(() => {
-    const sessionsList = Array.isArray(sessions) ? sessions : [];
-    return sessionsList;
-  }, [sessions]);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -122,7 +114,6 @@ export function ChatShell({
           basePath={basePath}
           disableNavigation={disableNavigation}
           pathname={pathname || `/${DEFAULT_CHAT_THREAD_ID}`}
-          threads={displayThreads}
           onAction={handleNavAction}
         />
       }
@@ -133,7 +124,6 @@ export function ChatShell({
 
       <ChatSearchDialog
         isOpen={isSearchOpen}
-        threads={displayThreads}
         onOpenChange={setIsSearchOpen}
         onSelect={handleThreadSelect}
       />

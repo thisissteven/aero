@@ -10,6 +10,8 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
+import { withPagination } from '@/helper';
+
 import { getActiveAdapter } from '../services/harness/registry';
 import type { AeroPart } from '../services/harness/types';
 
@@ -24,11 +26,17 @@ const idParamSchema = z.object({
 
 const sessions = new Hono()
   // GET /api/sessions?workspaceId=...
-  .get('/', zValidator('query', querySchema), async (c) => {
-    const { workspaceId } = c.req.valid('query');
+  .get('/', zValidator('query', withPagination(querySchema)), async (c) => {
+    const { workspaceId, cursor, limit } = c.req.valid('query');
+
     const harness = await getActiveAdapter(workspaceId);
-    const list = await harness.listSessions();
-    return c.json(list);
+
+    const result = await harness.listSessions({
+      cursor,
+      limit,
+    });
+
+    return c.json(result);
   })
 
   // POST /api/sessions?workspaceId=...   body: { title? }
@@ -133,6 +141,9 @@ const sessions = new Hono()
           }
         }
       }
+
+      // Don't show TOC if there are fewer than 3 items
+      if (items.length < 3) return c.json([]);
 
       return c.json(items);
     },

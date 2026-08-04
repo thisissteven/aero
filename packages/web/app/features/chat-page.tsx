@@ -75,6 +75,9 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
 
     if (activeItem) {
       setActiveGroupIndex(activeItem.index);
+    } else if (isAtBottomRef.current && groups.length > 0) {
+      // Fallback when scrolled all the way down on initial load
+      setActiveGroupIndex(groups.length - 1);
     }
   };
 
@@ -90,10 +93,13 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
         virtualizer.measure();
 
         requestAnimationFrame(() => {
-          virtualizer.scrollToIndex(groups.length - 1, {
+          const targetIndex = groups.length - 1;
+          virtualizer.scrollToIndex(targetIndex, {
             align: 'end',
             behavior: 'auto',
           });
+
+          setActiveGroupIndex(targetIndex);
         });
       });
     });
@@ -129,35 +135,35 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
 
   return (
     <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
+      <div className='absolute top-1/2 right-6 z-40 -translate-y-1/2'>
+        <FloatingToc placement='right' triggerMode='hover'>
+          <FloatingToc.Trigger aria-label='Table of contents'>
+            {tocItems.map((tocItem, idx) => (
+              <FloatingToc.Bar
+                key={tocItem.id}
+                active={getIsActive(idx)}
+                onClick={() => handleSelectTocItem(tocItem.groupIndex)}
+              />
+            ))}
+          </FloatingToc.Trigger>
+
+          <FloatingToc.Content>
+            {tocItems.map((tocItem, idx) => (
+              <FloatingToc.Item
+                key={tocItem.id}
+                active={getIsActive(idx)}
+                onClick={() => handleSelectTocItem(tocItem.groupIndex)}
+              >
+                <span className='block max-w-[200px] truncate'>
+                  {tocItem.label}
+                </span>
+              </FloatingToc.Item>
+            ))}
+          </FloatingToc.Content>
+        </FloatingToc>
+      </div>
+
       <div className='relative flex min-h-0 flex-1 flex-col'>
-        <div className='absolute top-1/2 right-6 z-40 -translate-y-1/2'>
-          <FloatingToc placement='right' triggerMode='hover'>
-            <FloatingToc.Trigger aria-label='Table of contents'>
-              {tocItems.map((tocItem, idx) => (
-                <FloatingToc.Bar
-                  key={tocItem.id}
-                  active={getIsActive(idx)}
-                  onClick={() => handleSelectTocItem(tocItem.groupIndex)}
-                />
-              ))}
-            </FloatingToc.Trigger>
-
-            <FloatingToc.Content>
-              {tocItems.map((tocItem, idx) => (
-                <FloatingToc.Item
-                  key={tocItem.id}
-                  active={getIsActive(idx)}
-                  onClick={() => handleSelectTocItem(tocItem.groupIndex)}
-                >
-                  <span className='block max-w-[200px] truncate'>
-                    {tocItem.label}
-                  </span>
-                </FloatingToc.Item>
-              ))}
-            </FloatingToc.Content>
-          </FloatingToc>
-        </div>
-
         <ScrollShadow
           ref={scrollRef}
           onScroll={handleScroll}

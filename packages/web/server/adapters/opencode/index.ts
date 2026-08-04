@@ -6,13 +6,18 @@
 
 import type { Event } from '@opencode-ai/sdk';
 
+import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '@/helper';
+
 import { getOpencodeClient } from './client';
 import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
 import { unwrap } from './unwrap';
 import type {
   AeroEvent,
+  AeroSessionSummary,
   CreateSessionInput,
   HarnessAdapter,
+  PaginatedResponse,
+  PaginationParams,
   SendMessageInput,
   StreamEventsOptions,
 } from '../../services/harness/types';
@@ -23,9 +28,29 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   return {
     id: 'opencode',
 
-    async listSessions() {
-      const sessions = unwrap(await client.session.list());
-      return sessions.map(toAeroSession);
+    async listSessions({
+      cursor,
+      limit = PAGINATION_LIMIT,
+    }: PaginationParams = {}): Promise<PaginatedResponse<AeroSessionSummary>> {
+      const sessions = unwrap(
+        await client.session.list({
+          query: {
+            // Keep this high because the app runs locally.
+            limit: BACKEND_PAGINATION_LIMIT,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        }),
+      );
+
+      const startIndex = cursor ? Number(cursor) : 0;
+      const endIndex = startIndex + limit;
+
+      const page = sessions.slice(startIndex, endIndex);
+
+      return {
+        items: page.map(toAeroSession),
+        nextCursor: endIndex < sessions.length ? String(endIndex) : undefined,
+      };
     },
 
     async createSession(input: CreateSessionInput) {
