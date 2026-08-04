@@ -87,13 +87,11 @@ export const MessageView = memo(
                 case 'reasoning':
                   return (
                     <ChainOfThought key={blockId}>
-                      <ChainOfThought.Trigger>
-                        Thought process
-                      </ChainOfThought.Trigger>
+                      <ChainOfThought.Trigger>Reasoning</ChainOfThought.Trigger>
 
                       <ChainOfThought.Content>
                         <ChainOfThought.Steps>
-                          <ChainOfThought.Step label='Reasoning'>
+                          <ChainOfThought.Step>
                             <Markdown id={`${blockId}-reason`}>
                               {part.text}
                             </Markdown>

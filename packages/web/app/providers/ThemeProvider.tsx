@@ -6,6 +6,8 @@ import {
   useState,
 } from 'react';
 
+import { useKeyPress } from '@/hooks/useKeyPress';
+
 type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextValue {
@@ -42,6 +44,27 @@ function applyTheme(theme: Theme) {
   return resolved;
 }
 
+function applyThemeWithoutTransitions(theme: Theme) {
+  const root = document.documentElement;
+
+  // 1. Disable transitions across the whole document
+  root.classList.add('disable-transitions');
+
+  // 2. Apply theme updates
+  const resolved = applyTheme(theme);
+
+  // 3. Force DOM reflow to immediately flush style updates
+  // (Accessing window.getComputedStyle triggers layout recalculation)
+  void window.getComputedStyle(root).opacity;
+
+  // 4. Re-enable transitions on the next paint cycle
+  requestAnimationFrame(() => {
+    root.classList.remove('disable-transitions');
+  });
+
+  return resolved;
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
@@ -65,7 +88,7 @@ export function ThemeProvider({
 
   useEffect(() => {
     const update = () => {
-      setResolvedTheme(applyTheme(theme));
+      setResolvedTheme(applyThemeWithoutTransitions(theme));
     };
 
     update();
@@ -82,6 +105,17 @@ export function ThemeProvider({
       media.removeEventListener('change', update);
     };
   }, [theme]);
+
+  useKeyPress(
+    'd',
+    () => {
+      const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+      setTheme(nextTheme);
+    },
+    {
+      modifiers: { meta: false, ctrl: false, alt: false }, // ignore Cmd+D / Ctrl+D
+    },
+  );
 
   return (
     <ThemeContext.Provider

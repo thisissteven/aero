@@ -1,9 +1,10 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { ChatConversation, PromptInput, ScrollShadow } from '@aero/ui';
+import { PromptInput, ScrollShadow } from '@aero/ui';
 
 import { ConversationItem, MessageView } from '@/components/message-view';
+import { ScrollToBottomButton } from '@/components/scroll-to-bottom';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroMessage } from '../../server/services/harness/types';
@@ -91,7 +92,7 @@ export function ChatPage({ thread }: ChatPageProps) {
 
   return (
     <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
-      <ChatConversation>
+      <div className='relative flex min-h-0 flex-1 flex-col'>
         <ScrollShadow
           ref={scrollRef}
           onScroll={handleScroll}
@@ -122,19 +123,15 @@ export function ChatPage({ thread }: ChatPageProps) {
             })}
           </div>
         </ScrollShadow>
-
-        <div className='absolute right-4 bottom-4 z-10'>
-          <ChatConversation.ScrollButton
-            aria-label='Scroll to bottom'
-            tooltip='Scroll to bottom'
-            onClick={() => {
-              isAtBottomRef.current = true;
-              virtualizer.scrollToIndex(groups.length - 1, { align: 'end' });
-            }}
-          />
+        <div className='pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2'>
+          <div className='pointer-events-auto'>
+            <ScrollToBottomButton
+              virtualizer={virtualizer}
+              totalCount={groups.length}
+            />
+          </div>
         </div>
-        <ChatConversation.ScrollAnchor />
-      </ChatConversation>
+      </div>
 
       <div className='bg-background shrink-0 px-4 pb-4'>
         <div className='mx-auto w-full max-w-[714px]'>

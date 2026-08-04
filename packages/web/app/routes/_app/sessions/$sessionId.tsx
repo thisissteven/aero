@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useSession, useSessionMessages } from '@/hooks/sessions';
+import { useSession, useSessionMessages } from '@/hooks/api/sessions';
 
 import type { ChatThread } from '@/data/chat';
 

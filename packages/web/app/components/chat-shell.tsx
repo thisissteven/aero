@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AppLayout } from '@aero/ui';
 
-import { useSessions } from '@/hooks/sessions';
+import { useSessions } from '@/hooks/api/sessions';
 
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
