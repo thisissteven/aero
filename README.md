@@ -33,13 +33,21 @@ Aero is currently in **pre-MVP development**.
 The foundation is being built:
 
 ✅ Design system and UI components
+
 ✅ Storybook component reference
+
 ✅ Monorepo architecture
+
 ✅ Harness abstraction layer
+
 🚧 Web MVP (currently in development)
+
 ⏳ CLI support
+
 ⏳ Desktop application
+
 ⏳ Additional harness integrations
+
 
 The first milestone is a working web application powered by **opencode**.
 
@@ -97,8 +105,8 @@ Adding a new harness should only require implementing Aero's adapter interface.
 
 ### Phase 1 — Web MVP
 
-- [ ] Complete web application structure
-- [ ] Connect opencode adapter
+- [x] Complete web application structure
+- [x] Connect opencode adapter
 - [ ] Stream agent responses into Aero UI
 - [ ] Persist workspace and session state
 
