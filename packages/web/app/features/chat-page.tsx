@@ -134,8 +134,8 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
   };
 
   return (
-    <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
-      <div className='absolute top-1/2 right-6 z-40 -translate-y-1/2'>
+    <div className='relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
+      <div className='absolute top-1/2 right-6 z-40 translate-y-[calc(-50%-48px)]'>
         <FloatingToc placement='right' triggerMode='hover'>
           <FloatingToc.Trigger aria-label='Table of contents'>
             {tocItems.map((tocItem, idx) => (
@@ -163,7 +163,7 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
         </FloatingToc>
       </div>
 
-      <div className='relative flex min-h-0 flex-1 flex-col'>
+      <div className='relative flex min-h-0 flex-1 flex-col pr-1'>
         <ScrollShadow
           ref={scrollRef}
           onScroll={handleScroll}
@@ -224,10 +224,6 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
                 </PromptInput.ToolbarEnd>
               </PromptInput.Toolbar>
             </PromptInput.Shell>
-
-            <PromptInput.Footer className='pt-1'>
-              AI can make mistakes. Check important info.
-            </PromptInput.Footer>
           </PromptInput>
         </div>
       </div>

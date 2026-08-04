@@ -1,3 +1,5 @@
+import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
+import { useLocation } from '@tanstack/react-router';
 import { cn } from 'cnfast';
 
 import { Avatar, Button, Kbd, Spinner } from '@aero/ui';
@@ -6,42 +8,36 @@ import { Sidebar } from '@aero/ui';
 import { useSessions } from '@/hooks/api/sessions';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
-import type { ChatNavItem, ChatNavItemId, ChatThread } from '../data/chat';
-import {
-  CHAT_NAV_ITEMS,
-  DEFAULT_CHAT_THREAD_ID,
-  resolveChatActivePage,
-} from '../data/chat';
+import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSidebarProps {
   pathname: string;
   basePath: string;
   disableNavigation?: boolean;
-  onAction?: (id: ChatNavItemId) => void;
+  onSearch?: () => void;
 }
 
 export function ChatSidebar({
   basePath,
   disableNavigation = false,
-  onAction,
   pathname,
+  onSearch,
 }: ChatSidebarProps) {
   const sessionsQuery = useSessions();
 
   const contentProps = {
     basePath,
     disableNavigation,
-    onAction,
     pathname,
     sessionsQuery,
+    onSearch,
   };
 
   return (
     <>
       <Sidebar>
         <SidebarContents {...contentProps} />
-        <Sidebar.Rail className='h-screen' />
       </Sidebar>
 
       <Sidebar.Mobile>
@@ -58,13 +54,14 @@ interface SidebarContentsProps extends ChatSidebarProps {
 
 function SidebarContents({
   basePath,
-  disableNavigation,
   idPrefix = '',
-  onAction,
   pathname,
   sessionsQuery,
+  onSearch,
 }: SidebarContentsProps) {
-  const activePage = resolveChatActivePage(pathname, basePath);
+  const location = useLocation();
+
+  const currentHref = location.href;
 
   return (
     <>
@@ -86,17 +83,51 @@ function SidebarContents({
 
         <Sidebar.Group className='px-3'>
           <Sidebar.Menu aria-label='Chat actions'>
-            {CHAT_NAV_ITEMS.map((item) => (
-              <ChatSidebarActionItem
-                key={item.id}
-                activePageKind={activePage.kind}
-                basePath={basePath}
-                disableNavigation={disableNavigation ?? false}
-                idPrefix={idPrefix}
-                item={item}
-                onAction={onAction}
-              />
-            ))}
+            <Sidebar.MenuItem
+              href='/new'
+              id={`${idPrefix}-new`}
+              isCurrent={currentHref === '/new'}
+              textValue='New Chat'
+            >
+              <Sidebar.MenuIcon>
+                <Comment className='size-4' />
+              </Sidebar.MenuIcon>
+              <Sidebar.MenuLabel>New Chat</Sidebar.MenuLabel>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem textValue='Search' onPress={onSearch}>
+              <Sidebar.MenuIcon>
+                <Magnifier className='size-4' />
+              </Sidebar.MenuIcon>
+              <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
+              <Sidebar.MenuChip>
+                <Kbd className='text-[11px]'>⌘K</Kbd>
+              </Sidebar.MenuChip>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem
+              href='/workspaces'
+              id={`${idPrefix}-workspaces`}
+              isCurrent={currentHref === '/workspaces'}
+              textValue='Workspaces'
+            >
+              <Sidebar.MenuIcon>
+                <Folder className='size-4' />
+              </Sidebar.MenuIcon>
+              <Sidebar.MenuLabel>Workspaces</Sidebar.MenuLabel>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem
+              href='/plugins'
+              id={`${idPrefix}-plugins`}
+              isCurrent={currentHref === '/plugins'}
+              textValue='Plugins'
+            >
+              <Sidebar.MenuIcon>
+                <PlugWire className='size-4' />
+              </Sidebar.MenuIcon>
+              <Sidebar.MenuLabel>Plugins</Sidebar.MenuLabel>
+            </Sidebar.MenuItem>
           </Sidebar.Menu>
         </Sidebar.Group>
 
@@ -179,53 +210,6 @@ function Recents({
   );
 }
 
-interface ChatSidebarActionItemProps {
-  activePageKind: ReturnType<typeof resolveChatActivePage>['kind'];
-  basePath: string;
-  disableNavigation: boolean;
-  idPrefix: string;
-  item: ChatNavItem;
-  onAction?: (id: ChatNavItemId) => void;
-}
-
-function ChatSidebarActionItem({
-  activePageKind,
-  basePath,
-  disableNavigation,
-  idPrefix,
-  item,
-  onAction,
-}: ChatSidebarActionItemProps) {
-  const Icon = item.icon;
-  const fullHref = item.href ? basePath + item.href : undefined;
-  const isCurrent = activePageKind !== 'thread' && item.id === activePageKind;
-
-  const handlePress = () => {
-    if (disableNavigation) return;
-    onAction?.(item.id);
-  };
-
-  return (
-    <Sidebar.MenuItem
-      href={item.href && !disableNavigation ? fullHref : undefined}
-      id={`${idPrefix}${item.id}`}
-      isCurrent={Boolean(isCurrent)}
-      textValue={item.label}
-      onPress={handlePress}
-    >
-      <Sidebar.MenuIcon>
-        <Icon className='size-4' />
-      </Sidebar.MenuIcon>
-      <Sidebar.MenuLabel>{item.label}</Sidebar.MenuLabel>
-      {item.shortcut ? (
-        <Sidebar.MenuChip>
-          <Kbd className='text-[11px]'>{item.shortcut}</Kbd>
-        </Sidebar.MenuChip>
-      ) : null}
-    </Sidebar.MenuItem>
-  );
-}
-
 interface ChatSidebarThreadItemProps {
   basePath: string;
   disableNavigation: boolean;
@@ -245,11 +229,7 @@ function ChatSidebarThreadItem({
   const isCurrent =
     pathname === fullHref ||
     pathname === thread.id ||
-    pathname === `/${thread.id}` ||
-    (thread.id === DEFAULT_CHAT_THREAD_ID &&
-      (pathname === basePath ||
-        pathname === `${basePath}/` ||
-        pathname === '/'));
+    pathname === `/${thread.id}`;
 
   return (
     <Sidebar.MenuItem

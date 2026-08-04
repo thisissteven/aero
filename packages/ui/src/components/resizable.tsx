@@ -353,6 +353,8 @@ function ResizableHandle({
   );
 }
 
+export type { PanelImperativeHandle } from 'react-resizable-panels';
+
 type ResizableComponent = typeof ResizableRoot & {
   Handle: typeof ResizableHandle;
   Indicator: typeof ResizableIndicator;

@@ -38,9 +38,6 @@ export function NewChatPage() {
       <div className='bg-background shrink-0 border-t px-4 pt-3 pb-4'>
         <div className='mx-auto flex w-full max-w-[714px] flex-col items-center gap-4'>
           <ChatComposer className='w-full' />
-          <p className='text-muted text-center text-xs'>
-            AI can make mistakes. Check important info.
-          </p>
         </div>
       </div>
     </div>

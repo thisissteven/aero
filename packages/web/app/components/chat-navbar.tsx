@@ -1,87 +1,64 @@
-import { Magnifier } from '@gravity-ui/icons';
+import { useParams } from '@tanstack/react-router';
 
-import { Button, Kbd, Tooltip } from '@aero/ui';
 import { AppLayout, Navbar, Sidebar } from '@aero/ui';
+
+import { formatCompactRelativeTime } from '@/lib';
+import { useSession } from '@/hooks/api/sessions';
 
 import type { ChatActivePage } from '../data/chat';
 
-const NAV_TITLES: Record<
-  ChatActivePage['kind'],
-  { title: string; subtitle: string }
-> = {
-  explore: {
-    subtitle: 'Starter prompts to explore what this template can do',
-    title: 'Explore',
-  },
-  library: {
-    subtitle: 'Saved prompts, tone presets, and reusable threads',
-    title: 'Library',
-  },
-  new: { subtitle: 'Start a brand new conversation', title: 'New Chat' },
-  thread: { subtitle: '', title: '' },
-  sessions: {
-    subtitle: 'Latest Hero (master)',
-    title: 'Autonomous Github PR Creation',
-  },
-};
-
 export interface ChatNavbarProps {
   activePage: ChatActivePage;
-  onSearch?: () => void;
 }
 
-export function ChatNavbar({ activePage, onSearch }: ChatNavbarProps) {
-  const isThread = activePage.kind === 'thread';
-  const thread = isThread ? activePage.thread : undefined;
-  const title = isThread
-    ? (thread?.title ?? 'Chat')
-    : NAV_TITLES[activePage.kind].title;
-  const subtitle = isThread
-    ? thread?.updatedAt
-      ? `Updated ${thread.updatedAt}`
-      : 'Live conversation'
-    : NAV_TITLES[activePage.kind].subtitle;
+export function ChatNavbar({ activePage }: ChatNavbarProps) {
+  const isNew = activePage.kind === 'new';
+  const isSessions = activePage.kind === 'sessions';
 
   return (
     <Navbar maxWidth='full'>
       <Navbar.Header>
         <AppLayout.MenuToggle />
         <Sidebar.Trigger />
-        <div className='flex min-w-0 flex-col'>
-          <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
-            {title}
-          </h1>
-          {subtitle ? (
-            <span className='text-muted truncate text-xs'>{subtitle}</span>
-          ) : null}
-        </div>
+        {isNew && <NewNavbarContent />}
+        {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
-        <div className='flex items-center gap-2'>
-          <Tooltip delay={0}>
-            <Button
-              aria-label='Search chats'
-              size='sm'
-              variant='tertiary'
-              onPress={onSearch}
-            >
-              <Magnifier className='size-4' />
-              <span className='hidden sm:inline'>Search</span>
-            </Button>
-            <Tooltip.Content placement='bottom'>
-              <div className='flex items-center gap-2 text-xs'>
-                <span>Search chats</span>
-                <Kbd className='text-[10px]'>⌘K</Kbd>
-              </div>
-            </Tooltip.Content>
-          </Tooltip>
-          {/* {isThread ? (
-            <Button className='hidden md:inline-flex' size='sm'>
-              <ArrowRightToSquare className='size-4' />
-              Share
-            </Button>
-          ) : null} */}
-        </div>
       </Navbar.Header>
     </Navbar>
+  );
+}
+
+function NewNavbarContent() {
+  return (
+    <div className='flex min-w-0 flex-col'>
+      <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
+        New Chat
+      </h1>
+      <span className='text-muted truncate text-xs'>
+        Start a brand new conversation
+      </span>
+    </div>
+  );
+}
+
+function SessionsNavbarContent() {
+  const { sessionId } = useParams({
+    strict: false,
+  });
+  const { data: session } = useSession(undefined, sessionId);
+
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <div className='flex min-w-0 flex-col'>
+      <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
+        {session.title}
+      </h1>
+      <span className='text-muted truncate text-xs'>
+        {formatCompactRelativeTime(session.updatedAt)}
+      </span>
+    </div>
   );
 }

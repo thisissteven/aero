@@ -1,18 +1,26 @@
+import {
+  ArrowRightArrowLeft,
+  CircleDashed,
+  CircleTree,
+  CodePullRequest,
+  Comment,
+  File,
+  FileCode,
+  Globe,
+  Terminal,
+} from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { AppLayout } from '@aero/ui';
+import { AppLayout, Tooltip, Typography } from '@aero/ui';
 
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
-import type { ChatActivePage, ChatNavItemId, ChatThread } from '../data/chat';
-import {
-  CHAT_NAV_ITEMS,
-  DEFAULT_CHAT_THREAD_ID,
-  resolveChatActivePage,
-} from '../data/chat';
+import type { ChatActivePage, ChatThread } from '../data/chat';
+import { resolveChatActivePage } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatShellProps {
@@ -20,6 +28,55 @@ export interface ChatShellProps {
   basePath?: string;
   disableNavigation?: boolean;
 }
+
+const collapsibleNav = [
+  {
+    icon: <Icon data={CircleTree} size={18} />,
+    label: 'Git',
+    description: 'Commits, branches, and pull requests',
+  },
+  {
+    icon: <Icon data={CircleDashed} size={18} />,
+    label: 'Context',
+    description: 'Session context and token usage',
+  },
+  {
+    icon: <Icon data={CodePullRequest} size={18} />,
+    label: 'Pull Request',
+    description:
+      'Create, review, and merge the pull request for the current branch',
+  },
+  {
+    icon: <Icon data={ArrowRightArrowLeft} size={18} />,
+    label: 'Changes',
+    description: 'Review working changes',
+  },
+  {
+    icon: <Icon data={FileCode} size={18} />,
+    label: 'Files',
+    description: 'Edit project files',
+  },
+  {
+    icon: <Icon data={Terminal} size={18} />,
+    label: 'Terminal',
+    description: 'Built-in terminal',
+  },
+  {
+    icon: <Icon data={File} size={18} />,
+    label: 'Project notes',
+    description: 'Notes, todos, and plans for the project',
+  },
+  {
+    icon: <Icon data={Globe} size={18} />,
+    label: 'Browser',
+    description: 'Built-in web browser',
+  },
+  {
+    icon: <Icon data={Comment} size={18} />,
+    label: 'Chat',
+    description: 'Session opened side by side',
+  },
+] as const;
 
 export function ChatShell({
   basePath = '',
@@ -47,21 +104,6 @@ export function ChatShell({
   const activePage = useMemo<ChatActivePage>(
     () => resolveChatActivePage(pathname, basePath),
     [pathname, basePath],
-  );
-
-  const handleNavAction = useCallback(
-    (id: ChatNavItemId) => {
-      if (disableNavigation) return;
-
-      const item = CHAT_NAV_ITEMS.find((entry) => entry.id === id);
-
-      if (item?.href) {
-        navigate({
-          to: `${basePath}${item.href}`,
-        });
-      }
-    },
-    [navigate, basePath, disableNavigation],
   );
 
   const handleThreadSelect = useCallback(
@@ -103,24 +145,56 @@ export function ChatShell({
   return (
     <AppLayout
       navigate={handleNavigate}
-      navbar={
-        <ChatNavbar
-          activePage={activePage}
-          onSearch={disableNavigation ? undefined : () => setIsSearchOpen(true)}
-        />
-      }
+      navbar={<ChatNavbar activePage={activePage} />}
       sidebar={
         <ChatSidebar
           basePath={basePath}
           disableNavigation={disableNavigation}
-          pathname={pathname || `/${DEFAULT_CHAT_THREAD_ID}`}
-          onAction={handleNavAction}
+          pathname={pathname}
+          onSearch={disableNavigation ? undefined : () => setIsSearchOpen(true)}
         />
       }
+      // aside
+      // asideResizable
+      // asideMinSize='48px'
+      // asideDefaultSize='48px'
+      // asideMaxSize='480px'
+      // asideResizeBehavior='preserve-pixel-size'
+      sidebarResizable
       sidebarCollapsible='offcanvas'
-      scrollMode='content'
+      resizableAutoSaveId='app-layout:resizable-sidebar'
+      sidebarMinSize='240px'
+      sidebarDefaultSize='240px'
+      sidebarMaxSize='480px'
+      sidebarResizeBehavior='preserve-pixel-size'
     >
-      {children}
+      <div className='flex h-full w-full'>
+        <div className='flex-1'>{children}</div>
+        <div className='h-full w-8'>
+          {collapsibleNav.map((item) => (
+            <Tooltip key={item.label} delay={300}>
+              <Tooltip.Trigger aria-label={item.label}>
+                <div className='px-1 py-1.5 opacity-50 transition hover:opacity-100'>
+                  {item.icon}
+                </div>
+              </Tooltip.Trigger>
+
+              <Tooltip.Content placement='left'>
+                <Tooltip.Arrow />
+                <Typography
+                  type='body-sm'
+                  className='text-accent-soft-foreground'
+                >
+                  {item.label}
+                </Typography>
+                <Typography type='body-xs' className='leading-4 break-normal'>
+                  {item.description}
+                </Typography>
+              </Tooltip.Content>
+            </Tooltip>
+          ))}
+        </div>
+      </div>
 
       <ChatSearchDialog
         isOpen={isSearchOpen}

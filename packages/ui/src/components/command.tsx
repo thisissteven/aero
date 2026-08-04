@@ -104,14 +104,12 @@ export interface CommandDialogProps extends Omit<
   filter?: (textValue: string, inputValue: string) => boolean;
   inputValue?: string;
   onInputChange?: (value: string) => void;
+  allowEscape?: boolean;
 }
 export function CommandDialog({
   children,
   className,
-  defaultInputValue,
-  filter,
-  inputValue,
-  onInputChange,
+  allowEscape,
   ...props
 }: CommandDialogProps): ReactElement {
   const { size = 'md' } = useContext(Context);
@@ -128,14 +126,38 @@ export function CommandDialog({
       }
       data-slot='command-dialog'
     >
-      <Autocomplete
-        {...(defaultInputValue === undefined ? {} : { defaultInputValue })}
-        filter={filter ?? defaultCommandFilter}
-        {...(inputValue === undefined ? {} : { inputValue })}
-        {...(onInputChange === undefined ? {} : { onInputChange })}
-      >
-        {children}
-      </Autocomplete>
+      {/* 1. Extract the native React Aria close function safely via render props */}
+      {({ close }) => (
+        <div
+          role='presentation'
+          style={{
+            display: 'contents',
+          }} /* Keeps the DOM structure visual styles seamless */
+
+          /* 2. Catch Escape at the HTML layer before the input intercepts it */
+          onKeyDownCapture={(e) => {
+            if (e.key === 'Escape' && allowEscape) {
+              e.stopPropagation(); // Stop SearchField from clearing text
+              close(); // Directly close the Dialog container
+            }
+          }}
+        >
+          <Autocomplete
+            {...(props.defaultInputValue === undefined
+              ? {}
+              : { defaultInputValue: props.defaultInputValue })}
+            filter={props.filter ?? defaultCommandFilter}
+            {...(props.inputValue === undefined
+              ? {}
+              : { inputValue: props.inputValue })}
+            {...(props.onInputChange === undefined
+              ? {}
+              : { onInputChange: props.onInputChange })}
+          >
+            {children}
+          </Autocomplete>
+        </div>
+      )}
     </Dialog>
   );
 }

@@ -415,9 +415,10 @@ function AppLayoutResizable({
   ) : null;
   const asideSection = asideResizable ? (
     <Resizable.Panel
-      collapsible
+      // uncomment if aside needs to be resizable
+      // collapsible
+      // collapsedSize={0}
       className='app-layout__aside-panel'
-      collapsedSize={0}
       defaultSize={asideDefaultSize}
       groupResizeBehavior={asideResizeBehavior}
       handleRef={asidePanel as Ref<PanelImperativeHandle | null>}
@@ -473,6 +474,7 @@ function AppLayoutResizable({
     </>
   );
 }
+
 function AppLayoutMobileAsideDrawer({
   children,
 }: {

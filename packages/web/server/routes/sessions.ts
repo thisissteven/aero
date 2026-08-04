@@ -45,8 +45,6 @@ const sessions = new Hono()
         searchBy,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 500)); // simulate network latency
-
       return c.json(result);
     },
   )
