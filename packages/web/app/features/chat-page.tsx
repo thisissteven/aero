@@ -170,7 +170,7 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
           className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
         >
           <div
-            className='relative mx-auto w-full max-w-[800px] px-4'
+            className='relative mx-auto w-full xl:max-w-[800px]'
             style={{
               height: `${virtualizer.getTotalSize()}px`,
             }}
@@ -183,7 +183,7 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
                   key={virtualItem.key}
                   ref={virtualizer.measureElement}
                   data-index={virtualItem.index}
-                  className='absolute top-0 left-0 w-full pb-8'
+                  className='absolute top-0 left-0 w-full pb-8 max-xl:pr-12 max-xl:pl-8'
                   style={{
                     transform: `translateY(${virtualItem.start}px)`,
                   }}

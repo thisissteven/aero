@@ -1,11 +1,13 @@
 import { Comment, Magnifier } from '@gravity-ui/icons';
-import { useMemo } from 'react';
+import cn from 'cnfast';
+import { useRef, useState } from 'react';
 
-import { Kbd } from '@aero/ui';
-import { Command } from '@aero/ui';
+import { Command, Kbd, Spinner } from '@aero/ui';
 
 import { formatCompactRelativeTime } from '@/lib';
 import { useSessions } from '@/hooks/api/sessions';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
@@ -21,26 +23,54 @@ export function ChatSearchDialog({
   onOpenChange,
   onSelect,
 }: ChatSearchDialogProps) {
-  const { data: sessionsData } = useSessions();
+  const [searchValue, setSearchValue] = useState('');
+  const debouncedSearch = useDebounce(searchValue.trim(), 300);
 
-  const threads = useMemo(() => {
-    const sessions = sessionsData?.pages.flatMap((page) => page.items) ?? [];
-    return sessions.slice(0, 10);
-  }, [sessionsData]);
+  // Ref for the scrollable container (Command.List / RAC Menu wrapper)
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  const sessionsQuery = useSessions(
+    undefined,
+    debouncedSearch || undefined,
+    'title',
+  );
+
+  const {
+    items: threads,
+    loadMoreRef,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteScroll<ChatThread | AeroSessionSummary>(sessionsQuery, {
+    search: debouncedSearch,
+    rootRef: listRef,
+    limitWithoutSearch: 10,
+  });
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) setSearchValue('');
+    onOpenChange(open);
+  };
 
   return (
     <Command>
-      <Command.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Command.Backdrop isOpen={isOpen} onOpenChange={handleOpenChange}>
         <Command.Container>
-          <Command.Dialog>
+          <Command.Dialog filter={() => true}>
             <Command.InputGroup>
               <Command.InputGroup.Prefix>
                 <Magnifier />
               </Command.InputGroup.Prefix>
 
-              <Command.InputGroup.Input placeholder='Search your chats' />
+              <Command.InputGroup.Input
+                placeholder='Search your chats'
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                autoFocus
+              />
 
-              <Command.InputGroup.ClearButton />
+              <Command.InputGroup.ClearButton
+                onClick={() => setSearchValue('')}
+              />
 
               <Command.InputGroup.Suffix>
                 <Kbd className='text-xs'>
@@ -50,15 +80,24 @@ export function ChatSearchDialog({
             </Command.InputGroup>
 
             <Command.List
+              ref={listRef}
+              selectedKeys={[]}
+              selectionMode='single'
               shouldFocusWrap={false}
+              autoFocus={false}
               renderEmptyState={() => (
                 <div className='text-muted flex h-16 items-center justify-center text-sm'>
-                  No chats match that search.
+                  {sessionsQuery.isFetching
+                    ? 'Searching...'
+                    : 'No chats match that search.'}
                 </div>
               )}
               className='scroll-py-8'
             >
-              <Command.Group heading='Recent chats' className='pb-0.5'>
+              <Command.Group
+                heading={debouncedSearch ? 'Search results' : 'Recent chats'}
+                className='pb-0.5'
+              >
                 {threads.map((thread) => {
                   const preview =
                     'preview' in thread ? thread.preview : 'Recent chat';
@@ -70,6 +109,7 @@ export function ChatSearchDialog({
                   return (
                     <Command.Item
                       key={thread.id}
+                      id={thread.id}
                       textValue={`${thread.title} ${preview}`}
                       onAction={() => onSelect(thread)}
                     >
@@ -91,6 +131,27 @@ export function ChatSearchDialog({
                     </Command.Item>
                   );
                 })}
+
+                {/* Loader / Sentinel kept inside Command.Group as a valid focusable Command.Item */}
+                {hasNextPage && (
+                  <Command.Item
+                    key='sentinel-loader'
+                    id='sentinel-loader'
+                    textValue='loading more items'
+                    ref={loadMoreRef}
+                    className='flex cursor-default items-center justify-center py-2 text-sm aria-selected:bg-transparent'
+                    isDisabled
+                  >
+                    <div
+                      className={cn(
+                        'flex items-center justify-center transition-opacity',
+                        isFetchingNextPage ? 'opacity-100' : 'opacity-0',
+                      )}
+                    >
+                      <Spinner className='text-muted size-4' />
+                    </div>
+                  </Command.Item>
+                )}
               </Command.Group>
             </Command.List>
 

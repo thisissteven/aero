@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { withPagination } from '@/helper';
 
 import { getActiveAdapter } from '../services/harness/registry';
-import type { AeroPart } from '../services/harness/types';
+import type { AeroPart, AeroSessionSummary } from '../services/harness/types';
 
 // reusable schemas for request validation
 const querySchema = z.object({
@@ -26,18 +26,30 @@ const idParamSchema = z.object({
 
 const sessions = new Hono()
   // GET /api/sessions?workspaceId=...
-  .get('/', zValidator('query', withPagination(querySchema)), async (c) => {
-    const { workspaceId, cursor, limit } = c.req.valid('query');
+  .get(
+    '/',
+    zValidator(
+      'query',
+      withPagination<typeof querySchema.shape, AeroSessionSummary>(querySchema),
+    ),
+    async (c) => {
+      const { workspaceId, cursor, limit, search, searchBy } =
+        c.req.valid('query');
 
-    const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(workspaceId);
 
-    const result = await harness.listSessions({
-      cursor,
-      limit,
-    });
+      const result = await harness.listSessions({
+        cursor,
+        limit,
+        search,
+        searchBy,
+      });
 
-    return c.json(result);
-  })
+      await new Promise((resolve) => setTimeout(resolve, 500)); // simulate network latency
+
+      return c.json(result);
+    },
+  )
 
   // POST /api/sessions?workspaceId=...   body: { title? }
   .post(

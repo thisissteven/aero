@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { cn } from 'cnfast';
 
-import { Avatar, Button, cn, Kbd, Spinner } from '@aero/ui';
+import { Avatar, Button, Kbd, Spinner } from '@aero/ui';
 import { Sidebar } from '@aero/ui';
 
 import { useSessions } from '@/hooks/api/sessions';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 import type { ChatNavItem, ChatNavItemId, ChatThread } from '../data/chat';
 import {
@@ -138,41 +139,11 @@ function Recents({
   sessionsQuery,
 }: RecentsProps) {
   const {
-    data: sessionsData,
-    isFetchingNextPage,
+    items: threads,
+    loadMoreRef,
     hasNextPage,
-    fetchNextPage,
-  } = sessionsQuery;
-
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-
-  const threads = useMemo(() => {
-    const sessions = sessionsData?.pages.flatMap((page) => page.items) ?? [];
-    return Array.from(
-      new Map(sessions.map((session) => [session.id, session])).values(),
-    );
-  }, [sessionsData]);
-
-  useEffect(() => {
-    const element = loadMoreRef.current;
-
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      {
-        threshold: 0.5,
-      },
-    );
-
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    isFetchingNextPage,
+  } = useInfiniteScroll<ChatThread | AeroSessionSummary>(sessionsQuery);
 
   return (
     <Sidebar.Group>
@@ -191,16 +162,17 @@ function Recents({
         ))}
       </Sidebar.Menu>
 
-      <div ref={loadMoreRef} className='h-1' />
+      <div ref={loadMoreRef} />
 
       {hasNextPage && (
         <div
           className={cn(
-            'text-muted flex items-center justify-center py-2 text-sm opacity-0',
+            'flex items-center justify-center py-2 text-sm opacity-0',
             isFetchingNextPage && 'opacity-100',
+            'opacity-100',
           )}
         >
-          <Spinner className='size-4' />
+          <Spinner className='text-muted size-4' />
         </div>
       )}
     </Sidebar.Group>

@@ -81,7 +81,11 @@ export const MessageView = memo(
 
     return (
       <ChatMessage.Assistant>
-        <ChatMessage.Avatar alt='Assistant' fallback='AI' />
+        <ChatMessage.Avatar
+          className='max-xl:hidden'
+          alt='Assistant'
+          fallback='AI'
+        />
 
         <ChatMessage.Body>
           <ChatMessage.Content>

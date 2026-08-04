@@ -31,25 +31,47 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     async listSessions({
       cursor,
       limit = PAGINATION_LIMIT,
-    }: PaginationParams = {}): Promise<PaginatedResponse<AeroSessionSummary>> {
+      search,
+      searchBy,
+    }: PaginationParams<AeroSessionSummary> = {}): Promise<
+      PaginatedResponse<AeroSessionSummary>
+    > {
       const sessions = unwrap(
         await client.session.list({
           query: {
-            // Keep this high because the app runs locally.
             limit: BACKEND_PAGINATION_LIMIT,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any,
         }),
       );
 
+      // 1. Transform raw sessions to domain objects
+      let items = sessions.map(toAeroSession);
+
+      // 2. Filter by key if both search and searchBy are provided
+      if (search && searchBy) {
+        const normalizedKeyword = search.trim().toLowerCase();
+
+        if (normalizedKeyword.length > 0) {
+          items = items.filter((item) => {
+            const val = item[searchBy];
+            if (typeof val === 'string') {
+              return val.toLowerCase().includes(normalizedKeyword);
+            }
+            return false;
+          });
+        }
+      }
+
+      // 3. Apply pagination after filtering
       const startIndex = cursor ? Number(cursor) : 0;
       const endIndex = startIndex + limit;
 
-      const page = sessions.slice(startIndex, endIndex);
+      const page = items.slice(startIndex, endIndex);
 
       return {
-        items: page.map(toAeroSession),
-        nextCursor: endIndex < sessions.length ? String(endIndex) : undefined,
+        items: page,
+        nextCursor: endIndex < items.length ? String(endIndex) : undefined,
       };
     },
 

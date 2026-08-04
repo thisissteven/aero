@@ -6,6 +6,7 @@
 // workspace-switching isn't built in the UI yet.
 
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -14,6 +15,8 @@ import {
 import type { InferRequestType } from 'hono/client';
 
 import { honoClient, PAGINATION_LIMIT } from '@/lib';
+
+import { AeroSessionSummary } from '../../../server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
@@ -36,11 +39,18 @@ export const sessionKeys = {
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $messages.$post>['json'];
 
-export function useSessions(workspaceId?: string) {
+export function useSessions(
+  workspaceId?: string,
+  search?: string,
+  searchBy?: keyof AeroSessionSummary,
+) {
   return useInfiniteQuery({
-    queryKey: sessionKeys.all(workspaceId),
+    // Include search & searchBy in key so queries auto-refetch when search state changes
+    queryKey: [...sessionKeys.all(workspaceId), search, searchBy],
 
     initialPageParam: undefined,
+
+    placeholderData: keepPreviousData,
 
     queryFn: async ({ pageParam }) => {
       const res = await $sessions.$get({
@@ -48,6 +58,8 @@ export function useSessions(workspaceId?: string) {
           workspaceId,
           cursor: pageParam,
           limit: PAGINATION_LIMIT,
+          search: search || undefined,
+          searchBy: search ? searchBy : undefined,
         },
       });
 

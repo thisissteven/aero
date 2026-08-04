@@ -2,6 +2,7 @@
 
 import { CloseButton, cn } from '@heroui/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
+import React from 'react';
 import { createContext, useContext, useMemo } from 'react';
 import {
   Dialog,
@@ -272,14 +273,17 @@ export function CommandInputGroupClearButton({
 export type CommandListProps<T extends object = object> = ComponentPropsWithRef<
   typeof Menu<T>
 >;
-export function CommandList<T extends object = object>({
-  className,
-  renderEmptyState,
-  ...props
-}: CommandListProps<T>): ReactElement {
+
+export const CommandList = React.forwardRef(function CommandList<
+  T extends object = object,
+>(
+  { className, renderEmptyState, ...props }: CommandListProps<T>,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
   return (
     <Menu
       {...props}
+      ref={ref}
       className={
         cn(
           'command__list',
@@ -298,15 +302,17 @@ export function CommandList<T extends object = object>({
         : {})}
     />
   );
-}
+});
+
 export type CommandItemProps = ComponentPropsWithRef<typeof MenuItem>;
-export function CommandItem({
-  className,
-  ...props
-}: CommandItemProps): ReactElement {
+export const CommandItem = React.forwardRef(function CommandItem(
+  { className, ...props }: CommandItemProps,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
   return (
     <MenuItem
       {...props}
+      ref={ref}
       className={
         cn(
           'command__item',
@@ -316,7 +322,7 @@ export function CommandItem({
       data-slot='command-item'
     />
   );
-}
+});
 export interface CommandGroupProps<
   T extends object = object,
 > extends ComponentPropsWithRef<typeof MenuSection<T>> {

@@ -88,9 +88,11 @@ export interface HarnessAdapter {
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
 }
 
-export interface PaginationParams {
+export interface PaginationParams<T = AeroSessionSummary> {
   cursor?: string;
   limit?: number;
+  search?: string;
+  searchBy?: keyof T & string;
 }
 
 export interface PaginatedResponse<T> {

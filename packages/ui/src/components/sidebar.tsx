@@ -769,6 +769,8 @@ export function SidebarMobile({
       isOpen={state.isMobileOpen}
       placement={state.side}
       onOpenChange={state.setMobileOpen}
+      shouldScaleBackground={false}
+      isDetached
     >
       <Sheet.Backdrop variant={backdrop}>
         <Sheet.Content className='sidebar__mobile-sheet'>

@@ -66,6 +66,8 @@
 @import './components/chart-tooltip.css';
 @import './components/table.css';
 
+@source '../components/**/*.tsx';
+
 :root {
   --chart-1: oklch(from var(--accent) calc(l - 0.24) c h);
   --chart-2: oklch(from var(--accent) calc(l - 0.12) c h);
