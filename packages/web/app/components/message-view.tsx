@@ -79,6 +79,38 @@ function UserChatBubble({ text }: { text: string }) {
   );
 }
 
+// 1. Placeholder mock worktree file list
+const MOCK_WORKTREE_FILES = new Set([
+  'src/components/tool-call-view.tsx',
+  'src/components/code-block.tsx',
+  'package.json',
+  'tsconfig.json',
+  'README.md',
+  'packages/ui/src/styles/globals.css',
+]);
+
+// 2. Placeholder file click handler
+function openFileInEditor(path: string) {
+  return path;
+}
+
+// Helper function to check if text resembles a filename in the worktree
+const isWorktreeFile = (text: string): boolean => {
+  const cleanText = text.trim();
+
+  // Exact match against worktree
+  if (MOCK_WORKTREE_FILES.has(cleanText)) return true;
+
+  // Partial/suffix match (e.g. `tool-call-view.tsx` matching `src/components/tool-call-view.tsx`)
+  for (const file of MOCK_WORKTREE_FILES) {
+    if (file.endsWith(cleanText) || file.endsWith(`/${cleanText}`)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 export const MessageView = memo(
   function MessageView({
     group,
@@ -134,7 +166,12 @@ export const MessageView = memo(
               switch (part.type) {
                 case 'text':
                   return (
-                    <Markdown id={blockId} key={blockId}>
+                    <Markdown
+                      id={blockId}
+                      key={blockId}
+                      isFile={(path) => isWorktreeFile(path)}
+                      onFileClick={(path) => openFileInEditor(path)}
+                    >
                       {part.text}
                     </Markdown>
                   );
@@ -149,7 +186,11 @@ export const MessageView = memo(
                       <ChainOfThought.Content>
                         <ChainOfThought.Steps>
                           <ChainOfThought.Step>
-                            <Markdown id={`${blockId}-reason`}>
+                            <Markdown
+                              id={`${blockId}-reason`}
+                              isFile={(path) => isWorktreeFile(path)}
+                              onFileClick={(path) => openFileInEditor(path)}
+                            >
                               {part.text}
                             </Markdown>
                           </ChainOfThought.Step>

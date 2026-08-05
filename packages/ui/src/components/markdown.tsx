@@ -7,7 +7,7 @@ import type {
   NamedExoticComponent,
   ReactElement,
 } from 'react';
-import { memo, useMemo } from 'react';
+import { createContext, memo, useContext, useMemo } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,15 +15,13 @@ import remarkMath from 'remark-math';
 
 import { CodeBlock } from './code-block';
 
-// Quick hash utility targeting performance optimization paths
-const fastHash = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash.toString(36);
-};
+// 1. Define Context to pass file matching logic down to custom Markdown components
+interface MarkdownFileContextValue {
+  isFile?: (path: string) => boolean;
+  onFileClick?: (path: string) => void;
+}
+
+const MarkdownFileContext = createContext<MarkdownFileContextValue>({});
 
 type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps;
 
@@ -33,11 +31,37 @@ const MarkdownCode = memo(function MarkdownCode({
   node,
   ...props
 }: MarkdownCodeProps): ReactElement {
+  const { isFile, onFileClick } = useContext(MarkdownFileContext);
+
   const isInline =
     !node?.position?.start.line ||
     node.position.start.line === node.position.end.line;
 
   if (isInline) {
+    const rawContent = String(children ?? '').trim();
+    const isFileMatch = isFile?.(rawContent) ?? false;
+
+    if (isFileMatch) {
+      return (
+        <button
+          type='button'
+          onClick={() => onFileClick?.(rawContent)}
+          className='inline cursor-pointer text-left transition-opacity hover:opacity-90 focus-visible:outline-none'
+        >
+          <code
+            className={cn(
+              'markdown__inline-code decoration-primary underline decoration-1 underline-offset-4',
+              className,
+            )}
+            data-slot='markdown-inline-file-code'
+            {...props}
+          >
+            {children}
+          </code>
+        </button>
+      );
+    }
+
     return (
       <code
         className={cn('markdown__inline-code', className)}
@@ -100,6 +124,10 @@ export interface MarkdownProps extends Omit<
   children: string;
   components?: Partial<Components>;
   id: string; // Enforce explicitly passed stable identity keys
+  /** Optional function to determine if inline code is a file path */
+  isFile?: (path: string) => boolean;
+  /** Optional callback triggered when a file inline code is clicked */
+  onFileClick?: (path: string) => void;
 }
 
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
@@ -108,10 +136,21 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     className,
     components,
     id,
+    isFile,
+    onFileClick,
     ...props
   }: MarkdownProps): ReactElement {
     // Completely bypass using marked.lexer during high-frequency scrolls
     const blockContent = useMemo(() => {
+      const fastHash = (str: string): string => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = (hash << 5) - hash + str.charCodeAt(i);
+          hash |= 0;
+        }
+        return hash.toString(36);
+      };
+
       const contentHash = fastHash(children);
       return [{ content: children, key: `${id}-${contentHash}` }];
     }, [children, id]);
@@ -121,20 +160,27 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       [components],
     );
 
+    const contextValue = useMemo(
+      () => ({ isFile, onFileClick }),
+      [isFile, onFileClick],
+    );
+
     return (
-      <div
-        className={cn('markdown', className)}
-        data-slot='markdown'
-        {...props}
-      >
-        {blockContent.map((block) => (
-          <MemoizedBlock
-            components={renderers}
-            content={block.content}
-            key={block.key}
-          />
-        ))}
-      </div>
+      <MarkdownFileContext.Provider value={contextValue}>
+        <div
+          className={cn('markdown', className)}
+          data-slot='markdown'
+          {...props}
+        >
+          {blockContent.map((block) => (
+            <MemoizedBlock
+              components={renderers}
+              content={block.content}
+              key={block.key}
+            />
+          ))}
+        </div>
+      </MarkdownFileContext.Provider>
     );
   },
 );

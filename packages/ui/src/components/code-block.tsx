@@ -1,7 +1,7 @@
 /* oxlint-disable react/no-danger -- Shiki escapes source and returns trusted highlighted markup. */
 'use client';
 
-import { Button, cn } from '@heroui/react';
+import { Button, cn, ScrollShadow } from '@heroui/react';
 import {
   AnimatePresence,
   domAnimation,
@@ -108,6 +108,7 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   language?: string;
   showLineNumbers?: boolean;
   theme?: string;
+  scrollOverflow?: boolean;
 }
 
 // ⚡ MEMOIZED FOR THE VIRTUALIZER VIEWPORT
@@ -119,6 +120,7 @@ export const CodeBlockCode = memo(function CodeBlockCode({
   language = 'plaintext',
   showLineNumbers = false,
   theme,
+  scrollOverflow = false,
   ...props
 }: CodeBlockCodeProps): ReactElement {
   useContext(Context);
@@ -181,11 +183,18 @@ export const CodeBlockCode = memo(function CodeBlockCode({
     return (
       <div
         className={codeClass}
-        dangerouslySetInnerHTML={{ __html: highlighted.html }}
         data-line-numbers={showLineNumbers || undefined}
         data-slot='code-block-code'
         {...props}
-      />
+      >
+        <ScrollShadow
+          offset={2}
+          className={scrollOverflow ? 'code-block__scroll' : undefined}
+          isEnabled={scrollOverflow}
+        >
+          <div dangerouslySetInnerHTML={{ __html: highlighted.html }} />
+        </ScrollShadow>
+      </div>
     );
   }
 
@@ -196,9 +205,15 @@ export const CodeBlockCode = memo(function CodeBlockCode({
       data-slot='code-block-code'
       {...props}
     >
-      <pre>
-        <code className='break-all whitespace-pre-wrap'>{code}</code>
-      </pre>
+      <ScrollShadow
+        offset={2}
+        className={scrollOverflow ? 'code-block__scroll' : undefined}
+        isEnabled={scrollOverflow}
+      >
+        <pre>
+          <code>{code}</code>
+        </pre>
+      </ScrollShadow>
     </div>
   );
 });
@@ -236,39 +251,35 @@ const CopyMotionIcon = ({
   reduceMotion: boolean | null;
 }): ReactElement => (
   <LazyMotion features={domAnimation}>
-    <AnimatePresence initial={false} mode='popLayout'>
-      <m.span
-        animate={
-          reduceMotion
-            ? { opacity: 1 }
-            : { filter: 'blur(0px)', opacity: 1, scale: 1 }
-        }
-        className='flex size-3.5 items-center justify-center'
-        data-slot='code-block-copy-button-icon-motion'
-        exit={
-          reduceMotion
-            ? { opacity: 0 }
-            : { filter: 'blur(4px)', opacity: 0, scale: 0.25 }
-        }
-        initial={
-          reduceMotion
-            ? { opacity: 0 }
-            : { filter: 'blur(4px)', opacity: 0, scale: 0.25 }
-        }
-        key={copied ? 'check' : 'copy'}
-        transition={
-          reduceMotion
-            ? { duration: 0.12 }
-            : { bounce: 0, duration: 0.3, type: 'spring' }
-        }
-      >
-        {copied ? (
-          <CheckIcon className='size-3.5' />
-        ) : (
-          <CopyIcon className='size-3.5' />
-        )}
-      </m.span>
-    </AnimatePresence>
+    <span className='relative flex size-3.5 items-center justify-center'>
+      <AnimatePresence initial={false} mode='popLayout'>
+        <m.span
+          animate={
+            reduceMotion ? { opacity: 1 } : { filter: 'blur(0px)', opacity: 1 }
+          }
+          className='absolute inset-0 flex items-center justify-center'
+          data-slot='code-block-copy-button-icon-motion'
+          exit={
+            reduceMotion ? { opacity: 0 } : { filter: 'blur(4px)', opacity: 0 }
+          }
+          initial={
+            reduceMotion ? { opacity: 0 } : { filter: 'blur(4px)', opacity: 0 }
+          }
+          key={copied ? 'check' : 'copy'}
+          transition={
+            reduceMotion
+              ? { duration: 0.12 }
+              : { bounce: 0, duration: 0.3, type: 'spring' }
+          }
+        >
+          {copied ? (
+            <CheckIcon className='size-3.5' />
+          ) : (
+            <CopyIcon className='size-3.5' />
+          )}
+        </m.span>
+      </AnimatePresence>
+    </span>
   </LazyMotion>
 );
 export interface CodeBlockCopyButtonProps {

@@ -37,7 +37,7 @@
 .markdown > .markdown__block:has(> h2:first-child),
 .markdown > .markdown__block:has(> h3:first-child),
 .markdown > .markdown__block:has(> h4:first-child) {
-  margin-top: calc(var(--spacing, 0.25rem) * 2);
+  margin-top: calc(var(--spacing, 0.25rem) * 1);
 }
 
 /* Paragraphs */
@@ -186,7 +186,7 @@
     monospace
   );
   font-size: 0.875em;
-  color: var(--foreground);
+  color: var(--accent-soft-foreground);
   overflow-wrap: break-word;
 }
 

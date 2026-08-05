@@ -33,9 +33,9 @@ export const ToolCallView = memo(
           const command = getInputField(input, 'command');
           return {
             title: command ? `bash: ${command}` : 'bash',
-            code: rawOutput,
+            code: rawOutput, // Removed `$ ${command}\n\n` duplication
             language: 'bash',
-            copyText: rawOutput,
+            copyText: command ? `$ ${command}\n\n${rawOutput}` : rawOutput,
           };
         }
 
@@ -78,7 +78,7 @@ export const ToolCallView = memo(
           return {
             title: path ? `read: ${path}` : 'read',
             code: rawOutput,
-            language: path.split('.').pop() || 'text',
+            language: path ? path.split('.').pop() || 'text' : 'text',
             copyText: rawOutput,
           };
         }
@@ -154,11 +154,11 @@ export const ToolCallView = memo(
           const questionText = getInputField(input, 'question');
           return {
             title: header ? `question: ${header}` : 'question',
-            code: questionText
+            code: rawOutput, // Removed `Q: ${questionText}...` duplication from display
+            language: 'markdown',
+            copyText: questionText
               ? `Q: ${questionText}\n\nAnswer:\n${rawOutput}`
               : rawOutput,
-            language: 'markdown',
-            copyText: rawOutput,
           };
         }
 
@@ -180,14 +180,13 @@ export const ToolCallView = memo(
         }
 
         default: {
-          const formattedInput =
-            typeof input === 'string' ? input : JSON.stringify(input, null, 2);
-          const fullDisplay = `// Input:\n${formattedInput}\n\n// Output:\n${rawOutput}`;
           return {
             title: toolName,
-            code: fullDisplay,
+            code: rawOutput, // Display output in code window, full input/output is retained in copyText
             language: 'json',
-            copyText: fullDisplay,
+            copyText: `// Input:\n${
+              typeof input === 'string' ? input : JSON.stringify(input, null, 2)
+            }\n\n// Output:\n${rawOutput}`,
           };
         }
       }
@@ -210,9 +209,7 @@ export const ToolCallView = memo(
             >
               <span className='flex items-center gap-2 truncate'>
                 <span>{title}</span>
-                <span style={{ color: 'var(--muted)' }}>
-                  {isCompleted ? '✓' : '⏳'}
-                </span>
+                <span>{isCompleted ? '✓' : '⏳'}</span>
               </span>
               <Disclosure.Indicator />
             </Disclosure.Trigger>
@@ -221,12 +218,12 @@ export const ToolCallView = memo(
           <Disclosure.Content className='mt-2'>
             <CodeBlock>
               <CodeBlock.Header>
-                <CodeBlock.CopyButton
-                  code={copyText}
-                  className='absolute top-13 right-2'
-                />
+                <div className='text-muted min-w-0 font-mono text-xs break-all'>
+                  {title}
+                </div>
+                <CodeBlock.CopyButton code={copyText} className='shrink-0' />
               </CodeBlock.Header>
-              <CodeBlock.Code code={code} language={language} />
+              <CodeBlock.Code code={code} language={language} scrollOverflow />
             </CodeBlock>
           </Disclosure.Content>
         </Disclosure>

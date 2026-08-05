@@ -56,6 +56,26 @@
   overflow-x: auto;
 }
 
+.code-block__scroll {
+  position: relative;
+  max-height: 320px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.code-block__scroll pre {
+  margin: 0;
+  padding-inline: calc(var(--spacing, 0.25rem) * 3);
+  padding-block: calc(var(--spacing, 0.25rem) * 2);
+
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.code-block__scroll code {
+  white-space: inherit;
+}
+
 .code-block__code pre {
   margin: calc(var(--spacing, 0.25rem) * 0);
   padding-inline: calc(var(--spacing, 0.25rem) * 3);

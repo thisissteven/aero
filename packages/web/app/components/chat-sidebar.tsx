@@ -1,11 +1,28 @@
-import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
+import {
+  CircleInfo,
+  CircleQuestion,
+  Comment,
+  Folder,
+  Gear,
+  Magnifier,
+  PlugWire,
+} from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useLocation } from '@tanstack/react-router';
 
-import { Avatar, Button, cn, Kbd, Spinner } from '@aero/ui';
-import { Sidebar } from '@aero/ui';
+import {
+  Avatar,
+  cn,
+  Kbd,
+  Sidebar,
+  Spinner,
+  Tooltip,
+  useSidebar,
+} from '@aero/ui';
 
 import { useSessions } from '@/hooks/api/sessions';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useKeyPress } from '@/hooks/useKeyPress';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
@@ -32,6 +49,16 @@ export function ChatSidebar({
     sessionsQuery,
     onSearch,
   };
+
+  const { toggleSidebar } = useSidebar();
+
+  useKeyPress('l', toggleSidebar, {
+    modifiers: {
+      meta: false,
+      ctrl: true,
+      alt: false,
+    },
+  });
 
   return (
     <>
@@ -145,10 +172,42 @@ function SidebarContents({
       <Sidebar.Footer className='sticky bottom-0 z-10 px-0! pt-0!'>
         <Sidebar.Separator className='mt-0!' />
 
-        <div className='px-3'>
-          <Button variant='ghost' className='w-full'>
-            Settings
-          </Button>
+        <div className='mt-1.5 space-x-2 px-4'>
+          <Tooltip delay={0}>
+            <Tooltip.Trigger>
+              <div className='px-1 opacity-50 transition hover:opacity-100'>
+                <Icon data={Gear} size={18} />
+              </div>
+            </Tooltip.Trigger>
+
+            <Tooltip.Content>
+              <p>Settings</p>
+            </Tooltip.Content>
+          </Tooltip>
+
+          <Tooltip delay={0}>
+            <Tooltip.Trigger>
+              <div className='px-1 opacity-50 transition hover:opacity-100'>
+                <Icon data={CircleQuestion} size={18} />
+              </div>
+            </Tooltip.Trigger>
+
+            <Tooltip.Content>
+              <p>Shortcuts</p>
+            </Tooltip.Content>
+          </Tooltip>
+
+          <Tooltip delay={0}>
+            <Tooltip.Trigger>
+              <div className='px-1 opacity-50 transition hover:opacity-100'>
+                <Icon data={CircleInfo} size={18} />
+              </div>
+            </Tooltip.Trigger>
+
+            <Tooltip.Content>
+              <p>About Aero</p>
+            </Tooltip.Content>
+          </Tooltip>
         </div>
       </Sidebar.Footer>
     </>

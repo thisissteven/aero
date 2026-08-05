@@ -3,6 +3,10 @@ import { useEffect } from 'react';
 interface UseKeyPressOptions {
   /** Prevent firing when user is typing in input/textarea/contentEditable */
   ignoreInputs?: boolean;
+  /** Prevent browser default behavior */
+  preventDefault?: boolean;
+  /** Stop event propagation */
+  stopPropagation?: boolean;
   /** Require or disallow modifier keys */
   modifiers?: {
     ctrl?: boolean;
@@ -17,7 +21,12 @@ export function useKeyPress(
   handler: (event: KeyboardEvent) => void,
   options: UseKeyPressOptions = {},
 ) {
-  const { ignoreInputs = true, modifiers } = options;
+  const {
+    ignoreInputs = true,
+    preventDefault = true,
+    stopPropagation = true,
+    modifiers,
+  } = options;
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -29,6 +38,7 @@ export function useKeyPress(
       // 2. Ignore keypresses if typing inside an input/textarea element
       if (ignoreInputs) {
         const target = event.target as HTMLElement | null;
+
         if (
           target &&
           (target.tagName === 'INPUT' ||
@@ -39,7 +49,7 @@ export function useKeyPress(
         }
       }
 
-      // 3. Optional modifier key validation (e.g. require !meta, !ctrl)
+      // 3. Modifier validation
       if (modifiers) {
         if (modifiers.ctrl !== undefined && event.ctrlKey !== modifiers.ctrl)
           return;
@@ -51,6 +61,15 @@ export function useKeyPress(
           return;
       }
 
+      // 4. Prevent browser shortcuts (Ctrl+L, Ctrl+K, etc.)
+      if (preventDefault) {
+        event.preventDefault();
+      }
+
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+
       handler(event);
     };
 
@@ -59,5 +78,12 @@ export function useKeyPress(
     return () => {
       window.removeEventListener('keydown', listener);
     };
-  }, [targetKey, handler, ignoreInputs, modifiers]);
+  }, [
+    targetKey,
+    handler,
+    ignoreInputs,
+    preventDefault,
+    stopPropagation,
+    modifiers,
+  ]);
 }
