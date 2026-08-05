@@ -187,6 +187,7 @@
   );
   font-size: 0.875em;
   color: var(--foreground);
+  overflow-wrap: break-word;
 }
 
 /* Streaming animation support */

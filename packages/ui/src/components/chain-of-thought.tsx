@@ -91,7 +91,7 @@ export function ChainOfThoughtTrigger({
         {...props}
       >
         {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
-        <Disclosure.Indicator className='text-muted size-3.5' />
+        <Disclosure.Indicator className='text-muted mt-1 -ml-1.5 size-3' />
       </Button>
     </Disclosure.Heading>
   );

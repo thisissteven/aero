@@ -1,8 +1,7 @@
 import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
 import { useLocation } from '@tanstack/react-router';
-import { cn } from 'cnfast';
 
-import { Avatar, Button, Kbd, Spinner } from '@aero/ui';
+import { Avatar, Button, cn, Kbd, Spinner } from '@aero/ui';
 import { Sidebar } from '@aero/ui';
 
 import { useSessions } from '@/hooks/api/sessions';

@@ -215,7 +215,7 @@ export function ChatPage({ thread, tocItems = [] }: ChatPageProps) {
           >
             <PromptInput.Shell>
               <PromptInput.Content>
-                <PromptInput.TextArea placeholder='What do you want to know?' />
+                <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
               </PromptInput.Content>
 
               <PromptInput.Toolbar>

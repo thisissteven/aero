@@ -8,105 +8,105 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as IndexRouteImport } from './routes/index';
-import { Route as AppRouteImport } from './routes/_app';
-import { Route as SettingsRouteImport } from './routes/settings';
-import { Route as AppNewRouteImport } from './routes/_app/new';
-import { Route as AppPluginsRouteRouteImport } from './routes/_app/plugins/route';
-import { Route as AppPluginsIndexRouteImport } from './routes/_app/plugins/index';
-import { Route as AppPluginsPluginIdRouteImport } from './routes/_app/plugins/$pluginId';
-import { Route as AppSessionsSessionIdRouteImport } from './routes/_app/sessions/$sessionId';
-import { Route as AppWorkspacesIndexRouteImport } from './routes/_app/workspaces/index';
-import { Route as AppWorkspacesWorkspaceIdRouteImport } from './routes/_app/workspaces/$workspaceId';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as AppNewRouteImport } from './routes/_app/new'
+import { Route as AppPluginsRouteRouteImport } from './routes/_app/plugins/route'
+import { Route as AppPluginsIndexRouteImport } from './routes/_app/plugins/index'
+import { Route as AppPluginsPluginIdRouteImport } from './routes/_app/plugins/$pluginId'
+import { Route as AppSessionsSessionIdRouteImport } from './routes/_app/sessions/$sessionId'
+import { Route as AppWorkspacesIndexRouteImport } from './routes/_app/workspaces/index'
+import { Route as AppWorkspacesWorkspaceIdRouteImport } from './routes/_app/workspaces/$workspaceId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AppNewRoute = AppNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppPluginsRouteRoute = AppPluginsRouteRouteImport.update({
   id: '/plugins',
   path: '/plugins',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppPluginsIndexRoute = AppPluginsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppPluginsRouteRoute,
-} as any);
+} as any)
 const AppPluginsPluginIdRoute = AppPluginsPluginIdRouteImport.update({
   id: '/$pluginId',
   path: '/$pluginId',
   getParentRoute: () => AppPluginsRouteRoute,
-} as any);
+} as any)
 const AppSessionsSessionIdRoute = AppSessionsSessionIdRouteImport.update({
   id: '/sessions/$sessionId',
   path: '/sessions/$sessionId',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppWorkspacesIndexRoute = AppWorkspacesIndexRouteImport.update({
   id: '/workspaces/',
   path: '/workspaces/',
   getParentRoute: () => AppRoute,
-} as any);
+} as any)
 const AppWorkspacesWorkspaceIdRoute =
   AppWorkspacesWorkspaceIdRouteImport.update({
     id: '/workspaces/$workspaceId',
     path: '/workspaces/$workspaceId',
     getParentRoute: () => AppRoute,
-  } as any);
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '/settings': typeof SettingsRoute;
-  '/plugins': typeof AppPluginsRouteRouteWithChildren;
-  '/new': typeof AppNewRoute;
-  '/plugins/$pluginId': typeof AppPluginsPluginIdRoute;
-  '/sessions/$sessionId': typeof AppSessionsSessionIdRoute;
-  '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute;
-  '/plugins/': typeof AppPluginsIndexRoute;
-  '/workspaces/': typeof AppWorkspacesIndexRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/plugins': typeof AppPluginsRouteRouteWithChildren
+  '/new': typeof AppNewRoute
+  '/plugins/$pluginId': typeof AppPluginsPluginIdRoute
+  '/sessions/$sessionId': typeof AppSessionsSessionIdRoute
+  '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
+  '/plugins/': typeof AppPluginsIndexRoute
+  '/workspaces/': typeof AppWorkspacesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '/settings': typeof SettingsRoute;
-  '/new': typeof AppNewRoute;
-  '/plugins/$pluginId': typeof AppPluginsPluginIdRoute;
-  '/sessions/$sessionId': typeof AppSessionsSessionIdRoute;
-  '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute;
-  '/plugins': typeof AppPluginsIndexRoute;
-  '/workspaces': typeof AppWorkspacesIndexRoute;
+  '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/new': typeof AppNewRoute
+  '/plugins/$pluginId': typeof AppPluginsPluginIdRoute
+  '/sessions/$sessionId': typeof AppSessionsSessionIdRoute
+  '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
+  '/plugins': typeof AppPluginsIndexRoute
+  '/workspaces': typeof AppWorkspacesIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
-  '/_app': typeof AppRouteWithChildren;
-  '/settings': typeof SettingsRoute;
-  '/_app/plugins': typeof AppPluginsRouteRouteWithChildren;
-  '/_app/new': typeof AppNewRoute;
-  '/_app/plugins/$pluginId': typeof AppPluginsPluginIdRoute;
-  '/_app/sessions/$sessionId': typeof AppSessionsSessionIdRoute;
-  '/_app/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute;
-  '/_app/plugins/': typeof AppPluginsIndexRoute;
-  '/_app/workspaces/': typeof AppWorkspacesIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/settings': typeof SettingsRoute
+  '/_app/plugins': typeof AppPluginsRouteRouteWithChildren
+  '/_app/new': typeof AppNewRoute
+  '/_app/plugins/$pluginId': typeof AppPluginsPluginIdRoute
+  '/_app/sessions/$sessionId': typeof AppSessionsSessionIdRoute
+  '/_app/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
+  '/_app/plugins/': typeof AppPluginsIndexRoute
+  '/_app/workspaces/': typeof AppWorkspacesIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/settings'
@@ -116,8 +116,8 @@ export interface FileRouteTypes {
     | '/sessions/$sessionId'
     | '/workspaces/$workspaceId'
     | '/plugins/'
-    | '/workspaces/';
-  fileRoutesByTo: FileRoutesByTo;
+    | '/workspaces/'
+  fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/settings'
@@ -126,7 +126,7 @@ export interface FileRouteTypes {
     | '/sessions/$sessionId'
     | '/workspaces/$workspaceId'
     | '/plugins'
-    | '/workspaces';
+    | '/workspaces'
   id:
     | '__root__'
     | '/'
@@ -138,110 +138,110 @@ export interface FileRouteTypes {
     | '/_app/sessions/$sessionId'
     | '/_app/workspaces/$workspaceId'
     | '/_app/plugins/'
-    | '/_app/workspaces/';
-  fileRoutesById: FileRoutesById;
+    | '/_app/workspaces/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AppRoute: typeof AppRouteWithChildren;
-  SettingsRoute: typeof SettingsRoute;
+  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
-      id: '/_app';
-      path: '';
-      fullPath: '/';
-      preLoaderRoute: typeof AppRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
-      id: '/settings';
-      path: '/settings';
-      fullPath: '/settings';
-      preLoaderRoute: typeof SettingsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/new': {
-      id: '/_app/new';
-      path: '/new';
-      fullPath: '/new';
-      preLoaderRoute: typeof AppNewRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+      id: '/_app/new'
+      path: '/new'
+      fullPath: '/new'
+      preLoaderRoute: typeof AppNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/plugins': {
-      id: '/_app/plugins';
-      path: '/plugins';
-      fullPath: '/plugins';
-      preLoaderRoute: typeof AppPluginsRouteRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+      id: '/_app/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof AppPluginsRouteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/plugins/': {
-      id: '/_app/plugins/';
-      path: '/';
-      fullPath: '/plugins/';
-      preLoaderRoute: typeof AppPluginsIndexRouteImport;
-      parentRoute: typeof AppPluginsRouteRoute;
-    };
+      id: '/_app/plugins/'
+      path: '/'
+      fullPath: '/plugins/'
+      preLoaderRoute: typeof AppPluginsIndexRouteImport
+      parentRoute: typeof AppPluginsRouteRoute
+    }
     '/_app/plugins/$pluginId': {
-      id: '/_app/plugins/$pluginId';
-      path: '/$pluginId';
-      fullPath: '/plugins/$pluginId';
-      preLoaderRoute: typeof AppPluginsPluginIdRouteImport;
-      parentRoute: typeof AppPluginsRouteRoute;
-    };
+      id: '/_app/plugins/$pluginId'
+      path: '/$pluginId'
+      fullPath: '/plugins/$pluginId'
+      preLoaderRoute: typeof AppPluginsPluginIdRouteImport
+      parentRoute: typeof AppPluginsRouteRoute
+    }
     '/_app/sessions/$sessionId': {
-      id: '/_app/sessions/$sessionId';
-      path: '/sessions/$sessionId';
-      fullPath: '/sessions/$sessionId';
-      preLoaderRoute: typeof AppSessionsSessionIdRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+      id: '/_app/sessions/$sessionId'
+      path: '/sessions/$sessionId'
+      fullPath: '/sessions/$sessionId'
+      preLoaderRoute: typeof AppSessionsSessionIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/workspaces/': {
-      id: '/_app/workspaces/';
-      path: '/workspaces';
-      fullPath: '/workspaces/';
-      preLoaderRoute: typeof AppWorkspacesIndexRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+      id: '/_app/workspaces/'
+      path: '/workspaces'
+      fullPath: '/workspaces/'
+      preLoaderRoute: typeof AppWorkspacesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/workspaces/$workspaceId': {
-      id: '/_app/workspaces/$workspaceId';
-      path: '/workspaces/$workspaceId';
-      fullPath: '/workspaces/$workspaceId';
-      preLoaderRoute: typeof AppWorkspacesWorkspaceIdRouteImport;
-      parentRoute: typeof AppRoute;
-    };
+      id: '/_app/workspaces/$workspaceId'
+      path: '/workspaces/$workspaceId'
+      fullPath: '/workspaces/$workspaceId'
+      preLoaderRoute: typeof AppWorkspacesWorkspaceIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppPluginsRouteRouteChildren {
-  AppPluginsPluginIdRoute: typeof AppPluginsPluginIdRoute;
-  AppPluginsIndexRoute: typeof AppPluginsIndexRoute;
+  AppPluginsPluginIdRoute: typeof AppPluginsPluginIdRoute
+  AppPluginsIndexRoute: typeof AppPluginsIndexRoute
 }
 
 const AppPluginsRouteRouteChildren: AppPluginsRouteRouteChildren = {
   AppPluginsPluginIdRoute: AppPluginsPluginIdRoute,
   AppPluginsIndexRoute: AppPluginsIndexRoute,
-};
+}
 
 const AppPluginsRouteRouteWithChildren = AppPluginsRouteRoute._addFileChildren(
   AppPluginsRouteRouteChildren,
-);
+)
 
 interface AppRouteChildren {
-  AppPluginsRouteRoute: typeof AppPluginsRouteRouteWithChildren;
-  AppNewRoute: typeof AppNewRoute;
-  AppSessionsSessionIdRoute: typeof AppSessionsSessionIdRoute;
-  AppWorkspacesWorkspaceIdRoute: typeof AppWorkspacesWorkspaceIdRoute;
-  AppWorkspacesIndexRoute: typeof AppWorkspacesIndexRoute;
+  AppPluginsRouteRoute: typeof AppPluginsRouteRouteWithChildren
+  AppNewRoute: typeof AppNewRoute
+  AppSessionsSessionIdRoute: typeof AppSessionsSessionIdRoute
+  AppWorkspacesWorkspaceIdRoute: typeof AppWorkspacesWorkspaceIdRoute
+  AppWorkspacesIndexRoute: typeof AppWorkspacesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -250,15 +250,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppSessionsSessionIdRoute: AppSessionsSessionIdRoute,
   AppWorkspacesWorkspaceIdRoute: AppWorkspacesWorkspaceIdRoute,
   AppWorkspacesIndexRoute: AppWorkspacesIndexRoute,
-};
+}
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren);
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   SettingsRoute: SettingsRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

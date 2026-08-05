@@ -180,7 +180,6 @@ export function ChatShell({
               </Tooltip.Trigger>
 
               <Tooltip.Content placement='left'>
-                <Tooltip.Arrow />
                 <Typography
                   type='body-sm'
                   className='text-accent-soft-foreground'

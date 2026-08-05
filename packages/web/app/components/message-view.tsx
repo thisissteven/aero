@@ -1,9 +1,10 @@
-import { memo, useMemo } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ChainOfThought,
   ChatMessage,
   ChatMessageActions,
+  cn,
   Markdown,
   Skeleton,
 } from '@aero/ui';
@@ -34,6 +35,50 @@ function MessageSkeleton({ role }: { role: ConversationItem['role'] }) {
   );
 }
 
+function UserChatBubble({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const textRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+    const maxHeight = lineHeight * 3; // allow 3 lines before considering it overflow
+
+    setIsOverflowing(el.scrollHeight > maxHeight);
+  }, [text]);
+
+  return (
+    <ChatMessage.User>
+      <ChatMessage.Bubble className='max-w-4/5'>
+        <div className='relative'>
+          <div
+            ref={textRef}
+            className={cn(
+              'wrap-break-word',
+              // while still clamping it to 2 lines
+              !expanded && isOverflowing && 'line-clamp-2',
+            )}
+          >
+            {text}
+          </div>
+
+          {isOverflowing && (
+            <button
+              className='text-muted text-xs opacity-80 transition hover:opacity-100'
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      </ChatMessage.Bubble>
+    </ChatMessage.User>
+  );
+}
+
 export const MessageView = memo(
   function MessageView({
     group,
@@ -56,13 +101,7 @@ export const MessageView = memo(
         .map((part) => part.text)
         .join('');
 
-      return (
-        <ChatMessage.User>
-          <ChatMessage.Bubble className='max-w-4/5 wrap-break-word'>
-            <ChatMessage.Content>{text}</ChatMessage.Content>
-          </ChatMessage.Bubble>
-        </ChatMessage.User>
-      );
+      return <UserChatBubble text={text} />;
     }
 
     const baseKey = messages.map((m) => m.id).join('-');
@@ -103,7 +142,9 @@ export const MessageView = memo(
                 case 'reasoning':
                   return (
                     <ChainOfThought key={blockId}>
-                      <ChainOfThought.Trigger>Reasoning</ChainOfThought.Trigger>
+                      <ChainOfThought.Trigger className='text-xs'>
+                        Reasoning
+                      </ChainOfThought.Trigger>
 
                       <ChainOfThought.Content>
                         <ChainOfThought.Steps>

@@ -1,8 +1,7 @@
 import { Comment, Magnifier } from '@gravity-ui/icons';
-import cn from 'cnfast';
 import { useRef, useState } from 'react';
 
-import { Command, Kbd, Spinner } from '@aero/ui';
+import { cn, Command, Kbd, Spinner } from '@aero/ui';
 
 import { formatCompactRelativeTime } from '@/lib';
 import { useSessions } from '@/hooks/api/sessions';
