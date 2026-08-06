@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
-import { honoClient } from '@/lib';
+import { honoClient } from '@/app/lib';
 
 const $workspaces = honoClient.api.workspaces;
 const $workspace = honoClient.api.workspaces[':id'];

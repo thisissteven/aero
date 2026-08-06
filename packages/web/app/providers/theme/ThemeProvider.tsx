@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useEffect, useState } from 'react';
 
-import { useKeyPress } from '@/hooks/useKeyPress';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 
 type Theme = 'light' | 'dark' | 'system';
 

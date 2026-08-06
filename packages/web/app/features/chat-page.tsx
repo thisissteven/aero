@@ -1,46 +1,33 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 import { FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
 
-import { getTurnEstimateSize } from '@/lib';
-import { useSessionToc } from '@/hooks/api/sessions';
+import { MessageView } from '@/app/components/message-view';
+import { ChatThread } from '@/app/data/chat';
+import { useSessionToc } from '@/app/hooks/api/sessions';
+import { getTurnEstimateSize } from '@/app/lib';
+import { Route } from '@/app/routes/_app/sessions/$sessionId';
 
-import { useTocStore } from '@/data/toc-store';
-
-import { MessageView } from '@/components/message-view';
-import { ScrollToBottomButton } from '@/components/scroll-to-bottom';
-
-import { Route } from '@/routes/_app/sessions/$sessionId';
-
-import type { ChatThread } from '../data/chat';
 import { AeroConversationTurn } from '../../server/services/harness/types';
 
 // ============================================================================
 // 1. TOC Component
 // ============================================================================
 const ChatTocSection = React.memo(function ChatTocSection({
+  activeGroupIndex,
   onSelectTocItem,
 }: {
+  activeGroupIndex: number;
   onSelectTocItem: (groupIndex: number) => void;
 }) {
   const { sessionId } = Route.useParams();
   const { data: tocItems = [] } = useSessionToc(undefined, sessionId);
 
-  const activeGroupIndex = useTocStore((state) => state.activeGroupIndex);
-
   const activeTocIndex = tocItems.reduce(
     (acc, item, index) => (item.groupIndex <= activeGroupIndex ? index : acc),
     -1,
   );
-
-  console.log('render toc', activeGroupIndex, activeTocIndex);
 
   if (!tocItems.length) return null;
 
@@ -76,8 +63,12 @@ const ChatTocSection = React.memo(function ChatTocSection({
 });
 
 // ============================================================================
-// 2. Message Item
+// 3. Virtualized Feed
 // ============================================================================
+export interface VirtualizedChatFeedRef {
+  scrollToIndex: (index: number) => void;
+}
+
 const ChatMessageItem = React.memo(function ChatMessageItem({
   turn,
 }: {
@@ -86,177 +77,118 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   return <MessageView turn={turn} />;
 });
 
-// ============================================================================
-// 3. Virtualized Feed
-// ============================================================================
-export interface VirtualizedChatFeedRef {
-  scrollToIndex: (index: number) => void;
-}
-
 const VirtualizedChatFeed = React.memo(
-  React.forwardRef<VirtualizedChatFeedRef, { groups: ChatThread['turns'] }>(
-    function VirtualizedChatFeed({ groups }, ref) {
-      const scrollRef = useRef<HTMLDivElement>(null);
-      const isAtBottomRef = useRef(true);
-      const frameRef = useRef<number | null>(null);
-      const activeUserGroupRef = useRef<number | null>(null);
+  React.forwardRef<
+    VirtualizedChatFeedRef,
+    {
+      groups: ChatThread['turns'];
+      onActiveGroupIndexChange: (index: number) => void;
+    }
+  >(function VirtualizedChatFeed({ groups, onActiveGroupIndexChange }, ref) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const didInitialScroll = useRef(false);
+    const containerWidthRef = useRef(600);
 
-      const setActiveGroupIndex = useTocStore(
-        (state) => state.setActiveGroupIndex,
-      );
+    const userGroupIndexes = useMemo(
+      () =>
+        groups.reduce<number[]>((acc, group, index) => {
+          if (group.role === 'user') acc.push(index);
+          return acc;
+        }, []),
+      [groups],
+    );
 
-      const userGroupIndexes = useMemo(
-        () =>
-          groups
-            .map((group, index) => (group.role === 'user' ? index : -1))
-            .filter((index) => index !== -1),
-        [groups],
-      );
+    // Snaps any raw index to the nearest preceding user-turn index. This is
+    // the ONE place "active group" gets computed — scroll-driven and
+    // click-driven (TOC) selection both funnel through here so they can
+    // never disagree with each other.
+    const resolveActiveIndex = useCallback(
+      (index: number) => {
+        let resolved = userGroupIndexes[0] ?? 0;
+        for (const userIndex of userGroupIndexes) {
+          if (userIndex > index) break;
+          resolved = userIndex;
+        }
+        return resolved;
+      },
+      [userGroupIndexes],
+    );
 
-      const updateActiveUserGroup = useCallback(
-        (index: number) => {
-          let activeUserIndex: number | null = null;
-
-          for (const userIndex of userGroupIndexes) {
-            if (userIndex > index) break;
-            activeUserIndex = userIndex;
-          }
-
-          if (
-            activeUserIndex !== null &&
-            activeUserGroupRef.current !== activeUserIndex
-          ) {
-            activeUserGroupRef.current = activeUserIndex;
-            setActiveGroupIndex(activeUserIndex);
-          }
-        },
-        [userGroupIndexes, setActiveGroupIndex],
-      );
-
-      const getItemKey = useCallback(
+    const virtualizer = useVirtualizer({
+      count: groups.length,
+      getScrollElement: () => scrollRef.current,
+      estimateSize: (index) =>
+        getTurnEstimateSize(groups[index], containerWidthRef.current),
+      getItemKey: useCallback(
         (index: number) => groups[index]?.id ?? index,
         [groups],
-      );
+      ),
+      anchorTo: 'end',
+      followOnAppend: true,
+      scrollEndThreshold: 80,
+      overscan: 6,
+      directDomUpdates: true,
+    });
 
-      const virtualizer = useVirtualizer({
-        count: groups.length,
-        getScrollElement: () => scrollRef.current,
-        estimateSize: (index) => getTurnEstimateSize(groups[index]),
-        getItemKey,
-        anchorTo: 'end',
-        followOnAppend: true,
-        scrollEndThreshold: 80,
-        overscan: 5,
-      });
+    const virtualItems = virtualizer.getVirtualItems();
 
-      React.useImperativeHandle(
-        ref,
-        () => ({
-          scrollToIndex(index) {
-            queueMicrotask(() => {
-              virtualizer.scrollToIndex(index, {
-                align: 'start',
-                behavior: 'instant',
-              });
-            });
-          },
-        }),
-        [virtualizer],
-      );
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        scrollToIndex(index) {
+          virtualizer.scrollToIndex(index, {
+            align: 'start',
+            behavior: 'auto',
+          });
+        },
+      }),
+      [virtualizer],
+    );
 
-      const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
+    React.useLayoutEffect(() => {
+      if (didInitialScroll.current) return;
+      if (scrollRef.current) {
+        containerWidthRef.current =
+          scrollRef.current.clientWidth || containerWidthRef.current;
+      }
+      virtualizer.scrollToEnd();
+      didInitialScroll.current = true;
+    }, [virtualizer]);
 
-        if (frameRef.current !== null) {
-          cancelAnimationFrame(frameRef.current);
-        }
-
-        frameRef.current = requestAnimationFrame(() => {
-          const distanceToBottom =
-            target.scrollHeight - target.scrollTop - target.clientHeight;
-
-          isAtBottomRef.current = distanceToBottom <= 30;
-
-          const visibleItems = virtualizer.getVirtualItems();
-
-          const activeItem = visibleItems.find(
-            (item) =>
-              item.start <= target.scrollTop + 20 &&
-              item.end >= target.scrollTop + 20,
-          );
-
-          if (activeItem) {
-            updateActiveUserGroup(activeItem.index);
-          } else if (isAtBottomRef.current && groups.length) {
-            updateActiveUserGroup(groups.length - 1);
-          }
-        });
-      };
-
-      const didInitialScroll = useRef(false);
-
-      useLayoutEffect(() => {
-        if (!groups.length || didInitialScroll.current) return;
-
-        didInitialScroll.current = true;
-
-        const rafId = requestAnimationFrame(() => {
-          virtualizer.scrollToEnd();
-          updateActiveUserGroup(groups.length - 1);
-        });
-
-        return () => cancelAnimationFrame(rafId);
-      }, [groups.length, virtualizer, updateActiveUserGroup]);
-
-      useLayoutEffect(() => {
-        return () => {
-          if (frameRef.current !== null) {
-            cancelAnimationFrame(frameRef.current);
-          }
-        };
-      }, []);
-
-      return (
-        <div className='relative flex min-h-0 flex-1 flex-col pr-1'>
-          <ScrollShadow
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
+    return (
+      <div className='relative flex min-h-0 flex-1 flex-col pr-1'>
+        <ScrollShadow
+          ref={scrollRef}
+          onScroll={() => {
+            // range.startIndex is the actual visible range, unlike
+            // getVirtualItems()[0] which includes overscan and fires the
+            // "active" update several rows before the item is on screen.
+            const startIndex = virtualizer.range?.startIndex;
+            if (startIndex != null) {
+              onActiveGroupIndexChange(resolveActiveIndex(startIndex));
+            }
+          }}
+          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
+        >
+          <div
+            ref={virtualizer.containerRef}
+            className='relative mx-auto w-full xl:max-w-[800px]'
           >
-            <div
-              className='relative mx-auto w-full xl:max-w-[800px]'
-              style={{
-                height: `${virtualizer.getTotalSize()}px`,
-              }}
-            >
-              {virtualizer.getVirtualItems().map((virtualItem) => (
-                <div
-                  key={virtualItem.key}
-                  ref={virtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  className='absolute top-0 left-0 w-full pb-8 max-xl:pr-12 max-xl:pl-8'
-                  style={{
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                >
-                  <ChatMessageItem turn={groups[virtualItem.index]} />
-                </div>
-              ))}
-            </div>
-          </ScrollShadow>
-
-          <div className='pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2'>
-            <div className='pointer-events-auto'>
-              <ScrollToBottomButton
-                virtualizer={virtualizer}
-                totalCount={groups.length}
-              />
-            </div>
+            {virtualItems.map((virtualItem) => (
+              <div
+                key={virtualItem.key}
+                data-index={virtualItem.index}
+                ref={virtualizer.measureElement}
+                className='absolute top-0 left-0 w-full pb-8 max-xl:pr-12 max-xl:pl-8'
+              >
+                <ChatMessageItem turn={groups[virtualItem.index]} />
+              </div>
+            ))}
           </div>
-        </div>
-      );
-    },
-  ),
+        </ScrollShadow>
+      </div>
+    );
+  }),
 );
 
 // ============================================================================
@@ -268,32 +200,39 @@ export interface ChatPageProps {
 
 export function ChatPage({ groups }: ChatPageProps) {
   const [value, setValue] = useState('');
-
-  const setActiveGroupIndex = useTocStore((state) => state.setActiveGroupIndex);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
 
   const feedRef = useRef<VirtualizedChatFeedRef>(null);
 
   const handleSelectTocItem = useCallback(
     (groupIndex: number) => {
-      feedRef.current?.scrollToIndex(groupIndex);
-      setActiveGroupIndex(groupIndex);
+      const clamped = Math.min(Math.max(groupIndex, 0), groups.length - 1);
+      feedRef.current?.scrollToIndex(clamped);
+      // No separate "set active" call — scrolling triggers a real onScroll
+      // in VirtualizedChatFeed, which resolves and reports the active
+      // index through the same path a manual scroll would. One writer.
     },
-    [setActiveGroupIndex],
+    [groups.length],
   );
 
   function send() {
     const text = value.trim();
-
     if (!text) return;
-
     setValue('');
   }
 
   return (
     <div className='relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
-      <ChatTocSection onSelectTocItem={handleSelectTocItem} />
+      <ChatTocSection
+        activeGroupIndex={activeGroupIndex}
+        onSelectTocItem={handleSelectTocItem}
+      />
 
-      <VirtualizedChatFeed ref={feedRef} groups={groups} />
+      <VirtualizedChatFeed
+        ref={feedRef}
+        groups={groups}
+        onActiveGroupIndexChange={setActiveGroupIndex}
+      />
 
       <div className='bg-background shrink-0 px-4 pb-4'>
         <div className='mx-auto w-full max-w-[714px]'>
@@ -307,7 +246,6 @@ export function ChatPage({ groups }: ChatPageProps) {
               <PromptInput.Content>
                 <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
               </PromptInput.Content>
-
               <PromptInput.Toolbar>
                 <PromptInput.ToolbarEnd>
                   <PromptInput.Send />

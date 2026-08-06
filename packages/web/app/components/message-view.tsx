@@ -8,11 +8,17 @@ import {
   useState,
 } from 'react';
 
-import { ChatMessage, ChatMessageActions, cn } from '@aero/ui';
+import {
+  ChainOfThought,
+  ChatMessage,
+  ChatMessageActions,
+  cn,
+  Markdown,
+} from '@aero/ui';
 
-import { ToolCallView } from '@/components/tool-call-view';
-
-import { AeroConversationTurn } from '../../server/services/harness/types';
+import { DeferredView } from '@/app/components/deferred-view';
+import { ToolCallView } from '@/app/components/tool-call-view';
+import { AeroConversationTurn } from '@/server/services/harness/types';
 
 const MOCK_WORKTREE_FILES = new Set([
   'src/components/tool-call-view.tsx',
@@ -167,47 +173,47 @@ export const MessageView = memo(
               switch (part.type) {
                 case 'text':
                   return (
-                    <div key={blockId}>{part.text}</div>
-                    // <Markdown
-                    //   id={blockId}
-                    //   key={blockId}
-                    //   isFile={handleIsWorktreeFile}
-                    //   onFileClick={handleOpenFileInEditor}
-                    // >
-                    //   {part.text}
-                    // </Markdown>
+                    // <div key={blockId}>{part.text}</div>
+                    <Markdown
+                      id={blockId}
+                      key={blockId}
+                      isFile={handleIsWorktreeFile}
+                      onFileClick={handleOpenFileInEditor}
+                    >
+                      {part.text}
+                    </Markdown>
                   );
 
                 case 'reasoning':
                   return (
-                    <div key={blockId}>{part.text}</div>
-                    // <ChainOfThought key={blockId}>
-                    //   <ChainOfThought.Trigger className='text-xs'>
-                    //     Reasoning
-                    //   </ChainOfThought.Trigger>
+                    // <div key={blockId}>{part.text}</div>
+                    <ChainOfThought key={blockId}>
+                      <ChainOfThought.Trigger className='text-xs'>
+                        Reasoning
+                      </ChainOfThought.Trigger>
 
-                    //   <ChainOfThought.Content>
-                    //     <ChainOfThought.Steps>
-                    //       <ChainOfThought.Step>
-                    //         <DeferredView
-                    //           fallback={
-                    //             <div className='text-foreground font-sans text-sm leading-relaxed whitespace-pre-wrap opacity-80'>
-                    //               {part.text}
-                    //             </div>
-                    //           }
-                    //         >
-                    //           <Markdown
-                    //             id={`${blockId}-reason`}
-                    //             isFile={handleIsWorktreeFile}
-                    //             onFileClick={handleOpenFileInEditor}
-                    //           >
-                    //             {part.text}
-                    //           </Markdown>
-                    //         </DeferredView>
-                    //       </ChainOfThought.Step>
-                    //     </ChainOfThought.Steps>
-                    //   </ChainOfThought.Content>
-                    // </ChainOfThought>
+                      <ChainOfThought.Content>
+                        <ChainOfThought.Steps>
+                          <ChainOfThought.Step>
+                            <DeferredView
+                              fallback={
+                                <div className='text-foreground font-sans text-sm leading-relaxed whitespace-pre-wrap opacity-80'>
+                                  {part.text}
+                                </div>
+                              }
+                            >
+                              <Markdown
+                                id={`${blockId}-reason`}
+                                isFile={handleIsWorktreeFile}
+                                onFileClick={handleOpenFileInEditor}
+                              >
+                                {part.text}
+                              </Markdown>
+                            </DeferredView>
+                          </ChainOfThought.Step>
+                        </ChainOfThought.Steps>
+                      </ChainOfThought.Content>
+                    </ChainOfThought>
                   );
 
                 case 'tool':

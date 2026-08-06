@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { AeroSessionSummary } from '@/services/harness/types';
+import { AeroSessionSummary } from '@/server/services/harness/types';
 
 export const PAGINATION_LIMIT = 20;
 export const BACKEND_PAGINATION_LIMIT = 1000;

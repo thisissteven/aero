@@ -11,7 +11,7 @@ let instance: ReturnType<typeof createOpencode> | null = null;
 export function getOpencodeInstance() {
   if (!instance) {
     instance = createOpencode({
-      hostname: 'localhost',
+      hostname: '127.0.0.1',
       port: 4096,
       // hostname/port left as SDK defaults (127.0.0.1:4096) for MVP.
       // Pull from ~/.aero/harnesses.json per-harness config once that's

@@ -3,10 +3,10 @@ import { useRef, useState } from 'react';
 
 import { cn, Command, Kbd, Spinner } from '@aero/ui';
 
-import { formatCompactRelativeTime } from '@/lib';
-import { useSessions } from '@/hooks/api/sessions';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useSessions } from '@/app/hooks/api/sessions';
+import { useDebounce } from '@/app/hooks/useDebounce';
+import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
+import { formatCompactRelativeTime } from '@/app/lib';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';

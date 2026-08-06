@@ -10,8 +10,7 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
-import { withPagination } from '@/helper';
-
+import { withPagination } from '../helper';
 import { getActiveAdapter } from '../services/harness/registry';
 import type {
   AeroConversationTurn,

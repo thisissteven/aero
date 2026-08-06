@@ -6,11 +6,10 @@
 
 import type { Event } from '@opencode-ai/sdk';
 
-import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '@/helper';
-
 import { getOpencodeClient } from './client';
 import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
 import { unwrap } from './unwrap';
+import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '../../helper';
 import type {
   AeroEvent,
   AeroSessionSummary,

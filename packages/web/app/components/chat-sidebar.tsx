@@ -21,9 +21,9 @@ import {
   useSidebar,
 } from '@aero/ui';
 
-import { useSessions } from '@/hooks/api/sessions';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { useKeyPress } from '@/hooks/useKeyPress';
+import { useSessions } from '@/app/hooks/api/sessions';
+import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';

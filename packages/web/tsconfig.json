@@ -1,11 +1,11 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "paths": {
+      "@/app/*": ["./app/*"],
+      "@/server/*": ["./server/*"]
     }
-  ]
+  },
+  "include": ["app/**/*.ts", "app/**/*.tsx", "vite.config.ts", "server/**/*.ts"]
 }

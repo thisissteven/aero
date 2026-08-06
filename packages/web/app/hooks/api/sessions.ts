@@ -14,9 +14,8 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
-import { honoClient, PAGINATION_LIMIT } from '@/lib';
-
-import { AeroSessionSummary } from '../../../server/services/harness/types';
+import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
+import { AeroSessionSummary } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
@@ -49,7 +48,7 @@ export function useSessions(
     // Include search & searchBy in key so queries auto-refetch when search state changes
     queryKey: [...sessionKeys.all(workspaceId), search, searchBy],
 
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | undefined,
 
     placeholderData: keepPreviousData,
 
@@ -58,7 +57,7 @@ export function useSessions(
         query: {
           workspaceId,
           cursor: pageParam,
-          limit: PAGINATION_LIMIT,
+          limit: PAGINATION_LIMIT.toString(),
           search: search || undefined,
           searchBy: search ? searchBy : undefined,
         },

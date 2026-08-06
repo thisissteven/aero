@@ -1,8 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { useSessionMessages } from '@/hooks/api/sessions';
-
-import { ChatPage } from '@/features/chat-page';
+import { ChatPage } from '@/app/features/chat-page';
+import { useSessionMessages } from '@/app/hooks/api/sessions';
 
 export const Route = createFileRoute('/_app/sessions/$sessionId')({
   component: SessionPage,

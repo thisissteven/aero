@@ -2,8 +2,8 @@ import { useParams } from '@tanstack/react-router';
 
 import { AppLayout, Navbar, Sidebar } from '@aero/ui';
 
-import { formatCompactRelativeTime } from '@/lib';
-import { useSession } from '@/hooks/api/sessions';
+import { useSession } from '@/app/hooks/api/sessions';
+import { formatCompactRelativeTime } from '@/app/lib';
 
 import type { ChatActivePage } from '../data/chat';
 

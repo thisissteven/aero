@@ -3,7 +3,7 @@ import { memo } from 'react';
 
 import { Button, IconChevronDown, Tooltip } from '@aero/ui';
 
-import { useIsAtBottom } from '@/hooks/useIsAtBottom'; // or inline the logic above
+import { useIsAtBottom } from '@/app/hooks/useIsAtBottom'; // or inline the logic above
 
 interface ScrollToBottomButtonProps {
   virtualizer: Virtualizer<HTMLDivElement, Element>;
