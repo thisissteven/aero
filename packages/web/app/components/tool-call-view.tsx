@@ -1,6 +1,8 @@
 import { memo, useMemo } from 'react';
 
-import { Disclosure } from '@aero/ui';
+import { CodeBlock, Disclosure } from '@aero/ui';
+
+import { DeferredView } from '@/app/components/deferred-view';
 
 import type { AeroPart } from '../../server/services/harness/types';
 
@@ -215,8 +217,8 @@ export const ToolCallView = memo(
           </Disclosure.Heading>
 
           <Disclosure.Content className='mt-2'>
-            <div>{`${part.input}${part.output}`}</div>
-            {/* <DeferredView
+            {/* <div>{`${part.input}${part.output}`}</div> */}
+            <DeferredView
               fallback={
                 <pre className='bg-muted p-4 font-mono text-xs'>
                   {toolContent.code}
@@ -239,7 +241,7 @@ export const ToolCallView = memo(
                   scrollOverflow
                 />
               </CodeBlock>
-            </DeferredView> */}
+            </DeferredView>
           </Disclosure.Content>
         </Disclosure>
       </div>

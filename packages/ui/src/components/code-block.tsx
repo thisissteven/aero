@@ -276,15 +276,16 @@ const CopyMotionIcon = memo(function CopyMotionIcon({
       <span
         className={cn(
           'absolute inset-0 flex items-center justify-center transition-all duration-200',
-          copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+          copied ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
         )}
       >
         <CheckIcon className='size-3.5' />
       </span>
+
       <span
         className={cn(
           'absolute inset-0 flex items-center justify-center transition-all duration-200',
-          !copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+          !copied ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
         )}
       >
         <CopyIcon className='size-3.5' />

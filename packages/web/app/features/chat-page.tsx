@@ -1,5 +1,11 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
 
@@ -63,6 +69,38 @@ const ChatTocSection = React.memo(function ChatTocSection({
 });
 
 // ============================================================================
+// 2. Stable item key factory
+//
+// FIX: getItemKey was previously a useCallback with [groups] dependency.
+// groups is a new array ref on every render during streaming, so the key
+// function recreated every tick, forcing the virtualizer to diff all keys.
+//
+// Solution: build a stable ID→key map that only updates when item IDs
+// actually change. The virtualizer receives the same function reference across
+// streaming renders and only re-diffs when the map content changes.
+// ============================================================================
+function useStableItemKeyFn(groups: AeroConversationTurn[]) {
+  // Map from virtualizer index → stable key string
+  const keyMapRef = useRef<Map<number, string>>(new Map());
+
+  // Rebuild the map when groups actually change (keyed by id)
+  useMemo(() => {
+    const newMap = new Map<number, string>();
+    for (let i = 0; i < groups.length; i++) {
+      newMap.set(i, groups[i]?.id ?? String(i));
+    }
+    keyMapRef.current = newMap;
+  }, [groups]);
+
+  // The returned function is stable across re-renders; the virtualizer never
+  // receives a new function reference just because groups updated.
+  return useCallback(
+    (index: number) => keyMapRef.current.get(index) ?? index,
+    [],
+  );
+}
+
+// ============================================================================
 // 3. Virtualized Feed
 // ============================================================================
 export interface VirtualizedChatFeedRef {
@@ -89,6 +127,32 @@ const VirtualizedChatFeed = React.memo(
     const didInitialScroll = useRef(false);
     const containerWidthRef = useRef(600);
 
+    // FIX: Track container width with ResizeObserver instead of a one-shot
+    // useLayoutEffect. Previously the width was captured once on mount and
+    // never updated, making all size estimates wrong after a window resize.
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      // Capture initial width synchronously before first render
+      containerWidthRef.current = el.clientWidth || containerWidthRef.current;
+
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (entry) {
+          // Use borderBoxSize when available for sub-pixel accuracy
+          const width =
+            entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+          if (width > 0) {
+            containerWidthRef.current = width;
+          }
+        }
+      });
+
+      observer.observe(el);
+      return () => observer.disconnect();
+    }, []); // intentionally empty — scrollRef.current is stable after mount
+
     const userGroupIndexes = useMemo(
       () =>
         groups.reduce<number[]>((acc, group, index) => {
@@ -114,15 +178,15 @@ const VirtualizedChatFeed = React.memo(
       [userGroupIndexes],
     );
 
+    // FIX: Stable key function that doesn't recreate on every streaming render
+    const getItemKey = useStableItemKeyFn(groups);
+
     const virtualizer = useVirtualizer({
       count: groups.length,
       getScrollElement: () => scrollRef.current,
       estimateSize: (index) =>
         getTurnEstimateSize(groups[index], containerWidthRef.current),
-      getItemKey: useCallback(
-        (index: number) => groups[index]?.id ?? index,
-        [groups],
-      ),
+      getItemKey,
       anchorTo: 'end',
       followOnAppend: true,
       scrollEndThreshold: 80,
@@ -131,6 +195,7 @@ const VirtualizedChatFeed = React.memo(
     });
 
     const virtualItems = virtualizer.getVirtualItems();
+    const totalSize = virtualizer.getTotalSize();
 
     React.useImperativeHandle(
       ref,
@@ -155,24 +220,68 @@ const VirtualizedChatFeed = React.memo(
       didInitialScroll.current = true;
     }, [virtualizer]);
 
+    // FIX: Throttle onScroll with a RAF gate.
+    //
+    // Previously: raw inline arrow fired on every scroll event, calling
+    // resolveActiveIndex (O(n) linear loop) on every pixel of scroll.
+    //
+    // Now: a single requestAnimationFrame is queued per scroll burst; the
+    // handler fires at most once per paint frame (~60 fps). The ref is used
+    // so the handler always closes over the latest resolveActiveIndex/virtualizer
+    // without needing them as deps (which would recreate the closure constantly).
+    const scrollRafRef = useRef<number | null>(null);
+    const resolveActiveIndexRef = useRef(resolveActiveIndex);
+    const virtualizerRef = useRef(virtualizer);
+
+    useEffect(() => {
+      resolveActiveIndexRef.current = resolveActiveIndex;
+    }, [resolveActiveIndex]);
+
+    useEffect(() => {
+      virtualizerRef.current = virtualizer;
+    }, [virtualizer]);
+
+    const handleScroll = useCallback(() => {
+      if (scrollRafRef.current !== null) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        const startIndex = virtualizerRef.current.range?.startIndex;
+        if (startIndex != null) {
+          onActiveGroupIndexChange(resolveActiveIndexRef.current(startIndex));
+        }
+      });
+    }, [onActiveGroupIndexChange]);
+
+    // Cancel any pending RAF on unmount
+    useEffect(() => {
+      return () => {
+        if (scrollRafRef.current !== null) {
+          cancelAnimationFrame(scrollRafRef.current);
+        }
+      };
+    }, []);
+
     return (
       <div className='relative flex min-h-0 flex-1 flex-col pr-1'>
         <ScrollShadow
           ref={scrollRef}
-          onScroll={() => {
-            // range.startIndex is the actual visible range, unlike
-            // getVirtualItems()[0] which includes overscan and fires the
-            // "active" update several rows before the item is on screen.
-            const startIndex = virtualizer.range?.startIndex;
-            if (startIndex != null) {
-              onActiveGroupIndexChange(resolveActiveIndex(startIndex));
-            }
-          }}
+          onScroll={handleScroll}
           className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
         >
+          {/*
+           * FIX: Added explicit height style to the virtualizer container.
+           *
+           * With directDomUpdates=true, @tanstack/react-virtual writes item
+           * transforms directly to the DOM without re-rendering. The container
+           * still needs its height set in React so the browser knows how tall
+           * the scroll area is. Without this, the scroll container has no
+           * natural height, anchorTo:'end' misfires, and followOnAppend may
+           * scroll to wrong positions.
+           */}
           <div
             ref={virtualizer.containerRef}
             className='relative mx-auto w-full xl:max-w-[800px]'
+            style={{ height: totalSize }}
           >
             {virtualItems.map((virtualItem) => (
               <div

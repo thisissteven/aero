@@ -41,6 +41,15 @@ const handleIsWorktreeFile = (cleanText: string): boolean => {
 
 const handleOpenFileInEditor = (path: string) => path;
 
+// ---------------------------------------------------------------------------
+// UserChatBubble
+//
+// FIX: Replaced the `useEffect` + `el.scrollHeight` read with a ResizeObserver.
+// Reading scrollHeight in useEffect forces a synchronous layout flush on every
+// streaming character. ResizeObserver is notified *after* the browser has
+// already committed layout, so we get the measurement for free with zero
+// additional reflow cost.
+// ---------------------------------------------------------------------------
 const UserChatBubble = memo(function UserChatBubble({
   text,
 }: {
@@ -53,11 +62,29 @@ const UserChatBubble = memo(function UserChatBubble({
   const textRef = useRef<HTMLDivElement>(null);
   const shouldScrollOnCollapseRef = useRef(false);
 
+  // Sync check before the first paint so the clamp is applied immediately —
+  // no visible flicker. useLayoutEffect fires after DOM mutations but before
+  // the browser paints; layout is already computed at this point so reading
+  // scrollHeight here doesn't trigger an extra reflow.
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (el) setIsOverflowing(el.scrollHeight > 72);
+  }, []);
+
+  // ResizeObserver handles subsequent updates (text streaming, window resize).
+  // Kept separate from the layout effect so it only pays the observer overhead
+  // for the ongoing lifecycle, not the initial render.
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
-    setIsOverflowing(el.scrollHeight > 72);
-  }, [text]);
+
+    const observer = new ResizeObserver(() => {
+      setIsOverflowing(el.scrollHeight > 72);
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleToggle = () => {
     if (expanded) {
@@ -76,13 +103,9 @@ const UserChatBubble = memo(function UserChatBubble({
     const scrollContainer = bubbleEl.closest<HTMLElement>('.overflow-y-auto');
 
     if (scrollContainer) {
-      // Offset from the top edge of the scroll viewport (e.g. 40px padding)
       const topOffset = 40;
-
       const containerRect = scrollContainer.getBoundingClientRect();
       const bubbleRect = bubbleEl.getBoundingClientRect();
-
-      // Calculate exact scroll delta needed
       const targetScrollTop =
         scrollContainer.scrollTop +
         (bubbleRect.top - containerRect.top) -
@@ -124,6 +147,55 @@ const UserChatBubble = memo(function UserChatBubble({
     </ChatMessage.User>
   );
 });
+
+// ---------------------------------------------------------------------------
+// MessageView
+//
+// FIX: Memo comparator.
+//
+// Old: `(prev, next) => prev.turn.id === next.turn.id`
+//   → Breaks streaming: parts mutate while id is constant, so memo never
+//     re-renders the streaming message.
+//
+// New: compare id + parts array length + the last part's content/status.
+//   - If id changes → different turn → re-render.
+//   - If parts length changes → new tool call / text part appended → re-render.
+//   - If last part's text or status changed → streaming update → re-render.
+//   - Otherwise → memo bails out → no wasted render.
+//
+// This is defensive and works for both in-place mutation and replace-by-ref
+// streaming patterns.
+// ---------------------------------------------------------------------------
+function areTurnsEqual(
+  prev: { turn: AeroConversationTurn },
+  next: { turn: AeroConversationTurn },
+): boolean {
+  if (prev.turn.id !== next.turn.id) return false;
+  if (prev.turn.parts.length !== next.turn.parts.length) return false;
+
+  const prevLast = prev.turn.parts[prev.turn.parts.length - 1];
+  const nextLast = next.turn.parts[next.turn.parts.length - 1];
+
+  if (!prevLast && !nextLast) return true;
+  if (!prevLast || !nextLast) return false;
+  if (prevLast.type !== nextLast.type) return false;
+
+  // Compare type-specific streaming fields
+  if (
+    (nextLast.type === 'text' || nextLast.type === 'reasoning') &&
+    (prevLast.type === 'text' || prevLast.type === 'reasoning')
+  ) {
+    return prevLast.text === nextLast.text;
+  }
+
+  if (nextLast.type === 'tool' && prevLast.type === 'tool') {
+    return (
+      prevLast.status === nextLast.status && prevLast.output === nextLast.output
+    );
+  }
+
+  return true;
+}
 
 export const MessageView = memo(
   function MessageView({ turn }: { turn: AeroConversationTurn }) {
@@ -173,7 +245,6 @@ export const MessageView = memo(
               switch (part.type) {
                 case 'text':
                   return (
-                    // <div key={blockId}>{part.text}</div>
                     <Markdown
                       id={blockId}
                       key={blockId}
@@ -186,7 +257,6 @@ export const MessageView = memo(
 
                 case 'reasoning':
                   return (
-                    // <div key={blockId}>{part.text}</div>
                     <ChainOfThought key={blockId}>
                       <ChainOfThought.Trigger className='text-xs'>
                         Reasoning
@@ -240,7 +310,7 @@ export const MessageView = memo(
       </ChatMessage.Assistant>
     );
   },
-  (prev, next) => prev.turn.id === next.turn.id,
+  (prev, next) => areTurnsEqual(prev, next),
 );
 
 MessageView.displayName = 'MessageView';
