@@ -58,7 +58,7 @@
 
 .code-block__scroll {
   position: relative;
-  max-height: 320px;
+  max-height: 40vh;
   overflow: auto;
   scrollbar-width: thin;
 }

@@ -40,6 +40,13 @@ export interface AeroMessage {
   createdAt: number;
 }
 
+export interface AeroConversationTurn {
+  id: string;
+  role: 'user' | 'assistant';
+  parts: AeroPart[];
+  createdAt: number;
+}
+
 // Events an adapter can emit over its live stream. Route layer relays these
 // verbatim as SSE payloads, so the shape here IS the wire contract with the
 // frontend @aero/ui chat components.

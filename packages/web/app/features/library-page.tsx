@@ -1,8 +1,68 @@
-'use client';
-
 import { Card, Chip } from '@aero/ui';
 
-import { LIBRARY_ITEMS } from '../data/chat';
+interface LibraryItem {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  updatedAt: string;
+  threadId?: string;
+}
+
+const LIBRARY_ITEMS: LibraryItem[] = [
+  {
+    id: 'code-reviewer-preset',
+    title: 'Senior Code Reviewer',
+    description:
+      'Structured persona focused on performance, TypeScript strictness, and security best practices.',
+    tags: ['Preset', 'Engineering'],
+    updatedAt: '2h ago',
+    threadId: 'thread-code-reviewer',
+  },
+  {
+    id: 'exec-email-preset',
+    title: 'Concise Executive Writing',
+    description:
+      'Tone rule preset that condenses complex technical updates into bulleted emails for leadership.',
+    tags: ['Tone Rule', 'Writing'],
+    updatedAt: '1d ago',
+    threadId: 'thread-exec-email',
+  },
+  {
+    id: 'api-docs-generator',
+    title: 'OpenAPI & Type Generator',
+    description:
+      'Converts raw JSON payload samples into fully typed OpenAPI 3.0 schemas and TypeScript interfaces.',
+    tags: ['Prompt', 'Backend'],
+    updatedAt: '3d ago',
+  },
+  {
+    id: 'sql-optimizer',
+    title: 'Database Query Optimizer',
+    description:
+      'Analyzes slow PostgreSQL queries, EXPLAIN outputs, and recommends index strategies.',
+    tags: ['Preset', 'Database'],
+    updatedAt: '1w ago',
+    threadId: 'thread-sql-optimizer',
+  },
+  {
+    id: 'prd-template',
+    title: 'Product Requirements Starter',
+    description:
+      'Reusable prompt structure for drafting PRDs complete with user stories and edge cases.',
+    tags: ['Template', 'Product'],
+    updatedAt: '2w ago',
+  },
+  {
+    id: 'ux-microcopy',
+    title: 'UI Microcopy Assistant',
+    description:
+      'Generates concise error states, tooltip copy, and empty-state text options for web apps.',
+    tags: ['Design', 'Copywriting'],
+    updatedAt: '1m ago',
+    threadId: 'thread-ux-microcopy',
+  },
+];
 
 export interface LibraryPageProps {
   basePath?: string;

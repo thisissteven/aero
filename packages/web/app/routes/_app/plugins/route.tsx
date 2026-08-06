@@ -5,10 +5,5 @@ export const Route = createFileRoute('/_app/plugins')({
 });
 
 function PluginsLayout() {
-  return (
-    <div className='plugins-container'>
-      <h2>Plugins Manager (Internal Layout)</h2>
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }

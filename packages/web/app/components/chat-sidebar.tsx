@@ -8,7 +8,8 @@ import {
   PlugWire,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useLocation } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { memo, useTransition } from 'react';
 
 import {
   Avatar,
@@ -41,6 +42,7 @@ export function ChatSidebar({
   onSearch,
 }: ChatSidebarProps) {
   const sessionsQuery = useSessions();
+  const { toggleSidebar, isMobile } = useSidebar();
 
   const contentProps = {
     basePath,
@@ -50,25 +52,24 @@ export function ChatSidebar({
     onSearch,
   };
 
-  const { toggleSidebar } = useSidebar();
-
   useKeyPress('l', toggleSidebar, {
-    modifiers: {
-      meta: false,
-      ctrl: true,
-      alt: false,
-    },
+    modifiers: { meta: false, ctrl: true, alt: false },
   });
 
   return (
     <>
-      <Sidebar>
-        <SidebarContents {...contentProps} />
-      </Sidebar>
+      {/* Conditionally render mobile contents only when mobile drawer is active */}
+      {!isMobile && (
+        <Sidebar>
+          <SidebarContents {...contentProps} />
+        </Sidebar>
+      )}
 
-      <Sidebar.Mobile>
-        <SidebarContents {...contentProps} idPrefix='mobile-' />
-      </Sidebar.Mobile>
+      {isMobile && (
+        <Sidebar.Mobile>
+          <SidebarContents {...contentProps} idPrefix='mobile-' />
+        </Sidebar.Mobile>
+      )}
     </>
   );
 }
@@ -78,14 +79,23 @@ interface SidebarContentsProps extends ChatSidebarProps {
   sessionsQuery: ReturnType<typeof useSessions>;
 }
 
-function SidebarContents({
+const SidebarContents = memo(function SidebarContents({
   basePath,
   idPrefix = '',
   pathname,
   sessionsQuery,
   onSearch,
 }: SidebarContentsProps) {
+  const [, startTransition] = useTransition();
+
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleNavigate = (to: string) => {
+    startTransition(() => {
+      navigate({ to });
+    });
+  };
 
   const currentHref = location.href;
 
@@ -114,6 +124,7 @@ function SidebarContents({
               id={`${idPrefix}-new`}
               isCurrent={currentHref === '/new'}
               textValue='New Chat'
+              onPress={() => handleNavigate('/new')}
             >
               <Sidebar.MenuIcon>
                 <Comment className='size-4' />
@@ -136,6 +147,7 @@ function SidebarContents({
               id={`${idPrefix}-workspaces`}
               isCurrent={currentHref === '/workspaces'}
               textValue='Workspaces'
+              onPress={() => handleNavigate('/workspaces')}
             >
               <Sidebar.MenuIcon>
                 <Folder className='size-4' />
@@ -148,6 +160,7 @@ function SidebarContents({
               id={`${idPrefix}-plugins`}
               isCurrent={currentHref === '/plugins'}
               textValue='Plugins'
+              onPress={() => handleNavigate('/plugins')}
             >
               <Sidebar.MenuIcon>
                 <PlugWire className='size-4' />
@@ -171,7 +184,6 @@ function SidebarContents({
 
       <Sidebar.Footer className='sticky bottom-0 z-10 px-0! pt-0!'>
         <Sidebar.Separator className='mt-0!' />
-
         <div className='mt-1.5 space-x-2 px-4'>
           <Tooltip delay={0}>
             <Tooltip.Trigger>
@@ -179,7 +191,6 @@ function SidebarContents({
                 <Icon data={Gear} size={18} />
               </div>
             </Tooltip.Trigger>
-
             <Tooltip.Content>
               <p>Settings</p>
             </Tooltip.Content>
@@ -191,7 +202,6 @@ function SidebarContents({
                 <Icon data={CircleQuestion} size={18} />
               </div>
             </Tooltip.Trigger>
-
             <Tooltip.Content>
               <p>Shortcuts</p>
             </Tooltip.Content>
@@ -203,7 +213,6 @@ function SidebarContents({
                 <Icon data={CircleInfo} size={18} />
               </div>
             </Tooltip.Trigger>
-
             <Tooltip.Content>
               <p>About Aero</p>
             </Tooltip.Content>
@@ -212,7 +221,7 @@ function SidebarContents({
       </Sidebar.Footer>
     </>
   );
-}
+});
 
 interface RecentsProps {
   basePath: string;
@@ -221,7 +230,7 @@ interface RecentsProps {
   sessionsQuery: ReturnType<typeof useSessions>;
 }
 
-function Recents({
+const Recents = memo(function Recents({
   basePath,
   pathname,
   idPrefix = '',
@@ -258,7 +267,6 @@ function Recents({
           className={cn(
             'flex items-center justify-center py-2 text-sm opacity-0',
             isFetchingNextPage && 'opacity-100',
-            'opacity-100',
           )}
         >
           <Spinner className='text-muted size-4' />
@@ -266,7 +274,7 @@ function Recents({
       )}
     </Sidebar.Group>
   );
-}
+});
 
 interface ChatSidebarThreadItemProps {
   basePath: string;
@@ -276,27 +284,59 @@ interface ChatSidebarThreadItemProps {
   thread: ChatThread | AeroSessionSummary;
 }
 
-function ChatSidebarThreadItem({
-  basePath,
-  disableNavigation,
-  idPrefix,
-  pathname,
-  thread,
-}: ChatSidebarThreadItemProps) {
-  const fullHref = `${basePath}/sessions/${thread.id}`;
-  const isCurrent =
-    pathname === fullHref ||
-    pathname === thread.id ||
-    pathname === `/${thread.id}`;
+// 1. Memoized thread item to prevent re-rendering unchanged sessions
+const ChatSidebarThreadItem = memo(
+  function ChatSidebarThreadItem({
+    basePath,
+    disableNavigation,
+    idPrefix,
+    pathname,
+    thread,
+  }: ChatSidebarThreadItemProps) {
+    const navigate = useNavigate();
+    const [, startTransition] = useTransition();
 
-  return (
-    <Sidebar.MenuItem
-      href={disableNavigation ? undefined : fullHref}
-      id={`${idPrefix}${thread.id}`}
-      isCurrent={isCurrent}
-      textValue={thread.title}
-    >
-      <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
-    </Sidebar.MenuItem>
-  );
-}
+    const fullHref = `${basePath}/sessions/${thread.id}`;
+    const isCurrent =
+      pathname === fullHref ||
+      pathname === thread.id ||
+      pathname === `/${thread.id}`;
+
+    // 2. Non-blocking navigation transition on click
+    const handlePress = () => {
+      if (disableNavigation || isCurrent) return;
+      startTransition(() => {
+        navigate({ to: fullHref });
+      });
+    };
+
+    return (
+      <Sidebar.MenuItem
+        id={`${idPrefix}${thread.id}`}
+        isCurrent={isCurrent}
+        textValue={thread.title}
+        onPress={handlePress}
+      >
+        <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
+      </Sidebar.MenuItem>
+    );
+  },
+  (prev, next) => {
+    const prevIsCurrent =
+      prev.pathname === `${prev.basePath}/sessions/${prev.thread.id}` ||
+      prev.pathname === prev.thread.id ||
+      prev.pathname === `/${prev.thread.id}`;
+
+    const nextIsCurrent =
+      next.pathname === `${next.basePath}/sessions/${next.thread.id}` ||
+      next.pathname === next.thread.id ||
+      next.pathname === `/${next.thread.id}`;
+
+    return (
+      prev.thread.id === next.thread.id &&
+      prev.thread.title === next.thread.title &&
+      prevIsCurrent === nextIsCurrent &&
+      prev.disableNavigation === next.disableNavigation
+    );
+  },
+);

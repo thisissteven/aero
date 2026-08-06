@@ -20,7 +20,8 @@ import { AeroSessionSummary } from '../../../server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
-const $messages = honoClient.api.sessions[':id'].message;
+const $messages = honoClient.api.sessions[':id'].messages;
+const $message = honoClient.api.sessions[':id'].message;
 const $abort = honoClient.api.sessions[':id'].abort;
 const $toc = honoClient.api.sessions[':id'].toc;
 
@@ -37,7 +38,7 @@ export const sessionKeys = {
 
 // type SessionListResponse = InferResponseType<typeof $sessions.$get>;
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
-type SendMessageInput = InferRequestType<typeof $messages.$post>['json'];
+type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
 
 export function useSessions(
   workspaceId?: string,
@@ -86,6 +87,7 @@ export function useSession(workspaceId: string | undefined, sessionId: string) {
       return res.json();
     },
     enabled: !!sessionId,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -173,7 +175,7 @@ export function useSendMessage(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SendMessageInput) => {
-      const res = await $messages.$post({
+      const res = await $message.$post({
         param: { id: sessionId },
         query: { workspaceId },
         json: input,

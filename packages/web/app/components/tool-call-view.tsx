@@ -1,6 +1,8 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { CodeBlock, Disclosure } from '@aero/ui';
+
+import { DeferredView } from '@/components/deferred-view';
 
 import type { AeroPart } from '../../server/services/harness/types';
 
@@ -25,15 +27,16 @@ export const ToolCallView = memo(
   }) {
     const { toolName, input, output, status } = part;
     const isCompleted = status === 'completed';
-    const rawOutput = formatOutput(output);
 
-    const renderContent = () => {
+    const toolContent = useMemo(() => {
+      const rawOutput = formatOutput(output);
+
       switch (toolName) {
         case 'bash': {
           const command = getInputField(input, 'command');
           return {
             title: command ? `bash: ${command}` : 'bash',
-            code: rawOutput, // Removed `$ ${command}\n\n` duplication
+            code: rawOutput,
             language: 'bash',
             copyText: command ? `$ ${command}\n\n${rawOutput}` : rawOutput,
           };
@@ -154,7 +157,7 @@ export const ToolCallView = memo(
           const questionText = getInputField(input, 'question');
           return {
             title: header ? `question: ${header}` : 'question',
-            code: rawOutput, // Removed `Q: ${questionText}...` duplication from display
+            code: rawOutput,
             language: 'markdown',
             copyText: questionText
               ? `Q: ${questionText}\n\nAnswer:\n${rawOutput}`
@@ -182,7 +185,7 @@ export const ToolCallView = memo(
         default: {
           return {
             title: toolName,
-            code: rawOutput, // Display output in code window, full input/output is retained in copyText
+            code: rawOutput,
             language: 'json',
             copyText: `// Input:\n${
               typeof input === 'string' ? input : JSON.stringify(input, null, 2)
@@ -190,9 +193,7 @@ export const ToolCallView = memo(
           };
         }
       }
-    };
-
-    const { title, code, language, copyText } = renderContent();
+    }, [toolName, input, output]);
 
     return (
       <div className='my-3'>
@@ -208,7 +209,7 @@ export const ToolCallView = memo(
               }}
             >
               <span className='flex items-center gap-2 truncate'>
-                <span>{title}</span>
+                <span>{toolContent.title}</span>
                 <span>{isCompleted ? '✓' : '⏳'}</span>
               </span>
               <Disclosure.Indicator />
@@ -216,27 +217,40 @@ export const ToolCallView = memo(
           </Disclosure.Heading>
 
           <Disclosure.Content className='mt-2'>
-            <CodeBlock>
-              <CodeBlock.Header>
-                <div className='text-muted min-w-0 font-mono text-xs break-all'>
-                  {title}
-                </div>
-                <CodeBlock.CopyButton code={copyText} className='shrink-0' />
-              </CodeBlock.Header>
-              <CodeBlock.Code code={code} language={language} scrollOverflow />
-            </CodeBlock>
+            {/* <div>{`${part.input}${part.output}`}</div> */}
+            <DeferredView
+              fallback={
+                <pre className='bg-muted p-4 font-mono text-xs'>
+                  {toolContent.code}
+                </pre>
+              }
+            >
+              <CodeBlock>
+                <CodeBlock.Header>
+                  <div className='text-muted min-w-0 font-mono text-xs break-all'>
+                    {toolContent.title}
+                  </div>
+                  <CodeBlock.CopyButton
+                    code={toolContent.copyText}
+                    className='shrink-0'
+                  />
+                </CodeBlock.Header>
+                <CodeBlock.Code
+                  code={toolContent.code}
+                  language={toolContent.language}
+                  scrollOverflow
+                />
+              </CodeBlock>
+            </DeferredView>
           </Disclosure.Content>
         </Disclosure>
       </div>
     );
   },
-  (prev, next) => {
-    return (
-      prev.part.status === next.part.status &&
-      prev.part.output === next.part.output &&
-      JSON.stringify(prev.part.input) === JSON.stringify(next.part.input)
-    );
-  },
+  (prev, next) =>
+    prev.part.status === next.part.status &&
+    prev.part.output === next.part.output &&
+    prev.part.input === next.part.input,
 );
 
 ToolCallView.displayName = 'ToolCallView';

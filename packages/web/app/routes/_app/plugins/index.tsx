@@ -1,9 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { LibraryPage } from '@/features/library-page';
+
 export const Route = createFileRoute('/_app/plugins/')({
   component: PluginsPage,
 });
 
 function PluginsPage() {
-  return <div>Hello "/_app/plugins/"!</div>;
+  return <LibraryPage />;
 }

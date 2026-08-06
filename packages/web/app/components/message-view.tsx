@@ -1,85 +1,19 @@
-import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
 import {
-  ChainOfThought,
-  ChatMessage,
-  ChatMessageActions,
-  cn,
-  Markdown,
-  Skeleton,
-} from '@aero/ui';
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import { ChatMessage, ChatMessageActions, cn } from '@aero/ui';
 
 import { ToolCallView } from '@/components/tool-call-view';
 
-import type { AeroMessage } from '../../server/services/harness/types';
+import { AeroConversationTurn } from '../../server/services/harness/types';
 
-export type ConversationItem =
-  | { role: 'user'; messages: AeroMessage[] }
-  | { role: 'assistant'; messages: AeroMessage[] };
-
-function MessageSkeleton({ role }: { role: ConversationItem['role'] }) {
-  if (role === 'user') {
-    return (
-      <div className='flex justify-end'>
-        <Skeleton className='h-12 w-48 rounded-2xl' />
-      </div>
-    );
-  }
-
-  return (
-    <div className='space-y-3'>
-      <Skeleton className='h-4 w-3/4 rounded-lg' />
-      <Skeleton className='h-4 w-1/2 rounded-lg' />
-      <Skeleton className='h-4 w-2/3 rounded-lg' />
-    </div>
-  );
-}
-
-function UserChatBubble({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const textRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const el = textRef.current;
-    if (!el) return;
-
-    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
-    const maxHeight = lineHeight * 3; // allow 3 lines before considering it overflow
-
-    setIsOverflowing(el.scrollHeight > maxHeight);
-  }, [text]);
-
-  return (
-    <ChatMessage.User>
-      <ChatMessage.Bubble className='max-w-4/5'>
-        <div className='relative'>
-          <div
-            ref={textRef}
-            className={cn(
-              'wrap-break-word',
-              // while still clamping it to 2 lines
-              !expanded && isOverflowing && 'line-clamp-2',
-            )}
-          >
-            {text}
-          </div>
-
-          {isOverflowing && (
-            <button
-              className='text-muted text-xs opacity-80 transition hover:opacity-100'
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? 'Show less' : 'Show more'}
-            </button>
-          )}
-        </div>
-      </ChatMessage.Bubble>
-    </ChatMessage.User>
-  );
-}
-
-// 1. Placeholder mock worktree file list
 const MOCK_WORKTREE_FILES = new Set([
   'src/components/tool-call-view.tsx',
   'src/components/code-block.tsx',
@@ -89,45 +23,126 @@ const MOCK_WORKTREE_FILES = new Set([
   'packages/ui/src/styles/globals.css',
 ]);
 
-// 2. Placeholder file click handler
-function openFileInEditor(path: string) {
-  return path;
-}
+const handleIsWorktreeFile = (cleanText: string): boolean => {
+  const trimmed = cleanText.trim();
+  if (MOCK_WORKTREE_FILES.has(trimmed)) return true;
 
-// Helper function to check if text resembles a filename in the worktree
-const isWorktreeFile = (text: string): boolean => {
-  const cleanText = text.trim();
-
-  // Exact match against worktree
-  if (MOCK_WORKTREE_FILES.has(cleanText)) return true;
-
-  // Partial/suffix match (e.g. `tool-call-view.tsx` matching `src/components/tool-call-view.tsx`)
   for (const file of MOCK_WORKTREE_FILES) {
-    if (file.endsWith(cleanText) || file.endsWith(`/${cleanText}`)) {
-      return true;
-    }
+    if (file.endsWith(trimmed)) return true;
   }
-
   return false;
 };
 
-export const MessageView = memo(
-  function MessageView({
-    group,
-    hidden,
-  }: {
-    group: ConversationItem;
-    hidden?: boolean;
-  }) {
-    const messages = group.messages;
+const handleOpenFileInEditor = (path: string) => path;
 
-    const parts = messages.flatMap((message) => message.parts);
+const UserChatBubble = memo(function UserChatBubble({
+  text,
+}: {
+  text: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
 
-    if (hidden) {
-      return <MessageSkeleton role={group.role} />;
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const shouldScrollOnCollapseRef = useRef(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    setIsOverflowing(el.scrollHeight > 72);
+  }, [text]);
+
+  const handleToggle = () => {
+    if (expanded) {
+      shouldScrollOnCollapseRef.current = true;
     }
+    setExpanded((prev) => !prev);
+  };
 
-    if (group.role === 'user') {
+  useLayoutEffect(() => {
+    if (!shouldScrollOnCollapseRef.current || expanded || !bubbleRef.current)
+      return;
+
+    shouldScrollOnCollapseRef.current = false;
+
+    const bubbleEl = bubbleRef.current;
+    const scrollContainer = bubbleEl.closest<HTMLElement>('.overflow-y-auto');
+
+    if (scrollContainer) {
+      // Offset from the top edge of the scroll viewport (e.g. 40px padding)
+      const topOffset = 40;
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const bubbleRect = bubbleEl.getBoundingClientRect();
+
+      // Calculate exact scroll delta needed
+      const targetScrollTop =
+        scrollContainer.scrollTop +
+        (bubbleRect.top - containerRect.top) -
+        topOffset;
+
+      scrollContainer.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: 'instant',
+      });
+    } else {
+      bubbleEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }
+  }, [expanded]);
+
+  return (
+    <ChatMessage.User ref={bubbleRef}>
+      <ChatMessage.Bubble className='max-w-4/5'>
+        <div className='relative'>
+          <div
+            ref={textRef}
+            className={cn(
+              'wrap-break-word',
+              !expanded && isOverflowing && 'line-clamp-2',
+            )}
+          >
+            {text}
+          </div>
+
+          {isOverflowing && (
+            <button
+              className='text-muted mt-1 text-xs opacity-80 transition hover:opacity-100'
+              onClick={handleToggle}
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      </ChatMessage.Bubble>
+    </ChatMessage.User>
+  );
+});
+
+export const MessageView = memo(
+  function MessageView({ turn }: { turn: AeroConversationTurn }) {
+    const parts = turn.parts;
+    const baseKey = turn.id;
+    const isUser = turn.role === 'user';
+
+    const copyText = useMemo(() => {
+      if (isUser) return '';
+
+      return parts
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text.trim())
+        .filter(Boolean)
+        .join('\n\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }, [parts, isUser]);
+
+    const handleCopy = useCallback(async () => {
+      if (!copyText) return;
+      await navigator.clipboard.writeText(copyText);
+    }, [copyText]);
+
+    if (isUser) {
       const text = parts
         .filter((part) => part.type === 'text')
         .map((part) => part.text)
@@ -135,20 +150,6 @@ export const MessageView = memo(
 
       return <UserChatBubble text={text} />;
     }
-
-    const baseKey = messages.map((m) => m.id).join('-');
-
-    const copyText = useMemo(
-      () =>
-        parts
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text.trim())
-          .filter(Boolean)
-          .join('\n\n')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim(),
-      [parts],
-    );
 
     return (
       <ChatMessage.Assistant>
@@ -166,37 +167,47 @@ export const MessageView = memo(
               switch (part.type) {
                 case 'text':
                   return (
-                    <Markdown
-                      id={blockId}
-                      key={blockId}
-                      isFile={(path) => isWorktreeFile(path)}
-                      onFileClick={(path) => openFileInEditor(path)}
-                    >
-                      {part.text}
-                    </Markdown>
+                    <div key={blockId}>{part.text}</div>
+                    // <Markdown
+                    //   id={blockId}
+                    //   key={blockId}
+                    //   isFile={handleIsWorktreeFile}
+                    //   onFileClick={handleOpenFileInEditor}
+                    // >
+                    //   {part.text}
+                    // </Markdown>
                   );
 
                 case 'reasoning':
                   return (
-                    <ChainOfThought key={blockId}>
-                      <ChainOfThought.Trigger className='text-xs'>
-                        Reasoning
-                      </ChainOfThought.Trigger>
+                    <div key={blockId}>{part.text}</div>
+                    // <ChainOfThought key={blockId}>
+                    //   <ChainOfThought.Trigger className='text-xs'>
+                    //     Reasoning
+                    //   </ChainOfThought.Trigger>
 
-                      <ChainOfThought.Content>
-                        <ChainOfThought.Steps>
-                          <ChainOfThought.Step>
-                            <Markdown
-                              id={`${blockId}-reason`}
-                              isFile={(path) => isWorktreeFile(path)}
-                              onFileClick={(path) => openFileInEditor(path)}
-                            >
-                              {part.text}
-                            </Markdown>
-                          </ChainOfThought.Step>
-                        </ChainOfThought.Steps>
-                      </ChainOfThought.Content>
-                    </ChainOfThought>
+                    //   <ChainOfThought.Content>
+                    //     <ChainOfThought.Steps>
+                    //       <ChainOfThought.Step>
+                    //         <DeferredView
+                    //           fallback={
+                    //             <div className='text-foreground font-sans text-sm leading-relaxed whitespace-pre-wrap opacity-80'>
+                    //               {part.text}
+                    //             </div>
+                    //           }
+                    //         >
+                    //           <Markdown
+                    //             id={`${blockId}-reason`}
+                    //             isFile={handleIsWorktreeFile}
+                    //             onFileClick={handleOpenFileInEditor}
+                    //           >
+                    //             {part.text}
+                    //           </Markdown>
+                    //         </DeferredView>
+                    //       </ChainOfThought.Step>
+                    //     </ChainOfThought.Steps>
+                    //   </ChainOfThought.Content>
+                    // </ChainOfThought>
                   );
 
                 case 'tool':
@@ -212,11 +223,7 @@ export const MessageView = memo(
             <ChatMessageActions.Copy
               aria-label='Copy'
               tooltip='Copy'
-              onPress={async () => {
-                if (!copyText) return;
-
-                await navigator.clipboard.writeText(copyText);
-              }}
+              onPress={handleCopy}
             />
             <ChatMessageActions.Regenerate
               aria-label='Regenerate'
@@ -227,18 +234,7 @@ export const MessageView = memo(
       </ChatMessage.Assistant>
     );
   },
-  (prev, next) => {
-    if (prev.hidden !== next.hidden) return false;
-
-    if (prev.group.role !== next.group.role) return false;
-    if (prev.group.messages.length !== next.group.messages.length) return false;
-
-    return prev.group.messages.every((msg, idx) => {
-      const nextMsg = next.group.messages[idx];
-
-      return msg.id === nextMsg.id && msg.createdAt === nextMsg.createdAt;
-    });
-  },
+  (prev, next) => prev.turn.id === next.turn.id,
 );
 
 MessageView.displayName = 'MessageView';

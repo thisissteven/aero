@@ -2,35 +2,48 @@
 'use client';
 
 import { Button, cn, ScrollShadow } from '@heroui/react';
-import {
-  AnimatePresence,
-  domAnimation,
-  LazyMotion,
-  m,
-  useReducedMotion,
-} from 'motion/react';
 import type {
   ComponentPropsWithRef,
   ReactElement,
   ReactNode,
   SVGProps,
 } from 'react';
-import {
-  createContext,
-  memo,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { codeToHtml } from 'shiki';
 
-const Context = createContext(true);
 const part = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
 
-// ⚡ GLOBAL GLOBAL MEMORY CACHE MAP FOR HIGHLIGHTED HTML
-const SHIKI_HIGHLIGHT_CACHE = new Map<string, string>();
+// ⚡ BOUNDED LRU CACHE TO PREVENT MEMORY LEAKS
+class BoundedCache<K, V> {
+  private cache = new Map<K, V>();
+  constructor(private readonly maxSize: number = 150) {}
+
+  get(key: K): V | undefined {
+    const item = this.cache.get(key);
+    if (item !== undefined) {
+      this.cache.delete(key);
+      this.cache.set(key, item);
+    }
+    return item;
+  }
+
+  set(key: K, value: V): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, value);
+  }
+
+  has(key: K): boolean {
+    return this.cache.has(key);
+  }
+}
+
+const SHIKI_HIGHLIGHT_CACHE = new BoundedCache<string, string>(150);
 
 export async function highlightCode(
   code: string,
@@ -45,9 +58,8 @@ export async function highlightCode(
   } = {},
 ): Promise<string> {
   const cacheKey = `${language}:${theme}:${darkTheme}:${code}`;
-  if (SHIKI_HIGHLIGHT_CACHE.has(cacheKey)) {
-    return SHIKI_HIGHLIGHT_CACHE.get(cacheKey)!;
-  }
+  const cached = SHIKI_HIGHLIGHT_CACHE.get(cacheKey);
+  if (cached) return cached;
 
   const html = await codeToHtml(code, {
     defaultColor: false,
@@ -69,27 +81,25 @@ export function CodeBlockRoot({
   ...props
 }: CodeBlockRootProps): ReactElement {
   return (
-    <Context value>
-      <div
-        className={part('code-block', className)}
-        data-slot='code-block'
-        {...props}
-      >
-        {children}
-      </div>
-    </Context>
+    <div
+      className={part('code-block', className)}
+      data-slot='code-block'
+      {...props}
+    >
+      {children}
+    </div>
   );
 }
 
 export interface CodeBlockHeaderProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
+
 export const CodeBlockHeader = memo(function CodeBlockHeader({
   children,
   className,
   ...props
 }: CodeBlockHeaderProps): ReactElement {
-  useContext(Context);
   return (
     <div
       className={part('code-block__header', className)}
@@ -111,7 +121,14 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   scrollOverflow?: boolean;
 }
 
-// ⚡ MEMOIZED FOR THE VIRTUALIZER VIEWPORT
+const HighlightedContainer = memo(function HighlightedContainer({
+  html,
+}: {
+  html: string;
+}) {
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+});
+
 export const CodeBlockCode = memo(function CodeBlockCode({
   className,
   code,
@@ -123,37 +140,38 @@ export const CodeBlockCode = memo(function CodeBlockCode({
   scrollOverflow = false,
   ...props
 }: CodeBlockCodeProps): ReactElement {
-  useContext(Context);
   const light = theme ?? 'github-light';
   const dark = darkTheme ?? (theme ? undefined : 'github-dark');
-  const key = `${language}:${light}:${dark ?? 'none'}:${code}`;
 
-  // Synchronously seed the initial state from cache if it exists
-  const initialHtml = highlightedHtml || SHIKI_HIGHLIGHT_CACHE.get(key);
+  const cacheKey = useMemo(
+    () => `${language}:${light}:${dark ?? 'none'}:${code}`,
+    [language, light, dark, code],
+  );
 
-  const [highlighted, setHighlighted] = useState<{
-    html: string;
-    key: string;
-  } | null>(initialHtml ? { html: initialHtml, key } : null);
+  const initialHtml = useMemo(
+    () => highlightedHtml || SHIKI_HIGHLIGHT_CACHE.get(cacheKey),
+    [highlightedHtml, cacheKey],
+  );
+
+  const [highlighted, setHighlighted] = useState<string | null>(
+    initialHtml || null,
+  );
 
   useEffect(() => {
-    // If state matches current key, skip parsing
-    if (highlighted?.key === key) return;
-
-    // Check memory cache synchronously first
-    const cachedHtml = SHIKI_HIGHLIGHT_CACHE.get(key);
+    const cachedHtml = SHIKI_HIGHLIGHT_CACHE.get(cacheKey);
     if (cachedHtml) {
-      setHighlighted({ html: cachedHtml, key });
+      setHighlighted(cachedHtml);
       return;
     }
 
     let cancelled = false;
+
     async function highlight() {
       if (!code) {
-        if (!cancelled)
-          setHighlighted({ html: '<pre><code></code></pre>', key });
+        if (!cancelled) setHighlighted('<pre><code></code></pre>');
         return;
       }
+
       try {
         const html = dark
           ? await highlightCode(code, {
@@ -163,44 +181,24 @@ export const CodeBlockCode = memo(function CodeBlockCode({
             })
           : await codeToHtml(code, { lang: language, theme: light });
 
-        // Cache the newly processed code block
-        SHIKI_HIGHLIGHT_CACHE.set(key, html);
+        SHIKI_HIGHLIGHT_CACHE.set(cacheKey, html);
 
-        if (!cancelled) setHighlighted({ html, key });
+        if (!cancelled) setHighlighted(html);
       } catch {
         if (!cancelled) setHighlighted(null);
       }
     }
+
     void highlight();
+
     return () => {
       cancelled = true;
     };
-  }, [code, dark, key, language, light, highlighted?.key]);
-
-  const codeClass = part('code-block__code', className);
-
-  if (highlighted?.key === key) {
-    return (
-      <div
-        className={codeClass}
-        data-line-numbers={showLineNumbers || undefined}
-        data-slot='code-block-code'
-        {...props}
-      >
-        <ScrollShadow
-          offset={2}
-          className={scrollOverflow ? 'code-block__scroll' : undefined}
-          isEnabled={scrollOverflow}
-        >
-          <div dangerouslySetInnerHTML={{ __html: highlighted.html }} />
-        </ScrollShadow>
-      </div>
-    );
-  }
+  }, [code, dark, cacheKey, language, light]);
 
   return (
     <div
-      className={codeClass}
+      className={part('code-block__code', className)}
       data-line-numbers={showLineNumbers || undefined}
       data-slot='code-block-code'
       {...props}
@@ -210,17 +208,23 @@ export const CodeBlockCode = memo(function CodeBlockCode({
         className={scrollOverflow ? 'code-block__scroll' : undefined}
         isEnabled={scrollOverflow}
       >
-        <pre>
-          <code>{code}</code>
-        </pre>
+        {highlighted ? (
+          <HighlightedContainer html={highlighted} />
+        ) : (
+          <pre>
+            <code>{code}</code>
+          </pre>
+        )}
       </ScrollShadow>
     </div>
   );
 });
 
-const icon =
-  (path: string) =>
-  (props: SVGProps<SVGSVGElement>): ReactElement => (
+// Static SVG Icon definitions
+const CopyIcon = memo(function CopyIcon(
+  props: SVGProps<SVGSVGElement>,
+): ReactElement {
+  return (
     <svg
       fill='none'
       height='16'
@@ -231,78 +235,86 @@ const icon =
     >
       <path
         clipRule='evenodd'
-        d={path}
+        d='M12 2.5H8A1.5 1.5 0 0 0 6.5 4v1H8a3 3 0 0 1 3 3v1.5h1A1.5 1.5 0 0 0 13.5 8V4A1.5 1.5 0 0 0 12 2.5M11 11h1a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v1H4a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3zM4 6.5h4A1.5 1.5 0 0 1 9.5 8v4A1.5 1.5 0 0 1 8 13.5H4A1.5 1.5 0 0 1 2.5 12V8A1.5 1.5 0 0 1 4 6.5'
         fill='currentColor'
         fillRule='evenodd'
       />
     </svg>
   );
-const CopyIcon = icon(
-  'M12 2.5H8A1.5 1.5 0 0 0 6.5 4v1H8a3 3 0 0 1 3 3v1.5h1A1.5 1.5 0 0 0 13.5 8V4A1.5 1.5 0 0 0 12 2.5M11 11h1a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v1H4a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3zM4 6.5h4A1.5 1.5 0 0 1 9.5 8v4A1.5 1.5 0 0 1 8 13.5H4A1.5 1.5 0 0 1 2.5 12V8A1.5 1.5 0 0 1 4 6.5',
-);
-const CheckIcon = icon(
-  'M13.488 3.43a.75.75 0 0 1 .081 1.058l-6 7a.75.75 0 0 1-1.1.042l-3.5-3.5A.75.75 0 0 1 4.03 6.97l2.928 2.927 5.473-6.385a.75.75 0 0 1 1.057-.081',
-);
-const CopyMotionIcon = ({
+});
+
+const CheckIcon = memo(function CheckIcon(
+  props: SVGProps<SVGSVGElement>,
+): ReactElement {
+  return (
+    <svg
+      fill='none'
+      height='16'
+      viewBox='0 0 16 16'
+      width='16'
+      xmlns='http://www.w3.org/2000/svg'
+      {...props}
+    >
+      <path
+        clipRule='evenodd'
+        d='M13.488 3.43a.75.75 0 0 1 .081 1.058l-6 7a.75.75 0 0 1-1.1.042l-3.5-3.5A.75.75 0 0 1 4.03 6.97l2.928 2.927 5.473-6.385a.75.75 0 0 1 1.057-.081'
+        fill='currentColor'
+        fillRule='evenodd'
+      />
+    </svg>
+  );
+});
+
+// Zero-runtime CSS Animated Icon Swap
+const CopyMotionIcon = memo(function CopyMotionIcon({
   copied,
-  reduceMotion,
 }: {
   copied: boolean;
-  reduceMotion: boolean | null;
-}): ReactElement => (
-  <LazyMotion features={domAnimation}>
+}): ReactElement {
+  return (
     <span className='relative flex size-3.5 items-center justify-center'>
-      <AnimatePresence initial={false} mode='popLayout'>
-        <m.span
-          animate={
-            reduceMotion ? { opacity: 1 } : { filter: 'blur(0px)', opacity: 1 }
-          }
-          className='absolute inset-0 flex items-center justify-center'
-          data-slot='code-block-copy-button-icon-motion'
-          exit={
-            reduceMotion ? { opacity: 0 } : { filter: 'blur(4px)', opacity: 0 }
-          }
-          initial={
-            reduceMotion ? { opacity: 0 } : { filter: 'blur(4px)', opacity: 0 }
-          }
-          key={copied ? 'check' : 'copy'}
-          transition={
-            reduceMotion
-              ? { duration: 0.12 }
-              : { bounce: 0, duration: 0.3, type: 'spring' }
-          }
-        >
-          {copied ? (
-            <CheckIcon className='size-3.5' />
-          ) : (
-            <CopyIcon className='size-3.5' />
-          )}
-        </m.span>
-      </AnimatePresence>
+      <span
+        className={cn(
+          'absolute inset-0 flex items-center justify-center transition-all duration-200',
+          copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+        )}
+      >
+        <CheckIcon className='size-3.5' />
+      </span>
+      <span
+        className={cn(
+          'absolute inset-0 flex items-center justify-center transition-all duration-200',
+          !copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+        )}
+      >
+        <CopyIcon className='size-3.5' />
+      </span>
     </span>
-  </LazyMotion>
-);
+  );
+});
+
 export interface CodeBlockCopyButtonProps {
   'aria-label'?: string;
   className?: string;
   code: string;
 }
-export function CodeBlockCopyButton({
+
+export const CodeBlockCopyButton = memo(function CodeBlockCopyButton({
   'aria-label': ariaLabel = 'Copy code',
   className,
   code,
 }: CodeBlockCopyButtonProps): ReactElement {
-  useContext(Context);
   const [copied, setCopied] = useState(false);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reduceMotion = useReducedMotion();
+
   useEffect(
     () => () => {
       if (timeout.current) clearTimeout(timeout.current);
     },
     [],
   );
-  const copy = async () => {
+
+  const copy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
@@ -312,9 +324,10 @@ export function CodeBlockCopyButton({
         timeout.current = null;
       }, 2000);
     } catch {
-      /* Clipboard permission can be unavailable in embedded previews. */
+      /* Clipboard permission guard */
     }
-  };
+  }, [code]);
+
   return (
     <Button
       isIconOnly
@@ -325,16 +338,18 @@ export function CodeBlockCopyButton({
       variant='ghost'
       onPress={copy}
     >
-      <CopyMotionIcon copied={copied} reduceMotion={reduceMotion} />
+      <CopyMotionIcon copied={copied} />
     </Button>
   );
-}
+});
+
 type CodeBlockComponent = typeof CodeBlockRoot & {
   Code: typeof CodeBlockCode;
   CopyButton: typeof CodeBlockCopyButton;
   Header: typeof CodeBlockHeader;
   Root: typeof CodeBlockRoot;
 };
+
 export const CodeBlock: CodeBlockComponent = Object.assign(CodeBlockRoot, {
   Code: CodeBlockCode,
   CopyButton: CodeBlockCopyButton,

@@ -13,7 +13,12 @@ import { z } from 'zod';
 import { withPagination } from '@/helper';
 
 import { getActiveAdapter } from '../services/harness/registry';
-import type { AeroPart, AeroSessionSummary } from '../services/harness/types';
+import type {
+  AeroConversationTurn,
+  AeroMessage,
+  AeroPart,
+  AeroSessionSummary,
+} from '../services/harness/types';
 
 // reusable schemas for request validation
 const querySchema = z.object({
@@ -23,6 +28,28 @@ const querySchema = z.object({
 const idParamSchema = z.object({
   id: z.string().min(1),
 });
+
+function groupMessages(messages: AeroMessage[]): AeroConversationTurn[] {
+  const turns: AeroConversationTurn[] = [];
+
+  for (const message of messages) {
+    const previous = turns.at(-1);
+
+    if (previous?.role === message.role) {
+      previous.parts.push(...message.parts);
+      continue;
+    }
+
+    turns.push({
+      id: message.id,
+      role: message.role,
+      parts: [...message.parts],
+      createdAt: message.createdAt,
+    });
+  }
+
+  return turns;
+}
 
 const sessions = new Hono()
   // GET /api/sessions?workspaceId=...
@@ -96,17 +123,32 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/message?workspaceId=...
+  // GET /api/sessions/:id/messages?workspaceId=...
   .get(
-    '/:id/message',
+    '/:id/messages',
     zValidator('param', idParamSchema),
     zValidator('query', querySchema),
     async (c) => {
       const { id } = c.req.valid('param');
       const { workspaceId } = c.req.valid('query');
+
       const harness = await getActiveAdapter(workspaceId);
-      const messages = await harness.listMessages(id);
-      return c.json(messages);
+      const originalMessages = await harness.listMessages(id);
+
+      // ⚡ MOCK 5x MESSAGES: Clone array 5 times with unique message IDs
+      const messages: AeroMessage[] = [];
+      const REPEAT_COUNT = 5;
+
+      for (let i = 0; i < REPEAT_COUNT; i++) {
+        for (const msg of originalMessages) {
+          messages.push({
+            ...msg,
+            id: i === 0 ? msg.id : `${msg.id}-copy-${i}`,
+          });
+        }
+      }
+
+      return c.json(groupMessages(messages));
     },
   )
 
@@ -119,7 +161,20 @@ const sessions = new Hono()
       const { id } = c.req.valid('param');
       const { workspaceId } = c.req.valid('query');
       const harness = await getActiveAdapter(workspaceId);
-      const messages = await harness.listMessages(id);
+      const originalMessages = await harness.listMessages(id);
+
+      // ⚡ MOCK 5x MESSAGES: Keep same cloning logic so groupIndex matches /messages
+      const messages: AeroMessage[] = [];
+      const REPEAT_COUNT = 5;
+
+      for (let i = 0; i < REPEAT_COUNT; i++) {
+        for (const msg of originalMessages) {
+          messages.push({
+            ...msg,
+            id: i === 0 ? msg.id : `${msg.id}-copy-${i}`,
+          });
+        }
+      }
 
       // Group messages by consecutive roles to track virtualized group indices
       const items: { groupIndex: number; id: string; label: string }[] = [];

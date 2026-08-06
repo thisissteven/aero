@@ -1,4 +1,5 @@
 import type { Virtualizer } from '@tanstack/react-virtual';
+import { memo } from 'react';
 
 import { Button, IconChevronDown, Tooltip } from '@aero/ui';
 
@@ -11,13 +12,13 @@ interface ScrollToBottomButtonProps {
   onClick?: () => void;
 }
 
-export function ScrollToBottomButton({
+export const ScrollToBottomButton = memo(function ScrollToBottomButton({
   virtualizer,
   totalCount,
   tooltip,
   onClick,
 }: ScrollToBottomButtonProps) {
-  const isAtBottom = useIsAtBottom(virtualizer, totalCount);
+  const isAtBottom = useIsAtBottom(virtualizer, 0);
 
   // If the last item is visible on screen, hide the button
   if (isAtBottom) return null;
@@ -26,9 +27,18 @@ export function ScrollToBottomButton({
     if (onClick) {
       onClick();
     } else {
-      virtualizer.scrollToIndex(totalCount - 1, {
+      const lastIndex = totalCount - 1;
+      const visibleItems = virtualizer.getVirtualItems();
+
+      // Get the index of the last visible element on screen (fallback to 0 if empty)
+      const currentBottomIndex = visibleItems.at(-1)?.index ?? 0;
+
+      // Check if distance is less than 5 items
+      const isClose = lastIndex - currentBottomIndex < 5;
+
+      virtualizer.scrollToIndex(lastIndex, {
         align: 'end',
-        behavior: 'smooth',
+        behavior: isClose ? 'smooth' : 'auto',
       });
     }
   };
@@ -54,4 +64,4 @@ export function ScrollToBottomButton({
   ) : (
     buttonElement
   );
-}
+});

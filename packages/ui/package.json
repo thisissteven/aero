@@ -20,6 +20,7 @@
     "@react-aria/utils": "catalog:",
     "@react-stately/data": "catalog:",
     "@react-types/shared": "catalog:",
+    "@tanstack/react-virtual": "^3.14.9",
     "@tiptap/core": "^3.27.3",
     "@tiptap/extension-character-count": "^3.27.3",
     "@tiptap/extension-link": "^3.27.3",

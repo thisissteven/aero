@@ -1,5 +1,3 @@
-'use client';
-
 import { ArrowRight } from '@gravity-ui/icons';
 
 import { ChatComposer } from '../components/chat-composer';

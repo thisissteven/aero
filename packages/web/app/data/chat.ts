@@ -1,4 +1,4 @@
-import { AeroMessage } from '../../server/services/harness/types';
+import { AeroConversationTurn } from '../../server/services/harness/types';
 
 export type ChatModel = {
   id: string;
@@ -22,7 +22,7 @@ export type ChatThread = {
     email: string;
     name: string;
   };
-  messages: AeroMessage[];
+  turns: AeroConversationTurn[];
 };
 
 export const CHAT_MODELS: readonly ChatModel[] = [
