@@ -1,46 +1,74 @@
-import type { Virtualizer } from '@tanstack/react-virtual';
-import { memo } from 'react';
+// scroll-to-bottom-button.tsx
+import type { RefObject } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
+import type { VirtualizerHandle } from 'virtua';
 
 import { Button, IconChevronDown, Tooltip } from '@aero/ui';
 
-import { useIsAtBottom } from '@/app/hooks/useIsAtBottom'; // or inline the logic above
-
 interface ScrollToBottomButtonProps {
-  virtualizer: Virtualizer<HTMLDivElement, Element>;
+  virtualizerRef: RefObject<VirtualizerHandle | null>;
+  /** Subscribe to scroll ticks from the feed; returns an unsubscribe fn. */
+  subscribeScroll: (cb: () => void) => () => void;
   totalCount: number;
   tooltip?: string;
   onClick?: () => void;
 }
 
 export const ScrollToBottomButton = memo(function ScrollToBottomButton({
-  virtualizer,
+  virtualizerRef,
+  subscribeScroll,
   totalCount,
   tooltip,
   onClick,
 }: ScrollToBottomButtonProps) {
-  const isAtBottom = useIsAtBottom(virtualizer, 0);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // If the last item is visible on screen, hide the button
+  const checkIsAtBottom = useCallback(() => {
+    const handle = virtualizerRef.current;
+    if (!handle) return;
+
+    const threshold = 28; // px tolerance from bottom
+    const distanceToBottom =
+      handle.scrollSize - (handle.scrollOffset + handle.viewportSize);
+
+    // setState bails out on identical value (Object.is), so this is cheap even
+    // when called every scroll frame.
+    setIsAtBottom(distanceToBottom <= threshold);
+  }, [virtualizerRef]);
+
+  // Re-check on scroll (subscription-based: only THIS component re-renders, not the whole page)
+  useEffect(() => {
+    checkIsAtBottom();
+    return subscribeScroll(checkIsAtBottom);
+  }, [subscribeScroll, checkIsAtBottom]);
+
+  // Re-check when message count changes (e.g. new message lands while at/near bottom)
+  useEffect(() => {
+    checkIsAtBottom();
+  }, [totalCount, checkIsAtBottom]);
+
   if (isAtBottom) return null;
 
   const handleScrollToBottom = () => {
     if (onClick) {
       onClick();
-    } else {
-      const lastIndex = totalCount - 1;
-      const visibleItems = virtualizer.getVirtualItems();
-
-      // Get the index of the last visible element on screen (fallback to 0 if empty)
-      const currentBottomIndex = visibleItems.at(-1)?.index ?? 0;
-
-      // Check if distance is less than 5 items
-      const isClose = lastIndex - currentBottomIndex < 5;
-
-      virtualizer.scrollToIndex(lastIndex, {
-        align: 'end',
-        behavior: isClose ? 'smooth' : 'auto',
-      });
+      return;
     }
+
+    const handle = virtualizerRef.current;
+    if (!handle || totalCount === 0) return;
+
+    const lastIndex = totalCount - 1;
+    const currentBottomIndex = handle.findItemIndex(
+      handle.scrollOffset + handle.viewportSize,
+    );
+
+    const isClose = lastIndex - currentBottomIndex < 5;
+
+    handle.scrollToIndex(lastIndex, {
+      align: 'end',
+      smooth: isClose,
+    });
   };
 
   const buttonElement = (
@@ -49,7 +77,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
       size='sm'
       variant='secondary'
       aria-label='Scroll to bottom'
-      className='shadow-md transition-all duration-200'
+      className='pointer-events-auto shadow-md transition-all duration-200'
       onPress={handleScrollToBottom}
     >
       <IconChevronDown className='text-foreground size-4' />

@@ -132,20 +132,7 @@ const sessions = new Hono()
       const { workspaceId } = c.req.valid('query');
 
       const harness = await getActiveAdapter(workspaceId);
-      const originalMessages = await harness.listMessages(id);
-
-      // ⚡ MOCK 5x MESSAGES: Clone array 5 times with unique message IDs
-      const messages: AeroMessage[] = [];
-      const REPEAT_COUNT = 5;
-
-      for (let i = 0; i < REPEAT_COUNT; i++) {
-        for (const msg of originalMessages) {
-          messages.push({
-            ...msg,
-            id: i === 0 ? msg.id : `${msg.id}-copy-${i}`,
-          });
-        }
-      }
+      const messages = await harness.listMessages(id);
 
       return c.json(groupMessages(messages));
     },
@@ -160,20 +147,7 @@ const sessions = new Hono()
       const { id } = c.req.valid('param');
       const { workspaceId } = c.req.valid('query');
       const harness = await getActiveAdapter(workspaceId);
-      const originalMessages = await harness.listMessages(id);
-
-      // ⚡ MOCK 5x MESSAGES: Keep same cloning logic so groupIndex matches /messages
-      const messages: AeroMessage[] = [];
-      const REPEAT_COUNT = 5;
-
-      for (let i = 0; i < REPEAT_COUNT; i++) {
-        for (const msg of originalMessages) {
-          messages.push({
-            ...msg,
-            id: i === 0 ? msg.id : `${msg.id}-copy-${i}`,
-          });
-        }
-      }
+      const messages = await harness.listMessages(id);
 
       // Group messages by consecutive roles to track virtualized group indices
       const items: { groupIndex: number; id: string; label: string }[] = [];
