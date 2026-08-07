@@ -1,6 +1,12 @@
 // scroll-to-bottom-button.tsx
 import type { RefObject } from 'react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useState,
+} from 'react';
 import type { VirtualizerHandle } from 'virtua';
 
 import { Button, IconChevronDown, Tooltip } from '@aero/ui';
@@ -47,7 +53,9 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
     checkIsAtBottom();
   }, [totalCount, checkIsAtBottom]);
 
-  if (isAtBottom) return null;
+  const deferred = useDeferredValue(isAtBottom);
+
+  if (deferred) return null;
 
   const handleScrollToBottom = () => {
     if (onClick) {

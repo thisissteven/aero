@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { ChatPage } from '@/app/features/chat-page';
-import { useSessionMessages } from '@/app/hooks/api/sessions';
+import { useSession, useSessionMessages } from '@/app/hooks/api/sessions';
 
 export const Route = createFileRoute('/_app/sessions/$sessionId')({
   component: SessionPage,
@@ -10,22 +10,14 @@ export const Route = createFileRoute('/_app/sessions/$sessionId')({
 function SessionPage() {
   const { sessionId } = Route.useParams();
 
-  const { data: turns = [], isLoading } = useSessionMessages(
+  const { data: session, isLoading: isSessionLoading } = useSession(
     undefined,
     sessionId,
   );
 
-  if (isLoading) {
-    return null;
-  }
+  const { data: turns = [] } = useSessionMessages(undefined, sessionId);
 
-  if (!turns && !isLoading) {
-    return (
-      <div className='flex h-[calc(100svh-var(--chat-navbar-height,64px))] items-center justify-center'>
-        <span className='text-muted text-sm'>Session not found.</span>
-      </div>
-    );
-  }
+  const notFound = !session && !isSessionLoading;
 
-  return <ChatPage groups={turns} />;
+  return <ChatPage groups={turns} notFound={notFound} />;
 }

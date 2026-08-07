@@ -220,9 +220,14 @@ export const ToolCallView = memo(
             {/* <div>{`${part.input}${part.output}`}</div> */}
             <DeferredView
               fallback={
-                <pre className='bg-muted p-4 font-mono text-xs'>
-                  {toolContent.code}
-                </pre>
+                <div
+                  className='bg-muted p-4 font-mono text-xs'
+                  style={{
+                    minHeight: 120,
+                  }}
+                >
+                  Loading output…
+                </div>
               }
             >
               <CodeBlock>

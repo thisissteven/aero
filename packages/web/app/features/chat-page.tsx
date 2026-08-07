@@ -1,18 +1,20 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { Virtualizer, type VirtualizerHandle } from 'virtua';
 
-import { FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
+import { cn, FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
 
 import { MessageView } from '@/app/components/message-view';
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatThread } from '@/app/data/chat';
 import { useSessionToc } from '@/app/hooks/api/sessions';
+import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { Route } from '@/app/routes/_app/sessions/$sessionId';
 
 import { AeroConversationTurn } from '../../server/services/harness/types';
@@ -90,7 +92,7 @@ export interface VirtualizedChatFeedRef {
 const renderTurn = (turn: AeroConversationTurn, index: number) => (
   <div
     key={turn?.id ?? index}
-    className='mx-auto w-full pb-8 max-xl:pr-12 max-xl:pl-8 xl:max-w-[800px]'
+    className='mx-auto w-full px-3 pb-8 md:max-w-[720px]'
   >
     <MessageView turn={turn} />
   </div>
@@ -106,6 +108,32 @@ export const VirtualizedChatFeed = React.memo(
   >(function VirtualizedChatFeed({ groups, onActiveGroupIndexChange }, ref) {
     const virtualizerRef = useRef<VirtualizerHandle>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [ready, setReady] = useState(false);
+    const didInitialScroll = useRef(false);
+
+    useLayoutEffect(() => {
+      if (didInitialScroll.current) return;
+      if (!groups.length) return;
+
+      const virtualizer = virtualizerRef.current;
+      if (!virtualizer) return;
+
+      // wait one frame so virtua has mounted/measured
+      const raf = requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(groups.length - 1, {
+          align: 'end',
+        });
+
+        didInitialScroll.current = true;
+
+        // reveal after scroll has been applied
+        requestAnimationFrame(() => {
+          setReady(true);
+        });
+      });
+
+      return () => cancelAnimationFrame(raf);
+    }, [groups.length]);
 
     const scrollRafRef = useRef<number | null>(null);
     const isProgrammaticScrollRef = useRef(false);
@@ -204,8 +232,16 @@ export const VirtualizedChatFeed = React.memo(
       };
     }, []);
 
+    const scrollbarWidth = useScrollbarWidth(scrollRef);
+
     return (
-      <div className='relative flex min-h-0 flex-1 flex-col pr-1'>
+      <div
+        className={cn(
+          'relative flex min-h-0 flex-1 flex-col transition-opacity',
+          ready ? 'opacity-100' : 'opacity-0',
+        )}
+        style={{ paddingLeft: `${scrollbarWidth}px` }}
+      >
         <ScrollShadow
           ref={scrollRef}
           className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
@@ -230,11 +266,13 @@ export const VirtualizedChatFeed = React.memo(
 // ============================================================================
 export interface ChatPageProps {
   groups: AeroConversationTurn[];
+  notFound: boolean;
 }
 
-export function ChatPage({ groups }: ChatPageProps) {
-  const [value, setValue] = useState('');
-  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+export function ChatPage({ groups, notFound }: ChatPageProps) {
+  const [activeGroupIndex, setActiveGroupIndex] = useState(
+    () => groups.length - 1,
+  );
   const feedRef = useRef<VirtualizedChatFeedRef>(null);
 
   const handleSelectTocItem = useCallback(
@@ -251,24 +289,25 @@ export function ChatPage({ groups }: ChatPageProps) {
     [],
   );
 
-  function send() {
-    const text = value.trim();
-    if (!text) return;
-    setValue('');
-  }
-
   return (
     <div className='relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
-      <ChatTocSection
-        activeGroupIndex={activeGroupIndex}
-        onSelectTocItem={handleSelectTocItem}
-      />
-
-      <VirtualizedChatFeed
-        ref={feedRef}
-        groups={groups}
-        onActiveGroupIndexChange={setActiveGroupIndex}
-      />
+      {notFound ? (
+        <div className='grid h-full w-full place-items-center'>
+          <span className='text-muted text-sm'>Session not found.</span>
+        </div>
+      ) : (
+        <>
+          <ChatTocSection
+            activeGroupIndex={activeGroupIndex}
+            onSelectTocItem={handleSelectTocItem}
+          />
+          <VirtualizedChatFeed
+            ref={feedRef}
+            groups={groups}
+            onActiveGroupIndexChange={setActiveGroupIndex}
+          />
+        </>
+      )}
 
       <div className='bg-background shrink-0 px-4 pb-4'>
         <div className='relative mx-auto w-full max-w-[714px]'>
@@ -282,25 +321,39 @@ export function ChatPage({ groups }: ChatPageProps) {
             />
           </div>
 
-          <PromptInput
-            value={value}
-            layout='stacked'
-            onSubmit={send}
-            onValueChange={setValue}
-          >
-            <PromptInput.Shell>
-              <PromptInput.Content>
-                <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
-              </PromptInput.Content>
-              <PromptInput.Toolbar>
-                <PromptInput.ToolbarEnd>
-                  <PromptInput.Send />
-                </PromptInput.ToolbarEnd>
-              </PromptInput.Toolbar>
-            </PromptInput.Shell>
-          </PromptInput>
+          <ChatInput isDisabled={notFound} />
         </div>
       </div>
     </div>
+  );
+}
+
+function ChatInput({ isDisabled }: { isDisabled: boolean }) {
+  const [value, setValue] = useState('');
+
+  function send() {
+    const text = value.trim();
+    if (!text) return;
+    setValue('');
+  }
+  return (
+    <PromptInput
+      value={value}
+      layout='stacked'
+      onSubmit={send}
+      onValueChange={setValue}
+      isDisabled={isDisabled}
+    >
+      <PromptInput.Shell>
+        <PromptInput.Content>
+          <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
+        </PromptInput.Content>
+        <PromptInput.Toolbar>
+          <PromptInput.ToolbarEnd>
+            <PromptInput.Send />
+          </PromptInput.ToolbarEnd>
+        </PromptInput.Toolbar>
+      </PromptInput.Shell>
+    </PromptInput>
   );
 }

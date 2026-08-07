@@ -170,7 +170,7 @@ export function ChatShell({
     >
       <div className='flex h-full w-full'>
         <div className='flex-1'>{children}</div>
-        <div className='h-full w-8'>
+        <div className='h-full w-8 max-sm:hidden'>
           {collapsibleNav.map((item) => (
             <Tooltip key={item.label} delay={300}>
               <Tooltip.Trigger aria-label={item.label}>

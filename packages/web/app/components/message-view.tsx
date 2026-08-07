@@ -231,13 +231,7 @@ export const MessageView = memo(
 
     return (
       <ChatMessage.Assistant>
-        <ChatMessage.Avatar
-          className='max-xl:hidden'
-          alt='Assistant'
-          fallback='AI'
-        />
-
-        <ChatMessage.Body>
+        <ChatMessage.Body className='pe-0!'>
           <ChatMessage.Content>
             {parts.map((part, index) => {
               const blockId = `${baseKey}-part-${index}`;
@@ -267,8 +261,13 @@ export const MessageView = memo(
                           <ChainOfThought.Step>
                             <DeferredView
                               fallback={
-                                <div className='text-foreground font-sans text-sm leading-relaxed whitespace-pre-wrap opacity-80'>
-                                  {part.text}
+                                <div
+                                  className='bg-muted p-4 font-mono text-xs'
+                                  style={{
+                                    minHeight: 120,
+                                  }}
+                                >
+                                  Loading output…
                                 </div>
                               }
                             >
