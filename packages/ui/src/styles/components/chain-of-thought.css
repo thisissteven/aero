@@ -48,14 +48,6 @@
   transform: none;
 }
 
-@media (hover: hover) {
-  .chain-of-thought__trigger:hover,
-  .chain-of-thought__trigger[data-hovered='true'] {
-    color: var(--foreground);
-    background-color: #0000;
-  }
-}
-
 .chain-of-thought__trigger:active,
 .chain-of-thought__trigger[data-pressed='true'] {
   background-color: #0000;

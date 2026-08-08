@@ -9,7 +9,7 @@ import {
 import { SidebarLeftIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
-import {
+import React, {
   Children,
   cloneElement,
   createContext,
@@ -637,17 +637,17 @@ export const SidebarMenuActions: SidebarDivPart = divPart(
   'sidebar-menu-actions',
   'sidebar__menu-actions',
 );
-export type SidebarMenuActionProps = ComponentPropsWithRef<typeof Button>;
+export type SidebarMenuActionProps = React.ComponentPropsWithRef<'div'>;
 export function SidebarMenuAction({
   className,
   ...props
 }: SidebarMenuActionProps): ReactElement {
   return (
-    <Button
+    <div
       {...props}
       className={
         cn(
-          'sidebar__menu-action',
+          'sidebar__menu-action relative',
           typeof className === 'string' ? className : undefined,
         ) ?? 'sidebar__menu-action'
       }

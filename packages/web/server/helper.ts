@@ -1,6 +1,9 @@
 import z from 'zod';
 
-import { AeroSessionSummary } from '@/server/services/harness/types';
+import {
+  AeroMessage,
+  AeroSessionSummary,
+} from '@/server/services/harness/types';
 
 export const PAGINATION_LIMIT = 20;
 export const BACKEND_PAGINATION_LIMIT = 1000;
@@ -26,3 +29,20 @@ export type OpenCodePaginated<T> = {
     previous?: string;
   };
 };
+
+export function multiplyMessages(
+  messages: AeroMessage[],
+  multiplier = 15,
+): AeroMessage[] {
+  return Array.from({ length: multiplier }, (_, batch) =>
+    messages.map((msg, index) => ({
+      ...msg,
+      id: `${msg.id}-${batch}-${crypto.randomUUID()}`,
+      parts: msg.parts.map((part) => ({
+        ...part,
+        id: `${part.id}-${batch}-${crypto.randomUUID()}`,
+      })),
+      createdAt: msg.createdAt + batch * 1000,
+    })),
+  ).flat();
+}

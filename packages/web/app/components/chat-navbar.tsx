@@ -1,6 +1,22 @@
+import {
+  Archive,
+  Copy,
+  Ellipsis,
+  LogoMarkdown,
+  Pencil,
+  TrashBin,
+} from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 
-import { AppLayout, Navbar, Sidebar } from '@aero/ui';
+import {
+  AppLayout,
+  Dropdown,
+  Label,
+  Navbar,
+  Separator,
+  Sidebar,
+} from '@aero/ui';
 
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
@@ -52,13 +68,61 @@ function SessionsNavbarContent() {
   }
 
   return (
-    <div className='flex min-w-0 flex-col'>
-      <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
-        {session.title}
-      </h1>
-      <span className='text-muted truncate text-xs'>
-        {formatCompactRelativeTime(session.updatedAt)}
-      </span>
+    <div className='flex items-start'>
+      <div className='flex min-w-0 flex-col'>
+        <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
+          {session.title}
+        </h1>
+        <span className='text-muted truncate text-xs'>
+          {formatCompactRelativeTime(session.updatedAt)}
+        </span>
+      </div>
+      <div>
+        <Dropdown>
+          <Dropdown.Trigger
+            aria-label={`More actions for ${session.title}`}
+            className='mt-1.5 ml-2'
+          >
+            <Icon
+              data={Ellipsis}
+              className='opacity-50 transition-opacity hover:opacity-100'
+              style={{
+                width: 14,
+                height: 14,
+              }}
+            />
+          </Dropdown.Trigger>
+          <Dropdown.Popover
+            className='w-44'
+            crossOffset={12}
+            placement='bottom end'
+          >
+            <Dropdown.Menu aria-label={`${session.title} actions`}>
+              <Dropdown.Item>
+                <Icon data={Pencil} />
+                <Label>Rename</Label>
+              </Dropdown.Item>
+              <Dropdown.Item>
+                <Icon data={Copy} />
+                <Label>Copy Session Id</Label>
+              </Dropdown.Item>
+              <Dropdown.Item>
+                <Icon data={LogoMarkdown} />
+                <Label>Export Markdown</Label>
+              </Dropdown.Item>
+              <Separator />
+              <Dropdown.Item>
+                <Icon data={Archive} />
+                <Label>Archive</Label>
+              </Dropdown.Item>
+              <Dropdown.Item variant='danger'>
+                <Icon data={TrashBin} className='text-danger' />
+                <Label>Delete</Label>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      </div>
     </div>
   );
 }

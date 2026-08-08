@@ -1,8 +1,22 @@
-import { Clock, CodeFork, Copy, Pin, Volume } from '@gravity-ui/icons';
+import {
+  Clock,
+  CodeFork,
+  Copy,
+  Hourglass,
+  Pin,
+  Volume,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useCallback, useMemo } from 'react';
 
-import { ChainOfThought, ChatMessage, Markdown, Tooltip } from '@aero/ui';
+import {
+  ChainOfThought,
+  ChatMessage,
+  DisclosureIndicator,
+  Markdown,
+  ScrollShadow,
+  Tooltip,
+} from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
 import { ToolCallView } from '@/app/components/tool-call-view';
@@ -61,38 +75,57 @@ export const AssistantChatBubble = memo(
 
               switch (part.type) {
                 case 'text':
+                  if (!part.text) return null;
                   return (
-                    <Markdown
-                      id={blockId}
-                      key={blockId}
-                      isFile={handleIsWorktreeFile}
-                      onFileClick={handleOpenFileInEditor}
-                    >
-                      {part.text}
-                    </Markdown>
+                    <div key={blockId} className='py-2'>
+                      <Markdown
+                        id={blockId}
+                        isFile={handleIsWorktreeFile}
+                        onFileClick={handleOpenFileInEditor}
+                      >
+                        {part.text}
+                      </Markdown>
+                    </div>
                   );
 
                 case 'reasoning':
                   return (
                     <ChainOfThought key={blockId}>
-                      <ChainOfThought.Trigger className='text-xs'>
-                        Reasoning
+                      <ChainOfThought.Trigger
+                        icon={
+                          <div className='relative shrink-0'>
+                            <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
+                            <Icon
+                              data={Hourglass}
+                              className='absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
+                              style={{
+                                width: 12,
+                                height: 12,
+                              }}
+                            />
+                          </div>
+                        }
+                        preview={part.text.slice(0, 150)}
+                      >
+                        <span className='text-foreground'>Thinking</span>
                       </ChainOfThought.Trigger>
 
                       <ChainOfThought.Content>
-                        <ChainOfThought.Steps>
-                          <ChainOfThought.Step>
-                            <DeferredView>
-                              <Markdown
-                                id={`${blockId}-reason`}
-                                isFile={handleIsWorktreeFile}
-                                onFileClick={handleOpenFileInEditor}
-                              >
-                                {part.text}
-                              </Markdown>
-                            </DeferredView>
-                          </ChainOfThought.Step>
-                        </ChainOfThought.Steps>
+                        <ScrollShadow className='max-h-[40vh]' offset={2}>
+                          <ChainOfThought.Steps>
+                            <ChainOfThought.Step>
+                              <DeferredView>
+                                <Markdown
+                                  id={`${blockId}-reason`}
+                                  isFile={handleIsWorktreeFile}
+                                  onFileClick={handleOpenFileInEditor}
+                                >
+                                  {part.text}
+                                </Markdown>
+                              </DeferredView>
+                            </ChainOfThought.Step>
+                          </ChainOfThought.Steps>
+                        </ScrollShadow>
                       </ChainOfThought.Content>
                     </ChainOfThought>
                   );

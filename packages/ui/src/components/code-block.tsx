@@ -200,7 +200,6 @@ export const CodeBlockCode = memo(function CodeBlockCode({
       <ScrollShadow
         offset={2}
         className={scrollOverflow ? 'code-block__scroll' : undefined}
-        isEnabled={scrollOverflow}
       >
         {highlighted ? (
           <HighlightedContainer html={highlighted} />

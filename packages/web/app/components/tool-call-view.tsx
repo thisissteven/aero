@@ -1,3 +1,18 @@
+import {
+  AbbrSql,
+  Bars,
+  Book,
+  FileMagnifier,
+  FilePlus,
+  FileQuestion,
+  FileText,
+  Globe,
+  ListCheck,
+  Pencil,
+  Terminal,
+  Wrench,
+} from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
 
 import { CodeBlock, Disclosure } from '@aero/ui';
@@ -35,9 +50,11 @@ export const ToolCallView = memo(
         case 'bash': {
           const command = getInputField(input, 'command');
           return {
-            title: command ? `bash: ${command}` : 'bash',
+            iconData: Terminal,
+            title: 'Shell Command',
             code: rawOutput,
             language: 'bash',
+            preview: command,
             copyText: command ? `$ ${command}\n\n${rawOutput}` : rawOutput,
           };
         }
@@ -58,31 +75,26 @@ export const ToolCallView = memo(
           }
 
           return {
-            title: `${toolName}: ${path}`,
+            iconData: Pencil,
+            title: 'Write File',
             code,
             language: 'diff',
             copyText: code,
+            preview: path,
           };
         }
 
         case 'apply_patch': {
           const patchText = getInputField(input, 'patchText') || rawOutput;
+
           return {
-            title: 'apply_patch',
+            iconData: FilePlus,
+            title: 'Apply Patch',
             code: patchText,
             language: 'diff',
             copyText: patchText,
-          };
-        }
-
-        case 'read': {
-          const path =
-            getInputField(input, 'path') || getInputField(input, 'filePath');
-          return {
-            title: path ? `read: ${path}` : 'read',
-            code: rawOutput,
-            language: path ? path.split('.').pop() || 'text' : 'text',
-            copyText: rawOutput,
+            preview:
+              patchText.match(/^diff --git a\/(.+?) b\/(.+)$/m)?.[2] ?? 'Patch',
           };
         }
 
@@ -90,134 +102,180 @@ export const ToolCallView = memo(
           const pattern =
             getInputField(input, 'pattern') || getInputField(input, 'query');
           const path = getInputField(input, 'path');
+
           return {
-            title: pattern
-              ? `grep "${pattern}"${path ? ` in ${path}` : ''}`
-              : 'grep',
+            iconData: Bars,
+            title: 'Search Pattern',
             code: rawOutput,
             language: 'log',
             copyText: rawOutput,
+            preview: path ? `${pattern} in ${path}` : pattern,
           };
         }
 
         case 'glob': {
           const pattern = getInputField(input, 'pattern');
+
           return {
-            title: pattern ? `glob: ${pattern}` : 'glob',
+            iconData: FileMagnifier,
+            title: 'Search Files',
             code: rawOutput,
             language: 'text',
             copyText: rawOutput,
+            preview: pattern,
           };
         }
 
         case 'lsp': {
           const operation = getInputField(input, 'operation');
           const path = getInputField(input, 'path');
+
           return {
-            title: `lsp (${operation})${path ? `: ${path}` : ''}`,
+            iconData: AbbrSql,
+            title: 'LSP Operation',
             code: rawOutput,
             language: 'json',
             copyText: rawOutput,
+            preview: path ? `${operation} ${path}` : operation,
           };
         }
 
         case 'skill': {
           const name =
             getInputField(input, 'name') || getInputField(input, 'skill');
+
           return {
-            title: `skill: ${name}`,
+            iconData: Book,
+            title: 'Load Skill',
             code: rawOutput,
             language: 'markdown',
             copyText: rawOutput,
+            preview: name,
           };
         }
 
         case 'webfetch': {
           const url = getInputField(input, 'url');
+
           return {
-            title: url ? `webfetch: ${url}` : 'webfetch',
+            iconData: Globe,
+            title: 'Web Fetch',
             code: rawOutput,
             language: 'markdown',
             copyText: rawOutput,
+            preview: url,
           };
         }
 
         case 'websearch': {
           const query = getInputField(input, 'query');
+
           return {
-            title: query ? `websearch: "${query}"` : 'websearch',
+            iconData: Globe,
+            title: 'Web Search',
             code: rawOutput,
             language: 'json',
             copyText: rawOutput,
+            preview: query,
           };
         }
 
         case 'question': {
-          const header = getInputField(input, 'header');
           const questionText = getInputField(input, 'question');
+
           return {
-            title: header ? `question: ${header}` : 'question',
+            iconData: FileQuestion,
+            title: 'Question',
             code: rawOutput,
             language: 'markdown',
             copyText: questionText
               ? `Q: ${questionText}\n\nAnswer:\n${rawOutput}`
               : rawOutput,
+            preview: questionText,
           };
         }
 
         case 'todowrite': {
-          const todos =
+          const todoValue =
             typeof input === 'object' && input !== null && 'todos' in input
-              ? JSON.stringify(
-                  (input as Record<string, unknown>).todos,
-                  null,
-                  2,
-                )
-              : rawOutput;
+              ? (input as Record<string, unknown>).todos
+              : [];
+
+          const todos = JSON.stringify(todoValue, null, 2);
+
           return {
-            title: 'todowrite',
+            iconData: ListCheck,
+            title: 'Update To do List',
             code: todos,
             language: 'json',
             copyText: todos,
+            preview: Array.isArray(todoValue)
+              ? `${todoValue.length} tasks`
+              : 'Update tasks',
+          };
+        }
+
+        case 'read': {
+          const path =
+            getInputField(input, 'path') || getInputField(input, 'filePath');
+
+          return {
+            iconData: FileText,
+            title: 'Read File',
+            language: 'json',
+            preview: path,
           };
         }
 
         default: {
           return {
+            iconData: Wrench,
             title: toolName,
             code: rawOutput,
             language: 'json',
             copyText: `// Input:\n${
               typeof input === 'string' ? input : JSON.stringify(input, null, 2)
             }\n\n// Output:\n${rawOutput}`,
+            preview: undefined,
           };
         }
       }
     }, [toolName, input, output]);
 
-    return (
-      <div className='my-3'>
-        <Disclosure defaultExpanded={false}>
-          <Disclosure.Heading>
-            <Disclosure.Trigger
-              className='flex w-full items-center justify-between border px-3 py-2 font-mono text-xs transition-colors'
-              style={{
-                backgroundColor: 'var(--surface-secondary)',
-                color: 'var(--muted)',
-                borderColor: 'var(--border)',
-                borderRadius: 'var(--radius)',
-              }}
-            >
-              <span className='flex items-center gap-2 truncate'>
-                <span>{toolContent.title}</span>
-                <span>{isCompleted ? '✓' : '⏳'}</span>
-              </span>
-              <Disclosure.Indicator />
-            </Disclosure.Trigger>
-          </Disclosure.Heading>
+    const hasContent = toolContent.copyText && toolContent.code;
 
-          <Disclosure.Content className='mt-2'>
-            <DeferredView>
+    return (
+      <Disclosure defaultExpanded={false}>
+        <Disclosure.Heading>
+          <Disclosure.Trigger
+            className='text-muted/70! group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100'
+            isDisabled={!hasContent}
+          >
+            <div className='flex min-w-0 flex-1 items-center gap-2'>
+              <div className='relative shrink-0'>
+                <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
+                <Icon
+                  data={toolContent.iconData}
+                  className='absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'
+                  style={{
+                    width: 12,
+                    height: 12,
+                  }}
+                />
+              </div>
+              <span className='flex items-center gap-2 truncate'>
+                <span className='text-foreground'>{toolContent.title}</span>
+                <p className='max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                  {toolContent.preview}
+                </p>
+              </span>
+            </div>
+          </Disclosure.Trigger>
+        </Disclosure.Heading>
+
+        <Disclosure.Content className='mt-2'>
+          <DeferredView>
+            {hasContent && (
               <CodeBlock>
                 <CodeBlock.Header>
                   <div className='text-muted min-w-0 font-mono text-xs break-all'>
@@ -234,10 +292,10 @@ export const ToolCallView = memo(
                   scrollOverflow
                 />
               </CodeBlock>
-            </DeferredView>
-          </Disclosure.Content>
-        </Disclosure>
-      </div>
+            )}
+          </DeferredView>
+        </Disclosure.Content>
+      </Disclosure>
     );
   },
   (prev, next) => prev.part.id === next.part.id,

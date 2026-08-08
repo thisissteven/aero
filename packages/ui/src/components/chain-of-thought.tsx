@@ -71,11 +71,15 @@ export interface ChainOfThoughtTriggerProps extends Omit<
   'children'
 > {
   children: ReactNode;
+  icon: ReactNode;
+  preview: string;
 }
 
 export function ChainOfThoughtTrigger({
   children,
   className,
+  icon,
+  preview,
   ...props
 }: ChainOfThoughtTriggerProps): ReactElement {
   const { isStreaming } = useContext(ChainOfThoughtContext);
@@ -83,15 +87,23 @@ export function ChainOfThoughtTrigger({
   return (
     <Disclosure.Heading>
       <Button
-        className={cls(classes.trigger, className)}
+        className={cls(
+          classes.trigger,
+          cn('text-muted/70! group/cot flex h-10 w-full! min-w-0', className),
+        )}
         data-slot='chain-of-thought-trigger'
         size='sm'
         slot='trigger'
         variant='ghost'
         {...props}
       >
-        {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
-        <Disclosure.Indicator className='text-muted mt-1 -ml-1.5 size-3' />
+        <div className='flex min-w-0 flex-1 items-center gap-2 px-[2.5px]'>
+          {icon}
+          {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
+          <p className='max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
+            {preview}
+          </p>
+        </div>
       </Button>
     </Disclosure.Heading>
   );

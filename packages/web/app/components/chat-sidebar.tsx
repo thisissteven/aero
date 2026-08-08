@@ -1,20 +1,29 @@
 import {
+  Archive,
   CircleInfo,
   CircleQuestion,
   Comment,
+  Copy,
+  EllipsisVertical,
   Folder,
   Gear,
+  LogoMarkdown,
   Magnifier,
+  Pencil,
   PlugWire,
+  TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
-import { memo, useTransition } from 'react';
+import { memo, useState, useTransition } from 'react';
 
 import {
   Avatar,
   cn,
+  Dropdown,
   Kbd,
+  Label,
+  Separator,
   Sidebar,
   Spinner,
   Tooltip,
@@ -24,6 +33,7 @@ import {
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { formatCompactRelativeTime } from '@/app/lib';
 
 import type { ChatThread } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
@@ -310,6 +320,8 @@ const ChatSidebarThreadItem = memo(
       });
     };
 
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+
     return (
       <Sidebar.MenuItem
         id={`${idPrefix}${thread.id}`}
@@ -317,7 +329,79 @@ const ChatSidebarThreadItem = memo(
         textValue={thread.title}
         onPress={handlePress}
       >
-        <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
+        <Sidebar.MenuItemContent>
+          <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
+        </Sidebar.MenuItemContent>
+        {thread.updatedAt ? (
+          <Sidebar.MenuChip
+            className={cn('hide-on-hover', dropdownOpen && 'hidden!')}
+          >
+            <span className='text-muted text-[10px] leading-none'>
+              {formatCompactRelativeTime(thread.updatedAt)}
+            </span>
+          </Sidebar.MenuChip>
+        ) : null}
+
+        <Sidebar.MenuActions className='ml-auto'>
+          <Sidebar.MenuAction
+            aria-label={`Archive ${thread.title}`}
+            className='group'
+          >
+            <Icon
+              data={Archive}
+              className='opacity-50 transition-opacity group-hover:opacity-100'
+              style={{
+                width: 12,
+                height: 12,
+              }}
+            />
+          </Sidebar.MenuAction>
+          <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <Dropdown.Trigger
+              aria-label={`More actions for ${thread.title}`}
+              className='sidebar__menu-action group'
+              data-slot='sidebar-menu-action'
+            >
+              <Icon
+                data={EllipsisVertical}
+                className='opacity-50 transition-opacity group-hover:opacity-100'
+                style={{
+                  width: 12,
+                  height: 12,
+                }}
+              />
+            </Dropdown.Trigger>
+            <Dropdown.Popover
+              className='w-44'
+              crossOffset={6}
+              placement='bottom end'
+            >
+              <Dropdown.Menu aria-label={`${thread.title} actions`}>
+                <Dropdown.Item>
+                  <Icon data={Pencil} />
+                  <Label>Rename</Label>
+                </Dropdown.Item>
+                <Dropdown.Item>
+                  <Icon data={Copy} />
+                  <Label>Copy Session Id</Label>
+                </Dropdown.Item>
+                <Dropdown.Item>
+                  <Icon data={LogoMarkdown} />
+                  <Label>Export Markdown</Label>
+                </Dropdown.Item>
+                <Separator />
+                <Dropdown.Item>
+                  <Icon data={Archive} />
+                  <Label>Archive</Label>
+                </Dropdown.Item>
+                <Dropdown.Item variant='danger'>
+                  <Icon data={TrashBin} className='text-danger' />
+                  <Label>Delete</Label>
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
+        </Sidebar.MenuActions>
       </Sidebar.MenuItem>
     );
   },
