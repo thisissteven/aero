@@ -1,59 +1,83 @@
-import { useEffect, useRef, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from 'react';
 
-// Renders fallback / placeholder initially, then mounts heavy child after the
-// browser has finished layout + paint work (idle callback) so the virtualizer's
-// measureElement gets a stable DOM before it samples heights.
-//
-// Using requestIdleCallback (with a hard 200 ms timeout) instead of a single
-// rAF because one frame is not enough: the browser may still be in the middle
-// of layout when rAF fires, causing measureElement to capture wrong heights
-// that force a second resize + scroll-anchor correction loop.
-const scheduleIdle: (cb: () => void) => () => void =
-  typeof requestIdleCallback === 'function'
-    ? (cb) => {
-        const id = requestIdleCallback(cb, { timeout: 200 });
-        return () => cancelIdleCallback(id);
-      }
-    : // Safari / environments without rIC: fall back to a double-rAF so
-      // we at least skip one frame of layout work before mounting heavy content.
-      (cb) => {
-        let raf2: number;
-        const raf1 = requestAnimationFrame(() => {
-          raf2 = requestAnimationFrame(cb);
-        });
-        return () => {
-          cancelAnimationFrame(raf1);
-          cancelAnimationFrame(raf2);
-        };
-      };
+function scheduleWhenStable(cb: () => void) {
+  let idleId: number | undefined;
+  let scrollTimer: number | undefined;
+  let cancelled = false;
 
-export function DeferredView({
-  children,
-  fallback,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}) {
+  const cleanup = () => {
+    if (idleId !== undefined) {
+      cancelIdleCallback(idleId);
+    }
+
+    if (scrollTimer !== undefined) {
+      clearTimeout(scrollTimer);
+    }
+
+    window.removeEventListener('scroll', onScroll, true);
+  };
+
+  const run = () => {
+    if (cancelled) return;
+
+    // Avoid mounting while browser reports pending input
+    if (
+      'scheduler' in window &&
+      'isInputPending' in (navigator as any).scheduling &&
+      (navigator as any).scheduling.isInputPending()
+    ) {
+      idleId = requestIdleCallback(run, { timeout: 500 });
+      return;
+    }
+
+    cb();
+    cleanup();
+  };
+
+  const onScroll = () => {
+    if (cancelled) return;
+
+    if (idleId !== undefined) {
+      cancelIdleCallback(idleId);
+      idleId = undefined;
+    }
+
+    clearTimeout(scrollTimer);
+
+    // wait until scrolling stops
+    scrollTimer = window.setTimeout(() => {
+      idleId = requestIdleCallback(run, {
+        timeout: 100,
+      });
+    }, 50);
+  };
+
+  window.addEventListener('scroll', onScroll, true);
+
+  idleId = requestIdleCallback(run, {
+    timeout: 100,
+  });
+
+  return () => {
+    cancelled = true;
+    cleanup();
+  };
+}
+
+export function DeferredView({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
-  // Keep cancel ref stable across renders
-  const cancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    cancelRef.current = scheduleIdle(() => {
+    const cancel = scheduleWhenStable(() => {
       setReady(true);
-      cancelRef.current = null;
     });
 
-    return () => {
-      cancelRef.current?.();
-      cancelRef.current = null;
-    };
+    return cancel;
   }, []);
 
   if (!ready) {
-    return (
-      fallback ?? <div className='bg-muted/40 h-16 animate-pulse rounded' />
-    );
+    return null;
   }
 
   return <>{children}</>;

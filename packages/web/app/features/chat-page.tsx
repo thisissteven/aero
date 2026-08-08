@@ -237,14 +237,14 @@ export const VirtualizedChatFeed = React.memo(
     return (
       <div
         className={cn(
-          'relative flex min-h-0 flex-1 flex-col transition-opacity',
-          ready ? 'opacity-100' : 'opacity-0',
+          'relative flex min-h-0 flex-1 flex-col transition',
+          // ready ? 'opacity-100' : 'opacity-0',
         )}
         style={{ paddingLeft: `${scrollbarWidth}px` }}
       >
         <ScrollShadow
           ref={scrollRef}
-          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto overscroll-contain pt-10'
+          className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto overscroll-contain pt-10'
         >
           <Virtualizer<AeroConversationTurn>
             ref={virtualizerRef}
@@ -265,14 +265,20 @@ export const VirtualizedChatFeed = React.memo(
 // 3. Main Chat Page
 // ============================================================================
 export interface ChatPageProps {
+  sessionId: string;
   groups: AeroConversationTurn[];
   notFound: boolean;
 }
 
-export function ChatPage({ groups, notFound }: ChatPageProps) {
+export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
   const [activeGroupIndex, setActiveGroupIndex] = useState(
     () => groups.length - 1,
   );
+
+  useEffect(() => {
+    setActiveGroupIndex(groups.length - 1);
+  }, [sessionId]);
+
   const feedRef = useRef<VirtualizedChatFeedRef>(null);
 
   const handleSelectTocItem = useCallback(
@@ -302,6 +308,7 @@ export function ChatPage({ groups, notFound }: ChatPageProps) {
             onSelectTocItem={handleSelectTocItem}
           />
           <VirtualizedChatFeed
+            key={sessionId}
             ref={feedRef}
             groups={groups}
             onActiveGroupIndexChange={setActiveGroupIndex}

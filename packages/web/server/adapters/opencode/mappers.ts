@@ -31,10 +31,11 @@ export function toAeroSession(s: Session): AeroSessionSummary {
 export function toAeroPart(p: Part): AeroPart {
   switch (p.type) {
     case 'text':
-      return { type: 'text', text: p.text ?? '' };
+      return { id: p.id, type: 'text', text: p.text ?? '' };
 
     case 'tool':
       return {
+        id: p.id,
         type: 'tool',
         toolName: p.tool,
         status: p.state.status,
@@ -48,18 +49,19 @@ export function toAeroPart(p: Part): AeroPart {
 
     case 'file':
       return {
+        id: p.id,
         type: 'file',
         path: p.filename ?? p.url ?? '',
         mimeType: p.mime,
       };
 
     case 'reasoning':
-      return { type: 'reasoning', text: p.text ?? '' };
+      return { id: p.id, type: 'reasoning', text: p.text ?? '' };
 
     default:
       // Unknown/unsupported part type from a newer opencode version —
       // degrade gracefully instead of throwing mid-stream.
-      return { type: 'text', text: '' };
+      return { id: p.id, type: 'text', text: '' };
   }
 }
 

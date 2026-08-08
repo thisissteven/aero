@@ -31,7 +31,10 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
 
   const checkIsAtBottom = useCallback(() => {
     const handle = virtualizerRef.current;
-    if (!handle) return;
+    if (!handle || handle.viewportSize === 0) {
+      setIsAtBottom(true);
+      return;
+    }
 
     const threshold = 28; // px tolerance from bottom
     const distanceToBottom =

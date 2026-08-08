@@ -8,16 +8,20 @@ import type {
   ReactNode,
   SVGProps,
 } from 'react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { codeToHtml } from 'shiki';
 
 const part = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
 
-// ⚡ BOUNDED LRU CACHE TO PREVENT MEMORY LEAKS
 class BoundedCache<K, V> {
   private cache = new Map<K, V>();
   constructor(private readonly maxSize: number = 150) {}
+
+  // Non-mutating read for React Render Phase
+  peek(key: K): V | undefined {
+    return this.cache.get(key);
+  }
 
   get(key: K): V | undefined {
     const item = this.cache.get(key);
@@ -36,10 +40,6 @@ class BoundedCache<K, V> {
       if (oldestKey !== undefined) this.cache.delete(oldestKey);
     }
     this.cache.set(key, value);
-  }
-
-  has(key: K): boolean {
-    return this.cache.has(key);
   }
 }
 
@@ -143,21 +143,16 @@ export const CodeBlockCode = memo(function CodeBlockCode({
   const light = theme ?? 'github-light';
   const dark = darkTheme ?? (theme ? undefined : 'github-dark');
 
-  const cacheKey = useMemo(
-    () => `${language}:${light}:${dark ?? 'none'}:${code}`,
-    [language, light, dark, code],
-  );
+  const cacheKey = `${language}:${light}:${dark ?? 'none'}:${code}`;
 
-  const initialHtml = useMemo(
-    () => highlightedHtml || SHIKI_HIGHLIGHT_CACHE.get(cacheKey),
-    [highlightedHtml, cacheKey],
-  );
-
+  // Read non-destructively during render
+  const initialHtml = highlightedHtml || SHIKI_HIGHLIGHT_CACHE.peek(cacheKey);
   const [highlighted, setHighlighted] = useState<string | null>(
     initialHtml || null,
   );
 
   useEffect(() => {
+    // Check & mutate LRU cache order inside side effect safely
     const cachedHtml = SHIKI_HIGHLIGHT_CACHE.get(cacheKey);
     if (cachedHtml) {
       setHighlighted(cachedHtml);
@@ -182,7 +177,6 @@ export const CodeBlockCode = memo(function CodeBlockCode({
           : await codeToHtml(code, { lang: language, theme: light });
 
         SHIKI_HIGHLIGHT_CACHE.set(cacheKey, html);
-
         if (!cancelled) setHighlighted(html);
       } catch {
         if (!cancelled) setHighlighted(null);
@@ -211,7 +205,7 @@ export const CodeBlockCode = memo(function CodeBlockCode({
         {highlighted ? (
           <HighlightedContainer html={highlighted} />
         ) : (
-          <pre>
+          <pre className='p-4 font-mono text-xs leading-relaxed whitespace-pre'>
             <code>{code}</code>
           </pre>
         )}
@@ -265,7 +259,6 @@ const CheckIcon = memo(function CheckIcon(
   );
 });
 
-// Zero-runtime CSS Animated Icon Swap
 const CopyMotionIcon = memo(function CopyMotionIcon({
   copied,
 }: {
@@ -281,7 +274,6 @@ const CopyMotionIcon = memo(function CopyMotionIcon({
       >
         <CheckIcon className='size-3.5' />
       </span>
-
       <span
         className={cn(
           'absolute inset-0 flex items-center justify-center transition-all duration-200',

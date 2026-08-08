@@ -20,8 +20,9 @@ export interface AeroSessionSummary {
 // express more (e.g. "diff" parts, "todo" parts) — every adapter's mapper
 // has to be updated to produce whichever variants it can support.
 export type AeroPart =
-  | { type: 'text'; text: string }
+  | { id: string; type: 'text'; text: string }
   | {
+      id: string;
       type: 'tool';
       toolName: string;
       status: 'pending' | 'running' | 'completed' | 'error';
@@ -29,8 +30,8 @@ export type AeroPart =
       output?: unknown;
       error?: string;
     }
-  | { type: 'file'; path: string; mimeType?: string }
-  | { type: 'reasoning'; text: string };
+  | { id: string; type: 'file'; path: string; mimeType?: string }
+  | { id: string; type: 'reasoning'; text: string };
 
 export interface AeroMessage {
   id: string;

@@ -31,8 +31,8 @@
   --tw-outline-style: none;
   -webkit-tap-highlight-color: transparent;
   cursor: var(--cursor-interactive);
-  --floating-toc-bar-width: 16px;
-  --floating-toc-bar-active-width: 24px;
+  --floating-toc-bar-width: 12px;
+  --floating-toc-bar-active-width: 20px;
   --floating-toc-bar-height: 2px;
   --floating-toc-bar-active-height: 2px;
   --floating-toc-bar-level-step: 3px;

@@ -217,19 +217,7 @@ export const ToolCallView = memo(
           </Disclosure.Heading>
 
           <Disclosure.Content className='mt-2'>
-            {/* <div>{`${part.input}${part.output}`}</div> */}
-            <DeferredView
-              fallback={
-                <div
-                  className='bg-muted p-4 font-mono text-xs'
-                  style={{
-                    minHeight: 120,
-                  }}
-                >
-                  Loading output…
-                </div>
-              }
-            >
+            <DeferredView>
               <CodeBlock>
                 <CodeBlock.Header>
                   <div className='text-muted min-w-0 font-mono text-xs break-all'>
@@ -252,10 +240,10 @@ export const ToolCallView = memo(
       </div>
     );
   },
-  (prev, next) =>
-    prev.part.status === next.part.status &&
-    prev.part.output === next.part.output &&
-    prev.part.input === next.part.input,
+  (prev, next) => prev.part.id === next.part.id,
+  // prev.part.status === next.part.status &&
+  // prev.part.output === next.part.output &&
+  // prev.part.input === next.part.input,
 );
 
 ToolCallView.displayName = 'ToolCallView';
