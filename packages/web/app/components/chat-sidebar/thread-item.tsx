@@ -63,7 +63,7 @@ export const ChatSidebarThreadItem = memo(
         </Sidebar.MenuItemContent>
         {thread.updatedAt ? (
           <Sidebar.MenuChip
-            className={cn('hide-on-hover', dropdownOpen && 'hidden!')}
+            className={cn('hide-on-hover', dropdownOpen && 'hidden')}
           >
             <span className='text-muted text-[10px] leading-none'>
               {formatCompactRelativeTime(thread.updatedAt)}

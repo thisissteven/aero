@@ -54,7 +54,7 @@ export const AssistantChatBubble = memo(
 
     return (
       <ChatMessage.Assistant className='group'>
-        <ChatMessage.Body className='pe-0!'>
+        <ChatMessage.Body className='pe-0'>
           <ChatMessage.Content>
             {parts.map((part, index) => {
               const blockId = `${baseKey}-part-${index}`;

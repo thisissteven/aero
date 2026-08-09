@@ -45,7 +45,7 @@ export const SidebarContents = memo(function SidebarContents({
 
   return (
     <>
-      <Sidebar.Header className='px-0! pb-0!'>
+      <Sidebar.Header className='px-0 pb-0'>
         <div className='flex items-center gap-3 px-4 py-1'>
           <Avatar className='size-9'>
             <Avatar.Image alt={'User'} />
@@ -114,7 +114,7 @@ export const SidebarContents = memo(function SidebarContents({
           </Sidebar.Menu>
         </Sidebar.Group>
 
-        <Sidebar.Separator className='my-0!' />
+        <Sidebar.Separator className='my-0' />
       </Sidebar.Header>
 
       <Sidebar.Content offset={2} className='py-2'>
@@ -126,8 +126,8 @@ export const SidebarContents = memo(function SidebarContents({
         />
       </Sidebar.Content>
 
-      <Sidebar.Footer className='sticky bottom-0 z-10 px-0! pt-0!'>
-        <Sidebar.Separator className='mt-0!' />
+      <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>
+        <Sidebar.Separator className='mt-0' />
         <div className='mt-1.5 space-x-2 px-4'>
           <Tooltip delay={0}>
             <Tooltip.Trigger>

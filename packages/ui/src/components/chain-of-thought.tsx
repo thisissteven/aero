@@ -1,8 +1,9 @@
 'use client';
 
-import { Button, cn, Disclosure } from '@heroui/react';
+import { cn, Disclosure } from '@heroui/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
 import { createContext, useContext, useMemo } from 'react';
+import { Button } from 'react-aria-components/Button';
 
 import { TextShimmer } from './text-shimmer';
 
@@ -89,15 +90,13 @@ export function ChainOfThoughtTrigger({
       <Button
         className={cls(
           classes.trigger,
-          cn('text-muted/70! group/cot flex h-10 w-full! min-w-0', className),
+          cn('text-muted/70 group/cot flex h-10 w-full min-w-0', className),
         )}
         data-slot='chain-of-thought-trigger'
-        size='sm'
         slot='trigger'
-        variant='ghost'
         {...props}
       >
-        <div className='flex min-w-0 flex-1 items-center gap-2 px-[2.5px]'>
+        <div className='flex min-w-0 flex-1 items-center gap-2'>
           {icon}
           {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
           <p className='max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
