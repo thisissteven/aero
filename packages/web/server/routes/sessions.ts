@@ -56,10 +56,14 @@ const sessions = new Hono()
     '/',
     zValidator(
       'query',
-      withPagination<typeof querySchema.shape, AeroSessionSummary>(querySchema),
+      withPagination<typeof querySchema.shape, AeroSessionSummary>(
+        querySchema,
+      ).extend({
+        archived: z.string().optional(),
+      }),
     ),
     async (c) => {
-      const { workspaceId, cursor, limit, search, searchBy } =
+      const { workspaceId, cursor, limit, search, searchBy, archived } =
         c.req.valid('query');
 
       const harness = await getActiveAdapter(workspaceId);
@@ -69,6 +73,7 @@ const sessions = new Hono()
         limit,
         search,
         searchBy,
+        archived,
       });
 
       return c.json(result);
@@ -169,6 +174,38 @@ const sessions = new Hono()
       const markdown = await harness.messagesToMarkdown(id);
 
       return c.json(markdown);
+    },
+  )
+
+  // PATCH /api/sessions/:id/archive?workspaceId=...
+  .patch(
+    '/:id/archive',
+    zValidator('param', idParamSchema),
+    zValidator('query', querySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { workspaceId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(workspaceId);
+      const session = await harness.archiveSession(id);
+
+      return c.json(session);
+    },
+  )
+
+  // PATCH /api/sessions/:id/unarchive?workspaceId=...
+  .patch(
+    '/:id/unarchive',
+    zValidator('param', idParamSchema),
+    zValidator('query', querySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { workspaceId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(workspaceId);
+      const session = await harness.unarchiveSession(id);
+
+      return c.json(session);
     },
   )
 

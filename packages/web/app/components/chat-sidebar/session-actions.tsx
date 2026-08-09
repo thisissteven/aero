@@ -1,11 +1,21 @@
-import { Check, Copy, LogoMarkdown, TrashBin } from '@gravity-ui/icons';
+import {
+  Archive,
+  Check,
+  Copy,
+  LogoMarkdown,
+  TrashBin,
+} from '@gravity-ui/icons';
 import { Icon, Label } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
 import { Dropdown, toast } from '@aero/ui';
 
-import { useDeleteSession, useSessionMarkdown } from '@/app/hooks/api/sessions';
+import {
+  useArchiveSession,
+  useDeleteSession,
+  useSessionMarkdown,
+} from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
 
@@ -88,6 +98,33 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
     >
       <Icon data={LogoMarkdown} className='shrink-0' />
       <Label>Export Markdown</Label>
+    </Dropdown.Item>
+  );
+}
+
+export function ArchiveSession({ sessionId }: { sessionId: string }) {
+  const { mutateAsync } = useArchiveSession();
+
+  const navigate = useNavigate();
+
+  return (
+    <Dropdown.Item
+      className='gap-2'
+      onPress={() => {
+        toast.promise(mutateAsync(sessionId), {
+          loading: 'Archiving session...',
+          error: (err) => err.message,
+          success: (_data) => {
+            navigate({
+              to: '/new',
+            });
+            return 'Session archived';
+          },
+        });
+      }}
+    >
+      <Icon data={Archive} />
+      <Label>Archive</Label>
     </Dropdown.Item>
   );
 }

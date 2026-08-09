@@ -24,6 +24,8 @@ const $message = honoClient.api.sessions[':id'].message;
 const $markdown = honoClient.api.sessions[':id'].markdown;
 const $abort = honoClient.api.sessions[':id'].abort;
 const $toc = honoClient.api.sessions[':id'].toc;
+const $archive = honoClient.api.sessions[':id'].archive;
+const $unarchive = honoClient.api.sessions[':id'].unarchive;
 
 export const sessionKeys = {
   all: (workspaceId?: string) =>
@@ -36,6 +38,10 @@ export const sessionKeys = {
     ['sessions', workspaceId ?? 'default', sessionId, 'toc'] as const,
   markdown: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId, 'markdown'] as const,
+  archive: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'archive'] as const,
+  unarchive: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'unarchive'] as const,
 };
 
 // type SessionListResponse = InferResponseType<typeof $sessions.$get>;
@@ -223,6 +229,52 @@ export function useAbortSession(workspaceId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(workspaceId, sessionId),
+      });
+    },
+  });
+}
+
+export function useArchiveSession(workspaceId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const [res] = await Promise.all([
+        $archive.$patch({
+          param: { id: sessionId },
+          query: { workspaceId },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error('Failed to archive session');
+      return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(workspaceId, sessionId),
+      });
+    },
+  });
+}
+
+export function useUnarchiveSession(workspaceId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const [res] = await Promise.all([
+        $unarchive.$patch({
+          param: { id: sessionId },
+          query: { workspaceId },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error('Failed to unarchive session');
+      return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(workspaceId, sessionId),
       });

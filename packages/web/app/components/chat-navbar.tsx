@@ -1,4 +1,4 @@
-import { Archive, Ellipsis, Pencil } from '@gravity-ui/icons';
+import { Ellipsis, Pencil } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 
@@ -12,6 +12,7 @@ import {
 } from '@aero/ui';
 
 import {
+  ArchiveSession,
   CopySessionId,
   DeleteSession,
   ExportMarkdown,
@@ -103,10 +104,7 @@ function SessionsNavbarContent() {
               <CopySessionId sessionId={session.id} />
               <ExportMarkdown sessionId={session.id} />
               <Separator />
-              <Dropdown.Item>
-                <Icon data={Archive} />
-                <Label>Archive</Label>
-              </Dropdown.Item>
+              <ArchiveSession sessionId={session.id} />
               <DeleteSession sessionId={session.id} />
             </Dropdown.Menu>
           </Dropdown.Popover>

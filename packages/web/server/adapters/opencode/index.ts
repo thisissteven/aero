@@ -6,6 +6,8 @@
 
 import type { Event } from '@opencode-ai/sdk';
 
+import { Session, SessionListData } from '@/server/types/opencode';
+
 import { getOpencodeClient } from './client';
 import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
 import { unwrap } from './unwrap';
@@ -14,11 +16,11 @@ import type {
   AeroEvent,
   AeroPart,
   AeroSessionSummary,
+  AeroSessionSummaryPaginationParams,
   AeroTocItem,
   CreateSessionInput,
   HarnessAdapter,
   PaginatedResponse,
-  PaginationParams,
   SendMessageInput,
   StreamEventsOptions,
 } from '../../services/harness/types';
@@ -34,20 +36,22 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       limit = PAGINATION_LIMIT,
       search,
       searchBy,
-    }: PaginationParams<AeroSessionSummary> = {}): Promise<
+      archived,
+    }: AeroSessionSummaryPaginationParams): Promise<
       PaginatedResponse<AeroSessionSummary>
     > {
       const sessions = unwrap(
         await client.session.list({
           query: {
             limit: BACKEND_PAGINATION_LIMIT,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any,
-        }),
-      );
+          },
+        } as SessionListData),
+      ) as Session[];
 
       // 1. Transform raw sessions to domain objects
-      let items = sessions.map(toAeroSession);
+      let items = sessions
+        .filter((s) => Boolean(s?.time?.archived) === Boolean(archived))
+        .map(toAeroSession);
 
       // 2. Filter by key if both search and searchBy are provided
       if (search && searchBy) {
@@ -142,7 +146,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return items;
     },
 
-    async messagesToMarkdown(sessionId: string, session?: AeroSessionSummary) {
+    async messagesToMarkdown(sessionId: string) {
       const sessionItem = unwrap(
         await client.session.get({ path: { id: sessionId } }),
       );
@@ -223,6 +227,32 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         title,
         markdown: `${header}\n\n---\n\n${body}`,
       };
+    },
+
+    async archiveSession(sessionId: string) {
+      const session = unwrap(
+        await client.session.update({
+          path: { id: sessionId },
+          body: {
+            time: {
+              archived: Date.now(),
+            },
+          } as Session,
+        }),
+      );
+
+      return toAeroSession(session);
+    },
+
+    async unarchiveSession(sessionId: string) {
+      const session = unwrap(
+        await client.session.update({
+          path: { id: sessionId },
+          body: { time: { archived: null } } as Session,
+        }),
+      );
+
+      return toAeroSession(session);
     },
 
     async sendMessage(sessionId: string, input: SendMessageInput) {

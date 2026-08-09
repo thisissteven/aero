@@ -6,6 +6,7 @@ import { memo, useState, useTransition } from 'react';
 import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
 
 import {
+  ArchiveSession,
   CopySessionId,
   DeleteSession,
   ExportMarkdown,
@@ -111,10 +112,7 @@ export const ChatSidebarSessionItem = memo(
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator />
-                <Dropdown.Item className='gap-2'>
-                  <Icon data={Archive} />
-                  <Label>Archive</Label>
-                </Dropdown.Item>
+                <ArchiveSession sessionId={session.id} />
                 <DeleteSession sessionId={session.id} />
               </Dropdown.Menu>
             </Dropdown.Popover>
