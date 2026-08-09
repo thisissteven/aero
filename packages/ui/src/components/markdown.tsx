@@ -21,7 +21,7 @@ interface MarkdownFileContextValue {
   onFileClick?: (path: string) => void;
 }
 
-const MarkdownFileContext = createContext<MarkdownFileContextValue>({});
+export const MarkdownFileContext = createContext<MarkdownFileContextValue>({});
 
 type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps;
 
@@ -87,17 +87,17 @@ const MarkdownCode = memo(function MarkdownCode({
   );
 });
 
-const defaultComponents: Components = {
+export const defaultComponents: Components = {
   code: MarkdownCode,
   pre: ({ children }) => <>{children}</>,
 };
 
-interface MemoizedBlockProps {
+export interface MemoizedBlockProps {
   components: Components;
   content: string;
 }
 
-const MemoizedBlock = memo(
+export const MemoizedBlock = memo(
   function MemoizedBlock({
     components,
     content,

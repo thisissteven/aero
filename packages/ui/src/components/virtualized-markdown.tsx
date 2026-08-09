@@ -1,0 +1,149 @@
+'use client';
+
+import { cn } from '@heroui/react';
+import type {
+  ComponentPropsWithRef,
+  NamedExoticComponent,
+  ReactElement,
+} from 'react';
+import type { RefObject } from 'react';
+import { memo, useMemo } from 'react';
+import type { Components } from 'react-markdown';
+import { Virtualizer } from 'virtua';
+
+import {
+  defaultComponents,
+  MarkdownFileContext,
+  MemoizedBlock,
+} from './markdown';
+
+/**
+ * Splits markdown into top-level blocks on blank-line boundaries, keeping
+ * fenced code blocks (``` or ~~~) intact so a fence is never split across
+ * two virtualized items.
+ *
+ * Trade-off: each block is parsed by its own ReactMarkdown instance, so
+ * constructs that depend on document-wide state (loose list numbering
+ * continuing across a blank line, link/footnote reference definitions
+ * living in a different block than their usage) won't resolve correctly.
+ * For most chat/markdown-response content this doesn't come up in practice.
+ */
+function splitMarkdownIntoBlocks(markdown: string): string[] {
+  const lines = markdown.split('\n');
+  const blocks: string[] = [];
+  let buffer: string[] = [];
+  let fence: string | null = null;
+
+  const flush = () => {
+    const block = buffer.join('\n').trim();
+    if (block) blocks.push(block);
+    buffer = [];
+  };
+
+  for (const line of lines) {
+    const fenceMatch = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+
+    if (fenceMatch) {
+      buffer.push(line);
+      const marker = fenceMatch[1]!;
+      fence =
+        fence && line.trimStart().startsWith(fence) ? null : (fence ?? marker);
+      continue;
+    }
+
+    if (fence) {
+      buffer.push(line);
+      continue;
+    }
+
+    if (line.trim() === '') {
+      if (buffer.length > 0) flush();
+      continue;
+    }
+
+    buffer.push(line);
+  }
+  flush();
+
+  return blocks.length > 0 ? blocks : [markdown];
+}
+
+// Same fast, non-cryptographic hash as Markdown uses — lets unchanged
+// blocks keep a stable key across re-renders during streaming, so
+// Virtualizer/React don't remount blocks that haven't actually changed.
+function fastHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+export interface VirtualizedMarkdownProps extends Omit<
+  ComponentPropsWithRef<'div'>,
+  'children'
+> {
+  children: string;
+  components?: Partial<Components>;
+  id: string; // Enforce explicitly passed stable identity keys
+  /** Optional function to determine if inline code is a file path */
+  isFile?: (path: string) => boolean;
+  /** Item size hint forwarded to virtua for first-paint offset estimation */
+  itemSize?: number;
+  /** Optional callback triggered when a file inline code is clicked */
+  onFileClick?: (path: string) => void;
+  /** Ref to the actual scrollable ancestor (e.g. the wrapping ScrollShadow's ref). Required — without it virtua can't find the real viewport. */
+  scrollRef?: RefObject<HTMLElement | null>;
+}
+
+export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps> =
+  memo(function VirtualizedMarkdown({
+    children,
+    className,
+    components,
+    id,
+    isFile,
+    itemSize,
+    onFileClick,
+    scrollRef,
+    ...props
+  }: VirtualizedMarkdownProps): ReactElement {
+    const blocks = useMemo(() => splitMarkdownIntoBlocks(children), [children]);
+
+    const renderers = useMemo(
+      () => ({ ...defaultComponents, ...components }),
+      [components],
+    );
+
+    const contextValue = useMemo(
+      () => ({ isFile, onFileClick }),
+      [isFile, onFileClick],
+    );
+
+    return (
+      <MarkdownFileContext.Provider value={contextValue}>
+        <div
+          className={cn('markdown', className)}
+          data-slot='markdown'
+          {...props}
+        >
+          <Virtualizer<string>
+            data={blocks}
+            itemSize={itemSize}
+            scrollRef={scrollRef}
+          >
+            {(block, index) => (
+              <MemoizedBlock
+                key={`${id}-${index}-${fastHash(block)}`}
+                components={renderers}
+                content={block}
+              />
+            )}
+          </Virtualizer>
+        </div>
+      </MarkdownFileContext.Provider>
+    );
+  });
+
+VirtualizedMarkdown.displayName = 'VirtualizedMarkdown';

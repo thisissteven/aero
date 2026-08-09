@@ -1,3 +1,4 @@
+@import 'tailwindcss';
 @import '@heroui/styles';
 @import './components/action-bar.css';
 @import './components/app-layout.css';

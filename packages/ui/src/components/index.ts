@@ -1,5 +1,7 @@
 export * from './accordion';
 export * from './action-bar';
+export * from './adaptive-code-block';
+export * from './adaptive-markdown';
 export * from './agenda';
 export * from './alert';
 export * from './alert-dialog';
@@ -146,4 +148,6 @@ export * from './toolbar';
 export * from './tooltip';
 export * from './trend-chip';
 export * from './typography';
+export * from './virtualized-code-block';
+export * from './virtualized-markdown';
 export * from './widget';

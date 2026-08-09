@@ -15,7 +15,7 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
 
-import { CodeBlock, Disclosure } from '@aero/ui';
+import { AdaptiveCodeBlockCode, CodeBlock, Disclosure } from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
 
@@ -276,7 +276,7 @@ export const ToolCallView = memo(
         <Disclosure.Content className='mt-2'>
           <DeferredView>
             {hasContent && (
-              <CodeBlock>
+              <CodeBlock className='bg-transparent'>
                 <CodeBlock.Header>
                   <div className='text-muted min-w-0 font-mono text-xs break-all'>
                     {toolContent.title}
@@ -286,7 +286,7 @@ export const ToolCallView = memo(
                     className='shrink-0'
                   />
                 </CodeBlock.Header>
-                <CodeBlock.Code
+                <AdaptiveCodeBlockCode
                   code={toolContent.code}
                   language={toolContent.language}
                   scrollOverflow

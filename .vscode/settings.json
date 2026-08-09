@@ -13,6 +13,10 @@
     "classNames",
     "containerClassName"
   ],
+  "tailwindCSS.experimental.configFile": {
+    "packages/ui/src/styles/globals.css": "packages/ui/src/**",
+    "packages/web/app/index.css": "packages/web/app/**"
+  },
   "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
   "tailwindCSS.lint.cssConflict": "ignore",
   "js/ts.preferences.importModuleSpecifier": "non-relative",

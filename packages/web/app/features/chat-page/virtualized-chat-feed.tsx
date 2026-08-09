@@ -8,80 +8,13 @@ import React, {
 } from 'react';
 import { Virtualizer, type VirtualizerHandle } from 'virtua';
 
-import { cn, FloatingToc, PromptInput, ScrollShadow } from '@aero/ui';
+import { cn, ScrollShadow } from '@aero/ui';
 
 import { MessageView } from '@/app/components/message-view';
-import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatThread } from '@/app/data/chat';
-import { useSessionToc } from '@/app/hooks/api/sessions';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
-import { Route } from '@/app/routes/_app/sessions/$sessionId';
+import { AeroConversationTurn } from '@/server/services/harness/types';
 
-import { AeroConversationTurn } from '../../server/services/harness/types';
-
-// ============================================================================
-// 1. TOC Component
-// ============================================================================
-const ChatTocSection = React.memo(function ChatTocSection({
-  activeGroupIndex,
-  onSelectTocItem,
-}: {
-  activeGroupIndex: number;
-  onSelectTocItem: (groupIndex: number) => void;
-}) {
-  const { sessionId } = Route.useParams();
-  const { data: tocItems = [] } = useSessionToc(undefined, sessionId);
-
-  const activeTocIndex = useMemo(() => {
-    if (!tocItems.length) return -1;
-    let activeIdx = 0;
-    for (let i = 0; i < tocItems.length; i++) {
-      const item = tocItems[i];
-      if (item && item.groupIndex <= activeGroupIndex) {
-        activeIdx = i;
-      } else {
-        break;
-      }
-    }
-    return activeIdx;
-  }, [tocItems, activeGroupIndex]);
-
-  if (!tocItems.length) return null;
-
-  return (
-    <div className='absolute top-1/2 right-6 z-40 translate-y-[calc(-50%-48px)]'>
-      <FloatingToc placement='right' triggerMode='hover'>
-        <FloatingToc.Trigger aria-label='Table of contents'>
-          {tocItems.map((tocItem, idx) => (
-            <FloatingToc.Bar
-              key={tocItem.id}
-              active={idx === activeTocIndex}
-              onClick={() => onSelectTocItem(tocItem.groupIndex)}
-            />
-          ))}
-        </FloatingToc.Trigger>
-
-        <FloatingToc.Content>
-          {tocItems.map((tocItem, idx) => (
-            <FloatingToc.Item
-              key={tocItem.id}
-              active={idx === activeTocIndex}
-              onClick={() => onSelectTocItem(tocItem.groupIndex)}
-            >
-              <span className='block max-w-[200px] truncate'>
-                {tocItem.label}
-              </span>
-            </FloatingToc.Item>
-          ))}
-        </FloatingToc.Content>
-      </FloatingToc>
-    </div>
-  );
-});
-
-// ============================================================================
-// 2. Virtualized Feed
-// ============================================================================
 export interface VirtualizedChatFeedRef {
   scrollToIndex: (index: number) => void;
   virtualizerRef: React.RefObject<VirtualizerHandle | null>;
@@ -238,7 +171,7 @@ export const VirtualizedChatFeed = React.memo(
       <div
         className={cn(
           'relative flex min-h-0 flex-1 flex-col transition',
-          // ready ? 'opacity-100' : 'opacity-0',
+          ready ? 'opacity-100' : 'opacity-0',
         )}
         style={{ paddingLeft: `${scrollbarWidth}px` }}
       >
@@ -260,107 +193,3 @@ export const VirtualizedChatFeed = React.memo(
     );
   }),
 );
-
-// ============================================================================
-// 3. Main Chat Page
-// ============================================================================
-export interface ChatPageProps {
-  sessionId: string;
-  groups: AeroConversationTurn[];
-  notFound: boolean;
-}
-
-export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
-  const [activeGroupIndex, setActiveGroupIndex] = useState(
-    () => groups.length - 1,
-  );
-
-  useEffect(() => {
-    setActiveGroupIndex(groups.length - 1);
-  }, [sessionId]);
-
-  const feedRef = useRef<VirtualizedChatFeedRef>(null);
-
-  const handleSelectTocItem = useCallback(
-    (groupIndex: number) => {
-      const clamped = Math.min(Math.max(groupIndex, 0), groups.length - 1);
-      setActiveGroupIndex(clamped);
-      feedRef.current?.scrollToIndex(clamped);
-    },
-    [groups.length],
-  );
-
-  const subscribeScroll = useCallback(
-    (cb: () => void) => feedRef.current?.subscribeScroll(cb) ?? (() => {}),
-    [],
-  );
-
-  return (
-    <div className='relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
-      {notFound ? (
-        <div className='grid h-full w-full place-items-center'>
-          <span className='text-muted text-sm'>Session not found.</span>
-        </div>
-      ) : (
-        <>
-          <ChatTocSection
-            activeGroupIndex={activeGroupIndex}
-            onSelectTocItem={handleSelectTocItem}
-          />
-          <VirtualizedChatFeed
-            key={sessionId}
-            ref={feedRef}
-            groups={groups}
-            onActiveGroupIndexChange={setActiveGroupIndex}
-          />
-        </>
-      )}
-
-      <div className='bg-background shrink-0 px-4 pb-4'>
-        <div className='relative mx-auto w-full max-w-[714px]'>
-          <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
-            <ScrollToBottomButton
-              virtualizerRef={
-                feedRef.current?.virtualizerRef ?? { current: null }
-              }
-              subscribeScroll={subscribeScroll}
-              totalCount={groups.length}
-            />
-          </div>
-
-          <ChatInput isDisabled={notFound} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChatInput({ isDisabled }: { isDisabled: boolean }) {
-  const [value, setValue] = useState('');
-
-  function send() {
-    const text = value.trim();
-    if (!text) return;
-    setValue('');
-  }
-  return (
-    <PromptInput
-      value={value}
-      layout='stacked'
-      onSubmit={send}
-      onValueChange={setValue}
-      isDisabled={isDisabled}
-    >
-      <PromptInput.Shell>
-        <PromptInput.Content>
-          <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
-        </PromptInput.Content>
-        <PromptInput.Toolbar>
-          <PromptInput.ToolbarEnd>
-            <PromptInput.Send />
-          </PromptInput.ToolbarEnd>
-        </PromptInput.Toolbar>
-      </PromptInput.Shell>
-    </PromptInput>
-  );
-}
