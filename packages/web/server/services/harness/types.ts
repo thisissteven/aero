@@ -12,6 +12,7 @@ export interface AeroSessionSummary {
   id: string;
   title: string;
   harness: HarnessId;
+  workspace: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -41,11 +42,22 @@ export interface AeroMessage {
   createdAt: number;
 }
 
+export interface AeroTocItem {
+  groupIndex: number;
+  id: string;
+  label: string;
+}
+
 export interface AeroConversationTurn {
   id: string;
   role: 'user' | 'assistant';
   parts: AeroPart[];
   createdAt: number;
+}
+
+export interface AeroMarkdownExport {
+  title: string;
+  markdown: string;
 }
 
 // Events an adapter can emit over its live stream. Route layer relays these
@@ -89,6 +101,8 @@ export interface HarnessAdapter {
   deleteSession(sessionId: string): Promise<boolean>;
 
   listMessages(sessionId: string): Promise<AeroMessage[]>;
+  listTocs(sessionId: string): Promise<AeroTocItem[]>;
+  messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
   sendMessage(sessionId: string, input: SendMessageInput): Promise<AeroMessage>;
   abortSession(sessionId: string): Promise<boolean>;
 

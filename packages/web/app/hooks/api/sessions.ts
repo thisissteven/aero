@@ -21,6 +21,7 @@ const $sessions = honoClient.api.sessions;
 const $session = honoClient.api.sessions[':id'];
 const $messages = honoClient.api.sessions[':id'].messages;
 const $message = honoClient.api.sessions[':id'].message;
+const $markdown = honoClient.api.sessions[':id'].markdown;
 const $abort = honoClient.api.sessions[':id'].abort;
 const $toc = honoClient.api.sessions[':id'].toc;
 
@@ -33,6 +34,8 @@ export const sessionKeys = {
     ['sessions', workspaceId ?? 'default', sessionId, 'messages'] as const,
   toc: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId, 'toc'] as const,
+  markdown: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'markdown'] as const,
 };
 
 // type SessionListResponse = InferResponseType<typeof $sessions.$get>;
@@ -109,12 +112,16 @@ export function useCreateSession(workspaceId?: string) {
 
 export function useDeleteSession(workspaceId?: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const res = await $session.$delete({
-        param: { id: sessionId },
-        query: { workspaceId },
-      });
+      const [res] = await Promise.all([
+        $session.$delete({
+          param: { id: sessionId },
+          query: { workspaceId },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
       if (!res.ok) throw new Error('Failed to delete session');
       return res.json();
     },
@@ -145,10 +152,6 @@ export function useSessionMessages(
   });
 }
 
-export type TocItem = NonNullable<
-  ReturnType<typeof useSessionToc>['data']
->[number];
-
 export function useSessionToc(
   workspaceId: string | undefined,
   sessionId: string,
@@ -164,6 +167,19 @@ export function useSessionToc(
       return res.json();
     },
     enabled: !!sessionId,
+  });
+}
+
+export function useSessionMarkdown(workspaceId?: string) {
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await $markdown.$get({
+        param: { id: sessionId },
+        query: { workspaceId },
+      });
+      if (!res.ok) throw new Error('Failed to retrieve markdown');
+      return res.json();
+    },
   });
 }
 

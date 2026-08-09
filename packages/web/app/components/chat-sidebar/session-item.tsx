@@ -1,45 +1,43 @@
-import {
-  Archive,
-  Copy,
-  EllipsisVertical,
-  LogoMarkdown,
-  Pencil,
-  TrashBin,
-} from '@gravity-ui/icons';
+import { Archive, EllipsisVertical, Pencil } from '@gravity-ui/icons';
 import { Icon, Label } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { memo, useState, useTransition } from 'react';
 
 import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
 
-import { ChatThread } from '@/app/data/chat';
+import {
+  CopySessionId,
+  DeleteSession,
+  ExportMarkdown,
+} from '@/app/components/chat-sidebar/session-actions';
+import { ChatSession } from '@/app/data/chat';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
-interface ChatSidebarThreadItemProps {
+interface ChatSidebarSessionItemProps {
   basePath: string;
   disableNavigation: boolean;
   idPrefix: string;
   pathname: string;
-  thread: ChatThread | AeroSessionSummary;
+  session: ChatSession | AeroSessionSummary;
 }
 
-export const ChatSidebarThreadItem = memo(
-  function ChatSidebarThreadItem({
+export const ChatSidebarSessionItem = memo(
+  function ChatSidebarSessionItem({
     basePath,
     disableNavigation,
     idPrefix,
     pathname,
-    thread,
-  }: ChatSidebarThreadItemProps) {
+    session,
+  }: ChatSidebarSessionItemProps) {
     const navigate = useNavigate();
     const [, startTransition] = useTransition();
 
-    const fullHref = `${basePath}/sessions/${thread.id}`;
+    const fullHref = `${basePath}/sessions/${session.id}`;
     const isCurrent =
       pathname === fullHref ||
-      pathname === thread.id ||
-      pathname === `/${thread.id}`;
+      pathname === session.id ||
+      pathname === `/${session.id}`;
 
     // 2. Non-blocking navigation transition on click
     const handlePress = () => {
@@ -53,27 +51,27 @@ export const ChatSidebarThreadItem = memo(
 
     return (
       <Sidebar.MenuItem
-        id={`${idPrefix}${thread.id}`}
+        id={`${idPrefix}${session.id}`}
         isCurrent={isCurrent}
-        textValue={thread.title}
+        textValue={session.title}
         onPress={handlePress}
       >
         <Sidebar.MenuItemContent>
-          <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
+          <Sidebar.MenuLabel>{session.title}</Sidebar.MenuLabel>
         </Sidebar.MenuItemContent>
-        {thread.updatedAt ? (
+        {session.updatedAt ? (
           <Sidebar.MenuChip
             className={cn('hide-on-hover', dropdownOpen && 'hidden')}
           >
             <span className='text-muted text-[10px] leading-none'>
-              {formatCompactRelativeTime(thread.updatedAt)}
+              {formatCompactRelativeTime(session.updatedAt)}
             </span>
           </Sidebar.MenuChip>
         ) : null}
 
         <Sidebar.MenuActions className='ml-auto'>
           <Sidebar.MenuAction
-            aria-label={`Archive ${thread.title}`}
+            aria-label={`Archive ${session.title}`}
             className='group'
           >
             <Icon
@@ -87,7 +85,7 @@ export const ChatSidebarThreadItem = memo(
           </Sidebar.MenuAction>
           <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
             <Dropdown.Trigger
-              aria-label={`More actions for ${thread.title}`}
+              aria-label={`More actions for ${session.title}`}
               className='sidebar__menu-action group'
               data-slot='sidebar-menu-action'
             >
@@ -105,28 +103,19 @@ export const ChatSidebarThreadItem = memo(
               crossOffset={6}
               placement='bottom end'
             >
-              <Dropdown.Menu aria-label={`${thread.title} actions`}>
-                <Dropdown.Item>
+              <Dropdown.Menu aria-label={`${session.title} actions`}>
+                <Dropdown.Item className='gap-2'>
                   <Icon data={Pencil} />
                   <Label>Rename</Label>
                 </Dropdown.Item>
-                <Dropdown.Item>
-                  <Icon data={Copy} />
-                  <Label>Copy Session Id</Label>
-                </Dropdown.Item>
-                <Dropdown.Item>
-                  <Icon data={LogoMarkdown} />
-                  <Label>Export Markdown</Label>
-                </Dropdown.Item>
+                <CopySessionId sessionId={session.id} />
+                <ExportMarkdown sessionId={session.id} />
                 <Separator />
-                <Dropdown.Item>
+                <Dropdown.Item className='gap-2'>
                   <Icon data={Archive} />
                   <Label>Archive</Label>
                 </Dropdown.Item>
-                <Dropdown.Item variant='danger'>
-                  <Icon data={TrashBin} className='text-danger' />
-                  <Label>Delete</Label>
-                </Dropdown.Item>
+                <DeleteSession sessionId={session.id} />
               </Dropdown.Menu>
             </Dropdown.Popover>
           </Dropdown>
@@ -136,18 +125,18 @@ export const ChatSidebarThreadItem = memo(
   },
   (prev, next) => {
     const prevIsCurrent =
-      prev.pathname === `${prev.basePath}/sessions/${prev.thread.id}` ||
-      prev.pathname === prev.thread.id ||
-      prev.pathname === `/${prev.thread.id}`;
+      prev.pathname === `${prev.basePath}/sessions/${prev.session.id}` ||
+      prev.pathname === prev.session.id ||
+      prev.pathname === `/${prev.session.id}`;
 
     const nextIsCurrent =
-      next.pathname === `${next.basePath}/sessions/${next.thread.id}` ||
-      next.pathname === next.thread.id ||
-      next.pathname === `/${next.thread.id}`;
+      next.pathname === `${next.basePath}/sessions/${next.session.id}` ||
+      next.pathname === next.session.id ||
+      next.pathname === `/${next.session.id}`;
 
     return (
-      prev.thread.id === next.thread.id &&
-      prev.thread.title === next.thread.title &&
+      prev.session.id === next.session.id &&
+      prev.session.title === next.session.title &&
       prevIsCurrent === nextIsCurrent &&
       prev.disableNavigation === next.disableNavigation
     );

@@ -1,11 +1,4 @@
-import {
-  Archive,
-  Copy,
-  Ellipsis,
-  LogoMarkdown,
-  Pencil,
-  TrashBin,
-} from '@gravity-ui/icons';
+import { Archive, Ellipsis, Pencil } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 
@@ -18,6 +11,11 @@ import {
   Sidebar,
 } from '@aero/ui';
 
+import {
+  CopySessionId,
+  DeleteSession,
+  ExportMarkdown,
+} from '@/app/components/chat-sidebar/session-actions';
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
 
@@ -102,23 +100,14 @@ function SessionsNavbarContent() {
                 <Icon data={Pencil} />
                 <Label>Rename</Label>
               </Dropdown.Item>
-              <Dropdown.Item>
-                <Icon data={Copy} />
-                <Label>Copy Session Id</Label>
-              </Dropdown.Item>
-              <Dropdown.Item>
-                <Icon data={LogoMarkdown} />
-                <Label>Export Markdown</Label>
-              </Dropdown.Item>
+              <CopySessionId sessionId={session.id} />
+              <ExportMarkdown sessionId={session.id} />
               <Separator />
               <Dropdown.Item>
                 <Icon data={Archive} />
                 <Label>Archive</Label>
               </Dropdown.Item>
-              <Dropdown.Item variant='danger'>
-                <Icon data={TrashBin} className='text-danger' />
-                <Label>Delete</Label>
-              </Dropdown.Item>
+              <DeleteSession sessionId={session.id} />
             </Dropdown.Menu>
           </Dropdown.Popover>
         </Dropdown>

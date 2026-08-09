@@ -36,10 +36,16 @@ export const AdaptiveCodeBlockCode = memo(function AdaptiveCodeBlockCode({
       code={code}
       itemSize={itemSize}
       scrollOverflow={scrollOverflow}
+      showLineNumbers
       {...props}
     />
   ) : (
-    <CodeBlockCode code={code} scrollOverflow={scrollOverflow} {...props} />
+    <CodeBlockCode
+      code={code}
+      scrollOverflow={scrollOverflow}
+      showLineNumbers
+      {...props}
+    />
   );
 });
 

@@ -2,8 +2,8 @@ import { memo } from 'react';
 
 import { cn, Sidebar, Spinner } from '@aero/ui';
 
-import { ChatSidebarThreadItem } from '@/app/components/chat-sidebar/thread-item';
-import { ChatThread } from '@/app/data/chat';
+import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
+import { ChatSession } from '@/app/data/chat';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
@@ -22,25 +22,25 @@ export const RecentChats = memo(function Recents({
   sessionsQuery,
 }: RecentChatsProps) {
   const {
-    items: threads,
+    items: sessions,
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteScroll<ChatThread | AeroSessionSummary>(sessionsQuery);
+  } = useInfiniteScroll<ChatSession | AeroSessionSummary>(sessionsQuery);
 
   return (
     <Sidebar.Group>
       <Sidebar.GroupLabel>Recent</Sidebar.GroupLabel>
 
       <Sidebar.Menu aria-label='Recent chats'>
-        {threads.map((thread) => (
-          <ChatSidebarThreadItem
-            key={thread.id}
+        {sessions.map((session) => (
+          <ChatSidebarSessionItem
+            key={session.id}
             idPrefix={idPrefix}
             basePath={basePath}
             disableNavigation={false}
             pathname={pathname}
-            thread={thread}
+            session={session}
           />
         ))}
       </Sidebar.Menu>

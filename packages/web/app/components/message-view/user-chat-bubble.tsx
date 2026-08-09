@@ -1,10 +1,4 @@
-import {
-  ArrowUturnCcwLeft,
-  Clock,
-  CodeFork,
-  Copy,
-  Pin,
-} from '@gravity-ui/icons';
+import { ArrowUturnCcwLeft, Clock, CodeFork, Pin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import {
   memo,
@@ -17,6 +11,7 @@ import {
 
 import { ChatMessage, cn, Tooltip } from '@aero/ui';
 
+import { MessageActionsCopy } from '@/app/components/message-view/message-actions';
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
@@ -121,7 +116,7 @@ export const UserChatBubble = memo(
 
             {isOverflowing && (
               <button
-                className='text-muted mt-1 text-xs opacity-80 transition hover:opacity-100'
+                className='text-muted mt-1 text-xs opacity-80 transition hover:opacity-80'
                 onClick={handleToggle}
               >
                 {expanded ? 'Show less' : 'Show more'}
@@ -130,8 +125,8 @@ export const UserChatBubble = memo(
           </div>
         </ChatMessage.Bubble>
         <div className='absolute right-0 bottom-0 flex w-full translate-y-full justify-end gap-3 p-3'>
-          <div className='flex items-center gap-1 text-xs opacity-50'>
-            <Icon data={Clock} size={12} />
+          <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
+            <Icon data={Clock} size={12} className='opacity-80' />
             {formatDateTime(turn.createdAt)}
           </div>
           <Tooltip delay={300}>
@@ -139,7 +134,7 @@ export const UserChatBubble = memo(
               <Icon
                 data={ArrowUturnCcwLeft}
                 size={16}
-                className='opacity-50 transition hover:opacity-100'
+                className='opacity-50 transition hover:opacity-80'
               />
             </Tooltip.Trigger>
 
@@ -152,7 +147,7 @@ export const UserChatBubble = memo(
               <Icon
                 data={CodeFork}
                 size={16}
-                className='opacity-50 transition hover:opacity-100'
+                className='opacity-50 transition hover:opacity-80'
               />
             </Tooltip.Trigger>
 
@@ -165,7 +160,7 @@ export const UserChatBubble = memo(
               <Icon
                 data={Pin}
                 size={16}
-                className='opacity-50 transition hover:opacity-100'
+                className='opacity-50 transition hover:opacity-80'
               />
             </Tooltip.Trigger>
 
@@ -173,19 +168,7 @@ export const UserChatBubble = memo(
               <span>Pin into context (survives compaction)</span>
             </Tooltip.Content>
           </Tooltip>
-          <Tooltip delay={300}>
-            <Tooltip.Trigger>
-              <Icon
-                data={Copy}
-                size={16}
-                className='opacity-50 transition hover:opacity-100'
-              />
-            </Tooltip.Trigger>
-
-            <Tooltip.Content>
-              <span>Copy message</span>
-            </Tooltip.Content>
-          </Tooltip>
+          <MessageActionsCopy copyText={text} />
         </div>
       </ChatMessage.User>
     );

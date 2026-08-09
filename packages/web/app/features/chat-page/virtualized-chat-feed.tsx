@@ -11,7 +11,7 @@ import { Virtualizer, type VirtualizerHandle } from 'virtua';
 import { cn, ScrollShadow } from '@aero/ui';
 
 import { MessageView } from '@/app/components/message-view';
-import { ChatThread } from '@/app/data/chat';
+import { ChatSession } from '@/app/data/chat';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
@@ -35,7 +35,7 @@ export const VirtualizedChatFeed = React.memo(
   React.forwardRef<
     VirtualizedChatFeedRef,
     {
-      groups: ChatThread['turns'];
+      groups: ChatSession['turns'];
       onActiveGroupIndexChange: (index: number) => void;
     }
   >(function VirtualizedChatFeed({ groups, onActiveGroupIndexChange }, ref) {

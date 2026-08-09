@@ -25,6 +25,7 @@ export function toAeroSession(s: Session): AeroSessionSummary {
     harness: 'opencode',
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
+    workspace: s.directory,
   };
 }
 

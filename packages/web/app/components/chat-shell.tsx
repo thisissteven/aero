@@ -19,7 +19,7 @@ import { AppLayout, Tooltip, Typography } from '@aero/ui';
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
-import type { ChatActivePage, ChatThread } from '../data/chat';
+import type { ChatActivePage, ChatSession } from '../data/chat';
 import { resolveChatActivePage } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
@@ -106,13 +106,13 @@ export function ChatShell({
     [pathname, basePath],
   );
 
-  const handleThreadSelect = useCallback(
-    (thread: ChatThread | AeroSessionSummary) => {
+  const handleSessionSelect = useCallback(
+    (session: ChatSession | AeroSessionSummary) => {
       setIsSearchOpen(false);
 
       if (!disableNavigation) {
         navigate({
-          to: `${basePath}/sessions/${thread.id}`,
+          to: `${basePath}/sessions/${session.id}`,
         });
       }
     },
@@ -198,7 +198,7 @@ export function ChatShell({
       <ChatSearchDialog
         isOpen={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        onSelect={handleThreadSelect}
+        onSelect={handleSessionSelect}
       />
     </AppLayout>
   );

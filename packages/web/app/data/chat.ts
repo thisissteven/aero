@@ -10,7 +10,7 @@ export type ChatSearchMode = {
   label: string;
 };
 
-export type ChatThread = {
+export type ChatSession = {
   id: string;
   title: string;
   preview: string;
@@ -46,15 +46,13 @@ export const SUGGESTED_PROMPTS: readonly string[] = [
   'Compare three pricing models and recommend one for a usage-based SaaS.',
 ] as const;
 
-export function getChatThread(_: string) {
+export function getChatSession(_: string) {
   return undefined;
 }
 
-export type ChatPageKind =
-  'new' | 'workspaces' | 'plugins' | 'thread' | 'sessions';
+export type ChatPageKind = 'new' | 'workspaces' | 'plugins' | 'sessions';
 
 export type ChatActivePage =
-  | { kind: 'thread'; thread: ChatThread }
   | { kind: 'new' }
   | { kind: 'workspaces' }
   | { kind: 'plugins' }

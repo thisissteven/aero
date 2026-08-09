@@ -12,7 +12,9 @@ import { unwrap } from './unwrap';
 import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '../../helper';
 import type {
   AeroEvent,
+  AeroPart,
   AeroSessionSummary,
+  AeroTocItem,
   CreateSessionInput,
   HarnessAdapter,
   PaginatedResponse,
@@ -97,6 +99,130 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         await client.session.messages({ path: { id: sessionId } }),
       );
       return entries.map(toAeroMessage);
+    },
+
+    async listTocs(sessionId: string) {
+      const entries = unwrap(
+        await client.session.messages({ path: { id: sessionId } }),
+      );
+
+      const messages = entries.map(toAeroMessage);
+
+      // Group messages by consecutive roles to track virtualized group indices
+      const items: AeroTocItem[] = [];
+      let groupIndex = -1;
+      let currentRole: string | null = null;
+
+      for (const msg of messages) {
+        if (msg.role !== currentRole) {
+          groupIndex++;
+          currentRole = msg.role;
+        }
+
+        // Only extract items for user messages (taking the first user message in a group)
+        if (msg.role === 'user') {
+          const userText = (msg.parts ?? [])
+            .filter((p) => p.type === 'text')
+            .map((p) => (p as { type: 'text'; text: string }).text)
+            .join(' ')
+            .trim();
+
+          // Avoid duplicate TOC entries if multiple user messages are grouped together
+          const lastItem = items.at(-1);
+          if (!lastItem || lastItem.groupIndex !== groupIndex) {
+            items.push({
+              id: msg.id,
+              groupIndex,
+              label: userText.slice(0, 80) || `Prompt ${items.length + 1}`,
+            });
+          }
+        }
+      }
+
+      return items;
+    },
+
+    async messagesToMarkdown(sessionId: string, session?: AeroSessionSummary) {
+      const sessionItem = unwrap(
+        await client.session.get({ path: { id: sessionId } }),
+      );
+
+      const entries = unwrap(
+        await client.session.messages({ path: { id: sessionId } }),
+      );
+
+      const messages = entries.map(toAeroMessage);
+
+      const formatPart = (part: AeroPart): string | null => {
+        switch (part.type) {
+          case 'text':
+            return part.text.trim().length > 0 ? part.text.trim() : null;
+
+          case 'reasoning':
+          case 'tool':
+            return null;
+
+          // case 'reasoning':
+          //   return part.text.trim().length > 0
+          //     ? `> *Thinking:*\n> ${part.text.trim().replace(/\n/g, '\n> ')}`
+          //     : null;
+
+          // case 'tool': {
+          //   const header = `*[Tool: ${part.toolName} (${part.status})]*`;
+          //   if (part.error) {
+          //     return `${header}\n\`\`\`\nError: ${part.error}\n\`\`\``;
+          //   }
+          //   if (part.output) {
+          //     const formattedOutput =
+          //       typeof part.output === 'string'
+          //         ? part.output
+          //         : JSON.stringify(part.output, null, 2);
+          //     return `${header}\n\`\`\`json\n${formattedOutput}\n\`\`\``;
+          //   }
+          //   return header;
+          // }
+
+          case 'file':
+            return `*[File: ${part.path}]*`;
+
+          default:
+            return null;
+        }
+      };
+
+      // 1. Map messages to text blocks
+      const formattedMessages = messages
+        .map((msg) => {
+          const content = msg.parts
+            .map(formatPart)
+            .filter((text): text is string => text !== null)
+            .join('\n\n');
+
+          return {
+            role: msg.role === 'user' ? 'User' : 'Assistant',
+            content,
+          };
+        })
+        // 2. Drop any messages that ended up empty
+        .filter((msg) => msg.content.length > 0);
+
+      // 3. Determine title from session or first user message
+      const title = sessionItem.title;
+
+      // 4. Export Date (YYYY-MM-DD)
+      const exportDate = new Date().toISOString().split('T')[0];
+
+      // 5. Build full Markdown Document
+      const header = `# ${title}\n\n*Exported on ${exportDate}*`;
+
+      const body = formattedMessages
+        .map((msg) => `### ${msg.role}\n\n${msg.content}`)
+        .join('\n\n---\n\n');
+
+      return {
+        title,
+        markdown: `${header}\n\n---\n\n${body}`,
+      };
     },
 
     async sendMessage(sessionId: string, input: SendMessageInput) {

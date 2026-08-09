@@ -8,13 +8,13 @@ import { useDebounce } from '@/app/hooks/useDebounce';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
 
-import type { ChatThread } from '../data/chat';
+import type { ChatSession } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSearchDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (thread: ChatThread | AeroSessionSummary) => void;
+  onSelect: (session: ChatSession | AeroSessionSummary) => void;
 }
 
 export function ChatSearchDialog({
@@ -35,11 +35,11 @@ export function ChatSearchDialog({
   );
 
   const {
-    items: threads,
+    items: sessions,
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteScroll<ChatThread | AeroSessionSummary>(sessionsQuery, {
+  } = useInfiniteScroll<ChatSession | AeroSessionSummary>(sessionsQuery, {
     search: debouncedSearch,
     rootRef: listRef,
     limitWithoutSearch: 10,
@@ -97,26 +97,26 @@ export function ChatSearchDialog({
                 heading={debouncedSearch ? 'Search results' : 'Recent chats'}
                 className='pb-0.5'
               >
-                {threads.map((thread) => {
+                {sessions.map((session) => {
                   const preview =
-                    'preview' in thread ? thread.preview : 'Recent chat';
+                    'preview' in session ? session.preview : 'Recent chat';
 
                   const updatedAtStr = formatCompactRelativeTime(
-                    thread.updatedAt,
+                    session.updatedAt,
                   );
 
                   return (
                     <Command.Item
-                      key={thread.id}
-                      id={thread.id}
-                      textValue={`${thread.title} ${preview}`}
-                      onAction={() => onSelect(thread)}
+                      key={session.id}
+                      id={session.id}
+                      textValue={`${session.title} ${preview}`}
+                      onAction={() => onSelect(session)}
                     >
                       <Comment />
 
                       <div className='flex min-w-0 flex-col'>
                         <span className='text-foreground truncate text-sm font-medium'>
-                          {thread.title}
+                          {session.title}
                         </span>
 
                         <span className='text-muted truncate text-xs'>

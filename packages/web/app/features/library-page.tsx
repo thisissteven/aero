@@ -6,7 +6,7 @@ interface LibraryItem {
   description: string;
   tags: string[];
   updatedAt: string;
-  threadId?: string;
+  sessionId?: string;
 }
 
 const LIBRARY_ITEMS: LibraryItem[] = [
@@ -17,7 +17,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
       'Structured persona focused on performance, TypeScript strictness, and security best practices.',
     tags: ['Preset', 'Engineering'],
     updatedAt: '2h ago',
-    threadId: 'thread-code-reviewer',
+    sessionId: 'session-code-reviewer',
   },
   {
     id: 'exec-email-preset',
@@ -26,7 +26,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
       'Tone rule preset that condenses complex technical updates into bulleted emails for leadership.',
     tags: ['Tone Rule', 'Writing'],
     updatedAt: '1d ago',
-    threadId: 'thread-exec-email',
+    sessionId: 'session-exec-email',
   },
   {
     id: 'api-docs-generator',
@@ -43,7 +43,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
       'Analyzes slow PostgreSQL queries, EXPLAIN outputs, and recommends index strategies.',
     tags: ['Preset', 'Database'],
     updatedAt: '1w ago',
-    threadId: 'thread-sql-optimizer',
+    sessionId: 'session-sql-optimizer',
   },
   {
     id: 'prd-template',
@@ -60,7 +60,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
       'Generates concise error states, tooltip copy, and empty-state text options for web apps.',
     tags: ['Design', 'Copywriting'],
     updatedAt: '1m ago',
-    threadId: 'thread-ux-microcopy',
+    sessionId: 'session-ux-microcopy',
   },
 ];
 
@@ -77,7 +77,7 @@ export function LibraryPage({ basePath = '' }: LibraryPageProps) {
             Saved prompts and reusable setups
           </h2>
           <p className='text-muted max-w-[640px] text-sm'>
-            A mock workspace of prompt presets, tone rules, and starter threads
+            A mock workspace of prompt presets, tone rules, and starter sessions
             the template ships with. Save your own to pick up where you left
             off.
           </p>
@@ -85,8 +85,8 @@ export function LibraryPage({ basePath = '' }: LibraryPageProps) {
 
         <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
           {LIBRARY_ITEMS.map((item) => {
-            const href = item.threadId
-              ? `${basePath}/${item.threadId}`
+            const href = item.sessionId
+              ? `${basePath}/${item.sessionId}`
               : undefined;
             const card = (
               <Card className='flex h-full flex-col gap-3 rounded-2xl transition-colors'>
