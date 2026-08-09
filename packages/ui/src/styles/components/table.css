@@ -11,9 +11,11 @@
   }
 }
 
-.table__row:last-child .table__cell {
-  border-bottom-style: var(--tw-border-style);
-  border-bottom-width: 0;
+@layer components {
+  .table__row:last-child .table__cell {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 0;
+  }
 }
 
 @property --tw-border-style {

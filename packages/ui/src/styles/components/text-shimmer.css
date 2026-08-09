@@ -10,6 +10,9 @@
   }
 }
 
+@layer components {
+}
+
 @property --shimmer-track-height {
   syntax: '<length>';
   inherits: true;
