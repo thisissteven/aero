@@ -146,7 +146,7 @@ function ArchiveSessionConfirmationModal({
         <p>"{sessionTitle}" will be archived.</p>
       </Modal.Body>
       <Modal.Footer>
-        <Button slot='close' variant='outline'>
+        <Button slot='close' variant='tertiary'>
           Cancel
         </Button>
         <Button
@@ -260,7 +260,7 @@ function DeleteSessionConfirmationModal({
         <p>"{sessionTitle}" will be permanently deleted.</p>
       </Modal.Body>
       <Modal.Footer>
-        <Button slot='close' variant='outline'>
+        <Button slot='close' variant='tertiary'>
           Cancel
         </Button>
         <Button

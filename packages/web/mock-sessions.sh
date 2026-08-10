@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-API_URL="http://localhost:3000/api/sessions"
+API_URL="http://localhost:5173/api/sessions"
 
 TITLES=(
   "Just this one"
 )
 
-for i in $(seq 1 2); do
+for i in $(seq 1 1000); do
   TITLE="${TITLES[$RANDOM % ${#TITLES[@]}]} #$i"
 
   curl --noproxy localhost -s -X POST \

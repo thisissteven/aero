@@ -45,7 +45,7 @@ type Story = StoryObj<any>;
 
 export const Default: Story = {
   args: {
-    children: 'Aeor Typography',
+    children: 'Aero Typography',
     type: 'body',
   },
 };

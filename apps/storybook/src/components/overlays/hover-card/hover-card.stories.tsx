@@ -56,8 +56,8 @@ function Profile() {
 
 function TriggerLink() {
   return (
-    <Link className='underline' href='https://x.com/theaero' target='_blank'>
-      @theaero
+    <Link className='underline' href='https://x.com/aero' target='_blank'>
+      @aero
     </Link>
   );
 }

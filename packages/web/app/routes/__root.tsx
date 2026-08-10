@@ -5,6 +5,7 @@ import { ToastProvider } from '@aero/ui';
 import {
   GlobalModal,
   QueryProvider,
+  SettingsModal,
   SpeechProvider,
   ThemeProvider,
 } from '@/app/providers';
@@ -24,7 +25,7 @@ function RootLayout() {
             className='xs:mx-2 sm:mx-3'
           />
           <GlobalModal />
-
+          <SettingsModal />
           <Outlet />
         </QueryProvider>
       </ThemeProvider>

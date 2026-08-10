@@ -170,6 +170,7 @@ export function SessionTitleEditable({
         >
           <button
             disabled={isPending}
+            onClick={(e) => e.stopPropagation()}
             type='submit'
             className={cn(
               'bg-surface-secondary dark:bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
@@ -185,7 +186,10 @@ export function SessionTitleEditable({
               'bg-surface-secondary dark:bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
               buttonClassName,
             )}
-            onClick={cancelRename}
+            onClick={(e) => {
+              e.stopPropagation();
+              cancelRename();
+            }}
           >
             <Icon data={Xmark} size={iconSize} />
           </button>

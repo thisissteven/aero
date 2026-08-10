@@ -25,6 +25,8 @@ import {
   UserGroupIcon,
 } from '@aero/ui/icons';
 
+import { getRandomUserImage } from '@/seed';
+
 import { Navbar } from './index';
 
 const meta = {
