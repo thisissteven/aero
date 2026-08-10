@@ -1,28 +1,49 @@
 // server/adapters/opencode/client.ts
-//
-// Lazily starts one opencode server+client for the process lifetime.
-// createOpencode() spins up `opencode serve` under the hood — we only want
-// to do that once, on first use, not on every request.
 
 import { createOpencode } from '@opencode-ai/sdk';
 
-let instance: ReturnType<typeof createOpencode> | null = null;
+import { SessionListData } from '@/server/types/opencode';
 
-export function getOpencodeInstance() {
-  if (!instance) {
-    instance = createOpencode({
-      hostname: '127.0.0.1',
-      port: 4096,
-      // hostname/port left as SDK defaults (127.0.0.1:4096) for MVP.
-      // Pull from ~/.aero/harnesses.json per-harness config once that's
-      // wired up (Phase 2 — storage schema solidification).
-    });
+type OpencodeClient = OpencodeInstance['client'];
+type OpencodeInstance = Awaited<ReturnType<typeof createOpencode>>;
+
+let instancePromise: Promise<OpencodeInstance> | null = null;
+
+export async function getOpencodeInstance(): Promise<OpencodeInstance> {
+  if (!instancePromise) {
+    instancePromise = (async () => {
+      const instance = await createOpencode({
+        hostname: '127.0.0.1',
+        port: 4096,
+      });
+
+      // Ping server to ensure port 4096 is bound before returning client
+      await waitForServerReady(instance.client);
+
+      return instance;
+    })();
   }
 
-  return instance;
+  return instancePromise;
 }
 
 export async function getOpencodeClient() {
   const { client } = await getOpencodeInstance();
   return client;
+}
+
+async function waitForServerReady(
+  client: OpencodeClient,
+  maxRetries = 15,
+  delayMs = 200,
+) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await client.session.list({ query: { limit: 1 } } as SessionListData);
+      return;
+    } catch {
+      await new Promise((res) => setTimeout(res, delayMs));
+    }
+  }
+  throw new Error('OpenCode server failed to respond on 127.0.0.1:4096');
 }

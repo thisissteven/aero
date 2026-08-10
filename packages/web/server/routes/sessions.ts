@@ -10,12 +10,12 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
-import { withPagination } from '../helper';
+import { waitForMessagePersistence, withPagination } from '../helper';
 import { getActiveAdapter } from '../services/harness/registry';
 import type {
   AeroConversationTurn,
   AeroMessage,
-  AeroPart,
+  AeroPartRequest,
   AeroSessionSummary,
 } from '../services/harness/types';
 
@@ -88,6 +88,16 @@ const sessions = new Hono()
       'json',
       z.object({
         title: z.string().optional(),
+        parts: z.custom<AeroPartRequest[]>(
+          (val) => Array.isArray(val),
+          'parts must be an array',
+        ),
+        model: z
+          .object({
+            providerId: z.string(),
+            modelId: z.string(),
+          })
+          .optional(),
       }),
     ),
     async (c) => {
@@ -95,6 +105,14 @@ const sessions = new Hono()
       const body = c.req.valid('json');
       const harness = await getActiveAdapter(workspaceId);
       const session = await harness.createSession({ title: body.title });
+
+      await harness.sendMessage(session.id, {
+        parts: body.parts,
+        model: body.model,
+      });
+
+      await waitForMessagePersistence(harness, session.id);
+
       return c.json(session);
     },
   )
@@ -243,7 +261,7 @@ const sessions = new Hono()
     zValidator(
       'json',
       z.object({
-        parts: z.custom<AeroPart[]>(
+        parts: z.custom<AeroPartRequest[]>(
           (val) => Array.isArray(val),
           'parts must be an array',
         ),

@@ -3,6 +3,7 @@ import z from 'zod';
 import {
   AeroMessage,
   AeroSessionSummary,
+  HarnessAdapter,
 } from '@/server/services/harness/types';
 
 export const PAGINATION_LIMIT = 20;
@@ -45,4 +46,17 @@ export function multiplyMessages(
       createdAt: msg.createdAt + batch * 1000,
     })),
   ).flat();
+}
+
+export async function waitForMessagePersistence(
+  harness: HarnessAdapter,
+  sessionId: string,
+  maxRetries = 10,
+  delayMs = 100,
+): Promise<void> {
+  for (let i = 0; i < maxRetries; i++) {
+    const messages = await harness.listMessages(sessionId);
+    if (messages.length > 0) return;
+    await new Promise((res) => setTimeout(res, delayMs));
+  }
 }

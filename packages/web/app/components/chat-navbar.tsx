@@ -245,7 +245,7 @@ function SessionsNavbarContent() {
   const { data: session } = useSession(undefined, sessionId);
 
   if (!session) {
-    return null;
+    return <NewNavbarContent />;
   }
 
   return (

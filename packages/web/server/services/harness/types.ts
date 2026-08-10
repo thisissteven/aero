@@ -20,10 +20,9 @@ export interface AeroSessionSummary {
 // Keep this union intentionally small for MVP. Extend as adapters need to
 // express more (e.g. "diff" parts, "todo" parts) — every adapter's mapper
 // has to be updated to produce whichever variants it can support.
-export type AeroPart =
-  | { id: string; type: 'text'; text: string }
+export type AeroPartRequest =
+  | { type: 'text'; text: string }
   | {
-      id: string;
       type: 'tool';
       toolName: string;
       status: 'pending' | 'running' | 'completed' | 'error';
@@ -31,8 +30,10 @@ export type AeroPart =
       output?: unknown;
       error?: string;
     }
-  | { id: string; type: 'file'; path: string; mimeType?: string }
-  | { id: string; type: 'reasoning'; text: string };
+  | { type: 'file'; path: string; mimeType?: string }
+  | { type: 'reasoning'; text: string };
+
+export type AeroPart = AeroPartRequest & { id: string };
 
 export interface AeroMessage {
   id: string;
@@ -85,7 +86,7 @@ export interface RenameSessionInput {
 }
 
 export interface SendMessageInput {
-  parts: AeroPart[];
+  parts: AeroPartRequest[];
   model?: { providerId: string; modelId: string };
 }
 
@@ -111,7 +112,11 @@ export interface HarnessAdapter {
   renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
   archiveSession(sessionId: string): Promise<AeroSessionSummary>;
   unarchiveSession(sessionId: string): Promise<AeroSessionSummary>;
-  sendMessage(sessionId: string, input: SendMessageInput): Promise<AeroMessage>;
+  sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
+  sendMessageSync(
+    sessionId: string,
+    input: SendMessageInput,
+  ): Promise<AeroMessage>;
   abortSession(sessionId: string): Promise<boolean>;
 
   /** Live event stream, already normalized to AeroEvent. */

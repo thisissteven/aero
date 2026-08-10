@@ -18,7 +18,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
       onValueChange={setValue}
       isDisabled={isDisabled}
     >
-      <PromptInput.Shell>
+      <PromptInput.Shell className='shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets' />
         </PromptInput.Content>

@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { cn } from '@aero/ui';
+
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
@@ -41,7 +43,11 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
   );
 
   return (
-    <div className='relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col overflow-hidden'>
+    <div
+      className={cn(
+        'ease relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col justify-center overflow-hidden',
+      )}
+    >
       {notFound ? (
         <div className='grid h-full w-full place-items-center'>
           <span className='text-muted text-sm'>Session not found.</span>

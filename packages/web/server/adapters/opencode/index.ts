@@ -267,6 +267,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async sendMessage(sessionId, input) {
+      unwrap(
+        await client.session.promptAsync({
+          path: { id: sessionId },
+          body: {
+            parts: input.parts.map((p) =>
+              p.type === 'text' ? { type: 'text', text: p.text } : (p as never),
+            ),
+            model: input.model
+              ? {
+                  providerID: input.model.providerId,
+                  modelID: input.model.modelId,
+                }
+              : undefined,
+          },
+        }),
+      );
+    },
+
+    async sendMessageSync(sessionId, input) {
       const { info, parts } = unwrap(
         await client.session.prompt({
           path: { id: sessionId },

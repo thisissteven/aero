@@ -141,10 +141,13 @@ export function useCreateSession(workspaceId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateSessionInput) => {
-      const res = await $sessions.$post({
-        json: input,
-        query: { workspaceId },
-      });
+      const [res] = await Promise.all([
+        $sessions.$post({
+          json: input,
+          query: { workspaceId },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
       if (!res.ok) throw new Error('Failed to create session');
       return res.json();
     },

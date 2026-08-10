@@ -185,7 +185,9 @@ export function ArchiveSessionIconButton({
     <Sidebar.MenuAction
       aria-label={`Archive ${sessionTitle}`}
       className='group'
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
         openModal({
           children: (
             <ArchiveSessionConfirmationModal

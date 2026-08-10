@@ -15,15 +15,6 @@ import { MessageActionsCopy } from '@/app/components/message-view/message-action
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
-// ---------------------------------------------------------------------------
-// UserChatBubble
-//
-// FIX: Replaced the `useEffect` + `el.scrollHeight` read with a ResizeObserver.
-// Reading scrollHeight in useEffect forces a synchronous layout flush on every
-// streaming character. ResizeObserver is notified *after* the browser has
-// already committed layout, so we get the measurement for free with zero
-// additional reflow cost.
-// ---------------------------------------------------------------------------
 export const UserChatBubble = memo(
   function UserChatBubble({ turn }: { turn: AeroConversationTurn }) {
     const [expanded, setExpanded] = useState(false);
@@ -33,29 +24,40 @@ export const UserChatBubble = memo(
     const textRef = useRef<HTMLDivElement>(null);
     const shouldScrollOnCollapseRef = useRef(false);
 
-    // Sync check before the first paint so the clamp is applied immediately —
-    // no visible flicker. useLayoutEffect fires after DOM mutations but before
-    // the browser paints; layout is already computed at this point so reading
-    // scrollHeight here doesn't trigger an extra reflow.
+    const text = useMemo(
+      () =>
+        turn.parts
+          .filter((part) => part.type === 'text')
+          .map((part) => part.text)
+          .join(''),
+      [turn.parts],
+    );
+
+    // Synchronous layout effect for initial clamp without flicker
     useLayoutEffect(() => {
       const el = textRef.current;
-      if (el) setIsOverflowing(el.scrollHeight > 72);
-    }, []);
+      if (!el) return;
 
-    // ResizeObserver handles subsequent updates (text streaming, window resize).
-    // Kept separate from the layout effect so it only pays the observer overhead
-    // for the ongoing lifecycle, not the initial render.
+      // Temporary check on scrollHeight vs clientHeight or a fixed max threshold
+      const overflow = el.scrollHeight > 72;
+      setIsOverflowing(overflow);
+    }, [text]);
+
+    // ResizeObserver observing container width changes rather than height changes
     useEffect(() => {
       const el = textRef.current;
       if (!el) return;
 
       const observer = new ResizeObserver(() => {
-        setIsOverflowing(el.scrollHeight > 72);
+        // Only measure height when fully expanded OR check raw scrollHeight
+        // against client height threshold
+        const overflow = el.scrollHeight > 72;
+        setIsOverflowing((prev) => (prev !== overflow ? overflow : prev));
       });
 
       observer.observe(el);
       return () => observer.disconnect();
-    }, []);
+    }, [text]);
 
     const handleToggle = () => {
       if (expanded) {
@@ -91,23 +93,20 @@ export const UserChatBubble = memo(
       }
     }, [expanded]);
 
-    const text = useMemo(
-      () =>
-        turn.parts
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
-          .join(''),
-      [],
-    );
-
     return (
       <ChatMessage.User ref={bubbleRef} className='relative'>
-        <ChatMessage.Bubble className='max-w-4/5'>
+        <ChatMessage.Bubble
+          className={cn('max-w-4/5', !expanded && 'cursor-pointer')}
+          onClick={() => {
+            if (expanded) return;
+            handleToggle();
+          }}
+        >
           <div className='relative'>
             <div
               ref={textRef}
               className={cn(
-                'wrap-break-word',
+                'overflow-hidden font-sans break-words whitespace-pre-wrap',
                 !expanded && isOverflowing && 'line-clamp-2',
               )}
             >
@@ -116,8 +115,12 @@ export const UserChatBubble = memo(
 
             {isOverflowing && (
               <button
-                className='text-muted mt-1 text-xs opacity-80 transition hover:opacity-80'
-                onClick={handleToggle}
+                type='button'
+                className='text-muted mt-1 text-xs opacity-80 transition hover:opacity-100'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggle();
+                }}
               >
                 {expanded ? 'Show less' : 'Show more'}
               </button>
