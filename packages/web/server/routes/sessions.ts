@@ -177,6 +177,32 @@ const sessions = new Hono()
     },
   )
 
+  // PATCH /api/sessions/:id/rename?workspaceId=...
+  .patch(
+    '/:id/rename',
+    zValidator('param', idParamSchema),
+    zValidator('query', querySchema),
+    zValidator(
+      'json',
+      z.object({
+        title: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { workspaceId } = c.req.valid('query');
+      const body = c.req.valid('json');
+
+      const harness = await getActiveAdapter(workspaceId);
+      const session = await harness.renameSession({
+        sessionId: id,
+        title: body.title,
+      });
+
+      return c.json(session);
+    },
+  )
+
   // PATCH /api/sessions/:id/archive?workspaceId=...
   .patch(
     '/:id/archive',

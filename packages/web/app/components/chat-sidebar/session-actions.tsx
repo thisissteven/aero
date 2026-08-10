@@ -3,13 +3,14 @@ import {
   Check,
   Copy,
   LogoMarkdown,
+  Pencil,
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon, Label } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import { Dropdown, toast } from '@aero/ui';
+import { Button, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
 
 import {
   useArchiveSession,
@@ -18,6 +19,28 @@ import {
 } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
+import { useGlobalModalStore } from '@/app/providers/GlobalModal';
+import {
+  SessionRenameFromEnum,
+  useSessionRenameStore,
+} from '@/app/stores/session-rename';
+
+export function RenameSession({
+  sessionId,
+  from,
+}: {
+  sessionId: string;
+  from: SessionRenameFromEnum;
+}) {
+  const { rename } = useSessionRenameStore();
+
+  return (
+    <Dropdown.Item className='gap-2' onPress={() => rename(sessionId, from)}>
+      <Icon data={Pencil} />
+      <Label>Rename</Label>
+    </Dropdown.Item>
+  );
+}
 
 export function CopySessionId({ sessionId }: { sessionId: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -102,24 +125,109 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
   );
 }
 
-export function ArchiveSession({ sessionId }: { sessionId: string }) {
+function ArchiveSessionConfirmationModal({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
   const { mutateAsync } = useArchiveSession();
 
   const navigate = useNavigate();
 
   return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Archive session?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>"{sessionTitle}" will be archived.</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='outline'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync(sessionId), {
+              loading: 'Archiving session...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Session archived';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Archive
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+export function ArchiveSessionIconButton({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
+  const { openModal } = useGlobalModalStore();
+
+  return (
+    <Sidebar.MenuAction
+      aria-label={`Archive ${sessionTitle}`}
+      className='group'
+      onClick={() => {
+        openModal({
+          children: (
+            <ArchiveSessionConfirmationModal
+              sessionId={sessionId}
+              sessionTitle={sessionTitle}
+            />
+          ),
+        });
+      }}
+    >
+      <Icon
+        data={Archive}
+        className='opacity-50 transition-opacity group-hover:opacity-100'
+        style={{
+          width: 12,
+          height: 12,
+        }}
+      />
+    </Sidebar.MenuAction>
+  );
+}
+
+export function ArchiveSession({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
+  const { openModal } = useGlobalModalStore();
+
+  return (
     <Dropdown.Item
       className='gap-2'
       onPress={() => {
-        toast.promise(mutateAsync(sessionId), {
-          loading: 'Archiving session...',
-          error: (err) => err.message,
-          success: (_data) => {
-            navigate({
-              to: '/new',
-            });
-            return 'Session archived';
-          },
+        openModal({
+          children: (
+            <ArchiveSessionConfirmationModal
+              sessionId={sessionId}
+              sessionTitle={sessionTitle}
+            />
+          ),
         });
       }}
     >
@@ -129,30 +237,79 @@ export function ArchiveSession({ sessionId }: { sessionId: string }) {
   );
 }
 
-export function DeleteSession({ sessionId }: { sessionId: string }) {
+function DeleteSessionConfirmationModal({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
   const { mutateAsync } = useDeleteSession();
 
   const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Delete session?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>"{sessionTitle}" will be permanently deleted.</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='outline'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync(sessionId), {
+              loading: 'Deleting session...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Session deleted';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+export function DeleteSession({
+  sessionId,
+  sessionTitle,
+}: {
+  sessionId: string;
+  sessionTitle: string;
+}) {
+  const { openModal } = useGlobalModalStore();
 
   return (
     <Dropdown.Item
       className='gap-2'
       variant='danger'
       onPress={() => {
-        toast.promise(mutateAsync(sessionId), {
-          loading: 'Deleting session...',
-          error: (err) => err.message,
-          success: (_data) => {
-            navigate({
-              to: '/new',
-            });
-            return 'Session deleted';
-          },
+        openModal({
+          children: (
+            <DeleteSessionConfirmationModal
+              sessionId={sessionId}
+              sessionTitle={sessionTitle}
+            />
+          ),
         });
       }}
     >
       <Icon data={TrashBin} className='text-danger' />
-      <Label className='text-danger! font-semibold'>Delete</Label>
+      <Label className='text-danger! font-medium'>Delete</Label>
     </Dropdown.Item>
   );
 }

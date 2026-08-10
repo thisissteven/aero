@@ -26,6 +26,7 @@ const $abort = honoClient.api.sessions[':id'].abort;
 const $toc = honoClient.api.sessions[':id'].toc;
 const $archive = honoClient.api.sessions[':id'].archive;
 const $unarchive = honoClient.api.sessions[':id'].unarchive;
+const $rename = honoClient.api.sessions[':id'].rename;
 
 export const sessionKeys = {
   all: (workspaceId?: string) =>
@@ -42,9 +43,10 @@ export const sessionKeys = {
     ['sessions', workspaceId ?? 'default', sessionId, 'archive'] as const,
   unarchive: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId, 'unarchive'] as const,
+  rename: (workspaceId: string | undefined, sessionId: string) =>
+    ['sessions', workspaceId ?? 'default', sessionId, 'rename'] as const,
 };
 
-// type SessionListResponse = InferResponseType<typeof $sessions.$get>;
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
 
@@ -69,6 +71,42 @@ export function useSessions(
           limit: PAGINATION_LIMIT.toString(),
           search: search || undefined,
           searchBy: search ? searchBy : undefined,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+
+      return res.json();
+    },
+
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+}
+
+export function useSessionsArchived(
+  workspaceId?: string,
+  search?: string,
+  searchBy?: keyof AeroSessionSummary,
+) {
+  return useInfiniteQuery({
+    // Include search & searchBy in key so queries auto-refetch when search state changes
+    queryKey: [...sessionKeys.all(workspaceId), search, searchBy, 'archived'],
+
+    initialPageParam: undefined as string | undefined,
+
+    placeholderData: keepPreviousData,
+
+    queryFn: async ({ pageParam }) => {
+      const res = await $sessions.$get({
+        query: {
+          workspaceId,
+          cursor: pageParam,
+          limit: PAGINATION_LIMIT.toString(),
+          search: search || undefined,
+          searchBy: search ? searchBy : undefined,
+          archived: 'true',
         },
       });
 
@@ -278,6 +316,26 @@ export function useUnarchiveSession(workspaceId?: string) {
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(workspaceId, sessionId),
       });
+    },
+  });
+}
+
+export function useRenameSession(workspaceId?: string) {
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      title,
+    }: {
+      sessionId: string;
+      title: string;
+    }) => {
+      const res = await $rename.$patch({
+        param: { id: sessionId },
+        query: { workspaceId },
+        json: { title },
+      });
+      if (!res.ok) throw new Error('Failed to rename session');
+      return res.json();
     },
   });
 }

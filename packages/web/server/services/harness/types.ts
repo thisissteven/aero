@@ -79,6 +79,11 @@ export interface CreateSessionInput {
   title?: string;
 }
 
+export interface RenameSessionInput {
+  sessionId: string;
+  title: string;
+}
+
 export interface SendMessageInput {
   parts: AeroPart[];
   model?: { providerId: string; modelId: string };
@@ -103,6 +108,7 @@ export interface HarnessAdapter {
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
+  renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
   archiveSession(sessionId: string): Promise<AeroSessionSummary>;
   unarchiveSession(sessionId: string): Promise<AeroSessionSummary>;
   sendMessage(sessionId: string, input: SendMessageInput): Promise<AeroMessage>;

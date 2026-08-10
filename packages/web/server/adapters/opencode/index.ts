@@ -18,10 +18,8 @@ import type {
   AeroSessionSummary,
   AeroSessionSummaryPaginationParams,
   AeroTocItem,
-  CreateSessionInput,
   HarnessAdapter,
   PaginatedResponse,
-  SendMessageInput,
   StreamEventsOptions,
 } from '../../services/harness/types';
 
@@ -80,32 +78,32 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       };
     },
 
-    async createSession(input: CreateSessionInput) {
+    async createSession(input) {
       const session = unwrap(
         await client.session.create({ body: { title: input.title } }),
       );
       return toAeroSession(session);
     },
 
-    async getSession(sessionId: string) {
+    async getSession(sessionId) {
       const session = unwrap(
         await client.session.get({ path: { id: sessionId } }),
       );
       return toAeroSession(session);
     },
 
-    async deleteSession(sessionId: string) {
+    async deleteSession(sessionId) {
       return unwrap(await client.session.delete({ path: { id: sessionId } }));
     },
 
-    async listMessages(sessionId: string) {
+    async listMessages(sessionId) {
       const entries = unwrap(
         await client.session.messages({ path: { id: sessionId } }),
       );
       return entries.map(toAeroMessage);
     },
 
-    async listTocs(sessionId: string) {
+    async listTocs(sessionId) {
       const entries = unwrap(
         await client.session.messages({ path: { id: sessionId } }),
       );
@@ -146,7 +144,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return items;
     },
 
-    async messagesToMarkdown(sessionId: string) {
+    async messagesToMarkdown(sessionId) {
       const sessionItem = unwrap(
         await client.session.get({ path: { id: sessionId } }),
       );
@@ -229,7 +227,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       };
     },
 
-    async archiveSession(sessionId: string) {
+    async archiveSession(sessionId) {
       const session = unwrap(
         await client.session.update({
           path: { id: sessionId },
@@ -244,7 +242,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroSession(session);
     },
 
-    async unarchiveSession(sessionId: string) {
+    async unarchiveSession(sessionId) {
       const session = unwrap(
         await client.session.update({
           path: { id: sessionId },
@@ -255,7 +253,20 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroSession(session);
     },
 
-    async sendMessage(sessionId: string, input: SendMessageInput) {
+    async renameSession({ sessionId, title }) {
+      const session = unwrap(
+        await client.session.update({
+          path: { id: sessionId },
+          body: {
+            title,
+          },
+        }),
+      );
+
+      return toAeroSession(session);
+    },
+
+    async sendMessage(sessionId, input) {
       const { info, parts } = unwrap(
         await client.session.prompt({
           path: { id: sessionId },
@@ -275,7 +286,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroMessage({ info, parts });
     },
 
-    async abortSession(sessionId: string) {
+    async abortSession(sessionId) {
       return unwrap(await client.session.abort({ path: { id: sessionId } }));
     },
 

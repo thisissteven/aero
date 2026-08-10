@@ -11,7 +11,8 @@
     "class",
     "className",
     "classNames",
-    "containerClassName"
+    "containerClassName",
+    "buttonClassName"
   ],
   "tailwindCSS.experimental.configFile": {
     "packages/ui/src/styles/globals.css": "packages/ui/src/**",
