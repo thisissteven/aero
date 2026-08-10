@@ -1,6 +1,8 @@
 /*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
 
-.chat-message-actions {
-  align-items: flex-start;
-  display: flex;
+@layer components {
+  .chat-message-actions {
+    align-items: flex-start;
+    display: flex;
+  }
 }

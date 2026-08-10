@@ -1,5 +1,7 @@
 /*! tailwindcss v4.2.2 | MIT License | https://tailwindcss.com */
 
-.number-value {
-  font-variant-numeric: tabular-nums;
+@layer components {
+  .number-value {
+    font-variant-numeric: tabular-nums;
+  }
 }
