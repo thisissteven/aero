@@ -289,7 +289,7 @@ export const ToolCallView = memo(
                 <AdaptiveCodeBlockCode
                   code={toolContent.code}
                   language={toolContent.language}
-                  scrollOverflow
+                  scrollOverflow={toolContent.code.includes('\n')}
                 />
               </CodeBlock>
             )}

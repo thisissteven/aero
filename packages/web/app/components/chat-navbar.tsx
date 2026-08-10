@@ -172,7 +172,7 @@ export function SessionTitleEditable({
             disabled={isPending}
             type='submit'
             className={cn(
-              'bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
+              'bg-surface-secondary dark:bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
               buttonClassName,
             )}
           >
@@ -182,7 +182,7 @@ export function SessionTitleEditable({
             disabled={isPending}
             type='button'
             className={cn(
-              'bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
+              'bg-surface-secondary dark:bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
               buttonClassName,
             )}
             onClick={cancelRename}

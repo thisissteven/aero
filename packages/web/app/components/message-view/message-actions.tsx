@@ -1,9 +1,10 @@
-import { Check, Copy } from '@gravity-ui/icons';
+import { Check, Copy, Volume } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
 import { cn, Tooltip } from '@aero/ui';
 
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { useSpeech } from '@/app/providers';
 
 export function MessageActionsCopy({ copyText }: { copyText: string }) {
   const { copied, copy } = useCopyToClipboard();
@@ -47,6 +48,44 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
 
       <Tooltip.Content>
         <span>Copy message</span>
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
+
+export function MessageActionsReadAloud({
+  id,
+  text,
+}: {
+  id: string;
+  text: string;
+}) {
+  const { activeId, isSpeaking, toggle, isSupported } = useSpeech();
+
+  const isThisPlaying = activeId === id && isSpeaking;
+
+  if (!isSupported) {
+    return null;
+  }
+
+  return (
+    <Tooltip delay={300}>
+      <Tooltip.Trigger
+        onClick={() => toggle(id, text)}
+        aria-label={isThisPlaying ? 'Stop reading' : 'Read text aloud'}
+      >
+        <Icon
+          data={Volume}
+          size={16}
+          className={cn(
+            'opacity-50 transition hover:opacity-80',
+            isThisPlaying && 'text-accent opacity-80',
+          )}
+        />
+      </Tooltip.Trigger>
+
+      <Tooltip.Content>
+        <span>{isThisPlaying ? 'Stop reading' : 'Read aloud'}</span>
       </Tooltip.Content>
     </Tooltip>
   );

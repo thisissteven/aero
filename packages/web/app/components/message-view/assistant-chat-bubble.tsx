@@ -1,10 +1,13 @@
-import { Clock, CodeFork, Pin, Volume } from '@gravity-ui/icons';
+import { Clock, CodeFork, Pin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
 
 import { ChatMessage, Markdown, Tooltip } from '@aero/ui';
 
-import { MessageActionsCopy } from '@/app/components/message-view/message-actions';
+import {
+  MessageActionsCopy,
+  MessageActionsReadAloud,
+} from '@/app/components/message-view/message-actions';
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
 import { ToolCallView } from '@/app/components/tool-call-view';
 import { formatDateTime } from '@/app/lib/date';
@@ -38,7 +41,7 @@ export const AssistantChatBubble = memo(
     const parts = turn.parts;
     const baseKey = turn.id;
 
-    const copyText = useMemo(() => {
+    const assistantTextResponse = useMemo(() => {
       return parts
         .filter((part) => part.type === 'text')
         .map((part) => part.text.trim())
@@ -94,19 +97,10 @@ export const AssistantChatBubble = memo(
               <Icon data={Clock} size={12} className='opacity-80' />
               {formatDateTime(turn.createdAt)}
             </div>
-            <Tooltip delay={300}>
-              <Tooltip.Trigger>
-                <Icon
-                  data={Volume}
-                  size={16}
-                  className='opacity-50 transition hover:opacity-80'
-                />
-              </Tooltip.Trigger>
-
-              <Tooltip.Content>
-                <span>Read aloud</span>
-              </Tooltip.Content>
-            </Tooltip>
+            <MessageActionsReadAloud
+              id={turn.id}
+              text={assistantTextResponse}
+            />
             <Tooltip delay={300}>
               <Tooltip.Trigger>
                 <Icon
@@ -133,7 +127,7 @@ export const AssistantChatBubble = memo(
                 <span>Pin into context (survives compaction)</span>
               </Tooltip.Content>
             </Tooltip>
-            <MessageActionsCopy copyText={copyText} />
+            <MessageActionsCopy copyText={assistantTextResponse} />
           </div>
         </ChatMessage.Body>
       </ChatMessage.Assistant>

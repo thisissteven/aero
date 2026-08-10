@@ -112,7 +112,7 @@ export function SessionItemSummary({
           sessionId={session.id}
           sessionTitle={session.title}
           className='text-sm font-medium'
-          buttonClassName='bg-surface-secondary'
+          buttonClassName='dark:bg-surface-secondary'
           iconSize={12}
         />
       )}

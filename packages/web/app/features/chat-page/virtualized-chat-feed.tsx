@@ -22,15 +22,6 @@ export interface VirtualizedChatFeedRef {
   subscribeScroll: (cb: () => void) => () => void;
 }
 
-const renderTurn = (turn: AeroConversationTurn, index: number) => (
-  <div
-    key={turn?.id ?? index}
-    className='mx-auto w-full px-3 pb-8 md:max-w-[720px]'
-  >
-    <MessageView turn={turn} />
-  </div>
-);
-
 export const VirtualizedChatFeed = React.memo(
   React.forwardRef<
     VirtualizedChatFeedRef,
@@ -186,7 +177,16 @@ export const VirtualizedChatFeed = React.memo(
             shift={true}
             onScroll={handleScroll}
           >
-            {renderTurn}
+            {(turn) => {
+              return (
+                <div
+                  key={turn.id}
+                  className='mx-auto w-full px-3 pb-8 md:max-w-[720px]'
+                >
+                  <MessageView turn={turn} />
+                </div>
+              );
+            }}
           </Virtualizer>
         </ScrollShadow>
       </div>

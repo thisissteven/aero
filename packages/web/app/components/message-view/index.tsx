@@ -1,9 +1,15 @@
+import { memo } from 'react';
+
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 import { AssistantChatBubble } from './assistant-chat-bubble';
 import { UserChatBubble } from './user-chat-bubble';
 
-export function MessageView({ turn }: { turn: AeroConversationTurn }) {
+export const MessageView = memo(function MessageView({
+  turn,
+}: {
+  turn: AeroConversationTurn;
+}) {
   const isUser = turn.role === 'user';
 
   if (isUser) {
@@ -11,4 +17,4 @@ export function MessageView({ turn }: { turn: AeroConversationTurn }) {
   }
 
   return <AssistantChatBubble turn={turn} />;
-}
+});
