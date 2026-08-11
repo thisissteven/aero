@@ -8,17 +8,19 @@ import type { Event } from '@opencode-ai/sdk/v2';
 
 import { getOpencodeClient } from '@/server/adapters/opencode/client';
 
-import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
+import {
+  toAeroMessage,
+  toAeroPart,
+  toAeroSession,
+  toAeroSessionV2,
+} from './mappers';
 import { unwrap } from './unwrap';
-import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '../../helper';
+import { PAGINATION_LIMIT } from '../../helper';
 import type {
   AeroEvent,
   AeroPart,
-  AeroSessionSummary,
-  AeroSessionSummaryPaginationParams,
   AeroTocItem,
   HarnessAdapter,
-  PaginatedResponse,
   StreamEventsOptions,
 } from '../../services/harness/types';
 
@@ -32,47 +34,37 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       cursor,
       limit = PAGINATION_LIMIT,
       search,
-      searchBy,
-      archived,
-    }: AeroSessionSummaryPaginationParams): Promise<
-      PaginatedResponse<AeroSessionSummary>
-    > {
+    }: {
+      cursor?: string;
+      limit?: number;
+      search?: string;
+    }) {
       const sessions = unwrap(
-        await client.session.list({
-          limit: BACKEND_PAGINATION_LIMIT,
+        await client.v2.session.list({
+          cursor,
+          limit,
+          search,
         }),
       );
 
-      // 1. Transform raw sessions to domain objects
-      let items = sessions
-        .filter((s) => Boolean(s?.time?.archived) === Boolean(archived))
-        .map(toAeroSession);
-
-      // 2. Filter by key if both search and searchBy are provided
-      if (search && searchBy) {
-        const normalizedKeyword = search.trim().toLowerCase();
-
-        if (normalizedKeyword.length > 0) {
-          items = items.filter((item) => {
-            const val = item[searchBy];
-            if (typeof val === 'string') {
-              return val.toLowerCase().includes(normalizedKeyword);
-            }
-            return false;
-          });
-        }
-      }
-
-      // 3. Apply pagination after filtering
-      const startIndex = cursor ? Number(cursor) : 0;
-      const endIndex = startIndex + limit;
-
-      const page = items.slice(startIndex, endIndex);
+      const items = (sessions.data ?? [])
+        .filter((s) => !s?.time?.archived)
+        .map(toAeroSessionV2);
 
       return {
-        items: page,
-        nextCursor: endIndex < items.length ? String(endIndex) : undefined,
+        items,
+        nextCursor: sessions.cursor?.next,
       };
+    },
+
+    async listArchivedSessions() {
+      const sessions = unwrap(
+        await client.experimental.session.list({
+          limit: 1000,
+        }),
+      );
+
+      return sessions.map(toAeroSession);
     },
 
     async createSession(input) {

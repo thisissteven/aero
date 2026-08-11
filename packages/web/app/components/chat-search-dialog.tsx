@@ -28,11 +28,7 @@ export function ChatSearchDialog({
   // Ref for the scrollable container (Command.List / RAC Menu wrapper)
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const sessionsQuery = useSessions(
-    undefined,
-    debouncedSearch || undefined,
-    'title',
-  );
+  const sessionsQuery = useSessions(undefined, debouncedSearch || undefined);
 
   const {
     items: sessions,

@@ -96,7 +96,10 @@ export const UserChatBubble = memo(
     return (
       <ChatMessage.User ref={bubbleRef} className='relative'>
         <ChatMessage.Bubble
-          className={cn('max-w-4/5', !expanded && 'cursor-pointer')}
+          className={cn(
+            'max-w-4/5',
+            isOverflowing && !expanded && 'cursor-pointer',
+          )}
           onClick={() => {
             if (expanded) return;
             handleToggle();

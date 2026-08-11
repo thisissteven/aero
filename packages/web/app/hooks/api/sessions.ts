@@ -15,9 +15,9 @@ import {
 import type { InferRequestType } from 'hono/client';
 
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
-import { AeroSessionSummary } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
+const $archivedSessions = honoClient.api.sessions.archived;
 const $session = honoClient.api.sessions[':id'];
 const $messages = honoClient.api.sessions[':id'].messages;
 const $message = honoClient.api.sessions[':id'].message;
@@ -31,6 +31,8 @@ const $rename = honoClient.api.sessions[':id'].rename;
 export const sessionKeys = {
   all: (workspaceId?: string) =>
     ['sessions', workspaceId ?? 'default'] as const,
+  allArchived: (workspaceId?: string) =>
+    ['sessions', 'archived', workspaceId ?? 'default'] as const,
   detail: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId] as const,
   messages: (workspaceId: string | undefined, sessionId: string) =>
@@ -50,14 +52,10 @@ export const sessionKeys = {
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
 
-export function useSessions(
-  workspaceId?: string,
-  search?: string,
-  searchBy?: keyof AeroSessionSummary,
-) {
+export function useSessions(workspaceId?: string, search?: string) {
   return useInfiniteQuery({
     // Include search & searchBy in key so queries auto-refetch when search state changes
-    queryKey: [...sessionKeys.all(workspaceId), search, searchBy],
+    queryKey: [...sessionKeys.all(workspaceId), search],
 
     initialPageParam: undefined as string | undefined,
 
@@ -70,7 +68,6 @@ export function useSessions(
           cursor: pageParam,
           limit: PAGINATION_LIMIT.toString(),
           search: search || undefined,
-          searchBy: search ? searchBy : undefined,
         },
       });
 
@@ -85,39 +82,18 @@ export function useSessions(
   });
 }
 
-export function useSessionsArchived(
-  workspaceId?: string,
-  search?: string,
-  searchBy?: keyof AeroSessionSummary,
-) {
-  return useInfiniteQuery({
-    // Include search & searchBy in key so queries auto-refetch when search state changes
-    queryKey: [...sessionKeys.all(workspaceId), search, searchBy, 'archived'],
-
-    initialPageParam: undefined as string | undefined,
-
-    placeholderData: keepPreviousData,
-
-    queryFn: async ({ pageParam }) => {
-      const res = await $sessions.$get({
+export function useSessionsArchived(workspaceId?: string) {
+  return useQuery({
+    queryKey: sessionKeys.allArchived(workspaceId),
+    queryFn: async () => {
+      const res = await $archivedSessions.$get({
         query: {
           workspaceId,
-          cursor: pageParam,
-          limit: PAGINATION_LIMIT.toString(),
-          search: search || undefined,
-          searchBy: search ? searchBy : undefined,
-          archived: 'true',
         },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch sessions');
-      }
-
+      if (!res.ok) throw new Error('Failed to fetch archived sessions');
       return res.json();
     },
-
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 }
 

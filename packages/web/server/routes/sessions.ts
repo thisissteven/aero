@@ -16,7 +16,6 @@ import type {
   AeroConversationTurn,
   AeroMessage,
   AeroPartRequest,
-  AeroSessionSummary,
 } from '../services/harness/types';
 
 // reusable schemas for request validation
@@ -52,33 +51,30 @@ function groupMessages(messages: AeroMessage[]): AeroConversationTurn[] {
 
 const sessions = new Hono()
   // GET /api/sessions?workspaceId=...
-  .get(
-    '/',
-    zValidator(
-      'query',
-      withPagination<typeof querySchema.shape, AeroSessionSummary>(
-        querySchema,
-      ).extend({
-        archived: z.string().optional(),
-      }),
-    ),
-    async (c) => {
-      const { workspaceId, cursor, limit, search, searchBy, archived } =
-        c.req.valid('query');
+  .get('/', zValidator('query', withPagination(querySchema)), async (c) => {
+    const { workspaceId, cursor, limit, search } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(workspaceId);
+    const harness = await getActiveAdapter(workspaceId);
 
-      const result = await harness.listSessions({
-        cursor,
-        limit,
-        search,
-        searchBy,
-        archived,
-      });
+    const result = await harness.listSessions({
+      cursor,
+      limit,
+      search,
+    });
 
-      return c.json(result);
-    },
-  )
+    return c.json(result);
+  })
+
+  // GET /api/sessions/archived?workspaceId=...
+  .get('/archived', zValidator('query', querySchema), async (c) => {
+    const { workspaceId } = c.req.valid('query');
+
+    const harness = await getActiveAdapter(workspaceId);
+
+    const result = await harness.listArchivedSessions();
+
+    return c.json(result);
+  })
 
   // POST /api/sessions?workspaceId=...   body: { title? }
   .post(

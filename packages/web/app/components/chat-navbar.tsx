@@ -256,9 +256,14 @@ function SessionsNavbarContent() {
     <div className='flex items-start'>
       <div className='flex min-w-0 flex-col'>
         <SessionTitle sessionId={session.id} sessionTitle={session.title} />
-        <span className='text-muted truncate text-xs'>
-          {formatCompactRelativeTime(session.updatedAt)}
-        </span>
+        <div className='flex items-center gap-1'>
+          <span className='text-muted truncate text-xs'>
+            {formatCompactRelativeTime(session.updatedAt)} ago at
+          </span>
+          <span className='text-muted truncate text-xs font-bold'>
+            {session.workspace}
+          </span>
+        </div>
       </div>
       <div>
         <Dropdown>

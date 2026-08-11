@@ -100,8 +100,9 @@ export interface HarnessAdapter {
   readonly id: HarnessId;
 
   listSessions(
-    params?: AeroSessionSummaryPaginationParams,
+    params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroSessionSummary>>;
+  listArchivedSessions(): Promise<AeroSessionSummary[]>;
   createSession(input: CreateSessionInput): Promise<AeroSessionSummary>;
   getSession(sessionId: string): Promise<AeroSessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
@@ -123,15 +124,10 @@ export interface HarnessAdapter {
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
 }
 
-export interface BasePaginationParams<T = AeroSessionSummary> {
+export interface BasePaginationParams {
   cursor?: string;
   limit?: number;
   search?: string;
-  searchBy?: keyof T & string;
-}
-
-export interface AeroSessionSummaryPaginationParams extends BasePaginationParams<AeroSessionSummary> {
-  archived?: string;
 }
 
 export interface PaginatedResponse<T> {

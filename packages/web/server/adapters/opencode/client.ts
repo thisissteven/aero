@@ -44,6 +44,11 @@ export async function getOpencodeClient(): Promise<OpencodeClient> {
   return client;
 }
 
+export async function getOpencodeServer(): Promise<OpencodeServer> {
+  const { server } = await getOpencodeSetup();
+  return server;
+}
+
 async function waitForServerReady(
   client: OpencodeClient,
   maxRetries = 15,

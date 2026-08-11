@@ -10,7 +10,12 @@
 // SDK docs' typesUrl). Check that file against your installed
 // @opencode-ai/sdk version and adjust field access here if anything drifted.
 
-import type { Message, Part, Session } from '@opencode-ai/sdk/v2';
+import type {
+  Message,
+  Part,
+  Session,
+  SessionV2Info,
+} from '@opencode-ai/sdk/v2';
 
 import type {
   AeroMessage,
@@ -26,6 +31,17 @@ export function toAeroSession(s: Session): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: s.directory,
+  };
+}
+
+export function toAeroSessionV2(s: SessionV2Info): AeroSessionSummary {
+  return {
+    id: s.id,
+    title: s.title || 'Untitled session',
+    harness: 'opencode',
+    createdAt: s.time?.created ?? Date.now(),
+    updatedAt: s.time?.updated ?? Date.now(),
+    workspace: s.location.directory,
   };
 }
 
