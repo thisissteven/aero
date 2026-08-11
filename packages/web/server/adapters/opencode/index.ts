@@ -7,6 +7,32 @@
 import type { Event } from '@opencode-ai/sdk/v2';
 
 import { getOpencodeClient } from '@/server/adapters/opencode/client';
+import { AERO_DIR, GET_ALL_LIMIT, PAGINATION_LIMIT } from '@/server/helper';
+import type {
+  AddWorktreeInput,
+  AeroEvent,
+  AeroPart,
+  AeroTocItem,
+  AeroWorkspaceSummary,
+  AeroWorktreeSummary,
+  BasePaginationParams,
+  CreateWorkspaceInput,
+  HarnessAdapter,
+  ListSessionsParams,
+  StreamEventsOptions,
+  UpdateWorkspaceInput,
+} from '@/server/services/harness/types';
+import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
+import {
+  addWorktreeToWorkspace,
+  type AeroWorkspace as StoredWorkspace,
+  createWorkspace,
+  deleteWorkspace,
+  getWorkspace,
+  listWorkspaces as listStoredWorkspaces,
+  removeWorktreeFromWorkspace,
+  updateWorkspace,
+} from '@/server/storage/workspaces';
 
 import {
   toAeroMessage,
@@ -15,40 +41,268 @@ import {
   toAeroSessionV2,
 } from './mappers';
 import { unwrap } from './unwrap';
-import { PAGINATION_LIMIT } from '../../helper';
-import type {
-  AeroEvent,
-  AeroPart,
-  AeroTocItem,
-  HarnessAdapter,
-  StreamEventsOptions,
-} from '../../services/harness/types';
 
 export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   const client = await getOpencodeClient();
 
+  /**
+   * Helper: Hydrates a StoredWorkspace from storage into an AeroWorkspaceSummary
+   * by pulling top 3 preview sessions per worktree from OpenCode SDK.
+   */
+  async function hydrateWorkspace(
+    stored: StoredWorkspace,
+  ): Promise<AeroWorkspaceSummary> {
+    const worktrees: AeroWorktreeSummary[] = await Promise.all(
+      stored.worktrees.map(async (wt) => {
+        try {
+          const res = unwrap(
+            await client.v2.session.list({
+              directory: wt.directory,
+              limit: 4, // Fetch 3 + 1 to check if more sessions exist
+            }),
+          );
+
+          const unarchived = res.data.filter((s) => !s.time.archived);
+          const hasMoreSessions = unarchived.length > 3;
+          const previewSessions = unarchived.slice(0, 3).map(toAeroSessionV2);
+
+          return {
+            id: wt.id,
+            name: wt.name,
+            directory: wt.directory,
+            hasMoreSessions,
+            sessions: previewSessions,
+          };
+        } catch {
+          return {
+            id: wt.id,
+            name: wt.name,
+            directory: wt.directory,
+            hasMoreSessions: false,
+            sessions: [],
+          };
+        }
+      }),
+    );
+
+    return {
+      id: stored.id,
+      name: stored.name,
+      directory: stored.directory,
+      harness: stored.harness ?? 'opencode',
+      worktrees,
+      createdAt: stored.createdAt,
+      updatedAt: stored.updatedAt,
+    };
+  }
+
+  /**
+   * Helper: Scans OpenCode SDK for existing sessions, groups them by directory,
+   * and populates storage for any new workspace root paths found.
+   */
+  async function scanAndSyncWorkspaces(): Promise<AeroWorkspaceSummary[]> {
+    const sdkSessions = unwrap(
+      await client.v2.session.list({ limit: GET_ALL_LIMIT }),
+    );
+
+    const excludePrefix = AERO_DIR;
+
+    // Group sessions by normalized directory
+    const sessionsByDir = new Map<string, string[]>();
+    for (const session of sdkSessions.data) {
+      const normDir = normalizePath(session.location.directory);
+      if (normDir.startsWith(excludePrefix)) continue;
+
+      if (!sessionsByDir.has(normDir)) sessionsByDir.set(normDir, []);
+      sessionsByDir.get(normDir)!.push(session.id);
+    }
+
+    const isWorktreeStorage = (dir: string) =>
+      dir.includes(WORKTREE_PATH.opencode);
+
+    // Identify primary non-worktree directories
+    const primaryDirectories = Array.from(sessionsByDir.keys()).filter(
+      (dir) => !isWorktreeStorage(dir),
+    );
+
+    // Register each discovered directory in storage
+    for (const primaryDir of primaryDirectories) {
+      let worktreePaths: string[] = [];
+      try {
+        const wtResult = unwrap(
+          await client.worktree.list({ directory: primaryDir }),
+        );
+        worktreePaths = wtResult.map(normalizePath);
+      } catch {
+        worktreePaths = [primaryDir];
+      }
+
+      if (!worktreePaths.includes(primaryDir)) {
+        worktreePaths.push(primaryDir);
+      }
+
+      await createWorkspace({
+        name: getBasename(primaryDir),
+        directory: primaryDir,
+        worktrees: worktreePaths.map((wtPath) => ({
+          name: getBasename(wtPath),
+          directory: wtPath,
+        })),
+      });
+    }
+
+    const allStored = await listStoredWorkspaces();
+    return Promise.all(allStored.map(hydrateWorkspace));
+  }
+
+  async function archiveSessionsInDirectory(directoryPath: string) {
+    try {
+      const sessions = unwrap(
+        await client.v2.session.list({
+          directory: normalizePath(directoryPath),
+          limit: GET_ALL_LIMIT,
+        }),
+      );
+
+      const activeSessions = sessions.data.filter((s) => !s.time.archived);
+
+      await Promise.allSettled(
+        activeSessions.map((s) =>
+          client.session.update({
+            sessionID: s.id,
+            time: { archived: Date.now() },
+          }),
+        ),
+      );
+    } catch {
+      // Handle error or ignore if directory has no sessions
+    }
+  }
+
   return {
     id: 'opencode',
 
+    // Workspace Operations
+    async listWorkspaces({
+      cursor,
+      limit = PAGINATION_LIMIT,
+    }: BasePaginationParams) {
+      const all = await listStoredWorkspaces();
+
+      const startIndex = cursor ? all.findIndex((w) => w.id === cursor) + 1 : 0;
+
+      const pageItems = all.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < all.length;
+      const nextCursor = hasMore
+        ? pageItems[pageItems.length - 1]?.id
+        : undefined;
+
+      const items = await Promise.all(pageItems.map(hydrateWorkspace));
+
+      return {
+        items,
+        nextCursor,
+      };
+    },
+
+    async getWorkspace(workspaceId: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (!stored) {
+        throw new Error(`Workspace not found: ${workspaceId}`);
+      }
+      return hydrateWorkspace(stored);
+    },
+
+    async createWorkspace(input: CreateWorkspaceInput) {
+      const stored = await createWorkspace(input);
+      return hydrateWorkspace(stored);
+    },
+
+    async updateWorkspace(workspaceId: string, input: UpdateWorkspaceInput) {
+      const updated = await updateWorkspace(workspaceId, input);
+      if (!updated) {
+        throw new Error(`Workspace not found: ${workspaceId}`);
+      }
+      return hydrateWorkspace(updated);
+    },
+
+    async deleteWorkspace(workspaceId: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (stored) {
+        // Archive sessions across ALL worktrees in this workspace
+        await Promise.allSettled(
+          stored.worktrees.map((wt) =>
+            archiveSessionsInDirectory(wt.directory),
+          ),
+        );
+      }
+
+      return deleteWorkspace(workspaceId);
+    },
+
+    async addWorktree(workspaceId: string, input: AddWorktreeInput) {
+      const updated = await addWorktreeToWorkspace(workspaceId, input);
+      if (!updated) {
+        throw new Error(`Workspace not found: ${workspaceId}`);
+      }
+      return hydrateWorkspace(updated);
+    },
+
+    async removeWorktree(workspaceId: string, worktreeIdOrDir: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (stored) {
+        const targetWt = stored.worktrees.find(
+          (wt) =>
+            wt.id === worktreeIdOrDir ||
+            wt.directory === normalizePath(worktreeIdOrDir),
+        );
+
+        if (targetWt) {
+          // Archive sessions for this specific worktree directory
+          await archiveSessionsInDirectory(targetWt.directory);
+        }
+      }
+
+      const updated = await removeWorktreeFromWorkspace(
+        workspaceId,
+        worktreeIdOrDir,
+      );
+      if (!updated) {
+        throw new Error(`Workspace or worktree not found: ${workspaceId}`);
+      }
+      return hydrateWorkspace(updated);
+    },
+
+    async initWorkspaces() {
+      const existing = await listStoredWorkspaces();
+      if (existing.length > 0) {
+        return Promise.all(existing.map(hydrateWorkspace));
+      }
+      return scanAndSyncWorkspaces();
+    },
+
+    async syncWorkspaces() {
+      return scanAndSyncWorkspaces();
+    },
+
+    // Session Operations
     async listSessions({
+      directory,
       cursor,
       limit = PAGINATION_LIMIT,
       search,
-    }: {
-      cursor?: string;
-      limit?: number;
-      search?: string;
-    }) {
+    }: ListSessionsParams) {
       const sessions = unwrap(
         await client.v2.session.list({
+          directory: directory ? normalizePath(directory) : undefined,
           cursor,
           limit,
           search,
         }),
       );
 
-      const items = (sessions.data ?? [])
-        .filter((s) => !s?.time?.archived)
+      const items = sessions.data
+        .filter((session) => !session.time.archived)
         .map(toAeroSessionV2);
 
       return {
@@ -60,11 +314,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     async listArchivedSessions() {
       const sessions = unwrap(
         await client.experimental.session.list({
-          limit: 1000,
+          limit: GET_ALL_LIMIT,
+          archived: true,
         }),
       );
 
-      return sessions.map(toAeroSession);
+      return sessions
+        .filter((session) => session.time.archived)
+        .map(toAeroSession);
     },
 
     async createSession(input) {
@@ -93,10 +350,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async listTocs(sessionID) {
       const entries = unwrap(await client.session.messages({ sessionID }));
-
       const messages = entries.map(toAeroMessage);
 
-      // Group messages by consecutive roles to track virtualized group indices
       const items: AeroTocItem[] = [];
       let groupIndex = -1;
       let currentRole: string | null = null;
@@ -107,7 +362,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           currentRole = msg.role;
         }
 
-        // Only extract items for user messages (taking the first user message in a group)
         if (msg.role === 'user') {
           const userText = (msg.parts ?? [])
             .filter((p) => p.type === 'text')
@@ -115,7 +369,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             .join(' ')
             .trim();
 
-          // Avoid duplicate TOC entries if multiple user messages are grouped together
           const lastItem = items.at(-1);
           if (!lastItem || lastItem.groupIndex !== groupIndex) {
             items.push({
@@ -132,49 +385,23 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async messagesToMarkdown(sessionID) {
       const sessionItem = unwrap(await client.session.get({ sessionID }));
-
       const entries = unwrap(await client.session.messages({ sessionID }));
-
       const messages = entries.map(toAeroMessage);
 
       const formatPart = (part: AeroPart): string | null => {
         switch (part.type) {
           case 'text':
             return part.text.trim().length > 0 ? part.text.trim() : null;
-
           case 'reasoning':
           case 'tool':
             return null;
-
-          // case 'reasoning':
-          //   return part.text.trim().length > 0
-          //     ? `> *Thinking:*\n> ${part.text.trim().replace(/\n/g, '\n> ')}`
-          //     : null;
-
-          // case 'tool': {
-          //   const header = `*[Tool: ${part.toolName} (${part.status})]*`;
-          //   if (part.error) {
-          //     return `${header}\n\`\`\`\nError: ${part.error}\n\`\`\``;
-          //   }
-          //   if (part.output) {
-          //     const formattedOutput =
-          //       typeof part.output === 'string'
-          //         ? part.output
-          //         : JSON.stringify(part.output, null, 2);
-          //     return `${header}\n\`\`\`json\n${formattedOutput}\n\`\`\``;
-          //   }
-          //   return header;
-          // }
-
           case 'file':
             return `*[File: ${part.path}]*`;
-
           default:
             return null;
         }
       };
 
-      // 1. Map messages to text blocks
       const formattedMessages = messages
         .map((msg) => {
           const content = msg.parts
@@ -187,16 +414,10 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             content,
           };
         })
-        // 2. Drop any messages that ended up empty
         .filter((msg) => msg.content.length > 0);
 
-      // 3. Determine title from session or first user message
       const title = sessionItem.title;
-
-      // 4. Export Date (YYYY-MM-DD)
       const exportDate = new Date().toISOString().split('T')[0];
-
-      // 5. Build full Markdown Document
       const header = `# ${title}\n\n*Exported on ${exportDate}*`;
 
       const body = formattedMessages
@@ -289,20 +510,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       options: StreamEventsOptions = {},
     ): AsyncIterable<AeroEvent> {
       const { sessionId, signal } = options;
-      // event.subscribe()'s docs example uses `events.stream` directly,
-      // suggesting this one isn't wrapped in {data,error} like the other
-      // client methods. If TS disagrees here too, wrap with
-      // `unwrap(await client.event.subscribe()).stream` instead.
       const events = await client.event.subscribe();
 
       for await (const event of events.stream) {
         if (signal?.aborted) return;
 
         const mapped = mapOpencodeEvent(event);
-        if (!mapped) continue; // e.g. "server.connected" — nothing for Aero to relay
+        if (!mapped) continue;
 
-        // opencode's /event stream is global; scope it down to one session
-        // here since that's what the SSE route exposes to the frontend.
         if (
           sessionId &&
           'sessionId' in mapped &&
@@ -316,18 +531,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   };
 }
 
-// `Event` is a real discriminated union from the SDK (EventMessageUpdated |
-// EventSessionIdle | ... | EventServerConnected). Switching on event.type
-// narrows event.properties to the matching variant automatically — no `any`
-// needed, and TS will now tell you immediately if a property path below is
-// wrong instead of failing silently at runtime.
-//
-// NOTE: EventMessageUpdated only carries `properties.info` (the Message
-// itself), not its parts — parts arrive incrementally via separate
-// message.part.updated events. toAeroMessage() below is called with an
-// empty parts array here; the frontend should merge in parts as
-// message.part.updated events for the same messageId arrive, rather than
-// expecting a full message on every message.updated event.
 function mapOpencodeEvent(event: Event): AeroEvent | null {
   switch (event.type) {
     case 'message.updated': {
@@ -356,9 +559,6 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
       return {
         type: 'session.error',
         sessionId: event.properties.sessionID,
-        // Verify this against EventSessionError's actual `properties` shape
-        // in your generated types — flagging since it wasn't in what you
-        // pasted, only inferred from the naming pattern of the others.
         error:
           (event.properties as { error?: { message?: string } }).error
             ?.message ?? 'Unknown error',

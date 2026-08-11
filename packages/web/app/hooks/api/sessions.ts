@@ -32,9 +32,9 @@ export const sessionKeys = {
   all: (workspaceId?: string) =>
     ['sessions', workspaceId ?? 'default'] as const,
   allArchived: (workspaceId?: string) =>
-    ['sessions', 'archived', workspaceId ?? 'default'] as const,
+    ['sessions', workspaceId ?? 'default', 'all-archived'] as const,
   detail: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId] as const,
+    ['sessions', workspaceId ?? 'default', sessionId, 'detail'] as const,
   messages: (workspaceId: string | undefined, sessionId: string) =>
     ['sessions', workspaceId ?? 'default', sessionId, 'messages'] as const,
   toc: (workspaceId: string | undefined, sessionId: string) =>

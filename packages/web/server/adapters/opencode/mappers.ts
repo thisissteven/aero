@@ -17,6 +17,8 @@ import type {
   SessionV2Info,
 } from '@opencode-ai/sdk/v2';
 
+import { normalizePath } from '@/server/shared';
+
 import type {
   AeroMessage,
   AeroPart,
@@ -30,7 +32,7 @@ export function toAeroSession(s: Session): AeroSessionSummary {
     harness: 'opencode',
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
-    workspace: s.directory,
+    workspace: normalizePath(s.directory),
   };
 }
 
@@ -41,7 +43,7 @@ export function toAeroSessionV2(s: SessionV2Info): AeroSessionSummary {
     harness: 'opencode',
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
-    workspace: s.location.directory,
+    workspace: normalizePath(s.location.directory),
   };
 }
 

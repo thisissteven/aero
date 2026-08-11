@@ -7,8 +7,8 @@
 import { readFile } from 'node:fs/promises';
 import { mkdir } from 'node:fs/promises';
 import { writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+
+import { AERO_DIR, HARNESSES_CONFIG_PATH } from '@/server/helper';
 
 import type { HarnessId } from '../services/harness/types';
 
@@ -17,9 +17,6 @@ interface HarnessesConfig {
   registry: { id: HarnessId; label: string }[];
   workspaceHarness?: Record<string, HarnessId>;
 }
-
-const AERO_DIR = join(homedir(), '.aero');
-const CONFIG_PATH = join(AERO_DIR, 'harnesses.json');
 
 const DEFAULT_CONFIG: HarnessesConfig = {
   defaultHarness: 'opencode',
@@ -32,7 +29,7 @@ const DEFAULT_CONFIG: HarnessesConfig = {
 
 export async function readHarnessesConfig(): Promise<HarnessesConfig> {
   try {
-    const raw = await readFile(CONFIG_PATH, 'utf-8');
+    const raw = await readFile(HARNESSES_CONFIG_PATH, 'utf-8');
     return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
   } catch {
     // No file yet (or unreadable) — fall back to a hardcoded default so the
@@ -51,7 +48,11 @@ export async function writeHarnessesConfig(
   };
 
   await mkdir(AERO_DIR, { recursive: true });
-  await writeFile(CONFIG_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+  await writeFile(
+    HARNESSES_CONFIG_PATH,
+    JSON.stringify(updated, null, 2),
+    'utf-8',
+  );
 
   return updated;
 }

@@ -1,4 +1,7 @@
-export function formatCompactRelativeTime(value: string | number | Date) {
+export function formatCompactRelativeTime(
+  value: string | number | Date,
+  withAgo?: boolean,
+) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -14,14 +17,16 @@ export function formatCompactRelativeTime(value: string | number | Date) {
   const months = Math.floor(days / 30);
   const years = Math.floor(days / 365);
 
-  if (years > 0) return `${years}y`;
-  if (months > 0) return `${months}mo`;
-  if (weeks > 0) return `${weeks}w`;
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  if (minutes > 0) return `${minutes}m`;
+  const suffix = withAgo ? ' ago' : '';
 
-  return 'now';
+  if (years > 0) return `${years}y` + suffix;
+  if (months > 0) return `${months}mo` + suffix;
+  if (weeks > 0) return `${weeks}w` + suffix;
+  if (days > 0) return `${days}d` + suffix;
+  if (hours > 0) return `${hours}h` + suffix;
+  if (minutes > 0) return `${minutes}m` + suffix;
+
+  return withAgo ? 'Just now' : 'now';
 }
 
 export function formatDateTime(value: string | number | Date): string {

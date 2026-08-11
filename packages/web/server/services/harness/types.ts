@@ -8,6 +8,22 @@
 
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 
+export interface AeroWorktreeSummary {
+  name: string;
+  directory: string;
+  sessions: AeroSessionSummary[];
+}
+
+export interface AeroWorkspaceSummary {
+  id: string;
+  name: string;
+  directory: string;
+  harness: HarnessId;
+  worktrees: AeroWorktreeSummary[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AeroSessionSummary {
   id: string;
   title: string;
@@ -90,6 +106,29 @@ export interface SendMessageInput {
   model?: { providerId: string; modelId: string };
 }
 
+export interface CreateWorkspaceInput {
+  name?: string;
+  directory: string;
+  harness?: string;
+  worktrees?: Array<{ name?: string; directory: string }>;
+}
+
+export interface UpdateWorkspaceInput {
+  name?: string;
+  directory?: string;
+  harness?: string;
+}
+
+export interface AddWorktreeInput {
+  name?: string;
+  directory: string;
+}
+
+export interface ListSessionsParams extends BasePaginationParams {
+  directory?: string;
+  archived?: boolean;
+}
+
 export interface StreamEventsOptions {
   /** Filter to a single session's events. Omit for a global/workspace stream. */
   sessionId?: string;
@@ -99,6 +138,31 @@ export interface StreamEventsOptions {
 export interface HarnessAdapter {
   readonly id: HarnessId;
 
+  // Workspace Operations
+  listWorkspaces(
+    params: BasePaginationParams,
+  ): Promise<PaginatedResponse<AeroWorkspaceSummary>>;
+  getWorkspace(workspaceId: string): Promise<AeroWorkspaceSummary>;
+  createWorkspace(input: CreateWorkspaceInput): Promise<AeroWorkspaceSummary>;
+  updateWorkspace(
+    workspaceId: string,
+    input: UpdateWorkspaceInput,
+  ): Promise<AeroWorkspaceSummary>;
+  deleteWorkspace(workspaceId: string): Promise<boolean>;
+  addWorktree(
+    workspaceId: string,
+    input: AddWorktreeInput,
+  ): Promise<AeroWorkspaceSummary>;
+  removeWorktree(
+    workspaceId: string,
+    worktreeIdOrDir: string,
+  ): Promise<AeroWorkspaceSummary>;
+
+  // Initial Bootstrapping & Syncing
+  initWorkspaces(): Promise<AeroWorkspaceSummary[]>;
+  syncWorkspaces(): Promise<AeroWorkspaceSummary[]>;
+
+  // Session Operations
   listSessions(
     params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroSessionSummary>>;
@@ -106,7 +170,6 @@ export interface HarnessAdapter {
   createSession(input: CreateSessionInput): Promise<AeroSessionSummary>;
   getSession(sessionId: string): Promise<AeroSessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
-
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;

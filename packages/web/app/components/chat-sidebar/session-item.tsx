@@ -1,4 +1,4 @@
-import { EllipsisVertical } from '@gravity-ui/icons';
+import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { memo, useState, useTransition } from 'react';
@@ -14,17 +14,17 @@ import {
   ExportMarkdown,
   RenameSession,
 } from '@/app/components/chat-sidebar/session-actions';
-import { ChatSession } from '@/app/data/chat';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSessionRenameStore } from '@/app/stores/session-rename';
 import { AeroSessionSummary } from '@/server/services/harness/types';
+import { isWorktree } from '@/server/shared';
 
 interface ChatSidebarSessionItemProps {
   basePath: string;
   disableNavigation: boolean;
   idPrefix: string;
   pathname: string;
-  session: ChatSession | AeroSessionSummary;
+  session: AeroSessionSummary;
 }
 
 export function SessionItemSummary({
@@ -47,6 +47,16 @@ export function SessionItemSummary({
         <Sidebar.MenuItemContent>
           <Sidebar.MenuLabel>{session.title}</Sidebar.MenuLabel>
         </Sidebar.MenuItemContent>
+
+        {isWorktree(session.workspace) ? (
+          <Sidebar.MenuChip
+            className={cn('hide-on-hover', dropdownOpen && 'hidden')}
+          >
+            <span className='text-muted'>
+              <Icon data={CircleTree} size={12} />
+            </span>
+          </Sidebar.MenuChip>
+        ) : null}
 
         {session.updatedAt ? (
           <Sidebar.MenuChip

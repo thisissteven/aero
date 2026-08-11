@@ -10,15 +10,14 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
-import { waitForMessagePersistence, withPagination } from '../helper';
+import {
+  groupMessages,
+  waitForMessagePersistence,
+  withPagination,
+} from '../helper';
 import { getActiveAdapter } from '../services/harness/registry';
-import type {
-  AeroConversationTurn,
-  AeroMessage,
-  AeroPartRequest,
-} from '../services/harness/types';
+import type { AeroPartRequest } from '../services/harness/types';
 
-// reusable schemas for request validation
 const querySchema = z.object({
   workspaceId: z.string().min(1).optional(),
 });
@@ -26,28 +25,6 @@ const querySchema = z.object({
 const idParamSchema = z.object({
   id: z.string().min(1),
 });
-
-function groupMessages(messages: AeroMessage[]): AeroConversationTurn[] {
-  const turns: AeroConversationTurn[] = [];
-
-  for (const message of messages) {
-    const previous = turns.at(-1);
-
-    if (previous?.role === message.role) {
-      previous.parts.push(...message.parts);
-      continue;
-    }
-
-    turns.push({
-      id: message.id,
-      role: message.role,
-      parts: [...message.parts],
-      createdAt: message.createdAt,
-    });
-  }
-
-  return turns;
-}
 
 const sessions = new Hono()
   // GET /api/sessions?workspaceId=...

@@ -11,6 +11,7 @@ import {
   Navbar,
   Separator,
   Sidebar,
+  Skeleton,
   toast,
 } from '@aero/ui';
 
@@ -43,7 +44,7 @@ export function ChatNavbar({ activePage }: ChatNavbarProps) {
 
   return (
     <Navbar maxWidth='full'>
-      <Navbar.Header>
+      <Navbar.Header className='overflow-hidden'>
         <AppLayout.MenuToggle />
         <Sidebar.Trigger />
         {isNew && <NewNavbarContent />}
@@ -54,16 +55,32 @@ export function ChatNavbar({ activePage }: ChatNavbarProps) {
   );
 }
 
-function NewNavbarContent() {
+function NavbarContentSkeleton() {
+  return (
+    <div className='flex min-w-0 flex-col gap-1'>
+      <Skeleton className='h-3 w-48' />
+      <Skeleton className='h-3 w-32' />
+    </div>
+  );
+}
+
+function NavbarContentPlaceholder({ h1, span }: { h1: string; span: string }) {
   return (
     <div className='flex min-w-0 flex-col'>
       <h1 className='text-foreground truncate text-sm font-semibold sm:text-base'>
-        New Chat
+        {h1}
       </h1>
-      <span className='text-muted truncate text-xs'>
-        Start a brand new conversation
-      </span>
+      <span className='text-muted truncate text-xs'>{span}</span>
     </div>
+  );
+}
+
+function NewNavbarContent() {
+  return (
+    <NavbarContentPlaceholder
+      h1='New Chat'
+      span='Start a brand new conversation'
+    />
   );
 }
 
@@ -226,11 +243,11 @@ function SessionTitle({
       <h1
         aria-hidden={isRenaming}
         className={cn(
-          'text-foreground flex items-center gap-2 truncate text-sm font-semibold sm:text-base',
+          'text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold sm:text-base',
           isRenaming && 'min-w-[200px] opacity-0',
         )}
       >
-        <span className='truncate'>{sessionTitle}</span>
+        <span className='min-w-0 truncate'>{sessionTitle}</span>
         {isRenaming && (
           <span className='invisible flex shrink-0 items-center gap-1 p-1'>
             <span className='h-6 w-6' />
@@ -242,27 +259,52 @@ function SessionTitle({
   );
 }
 
+export function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T>(value);
+
+  useEffect(() => {
+    ref.current = value;
+  });
+
+  return ref.current;
+}
+
 function SessionsNavbarContent() {
   const { sessionId } = useParams({
     strict: false,
   });
-  const { data: session } = useSession(undefined, sessionId);
+
+  const {
+    data: session,
+    isFetching,
+    isError,
+  } = useSession(undefined, sessionId);
+
+  const wasError = usePrevious(isError);
+
+  if (isFetching && wasError) {
+    return <NavbarContentSkeleton />;
+  }
 
   if (!session) {
-    return <NewNavbarContent />;
+    return (
+      <NavbarContentPlaceholder
+        h1='Session not found'
+        span='Head to new chat page to create a new session'
+      />
+    );
   }
 
   return (
-    <div className='flex items-start'>
+    <div className='flex min-w-0 items-start gap-2 pr-2'>
       <div className='flex min-w-0 flex-col'>
         <SessionTitle sessionId={session.id} sessionTitle={session.title} />
-        <div className='flex items-center gap-1'>
-          <span className='text-muted truncate text-xs'>
-            {formatCompactRelativeTime(session.updatedAt)} ago at
+
+        <div className='text-muted flex min-w-0 items-center gap-1 overflow-hidden text-xs'>
+          <span className='shrink-0'>
+            {formatCompactRelativeTime(session.updatedAt, true)} at{' '}
           </span>
-          <span className='text-muted truncate text-xs font-bold'>
-            {session.workspace}
-          </span>
+          <span className='truncate font-bold'>{session.workspace}</span>
         </div>
       </div>
       <div>
