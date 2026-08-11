@@ -1,9 +1,4 @@
 // server/routes/sessions.ts
-//
-// These routes NEVER import from server/adapters/*. They resolve whichever
-// harness is active (per workspace) via getActiveAdapter() and call the
-// HarnessAdapter interface. Swap opencode for codex/claude and every route
-// below keeps working unchanged — that's the whole point of the wrapper.
 
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
@@ -18,8 +13,8 @@ import {
 import { getActiveAdapter } from '../services/harness/registry';
 import type { AeroPartRequest } from '../services/harness/types';
 
-const querySchema = z.object({
-  workspaceId: z.string().min(1).optional(),
+const harnessQuerySchema = z.object({
+  harnessId: z.string().optional(),
 });
 
 const idParamSchema = z.object({
@@ -27,40 +22,45 @@ const idParamSchema = z.object({
 });
 
 const sessions = new Hono()
-  // GET /api/sessions?workspaceId=...
-  .get('/', zValidator('query', withPagination(querySchema)), async (c) => {
-    const { workspaceId, cursor, limit, search } = c.req.valid('query');
+  // GET /api/sessions?harness=...
+  .get(
+    '/',
+    zValidator('query', withPagination(harnessQuerySchema)),
+    async (c) => {
+      const { harnessId, cursor, limit, search } = c.req.valid('query');
 
-    const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
 
-    const result = await harness.listSessions({
-      cursor,
-      limit,
-      search,
-    });
+      const result = await harness.listSessions({
+        cursor,
+        limit,
+        search,
+      });
 
-    return c.json(result);
-  })
+      return c.json(result);
+    },
+  )
 
-  // GET /api/sessions/archived?workspaceId=...
-  .get('/archived', zValidator('query', querySchema), async (c) => {
-    const { workspaceId } = c.req.valid('query');
+  // GET /api/sessions/archived?harness=...
+  .get('/archived', zValidator('query', harnessQuerySchema), async (c) => {
+    const { harnessId } = c.req.valid('query');
 
-    const harness = await getActiveAdapter(workspaceId);
+    const harness = await getActiveAdapter(harnessId);
 
     const result = await harness.listArchivedSessions();
 
     return c.json(result);
   })
 
-  // POST /api/sessions?workspaceId=...   body: { title? }
+  // POST /api/sessions?harness=... body: { title?, harness?, parts, model? }
   .post(
     '/',
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     zValidator(
       'json',
       z.object({
         title: z.string().optional(),
+        harnessId: z.string().optional(),
         parts: z.custom<AeroPartRequest[]>(
           (val) => Array.isArray(val),
           'parts must be an array',
@@ -74,10 +74,17 @@ const sessions = new Hono()
       }),
     ),
     async (c) => {
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId: queryHarness } = c.req.valid('query');
       const body = c.req.valid('json');
-      const harness = await getActiveAdapter(workspaceId);
-      const session = await harness.createSession({ title: body.title });
+
+      // Body harness takes precedence over query param, falling back to default
+      const harnessId = body.harnessId || queryHarness;
+      const harness = await getActiveAdapter(harnessId);
+
+      const session = await harness.createSession({
+        title: body.title,
+        harnessId,
+      });
 
       await harness.sendMessage(session.id, {
         parts: body.parts,
@@ -90,89 +97,91 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id?workspaceId=...
+  // GET /api/sessions/:id?harness=...
   .get(
     '/:id',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
-      const harness = await getActiveAdapter(workspaceId);
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
       const session = await harness.getSession(id);
       return c.json(session);
     },
   )
 
-  // DELETE /api/sessions/:id?workspaceId=...
+  // DELETE /api/sessions/:id?harness=...
   .delete(
     '/:id',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
-      const harness = await getActiveAdapter(workspaceId);
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
       const ok = await harness.deleteSession(id);
       return c.json({ ok });
     },
   )
 
-  // GET /api/sessions/:id/messages?workspaceId=...
+  // GET /api/sessions/:id/messages?harness=...
   .get(
     '/:id/messages',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const messages = await harness.listMessages(id);
 
       return c.json(groupMessages(messages));
     },
   )
 
-  // GET /api/sessions/:id/toc?workspaceId=...
+  // GET /api/sessions/:id/toc?harness=...
   .get(
     '/:id/toc',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
-      const harness = await getActiveAdapter(workspaceId);
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
       const items = await harness.listTocs(id);
 
-      // Don't show TOC if there are fewer than 3 items
       if (items.length < 3) return c.json([]);
 
       return c.json(items);
     },
   )
 
-  // GET /api/sessions/:id/markdown?workspaceId=...
+  // GET /api/sessions/:id/markdown?harness=...
   .get(
     '/:id/markdown',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const markdown = await harness.messagesToMarkdown(id);
 
       return c.json(markdown);
     },
   )
 
-  // PATCH /api/sessions/:id/rename?workspaceId=...
+  // PATCH /api/sessions/:id/rename?harness=...
   .patch(
     '/:id/rename',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     zValidator(
       'json',
       z.object({
@@ -181,10 +190,10 @@ const sessions = new Hono()
     ),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
       const body = c.req.valid('json');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const session = await harness.renameSession({
         sessionId: id,
         title: body.title,
@@ -194,43 +203,43 @@ const sessions = new Hono()
     },
   )
 
-  // PATCH /api/sessions/:id/archive?workspaceId=...
+  // PATCH /api/sessions/:id/archive?harness=...
   .patch(
     '/:id/archive',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const session = await harness.archiveSession(id);
 
       return c.json(session);
     },
   )
 
-  // PATCH /api/sessions/:id/unarchive?workspaceId=...
+  // PATCH /api/sessions/:id/unarchive?harness=...
   .patch(
     '/:id/unarchive',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const session = await harness.unarchiveSession(id);
 
       return c.json(session);
     },
   )
 
-  // POST /api/sessions/:id/message?workspaceId=...   body: { parts, model? }
+  // POST /api/sessions/:id/message?harness=...
   .post(
     '/:id/message',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     zValidator(
       'json',
       z.object({
@@ -248,38 +257,40 @@ const sessions = new Hono()
     ),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
+      const { harnessId } = c.req.valid('query');
       const body = c.req.valid('json');
 
-      const harness = await getActiveAdapter(workspaceId);
+      const harness = await getActiveAdapter(harnessId);
       const message = await harness.sendMessage(id, body);
       return c.json(message);
     },
   )
 
-  // POST /api/sessions/:id/abort?workspaceId=...
+  // POST /api/sessions/:id/abort?harness=...
   .post(
     '/:id/abort',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
-      const harness = await getActiveAdapter(workspaceId);
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
       const ok = await harness.abortSession(id);
       return c.json({ ok });
     },
   )
 
-  // GET /api/sessions/:id/stream?workspaceId=...   (SSE)
+  // GET /api/sessions/:id/stream?harness=... (SSE)
   .get(
     '/:id/stream',
     zValidator('param', idParamSchema),
-    zValidator('query', querySchema),
+    zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id: sessionId } = c.req.valid('param');
-      const { workspaceId } = c.req.valid('query');
-      const harness = await getActiveAdapter(workspaceId);
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
 
       return streamSSE(c, async (stream) => {
         const controller = new AbortController();

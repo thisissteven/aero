@@ -1,9 +1,8 @@
 // app/hooks/sessions.ts
 //
-// All queries/mutations are scoped by workspaceId in the query key, since a
-// harness is resolved per-workspace server-side (see server/services/harness/registry.ts).
-// Pass workspaceId=undefined to operate against the default harness while
-// workspace-switching isn't built in the UI yet.
+// All queries/mutations are scoped by harness in the query key, since a
+// harness is locked per-session server-side. Pass harness=undefined to operate
+// against the default harness.
 
 import {
   keepPreviousData,
@@ -15,6 +14,7 @@ import {
 import type { InferRequestType } from 'hono/client';
 
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
+import { HarnessId } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $archivedSessions = honoClient.api.sessions.archived;
@@ -29,33 +29,31 @@ const $unarchive = honoClient.api.sessions[':id'].unarchive;
 const $rename = honoClient.api.sessions[':id'].rename;
 
 export const sessionKeys = {
-  all: (workspaceId?: string) =>
-    ['sessions', workspaceId ?? 'default'] as const,
-  allArchived: (workspaceId?: string) =>
-    ['sessions', workspaceId ?? 'default', 'all-archived'] as const,
-  detail: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'detail'] as const,
-  messages: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'messages'] as const,
-  toc: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'toc'] as const,
-  markdown: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'markdown'] as const,
-  archive: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'archive'] as const,
-  unarchive: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'unarchive'] as const,
-  rename: (workspaceId: string | undefined, sessionId: string) =>
-    ['sessions', workspaceId ?? 'default', sessionId, 'rename'] as const,
+  all: (harnessId?: string) => ['sessions', harnessId ?? 'default'] as const,
+  allArchived: (harnessId?: string) =>
+    ['sessions', harnessId ?? 'default', 'all-archived'] as const,
+  detail: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'detail'] as const,
+  messages: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'messages'] as const,
+  toc: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'toc'] as const,
+  markdown: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'markdown'] as const,
+  archive: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'archive'] as const,
+  unarchive: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'unarchive'] as const,
+  rename: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'rename'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
 
-export function useSessions(workspaceId?: string, search?: string) {
+export function useSessions(harnessId?: string, search?: string) {
   return useInfiniteQuery({
-    // Include search & searchBy in key so queries auto-refetch when search state changes
-    queryKey: [...sessionKeys.all(workspaceId), search],
+    queryKey: [...sessionKeys.all(harnessId), search],
 
     initialPageParam: undefined as string | undefined,
 
@@ -64,7 +62,7 @@ export function useSessions(workspaceId?: string, search?: string) {
     queryFn: async ({ pageParam }) => {
       const res = await $sessions.$get({
         query: {
-          workspaceId,
+          harnessId,
           cursor: pageParam,
           limit: PAGINATION_LIMIT.toString(),
           search: search || undefined,
@@ -82,13 +80,13 @@ export function useSessions(workspaceId?: string, search?: string) {
   });
 }
 
-export function useSessionsArchived(workspaceId?: string) {
+export function useSessionsArchived(harnessId?: string) {
   return useQuery({
-    queryKey: sessionKeys.allArchived(workspaceId),
+    queryKey: sessionKeys.allArchived(harnessId),
     queryFn: async () => {
       const res = await $archivedSessions.$get({
         query: {
-          workspaceId,
+          harnessId,
         },
       });
       if (!res.ok) throw new Error('Failed to fetch archived sessions');
@@ -97,13 +95,13 @@ export function useSessionsArchived(workspaceId?: string) {
   });
 }
 
-export function useSession(workspaceId: string | undefined, sessionId: string) {
+export function useSession(harnessId: string | undefined, sessionId: string) {
   return useQuery({
-    queryKey: sessionKeys.detail(workspaceId, sessionId),
+    queryKey: sessionKeys.detail(harnessId, sessionId),
     queryFn: async () => {
       const res = await $session.$get({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
       });
       if (!res.ok) throw new Error('Failed to fetch session');
       return res.json();
@@ -113,27 +111,39 @@ export function useSession(workspaceId: string | undefined, sessionId: string) {
   });
 }
 
-export function useCreateSession(workspaceId?: string) {
+export function useCreateSession(defaultharnessId?: HarnessId) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateSessionInput) => {
+      const targetharnessId = input.harnessId || defaultharnessId;
+
       const [res] = await Promise.all([
         $sessions.$post({
-          json: input,
-          query: { workspaceId },
+          json: {
+            ...input,
+            harnessId: targetharnessId,
+          },
+          query: { harnessId: targetharnessId },
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
       if (!res.ok) throw new Error('Failed to create session');
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.all(data.harnessId),
+      });
+      if (defaultharnessId && defaultharnessId !== data.harnessId) {
+        queryClient.invalidateQueries({
+          queryKey: sessionKeys.all(defaultharnessId),
+        });
+      }
     },
   });
 }
 
-export function useDeleteSession(workspaceId?: string) {
+export function useDeleteSession(harnessId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -141,7 +151,7 @@ export function useDeleteSession(workspaceId?: string) {
       const [res] = await Promise.all([
         $session.$delete({
           param: { id: sessionId },
-          query: { workspaceId },
+          query: { harnessId },
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
@@ -149,24 +159,24 @@ export function useDeleteSession(workspaceId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
       queryClient.removeQueries({
-        queryKey: sessionKeys.detail(workspaceId, sessionId),
+        queryKey: sessionKeys.detail(harnessId, sessionId),
       });
     },
   });
 }
 
 export function useSessionMessages(
-  workspaceId: string | undefined,
+  harnessId: string | undefined,
   sessionId: string,
 ) {
   return useQuery({
-    queryKey: sessionKeys.messages(workspaceId, sessionId),
+    queryKey: sessionKeys.messages(harnessId, sessionId),
     queryFn: async () => {
       const res = await $messages.$get({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
       });
       if (!res.ok) throw new Error('Failed to fetch messages');
       return res.json();
@@ -176,15 +186,15 @@ export function useSessionMessages(
 }
 
 export function useSessionToc(
-  workspaceId: string | undefined,
+  harnessId: string | undefined,
   sessionId: string,
 ) {
   return useQuery({
-    queryKey: sessionKeys.toc(workspaceId, sessionId),
+    queryKey: sessionKeys.toc(harnessId, sessionId),
     queryFn: async () => {
       const res = await $toc.$get({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
       });
       if (!res.ok) throw new Error('Failed to fetch session TOC');
       return res.json();
@@ -193,12 +203,12 @@ export function useSessionToc(
   });
 }
 
-export function useSessionMarkdown(workspaceId?: string) {
+export function useSessionMarkdown(harnessId?: string) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $markdown.$get({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
       });
       if (!res.ok) throw new Error('Failed to retrieve markdown');
       return res.json();
@@ -207,7 +217,7 @@ export function useSessionMarkdown(workspaceId?: string) {
 }
 
 export function useSendMessage(
-  workspaceId: string | undefined,
+  harnessId: string | undefined,
   sessionId: string,
 ) {
   const queryClient = useQueryClient();
@@ -215,52 +225,47 @@ export function useSendMessage(
     mutationFn: async (input: SendMessageInput) => {
       const res = await $message.$post({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
         json: input,
       });
       if (!res.ok) throw new Error('Failed to send message');
       return res.json();
     },
     onSuccess: () => {
-      // Note: session.prompt() waits for the full assistant reply before
-      // resolving, so this invalidation lands after the whole turn — not
-      // per-token. Live streaming updates go through the SSE route
-      // (/api/sessions/:id/stream) separately; ask if you want a hook that
-      // wires that into the query cache incrementally instead.
       queryClient.invalidateQueries({
-        queryKey: sessionKeys.messages(workspaceId, sessionId),
+        queryKey: sessionKeys.messages(harnessId, sessionId),
       });
     },
   });
 }
 
-export function useAbortSession(workspaceId?: string) {
+export function useAbortSession(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $abort.$post({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
       });
       if (!res.ok) throw new Error('Failed to abort session');
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
       queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(workspaceId, sessionId),
+        queryKey: sessionKeys.detail(harnessId, sessionId),
       });
     },
   });
 }
 
-export function useArchiveSession(workspaceId?: string) {
+export function useArchiveSession(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const [res] = await Promise.all([
         $archive.$patch({
           param: { id: sessionId },
-          query: { workspaceId },
+          query: { harnessId },
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
@@ -268,22 +273,22 @@ export function useArchiveSession(workspaceId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
       queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(workspaceId, sessionId),
+        queryKey: sessionKeys.detail(harnessId, sessionId),
       });
     },
   });
 }
 
-export function useUnarchiveSession(workspaceId?: string) {
+export function useUnarchiveSession(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const [res] = await Promise.all([
         $unarchive.$patch({
           param: { id: sessionId },
-          query: { workspaceId },
+          query: { harnessId },
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
@@ -291,15 +296,15 @@ export function useUnarchiveSession(workspaceId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
       queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(workspaceId, sessionId),
+        queryKey: sessionKeys.detail(harnessId, sessionId),
       });
     },
   });
 }
 
-export function useRenameSession(workspaceId?: string) {
+export function useRenameSession(harnessId?: string) {
   return useMutation({
     mutationFn: async ({
       sessionId,
@@ -310,7 +315,7 @@ export function useRenameSession(workspaceId?: string) {
     }) => {
       const res = await $rename.$patch({
         param: { id: sessionId },
-        query: { workspaceId },
+        query: { harnessId },
         json: { title },
       });
       if (!res.ok) throw new Error('Failed to rename session');

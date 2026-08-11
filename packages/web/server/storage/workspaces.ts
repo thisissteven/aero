@@ -1,7 +1,4 @@
 // server/storage/workspaces.ts
-//
-// Minimal per PRD §5 (1b) scope — filesystem-backed CRUD for ~/.aero/workspaces.json.
-// Stores workspaces along with their associated worktree metadata.
 
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -20,8 +17,6 @@ export interface AeroWorkspace {
   id: string;
   name: string;
   directory: string;
-  /** Per-workspace harness override. Falls back to harnesses.json's default/workspaceHarness map if unset. */
-  harness?: string;
   worktrees: AeroWorktree[];
   createdAt: number;
   updatedAt: number;
@@ -32,7 +27,6 @@ async function readAll(): Promise<AeroWorkspace[]> {
     const raw = await readFile(WORKSPACES_PATH, 'utf-8');
     const data: AeroWorkspace[] = JSON.parse(raw);
 
-    // Ensure all read workspaces have a valid array for worktrees
     return data.map((ws) => ({
       ...ws,
       directory: normalizePath(ws.directory),
@@ -66,20 +60,17 @@ export async function getWorkspace(id: string): Promise<AeroWorkspace | null> {
 export async function createWorkspace(input: {
   name?: string;
   directory: string;
-  harness?: string;
   worktrees?: Array<{ name?: string; directory: string }>;
 }): Promise<AeroWorkspace> {
   const all = await readAll();
   const now = Date.now();
   const normalizedDir = normalizePath(input.directory);
 
-  // Check for duplicate workspace path
   const existing = all.find((w) => w.directory === normalizedDir);
   if (existing) {
     return existing;
   }
 
-  // Always include the root directory as the primary worktree
   const initialWorktreeInputs = input.worktrees || [];
   const hasRootWorktree = initialWorktreeInputs.some(
     (wt) => normalizePath(wt.directory) === normalizedDir,
@@ -106,7 +97,6 @@ export async function createWorkspace(input: {
     id: randomUUID(),
     name: input.name || getBasename(normalizedDir),
     directory: normalizedDir,
-    harness: input.harness,
     worktrees,
     createdAt: now,
     updatedAt: now,
@@ -119,7 +109,7 @@ export async function createWorkspace(input: {
 
 export async function updateWorkspace(
   id: string,
-  input: Partial<Pick<AeroWorkspace, 'name' | 'directory' | 'harness'>>,
+  input: Partial<Pick<AeroWorkspace, 'name' | 'directory'>>,
 ): Promise<AeroWorkspace | null> {
   const all = await readAll();
   const index = all.findIndex((w) => w.id === id);
@@ -148,7 +138,6 @@ export async function deleteWorkspace(id: string): Promise<boolean> {
   return true;
 }
 
-/** Helper to attach a new worktree to an existing workspace */
 export async function addWorktreeToWorkspace(
   workspaceId: string,
   worktreeInput: { name?: string; directory: string },
@@ -174,7 +163,6 @@ export async function addWorktreeToWorkspace(
   return workspace;
 }
 
-/** Helper to remove a worktree from a workspace by directory or worktree ID */
 export async function removeWorktreeFromWorkspace(
   workspaceId: string,
   worktreeIdOrDir: string,

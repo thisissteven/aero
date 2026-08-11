@@ -1,4 +1,4 @@
-import { Hourglass } from '@gravity-ui/icons';
+import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, ReactElement, useRef } from 'react';
 
@@ -31,7 +31,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
           <div className='relative shrink-0'>
             <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
             <Icon
-              data={Hourglass}
+              data={Bulb}
               className='absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
               style={{
                 width: 12,

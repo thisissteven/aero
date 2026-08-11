@@ -38,16 +38,24 @@ export function getAdapter(id: HarnessId): Promise<HarnessAdapter> {
 }
 
 /**
- * Resolve whichever harness is active for a given workspace (or the global
- * default if no workspace is specified / configured). This is the single
- * entrypoint route handlers should use.
+ * Resolve the harness adapter for a session, or fall back to the global default
+ * if no harness ID / session is provided.
  */
 export async function getActiveAdapter(
-  workspaceId?: string,
+  sessionOrHarnessId?: { harness?: HarnessId } | HarnessId,
 ): Promise<HarnessAdapter> {
-  const config = await readHarnessesConfig();
-  const harnessId =
-    (workspaceId && config.workspaceHarness?.[workspaceId]) ||
-    config.defaultHarness;
+  let harnessId: HarnessId | undefined;
+
+  if (typeof sessionOrHarnessId === 'string') {
+    harnessId = sessionOrHarnessId;
+  } else if (sessionOrHarnessId && sessionOrHarnessId.harness) {
+    harnessId = sessionOrHarnessId.harness;
+  }
+
+  if (!harnessId) {
+    const config = await readHarnessesConfig();
+    harnessId = config.defaultHarness;
+  }
+
   return getAdapter(harnessId);
 }

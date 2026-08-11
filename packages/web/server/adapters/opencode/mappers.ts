@@ -29,7 +29,7 @@ export function toAeroSession(s: Session): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
-    harness: 'opencode',
+    harnessId: 'opencode',
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
@@ -40,7 +40,7 @@ export function toAeroSessionV2(s: SessionV2Info): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
-    harness: 'opencode',
+    harnessId: 'opencode',
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.location.directory),

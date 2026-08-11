@@ -18,7 +18,6 @@ export interface AeroWorkspaceSummary {
   id: string;
   name: string;
   directory: string;
-  harness: HarnessId;
   worktrees: AeroWorktreeSummary[];
   createdAt: number;
   updatedAt: number;
@@ -27,7 +26,7 @@ export interface AeroWorkspaceSummary {
 export interface AeroSessionSummary {
   id: string;
   title: string;
-  harness: HarnessId;
+  harnessId: HarnessId;
   workspace: string;
   createdAt: number;
   updatedAt: number;
@@ -94,6 +93,7 @@ export type AeroEvent =
 
 export interface CreateSessionInput {
   title?: string;
+  harnessId?: HarnessId;
 }
 
 export interface RenameSessionInput {
@@ -109,14 +109,12 @@ export interface SendMessageInput {
 export interface CreateWorkspaceInput {
   name?: string;
   directory: string;
-  harness?: string;
   worktrees?: Array<{ name?: string; directory: string }>;
 }
 
 export interface UpdateWorkspaceInput {
   name?: string;
   directory?: string;
-  harness?: string;
 }
 
 export interface AddWorktreeInput {

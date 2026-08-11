@@ -33,11 +33,13 @@ interface SettingsStore {
   activeTab: SettingsTab;
   searchQuery: string;
   selectedSkillId: string | null;
+  sidebarScrollTop: number;
   openModal: (initialTab?: SettingsTab) => void;
   closeModal: () => void;
   setActiveTab: (tab: SettingsTab) => void;
   setSearchQuery: (query: string) => void;
   setSelectedSkillId: (id: string | null) => void;
+  setSidebarScrollTop: (scrollTop: number) => void;
 }
 
 export const useSettingsModalStore = create<SettingsStore>((set) => ({
@@ -45,6 +47,7 @@ export const useSettingsModalStore = create<SettingsStore>((set) => ({
   activeTab: 'appearance',
   searchQuery: '',
   selectedSkillId: 'find-skills',
+  sidebarScrollTop: 0,
 
   openModal: (initialTab) =>
     set((state) => ({
@@ -56,4 +59,5 @@ export const useSettingsModalStore = create<SettingsStore>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedSkillId: (id) => set({ selectedSkillId: id }),
+  setSidebarScrollTop: (scrollTop) => set({ sidebarScrollTop: scrollTop }),
 }));

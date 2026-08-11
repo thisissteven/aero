@@ -85,6 +85,7 @@
     margin-bottom: calc(var(--spacing, 0.25rem) * 4);
     padding-inline-start: calc(var(--spacing, 0.25rem) * 6);
     line-height: 1.75;
+    overflow-wrap: break-word;
   }
 
   .markdown ul,

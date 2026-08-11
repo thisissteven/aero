@@ -62,5 +62,5 @@ async function waitForServerReady(
       await new Promise((res) => setTimeout(res, delayMs));
     }
   }
-  throw new Error('OpenCode server failed to respond on 127.0.0.1:4096');
+  throw new Error('OpenCode server failed to respond on 127.0.0.1:56789');
 }

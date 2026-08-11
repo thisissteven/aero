@@ -26,7 +26,7 @@ import {
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { SVGProps } from 'react';
+import { SVGProps, useEffect, useRef } from 'react';
 
 import { Modal, SearchField } from '@aero/ui';
 
@@ -104,126 +104,156 @@ export function SettingsModal() {
     setSearchQuery,
     selectedSkillId,
     setSelectedSkillId,
+    sidebarScrollTop,
+    setSidebarScrollTop,
   } = useSettingsModalStore();
 
+  const sidebarNavRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen && sidebarNavRef.current) {
+      sidebarNavRef.current.scrollTop = sidebarScrollTop;
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    const currentScrollTop = sidebarNavRef.current?.scrollTop ?? 0;
+    setSidebarScrollTop(currentScrollTop);
+    closeModal();
+  };
+
   return (
-    <Modal.Backdrop
+    <Modal
       isOpen={isOpen}
-      onOpenChange={(open) => !open && closeModal()}
-      variant='blur'
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
     >
-      <Modal.Container size='cover'>
-        <Modal.Dialog className='my-auto h-180 w-full max-w-5xl overflow-hidden rounded-md border-0 bg-transparent p-0 shadow-none'>
-          <div className='border-border bg-surface text-foreground relative flex h-full w-full overflow-hidden rounded-xl border shadow-2xl'>
-            {/* Native Close Trigger */}
-            <Modal.CloseTrigger className='text-muted hover:text-foreground absolute top-4 right-4 z-10 transition-colors' />
+      <Modal.Backdrop variant='blur'>
+        <Modal.Container size='cover'>
+          <Modal.Dialog className='my-auto h-180 w-full max-w-5xl overflow-hidden rounded-md border-0 bg-transparent p-0 shadow-none'>
+            <div className='border-border bg-surface text-foreground relative flex h-full w-full overflow-hidden rounded-xl border shadow-2xl'>
+              {/* Native Close Trigger */}
+              <Modal.CloseTrigger className='text-muted hover:text-foreground absolute top-4 right-4 z-10 transition-colors' />
 
-            {/* Left Sidebar */}
-            <aside className='border-separator bg-surface flex w-64 shrink-0 flex-col justify-between border-r'>
-              <div className='flex scrollbar-thin flex-col gap-3 overflow-y-auto p-3'>
-                {/* Search Bar */}
-                <div className='relative'>
-                  <Icon
-                    data={Magnifier}
-                    className='text-muted absolute top-1/2 left-2.5 size-4 -translate-y-1/2'
-                  />
-                  <SearchField
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    className='w-full'
-                    variant='secondary'
-                  >
-                    <SearchField.Group>
-                      <SearchField.SearchIcon />
-                      <SearchField.Input
-                        placeholder='Search settings'
-                        className='w-full text-xs'
-                      />
-                      <SearchField.ClearButton />
-                    </SearchField.Group>
-                  </SearchField>
-                </div>
-
-                {/* Navigation Items */}
-                <nav className='flex flex-col gap-4'>
-                  {NAV_SECTIONS.map((section, idx) => {
-                    const filteredItems = section.items.filter((item) =>
-                      item.label
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()),
-                    );
-
-                    if (filteredItems.length === 0) return null;
-
-                    return (
-                      <div key={idx} className='flex flex-col gap-1'>
-                        {section.title && (
-                          <span className='text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
-                            {section.title}
-                          </span>
-                        )}
-                        {filteredItems.map((item) => {
-                          const isActive = activeTab === item.id;
-                          return (
-                            <button
-                              key={item.id}
-                              onClick={() => setActiveTab(item.id)}
-                              className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-xs ${
-                                isActive
-                                  ? 'bg-accent text-accent-foreground font-medium'
-                                  : 'text-muted hover:bg-surface-secondary hover:text-accent-soft-foreground'
-                              }`}
-                            >
-                              <div className='flex items-center gap-2.5'>
-                                <Icon data={item.icon} className='size-4' />
-                                <span>{item.label}</span>
-                              </div>
-                              {item.badge && (
-                                <span className='bg-warning text-warning-foreground rounded px-1.5 py-0.5 text-[10px] font-normal'>
-                                  {item.badge}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              {/* Sidebar Footer */}
-              <div className='border-separator border-t p-3'>
-                <button className='text-muted hover:text-foreground hover:bg-surface-hover flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors'>
-                  <Icon data={ArrowsRotateRight} className='size-4' />
-                  <span>Reload OpenCode</span>
-                </button>
-              </div>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className='flex flex-1 overflow-hidden'>
-              {activeTab === 'appearance' && <AppearanceView />}
-              {activeTab === 'skills' && (
-                <SkillsView
-                  selectedSkillId={selectedSkillId}
-                  onSelectSkill={setSelectedSkillId}
-                />
-              )}
-              {activeTab !== 'appearance' && activeTab !== 'skills' && (
-                <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
-                  Content for
-                  <div className='text-foreground mx-1 capitalize'>
-                    {activeTab.replace('-', ' ')}
+              {/* Left Sidebar */}
+              <aside className='border-separator bg-surface flex w-64 shrink-0 flex-col justify-between border-r'>
+                <div
+                  ref={sidebarNavRef}
+                  className='flex scrollbar-thin flex-col gap-3 overflow-y-auto p-3'
+                >
+                  {/* Search Bar */}
+                  <div className='relative'>
+                    <Icon
+                      data={Magnifier}
+                      className='text-muted absolute top-1/2 left-2.5 size-4 -translate-y-1/2'
+                    />
+                    <SearchField
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      className='w-full'
+                      variant='secondary'
+                    >
+                      <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input
+                          placeholder='Search settings'
+                          className='w-full text-sm'
+                        />
+                        <SearchField.ClearButton />
+                      </SearchField.Group>
+                    </SearchField>
                   </div>
-                  is under development.
+
+                  {/* Navigation Items */}
+                  <nav className='flex flex-col gap-4'>
+                    {NAV_SECTIONS.map((section, idx) => {
+                      const filteredItems = section.items.filter((item) =>
+                        item.label
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()),
+                      );
+
+                      if (filteredItems.length === 0) return null;
+
+                      return (
+                        <div key={idx} className='flex flex-col gap-1'>
+                          {section.title && (
+                            <span className='text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
+                              {section.title}
+                            </span>
+                          )}
+                          {filteredItems.map((item) => {
+                            const isActive = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm ${
+                                  isActive
+                                    ? 'bg-surface-secondary text-sureface-foreground font-medium'
+                                    : 'text-muted hover:bg-surface-secondary'
+                                }`}
+                              >
+                                <div className='flex items-center gap-2.5'>
+                                  <Icon data={item.icon} />
+                                  <span
+                                    className={`${
+                                      isActive
+                                        ? 'text-surface-foreground'
+                                        : 'text-muted'
+                                    }`}
+                                  >
+                                    {item.label}
+                                  </span>
+                                </div>
+                                {item.badge && (
+                                  <span className='bg-accent-soft-foreground text-accent-foreground rounded px-1.5 py-0.5 text-[10px] font-normal'>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </nav>
                 </div>
-              )}
-            </main>
-          </div>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+
+                {/* Sidebar Footer */}
+                <div className='border-separator border-t p-3'>
+                  <button className='text-muted hover:text-foreground hover:bg-surface-hover flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors'>
+                    <Icon data={ArrowsRotateRight} className='size-4' />
+                    <span>Reload OpenCode</span>
+                  </button>
+                </div>
+              </aside>
+
+              {/* Main Content Area */}
+              <main className='flex flex-1 overflow-hidden'>
+                {activeTab === 'appearance' && <AppearanceView />}
+                {activeTab === 'skills' && (
+                  <SkillsView
+                    selectedSkillId={selectedSkillId}
+                    onSelectSkill={setSelectedSkillId}
+                  />
+                )}
+                {activeTab !== 'appearance' && activeTab !== 'skills' && (
+                  <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
+                    Content for
+                    <div className='text-foreground mx-1 capitalize'>
+                      {activeTab.replace('-', ' ')}
+                    </div>
+                    is under development.
+                  </div>
+                )}
+              </main>
+            </div>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 

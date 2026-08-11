@@ -89,7 +89,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       id: stored.id,
       name: stored.name,
       directory: stored.directory,
-      harness: stored.harness ?? 'opencode',
       worktrees,
       createdAt: stored.createdAt,
       updatedAt: stored.updatedAt,
@@ -331,7 +330,11 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         }),
       );
 
-      return toAeroSession(session);
+      const mapped = toAeroSession(session);
+      return {
+        ...mapped,
+        harnessId: 'opencode',
+      };
     },
 
     async getSession(sessionID) {

@@ -74,6 +74,7 @@ export const AssistantChatBubble = memo(
                   );
 
                 case 'reasoning':
+                  if (!part.text) return null;
                   return (
                     <ReasoningBlock
                       key={blockId}

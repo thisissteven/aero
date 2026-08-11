@@ -9,7 +9,7 @@ export function SettingsButton() {
   const { openModal } = useSettingsModalStore();
   return (
     <Tooltip delay={0}>
-      <Tooltip.Trigger onClick={() => openModal('general')}>
+      <Tooltip.Trigger onClick={() => openModal()}>
         <div className='px-1 opacity-50 transition hover:opacity-100'>
           <Icon data={Gear} size={18} />
         </div>
