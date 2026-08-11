@@ -127,7 +127,6 @@ export const SidebarContents = memo(function SidebarContents({
       </Sidebar.Content>
 
       <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>
-        <Sidebar.Separator className='mt-0' />
         <div className='mt-1.5 space-x-2 px-4'>
           <SettingsButton />
 

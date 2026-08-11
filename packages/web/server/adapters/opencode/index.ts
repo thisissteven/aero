@@ -4,11 +4,10 @@
 // for codex/claude adapters later — same interface, different SDK/CLI calls
 // and a different mappers.ts.
 
-import type { Event } from '@opencode-ai/sdk';
+import type { Event } from '@opencode-ai/sdk/v2';
 
-import { Session, SessionListData } from '@/server/types/opencode';
+import { getOpencodeClient } from '@/server/adapters/opencode/client';
 
-import { getOpencodeClient } from './client';
 import { toAeroMessage, toAeroPart, toAeroSession } from './mappers';
 import { unwrap } from './unwrap';
 import { BACKEND_PAGINATION_LIMIT, PAGINATION_LIMIT } from '../../helper';
@@ -40,11 +39,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     > {
       const sessions = unwrap(
         await client.session.list({
-          query: {
-            limit: BACKEND_PAGINATION_LIMIT,
-          },
-        } as SessionListData),
-      ) as Session[];
+          limit: BACKEND_PAGINATION_LIMIT,
+        }),
+      );
 
       // 1. Transform raw sessions to domain objects
       let items = sessions
@@ -80,33 +77,30 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async createSession(input) {
       const session = unwrap(
-        await client.session.create({ body: { title: input.title } }),
+        await client.session.create({
+          title: input.title,
+        }),
       );
+
       return toAeroSession(session);
     },
 
-    async getSession(sessionId) {
-      const session = unwrap(
-        await client.session.get({ path: { id: sessionId } }),
-      );
+    async getSession(sessionID) {
+      const session = unwrap(await client.session.get({ sessionID }));
       return toAeroSession(session);
     },
 
-    async deleteSession(sessionId) {
-      return unwrap(await client.session.delete({ path: { id: sessionId } }));
+    async deleteSession(sessionID) {
+      return unwrap(await client.session.delete({ sessionID }));
     },
 
-    async listMessages(sessionId) {
-      const entries = unwrap(
-        await client.session.messages({ path: { id: sessionId } }),
-      );
+    async listMessages(sessionID) {
+      const entries = unwrap(await client.session.messages({ sessionID }));
       return entries.map(toAeroMessage);
     },
 
-    async listTocs(sessionId) {
-      const entries = unwrap(
-        await client.session.messages({ path: { id: sessionId } }),
-      );
+    async listTocs(sessionID) {
+      const entries = unwrap(await client.session.messages({ sessionID }));
 
       const messages = entries.map(toAeroMessage);
 
@@ -144,14 +138,10 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return items;
     },
 
-    async messagesToMarkdown(sessionId) {
-      const sessionItem = unwrap(
-        await client.session.get({ path: { id: sessionId } }),
-      );
+    async messagesToMarkdown(sessionID) {
+      const sessionItem = unwrap(await client.session.get({ sessionID }));
 
-      const entries = unwrap(
-        await client.session.messages({ path: { id: sessionId } }),
-      );
+      const entries = unwrap(await client.session.messages({ sessionID }));
 
       const messages = entries.map(toAeroMessage);
 
@@ -227,26 +217,26 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       };
     },
 
-    async archiveSession(sessionId) {
+    async archiveSession(sessionID) {
       const session = unwrap(
         await client.session.update({
-          path: { id: sessionId },
-          body: {
-            time: {
-              archived: Date.now(),
-            },
-          } as Session,
+          sessionID,
+          time: {
+            archived: Date.now(),
+          },
         }),
       );
 
       return toAeroSession(session);
     },
 
-    async unarchiveSession(sessionId) {
+    async unarchiveSession(sessionID) {
       const session = unwrap(
         await client.session.update({
-          path: { id: sessionId },
-          body: { time: { archived: null } } as Session,
+          sessionID,
+          time: {
+            archived: undefined,
+          },
         }),
       );
 
@@ -256,57 +246,51 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     async renameSession({ sessionId, title }) {
       const session = unwrap(
         await client.session.update({
-          path: { id: sessionId },
-          body: {
-            title,
-          },
+          sessionID: sessionId,
+          title,
         }),
       );
 
       return toAeroSession(session);
     },
 
-    async sendMessage(sessionId, input) {
+    async sendMessage(sessionID, input) {
       unwrap(
         await client.session.promptAsync({
-          path: { id: sessionId },
-          body: {
-            parts: input.parts.map((p) =>
-              p.type === 'text' ? { type: 'text', text: p.text } : (p as never),
-            ),
-            model: input.model
-              ? {
-                  providerID: input.model.providerId,
-                  modelID: input.model.modelId,
-                }
-              : undefined,
-          },
+          sessionID,
+          parts: input.parts.map((p) =>
+            p.type === 'text' ? { type: 'text', text: p.text } : (p as never),
+          ),
+          model: input.model
+            ? {
+                providerID: input.model.providerId,
+                modelID: input.model.modelId,
+              }
+            : undefined,
         }),
       );
     },
 
-    async sendMessageSync(sessionId, input) {
+    async sendMessageSync(sessionID, input) {
       const { info, parts } = unwrap(
         await client.session.prompt({
-          path: { id: sessionId },
-          body: {
-            parts: input.parts.map((p) =>
-              p.type === 'text' ? { type: 'text', text: p.text } : (p as never),
-            ),
-            model: input.model
-              ? {
-                  providerID: input.model.providerId,
-                  modelID: input.model.modelId,
-                }
-              : undefined,
-          },
+          sessionID,
+          parts: input.parts.map((p) =>
+            p.type === 'text' ? { type: 'text', text: p.text } : (p as never),
+          ),
+          model: input.model
+            ? {
+                providerID: input.model.providerId,
+                modelID: input.model.modelId,
+              }
+            : undefined,
         }),
       );
       return toAeroMessage({ info, parts });
     },
 
-    async abortSession(sessionId) {
-      return unwrap(await client.session.abort({ path: { id: sessionId } }));
+    async abortSession(sessionID) {
+      return unwrap(await client.session.abort({ sessionID }));
     },
 
     async *streamEvents(

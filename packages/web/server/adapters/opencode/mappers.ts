@@ -10,7 +10,7 @@
 // SDK docs' typesUrl). Check that file against your installed
 // @opencode-ai/sdk version and adjust field access here if anything drifted.
 
-import type { Message, Part, Session } from '@opencode-ai/sdk';
+import type { Message, Part, Session } from '@opencode-ai/sdk/v2';
 
 import type {
   AeroMessage,

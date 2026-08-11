@@ -1,34 +1,46 @@
 // server/adapters/opencode/client.ts
 
-import { createOpencode } from '@opencode-ai/sdk';
+import {
+  createOpencodeClient,
+  createOpencodeServer,
+} from '@opencode-ai/sdk/v2';
 
-import { SessionListData } from '@/server/types/opencode';
+type OpencodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
+type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
-type OpencodeClient = OpencodeInstance['client'];
-type OpencodeInstance = Awaited<ReturnType<typeof createOpencode>>;
+interface OpencodeSetup {
+  server: OpencodeServer;
+  client: OpencodeClient;
+}
 
-let instancePromise: Promise<OpencodeInstance> | null = null;
+let setupPromise: Promise<OpencodeSetup> | null = null;
 
-export async function getOpencodeInstance(): Promise<OpencodeInstance> {
-  if (!instancePromise) {
-    instancePromise = (async () => {
-      const instance = await createOpencode({
+export async function getOpencodeSetup(): Promise<OpencodeSetup> {
+  if (!setupPromise) {
+    setupPromise = (async () => {
+      // 1. Start the server process independently
+      const server = await createOpencodeServer({
         hostname: '127.0.0.1',
-        port: 4096,
+        port: 56789,
       });
 
-      // Ping server to ensure port 4096 is bound before returning client
-      await waitForServerReady(instance.client);
+      // 2. Instantiate client bound to server URL
+      const client = createOpencodeClient({
+        baseUrl: server.url,
+      });
 
-      return instance;
+      // 3. Ping server to ensure port 4096 is bound before returning
+      await waitForServerReady(client);
+
+      return { server, client };
     })();
   }
 
-  return instancePromise;
+  return setupPromise;
 }
 
-export async function getOpencodeClient() {
-  const { client } = await getOpencodeInstance();
+export async function getOpencodeClient(): Promise<OpencodeClient> {
+  const { client } = await getOpencodeSetup();
   return client;
 }
 
@@ -39,7 +51,7 @@ async function waitForServerReady(
 ) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      await client.session.list({ query: { limit: 1 } } as SessionListData);
+      await client.session.list({ limit: 1 });
       return;
     } catch {
       await new Promise((res) => setTimeout(res, delayMs));

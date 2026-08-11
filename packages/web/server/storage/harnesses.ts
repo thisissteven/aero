@@ -5,6 +5,8 @@
 // don't over-build this.
 
 import { readFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -16,7 +18,8 @@ interface HarnessesConfig {
   workspaceHarness?: Record<string, HarnessId>;
 }
 
-const CONFIG_PATH = join(homedir(), '.aero', 'harnesses.json');
+const AERO_DIR = join(homedir(), '.aero');
+const CONFIG_PATH = join(AERO_DIR, 'harnesses.json');
 
 const DEFAULT_CONFIG: HarnessesConfig = {
   defaultHarness: 'opencode',
@@ -36,4 +39,19 @@ export async function readHarnessesConfig(): Promise<HarnessesConfig> {
     // app still boots on a clean machine.
     return DEFAULT_CONFIG;
   }
+}
+
+export async function writeHarnessesConfig(
+  config: Partial<HarnessesConfig>,
+): Promise<HarnessesConfig> {
+  const current = await readHarnessesConfig();
+  const updated: HarnessesConfig = {
+    ...current,
+    ...config,
+  };
+
+  await mkdir(AERO_DIR, { recursive: true });
+  await writeFile(CONFIG_PATH, JSON.stringify(updated, null, 2), 'utf-8');
+
+  return updated;
 }
