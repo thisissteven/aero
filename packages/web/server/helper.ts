@@ -1,3 +1,4 @@
+import net from 'node:net';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import z from 'zod';
@@ -8,6 +9,45 @@ import {
   HarnessAdapter,
 } from '@/server/services/harness/types';
 import { normalizePath } from '@/server/shared';
+
+/**
+ * Checks if a specific port is free to use on 127.0.0.1.
+ */
+export function isPortAvailable(
+  port: number,
+  host = '127.0.0.1',
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+
+    server.listen(port, host);
+  });
+}
+
+/**
+ * Finds a free available port starting from preferredPort up to maxPort.
+ */
+export async function findAvailablePort(
+  preferredPort: number,
+  maxPort = 60000,
+  host = '127.0.0.1',
+): Promise<number> {
+  let port = preferredPort;
+  while (port <= maxPort) {
+    if (await isPortAvailable(port, host)) {
+      return port;
+    }
+    port++;
+  }
+  throw new Error(
+    `No available ports found between ${preferredPort} and ${maxPort}`,
+  );
+}
 
 // Dynamically resolves to:
 // Windows: C:/Users/<username>/.aero

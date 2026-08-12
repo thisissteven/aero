@@ -6,6 +6,8 @@ import {
   createOpencodeServer,
 } from '@opencode-ai/sdk/v2';
 
+import { findAvailablePort } from '@/server/helper';
+
 type OpencodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
@@ -49,9 +51,16 @@ export class OpencodeServerPool {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      const spawns = Array.from({ length: this.poolSize }, (_, i) =>
-        this.spawnNode(i, this.basePort + i),
-      );
+      const spawns: Promise<PoolNode>[] = [];
+      let currentPort = this.basePort;
+
+      // Dynamically resolve distinct free ports for each node sequentially
+      for (let i = 0; i < this.poolSize; i++) {
+        const port = await findAvailablePort(currentPort);
+        spawns.push(this.spawnNode(i, port));
+        // Increment search start for the next node to avoid collisions
+        currentPort = port + 1;
+      }
 
       const results = await Promise.allSettled(spawns);
       this.nodes = results
@@ -62,13 +71,25 @@ export class OpencodeServerPool {
         .map((r) => r.value);
 
       if (this.nodes.length === 0) {
+        results.forEach((r, idx) => {
+          if (r.status === 'rejected') {
+            console.error(
+              `[OpenCode Pool] Node ${idx} spawn failed:`,
+              r.reason,
+            );
+          }
+        });
         throw new Error('Failed to initialize any OpenCode server instances.');
       }
 
       console.log(
-        `[OpenCode Pool] Active nodes: ${this.nodes.length}/${this.poolSize}`,
+        `[OpenCode Pool] Active nodes: ${this.nodes.length}/${this.poolSize} on ports: [${this.nodes.map((n) => n.port).join(', ')}]`,
       );
-    })();
+    })().catch((err) => {
+      // Reset promise cache on failure to allow future initialization retries
+      this.initPromise = null;
+      throw err;
+    });
 
     return this.initPromise;
   }
@@ -113,6 +134,35 @@ export class OpencodeServerPool {
   }
 
   /**
+   * Recovers a failed node by resolving a new free port.
+   */
+  private async recoverNode(node: PoolNode): Promise<void> {
+    console.warn(
+      `[OpenCode Pool] Attempting recovery for node ${node.id} (port ${node.port})...`,
+    );
+    try {
+      node.server.close?.();
+    } catch {
+      //
+    }
+
+    try {
+      // Find a fresh free port starting from the node's old port
+      const freshPort = await findAvailablePort(node.port);
+      const freshNode = await this.spawnNode(node.id, freshPort);
+      Object.assign(node, freshNode);
+      console.log(
+        `[OpenCode Pool] Node ${node.id} recovered on port ${freshPort}.`,
+      );
+    } catch (err) {
+      console.error(
+        `[OpenCode Pool] Recovery failed for node ${node.id}:`,
+        err,
+      );
+    }
+  }
+
+  /**
    * Acquires the least-busy healthy node from the pool.
    */
   public async getNode(): Promise<PoolNode> {
@@ -123,7 +173,6 @@ export class OpencodeServerPool {
       throw new Error('[OpenCode Pool] No healthy server nodes available.');
     }
 
-    // Select the node with the fewest active requests (Least Connections)
     healthyNodes.sort((a, b) => a.activeRequests - b.activeRequests);
     const selected = healthyNodes[0];
 
@@ -141,40 +190,12 @@ export class OpencodeServerPool {
     try {
       return await fn(node.client, node);
     } catch (err) {
-      console.error(
-        `[OpenCode Pool] Execution error on port ${node.port}:`,
-        err,
-      );
-      // Mark node unhealthy if connection failed
+      console.error(`[OpenCode Pool] Error on port ${node.port}:`, err);
       node.isHealthy = false;
       this.recoverNode(node);
       throw err;
     } finally {
       node.activeRequests = Math.max(0, node.activeRequests - 1);
-    }
-  }
-
-  /**
-   * Background recovery process for failed nodes.
-   */
-  private async recoverNode(node: PoolNode): Promise<void> {
-    console.warn(
-      `[OpenCode Pool] Attempting recovery for port ${node.port}...`,
-    );
-    try {
-      await node.server.close?.();
-    } catch {
-      //
-    }
-
-    try {
-      const freshNode = await this.spawnNode(node.id, node.port);
-      Object.assign(node, freshNode);
-      console.log(`[OpenCode Pool] Node on port ${node.port} recovered.`);
-    } catch {
-      console.error(
-        `[OpenCode Pool] Node recovery failed on port ${node.port}.`,
-      );
     }
   }
 
@@ -213,8 +234,8 @@ export class OpencodeServerPool {
     await Promise.allSettled(
       this.nodes.map(async (n) => {
         try {
-          await n.server.close?.();
-          console.log(`[OpenCode Pool] Stopped daemon on port ${n.port}`);
+          n.server.close?.();
+          console.log(`[OpenCode Pool] Closed daemon on port ${n.port}`);
         } catch (err) {
           console.error(
             `[OpenCode Pool] Error closing server on port ${n.port}:`,

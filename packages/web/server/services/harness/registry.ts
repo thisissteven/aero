@@ -29,11 +29,25 @@ async function buildAdapter(id: HarnessId): Promise<HarnessAdapter> {
 }
 
 export async function getAllAdapters(): Promise<HarnessAdapter[]> {
-  return Promise.all([
+  const adapters: HarnessAdapter[] = [];
+
+  // Try initializing each adapter independently
+  const results = await Promise.allSettled([
     createOpencodeAdapter(),
     createCodexAdapter(),
     createClaudeAdapter(),
   ]);
+
+  for (const res of results) {
+    if (res.status === 'fulfilled') {
+      adapters.push(res.value);
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[Harness Registry] Adapter failed to load:', res.reason);
+    }
+  }
+
+  return adapters;
 }
 
 /** Get (and lazily start) the adapter for a specific harness id. */
