@@ -7,6 +7,7 @@
 // no matter which harness is actually running underneath.
 
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
+export type ConversationRole = 'user' | 'assistant' | 'system';
 
 export interface AeroWorktreeSummary {
   name: string;
@@ -53,7 +54,7 @@ export type AeroPart = AeroPartRequest & { id: string };
 export interface AeroMessage {
   id: string;
   sessionId: string;
-  role: 'user' | 'assistant';
+  role: ConversationRole;
   parts: AeroPart[];
   createdAt: number;
 }
@@ -66,7 +67,7 @@ export interface AeroTocItem {
 
 export interface AeroConversationTurn {
   id: string;
-  role: 'user' | 'assistant';
+  role: ConversationRole;
   parts: AeroPart[];
   createdAt: number;
 }

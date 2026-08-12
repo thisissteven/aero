@@ -18,18 +18,15 @@ let setupPromise: Promise<OpencodeSetup> | null = null;
 export async function getOpencodeSetup(): Promise<OpencodeSetup> {
   if (!setupPromise) {
     setupPromise = (async () => {
-      // 1. Start the server process independently
       const server = await createOpencodeServer({
         hostname: '127.0.0.1',
         port: 56789,
       });
 
-      // 2. Instantiate client bound to server URL
       const client = createOpencodeClient({
         baseUrl: server.url,
       });
 
-      // 3. Ping server to ensure port 4096 is bound before returning
       await waitForServerReady(client);
 
       return { server, client };

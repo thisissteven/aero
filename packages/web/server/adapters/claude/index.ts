@@ -1,7 +1,501 @@
-export function getClaudeInstance() {
-  return null;
-}
+// server/adapters/claude/index.ts
 
-export async function getClaudeClient() {
-  return null;
+import type Anthropic from '@anthropic-ai/sdk';
+import { randomUUID } from 'node:crypto';
+import EventEmitter from 'node:events';
+
+import { getClaudeClient } from '@/server/adapters/claude/client';
+import { PAGINATION_LIMIT } from '@/server/helper';
+import type {
+  AddWorktreeInput,
+  AeroEvent,
+  AeroMessage,
+  AeroPart,
+  AeroSessionSummary,
+  AeroTocItem,
+  AeroWorkspaceSummary,
+  AeroWorktreeSummary,
+  BasePaginationParams,
+  CreateSessionInput,
+  CreateWorkspaceInput,
+  HarnessAdapter,
+  ListSessionsParams,
+  RenameSessionInput,
+  SendMessageInput,
+  StreamEventsOptions,
+  UpdateWorkspaceInput,
+} from '@/server/services/harness/types';
+import { normalizePath } from '@/server/shared';
+import {
+  appendClaudeMessage,
+  deleteClaudeSession,
+  getClaudeMessages,
+  getClaudeSession,
+  listArchivedClaudeSessions,
+  listClaudeSessions,
+  saveClaudeSession,
+  setClaudeSessionArchived,
+} from '@/server/storage/claude';
+import {
+  addWorktreeToWorkspace,
+  type AeroWorkspace as StoredWorkspace,
+  createWorkspace,
+  deleteWorkspace,
+  getWorkspace,
+  listWorkspaces as listStoredWorkspaces,
+  removeWorktreeFromWorkspace,
+  updateWorkspace,
+} from '@/server/storage/workspaces';
+
+const globalEmitter = new EventEmitter();
+
+export async function createClaudeAdapter(): Promise<HarnessAdapter> {
+  const client = getClaudeClient();
+  const adapterId = 'claude';
+
+  /**
+   * Helper: Hydrates a StoredWorkspace from storage into an AeroWorkspaceSummary
+   * by pulling top 3 preview sessions per worktree from Claude storage.
+   */
+  async function hydrateWorkspace(
+    stored: StoredWorkspace,
+  ): Promise<AeroWorkspaceSummary> {
+    const worktrees: AeroWorktreeSummary[] = await Promise.all(
+      stored.worktrees.map(async (wt) => {
+        try {
+          const sessions = await listClaudeSessions(wt.directory);
+          const hasMoreSessions = sessions.length > 3;
+          const previewSessions = sessions.slice(0, 3);
+
+          return {
+            id: wt.id,
+            name: wt.name,
+            directory: wt.directory,
+            hasMoreSessions,
+            sessions: previewSessions,
+          };
+        } catch {
+          return {
+            id: wt.id,
+            name: wt.name,
+            directory: wt.directory,
+            hasMoreSessions: false,
+            sessions: [],
+          };
+        }
+      }),
+    );
+
+    return {
+      id: stored.id,
+      name: stored.name,
+      directory: stored.directory,
+      worktrees,
+      createdAt: stored.createdAt,
+      updatedAt: stored.updatedAt,
+    };
+  }
+
+  async function archiveSessionsInDirectory(directoryPath: string) {
+    try {
+      const sessions = await listClaudeSessions(directoryPath);
+      await Promise.allSettled(
+        sessions.map((s) => setClaudeSessionArchived(s.id, true)),
+      );
+    } catch {
+      // Ignore if directory has no sessions
+    }
+  }
+
+  async function getSession(sessionId: string): Promise<AeroSessionSummary> {
+    const session = await getClaudeSession(sessionId);
+    if (!session) throw new Error(`Claude session not found: ${sessionId}`);
+    return session;
+  }
+
+  async function sendMessageSync(
+    sessionId: string,
+    input: SendMessageInput,
+  ): Promise<AeroMessage> {
+    const now = Date.now();
+
+    // 1. Record User Message
+    const userParts: AeroPart[] = input.parts.map((p, idx) => ({
+      ...p,
+      id: `usr-part-${now}-${idx}`,
+    }));
+
+    const userMessage: AeroMessage = {
+      id: `msg-user-${now}`,
+      sessionId,
+      role: 'user',
+      parts: userParts,
+      createdAt: now,
+    };
+
+    await appendClaudeMessage(sessionId, userMessage);
+    globalEmitter.emit('event', {
+      type: 'message.updated',
+      sessionId,
+      message: userMessage,
+    } as AeroEvent);
+
+    // 2. Fetch Message History to supply context to Claude
+    const history = await getClaudeMessages(sessionId);
+    const anthropicMessages: Anthropic.MessageParam[] = history.map((m) => {
+      const textContent = m.parts
+        .filter((p) => p.type === 'text')
+        .map((p) => (p as { type: 'text'; text: string }).text)
+        .join('\n');
+
+      return {
+        role: m.role,
+        content: textContent,
+      };
+    });
+
+    // 3. Call Claude SDK
+    const response = await client.messages.create({
+      model: input.model?.modelId || 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      messages: anthropicMessages,
+    });
+
+    const responseText = response.content
+      .filter((c) => c.type === 'text')
+      .map((c) => (c as { type: 'text'; text: string }).text)
+      .join('\n');
+
+    const assistantMessage: AeroMessage = {
+      id: response.id,
+      sessionId,
+      role: 'assistant',
+      parts: [
+        {
+          id: `ast-part-${now}`,
+          type: 'text',
+          text: responseText,
+        },
+      ],
+      createdAt: Date.now(),
+    };
+
+    await appendClaudeMessage(sessionId, assistantMessage);
+
+    // Emit update and idle events
+    globalEmitter.emit('event', {
+      type: 'message.updated',
+      sessionId,
+      message: assistantMessage,
+    } as AeroEvent);
+
+    globalEmitter.emit('event', {
+      type: 'session.idle',
+      sessionId,
+    } as AeroEvent);
+
+    return assistantMessage;
+  }
+
+  return {
+    id: adapterId,
+
+    // Workspace Operations
+    async listWorkspaces({
+      cursor,
+      limit = PAGINATION_LIMIT,
+    }: BasePaginationParams) {
+      const all = await listStoredWorkspaces();
+      const startIndex = cursor ? all.findIndex((w) => w.id === cursor) + 1 : 0;
+      const pageItems = all.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < all.length;
+      const nextCursor = hasMore ? pageItems.at(-1)?.id : undefined;
+      const items = await Promise.all(pageItems.map(hydrateWorkspace));
+
+      return { items, nextCursor };
+    },
+
+    async getWorkspace(workspaceId: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (!stored) throw new Error(`Workspace not found: ${workspaceId}`);
+      return hydrateWorkspace(stored);
+    },
+
+    async createWorkspace(input: CreateWorkspaceInput) {
+      const stored = await createWorkspace(input);
+      return hydrateWorkspace(stored);
+    },
+
+    async updateWorkspace(workspaceId: string, input: UpdateWorkspaceInput) {
+      const updated = await updateWorkspace(workspaceId, input);
+      if (!updated) throw new Error(`Workspace not found: ${workspaceId}`);
+      return hydrateWorkspace(updated);
+    },
+
+    async deleteWorkspace(workspaceId: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (stored) {
+        await Promise.allSettled(
+          stored.worktrees.map((wt) =>
+            archiveSessionsInDirectory(wt.directory),
+          ),
+        );
+      }
+      return deleteWorkspace(workspaceId);
+    },
+
+    async addWorktree(workspaceId: string, input: AddWorktreeInput) {
+      const updated = await addWorktreeToWorkspace(workspaceId, input);
+      if (!updated) throw new Error(`Workspace not found: ${workspaceId}`);
+      return hydrateWorkspace(updated);
+    },
+
+    async removeWorktree(workspaceId: string, worktreeIdOrDir: string) {
+      const stored = await getWorkspace(workspaceId);
+      if (stored) {
+        const targetWt = stored.worktrees.find(
+          (wt) =>
+            wt.id === worktreeIdOrDir ||
+            wt.directory === normalizePath(worktreeIdOrDir),
+        );
+        if (targetWt) {
+          await archiveSessionsInDirectory(targetWt.directory);
+        }
+      }
+
+      const updated = await removeWorktreeFromWorkspace(
+        workspaceId,
+        worktreeIdOrDir,
+      );
+      if (!updated) {
+        throw new Error(`Workspace or worktree not found: ${workspaceId}`);
+      }
+      return hydrateWorkspace(updated);
+    },
+
+    async initWorkspaces() {
+      const existing = await listStoredWorkspaces();
+      return Promise.all(existing.map(hydrateWorkspace));
+    },
+
+    async syncWorkspaces() {
+      const existing = await listStoredWorkspaces();
+      return Promise.all(existing.map(hydrateWorkspace));
+    },
+
+    // Session Operations
+    async listSessions({
+      directory,
+      cursor,
+      limit = PAGINATION_LIMIT,
+      search,
+    }: ListSessionsParams) {
+      let all = await listClaudeSessions(directory);
+
+      if (search) {
+        const q = search.toLowerCase();
+        all = all.filter((s) => s.title.toLowerCase().includes(q));
+      }
+
+      const startIndex = cursor ? all.findIndex((s) => s.id === cursor) + 1 : 0;
+      const items = all.slice(startIndex, startIndex + limit);
+      const nextCursor =
+        startIndex + limit < all.length ? items.at(-1)?.id : undefined;
+
+      return { items, nextCursor };
+    },
+
+    async listArchivedSessions() {
+      return listArchivedClaudeSessions();
+    },
+
+    async createSession(
+      input: CreateSessionInput,
+    ): Promise<AeroSessionSummary> {
+      const now = Date.now();
+      const session: AeroSessionSummary = {
+        id: `claude-${randomUUID()}`,
+        title: input.title || 'Untitled session',
+        harnessId: adapterId,
+        workspace: '',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await saveClaudeSession(session);
+      return session;
+    },
+
+    getSession,
+
+    async deleteSession(sessionId: string) {
+      return deleteClaudeSession(sessionId);
+    },
+
+    async listMessages(sessionId: string) {
+      return getClaudeMessages(sessionId);
+    },
+
+    async listTocs(sessionId: string) {
+      const messages = await getClaudeMessages(sessionId);
+      const items: AeroTocItem[] = [];
+      let groupIndex = -1;
+      let currentRole: string | null = null;
+
+      for (const msg of messages) {
+        if (msg.role !== currentRole) {
+          groupIndex++;
+          currentRole = msg.role;
+        }
+
+        if (msg.role === 'user') {
+          const userText = (msg.parts ?? [])
+            .filter((p) => p.type === 'text')
+            .map((p) => (p as { type: 'text'; text: string }).text)
+            .join(' ')
+            .trim();
+
+          const lastItem = items.at(-1);
+          if (!lastItem || lastItem.groupIndex !== groupIndex) {
+            items.push({
+              id: msg.id,
+              groupIndex,
+              label: userText.slice(0, 80) || `Prompt ${items.length + 1}`,
+            });
+          }
+        }
+      }
+
+      return items;
+    },
+
+    async messagesToMarkdown(sessionId: string) {
+      const session = await getSession(sessionId);
+      const messages = await getClaudeMessages(sessionId);
+
+      const formatPart = (part: AeroPart): string | null => {
+        switch (part.type) {
+          case 'text':
+            return part.text.trim().length > 0 ? part.text.trim() : null;
+          case 'reasoning':
+          case 'tool':
+            return null;
+          case 'file':
+            return `*[File: ${part.path}]*`;
+          default:
+            return null;
+        }
+      };
+
+      const formattedMessages = messages
+        .map((msg) => {
+          const content = msg.parts
+            .map(formatPart)
+            .filter((text): text is string => text !== null)
+            .join('\n\n');
+
+          return {
+            role: msg.role === 'user' ? 'User' : 'Assistant',
+            content,
+          };
+        })
+        .filter((msg) => msg.content.length > 0);
+
+      const title = session.title;
+      const exportDate = new Date().toISOString().split('T')[0];
+      const header = `# ${title}\n\n*Exported on ${exportDate}*`;
+
+      const body = formattedMessages
+        .map((msg) => `### ${msg.role}\n\n${msg.content}`)
+        .join('\n\n---\n\n');
+
+      return {
+        title,
+        markdown: `${header}\n\n---\n\n${body}`,
+      };
+    },
+
+    async archiveSession(sessionId: string) {
+      return setClaudeSessionArchived(sessionId, true);
+    },
+
+    async unarchiveSession(sessionId: string) {
+      return setClaudeSessionArchived(sessionId, false);
+    },
+
+    async renameSession({ sessionId, title }: RenameSessionInput) {
+      const session = await getSession(sessionId);
+      session.title = title;
+      session.updatedAt = Date.now();
+      return saveClaudeSession(session);
+    },
+
+    async sendMessage(
+      sessionId: string,
+      input: SendMessageInput,
+    ): Promise<void> {
+      // Async trigger, stream response out to live listeners
+      sendMessageSync(sessionId, input).catch((err) => {
+        globalEmitter.emit('event', {
+          type: 'session.error',
+          sessionId,
+          error: err.message || String(err),
+        } as AeroEvent);
+      });
+    },
+
+    sendMessageSync,
+
+    async abortSession(sessionId: string) {
+      globalEmitter.emit('event', {
+        type: 'session.idle',
+        sessionId,
+      } as AeroEvent);
+      return true;
+    },
+
+    async *streamEvents(
+      options: StreamEventsOptions = {},
+    ): AsyncIterable<AeroEvent> {
+      const { sessionId, signal } = options;
+
+      const queue: AeroEvent[] = [];
+      let resolveNext: (() => void) | null = null;
+
+      const handler = (event: AeroEvent) => {
+        if (
+          sessionId &&
+          'sessionId' in event &&
+          event.sessionId !== sessionId
+        ) {
+          return;
+        }
+        queue.push(event);
+        if (resolveNext) {
+          resolveNext();
+          resolveNext = null;
+        }
+      };
+
+      globalEmitter.on('event', handler);
+
+      try {
+        while (!signal?.aborted) {
+          if (queue.length === 0) {
+            await new Promise<void>((res) => {
+              resolveNext = res;
+            });
+          }
+
+          while (queue.length > 0) {
+            if (signal?.aborted) return;
+            const event = queue.shift();
+            if (event) yield event;
+          }
+        }
+      } finally {
+        globalEmitter.off('event', handler);
+      }
+    },
+  };
 }

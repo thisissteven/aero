@@ -7,7 +7,12 @@
 import type { Event } from '@opencode-ai/sdk/v2';
 
 import { getOpencodeClient } from '@/server/adapters/opencode/client';
-import { AERO_DIR, GET_ALL_LIMIT, PAGINATION_LIMIT } from '@/server/helper';
+import {
+  AERO_DIR,
+  GET_ALL_LIMIT,
+  PAGINATION_LIMIT,
+  WORKSPACE_VISIBLE_SESSIONS_LIMIT,
+} from '@/server/helper';
 import type {
   AddWorktreeInput,
   AeroEvent,
@@ -58,13 +63,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           const res = unwrap(
             await client.v2.session.list({
               directory: wt.directory,
-              limit: 4, // Fetch 3 + 1 to check if more sessions exist
+              limit: WORKSPACE_VISIBLE_SESSIONS_LIMIT + 1, // Fetch LIMIT + 1 to check if more sessions exist
             }),
           );
 
           const unarchived = res.data.filter((s) => !s.time.archived);
-          const hasMoreSessions = unarchived.length > 3;
-          const previewSessions = unarchived.slice(0, 3).map(toAeroSessionV2);
+          const hasMoreSessions =
+            unarchived.length > WORKSPACE_VISIBLE_SESSIONS_LIMIT;
+          const previewSessions = unarchived
+            .slice(0, WORKSPACE_VISIBLE_SESSIONS_LIMIT)
+            .map(toAeroSessionV2);
 
           return {
             id: wt.id,

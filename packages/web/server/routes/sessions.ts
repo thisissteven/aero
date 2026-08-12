@@ -5,12 +5,14 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
+import { listSessionsAcrossAdapters } from '@/server/services/sessions/sessions-merger';
+
 import {
   groupMessages,
   waitForMessagePersistence,
   withPagination,
 } from '../helper';
-import { getActiveAdapter } from '../services/harness/registry';
+import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import type { AeroPartRequest } from '../services/harness/types';
 
 const harnessQuerySchema = z.object({
@@ -22,7 +24,25 @@ const idParamSchema = z.object({
 });
 
 const sessions = new Hono()
-  // GET /api/sessions?harness=...
+  // GET /api/sessions/merged?directory=...&cursor=...&limit=...&search=...
+  .get(
+    '/merged',
+    zValidator('query', withPagination(z.object())),
+    async (c) => {
+      const { cursor, limit, search } = c.req.valid('query');
+      const adapters = await getAllAdapters();
+
+      const result = await listSessionsAcrossAdapters(adapters, {
+        cursor,
+        limit,
+        search,
+      });
+
+      return c.json(result);
+    },
+  )
+
+  // GET /api/sessions?harnessId=...&cursor=...&limit=...&search=...
   .get(
     '/',
     zValidator('query', withPagination(harnessQuerySchema)),
@@ -41,7 +61,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/archived?harness=...
+  // GET /api/sessions/archived?harnessId=...
   .get('/archived', zValidator('query', harnessQuerySchema), async (c) => {
     const { harnessId } = c.req.valid('query');
 
@@ -52,7 +72,7 @@ const sessions = new Hono()
     return c.json(result);
   })
 
-  // POST /api/sessions?harness=... body: { title?, harness?, parts, model? }
+  // POST /api/sessions?harnessId=... body: { title?, harnessId?, parts, model? }
   .post(
     '/',
     zValidator('query', harnessQuerySchema),
@@ -97,7 +117,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id?harness=...
+  // GET /api/sessions/:id?harnessId=...
   .get(
     '/:id',
     zValidator('param', idParamSchema),
@@ -112,7 +132,7 @@ const sessions = new Hono()
     },
   )
 
-  // DELETE /api/sessions/:id?harness=...
+  // DELETE /api/sessions/:id?harnessId=...
   .delete(
     '/:id',
     zValidator('param', idParamSchema),
@@ -127,7 +147,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/messages?harness=...
+  // GET /api/sessions/:id/messages?harnessId=...
   .get(
     '/:id/messages',
     zValidator('param', idParamSchema),
@@ -143,7 +163,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/toc?harness=...
+  // GET /api/sessions/:id/toc?harnessId=...
   .get(
     '/:id/toc',
     zValidator('param', idParamSchema),
@@ -161,7 +181,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/markdown?harness=...
+  // GET /api/sessions/:id/markdown?harnessId=...
   .get(
     '/:id/markdown',
     zValidator('param', idParamSchema),
@@ -177,7 +197,7 @@ const sessions = new Hono()
     },
   )
 
-  // PATCH /api/sessions/:id/rename?harness=...
+  // PATCH /api/sessions/:id/rename?harnessId=...
   .patch(
     '/:id/rename',
     zValidator('param', idParamSchema),
@@ -203,7 +223,7 @@ const sessions = new Hono()
     },
   )
 
-  // PATCH /api/sessions/:id/archive?harness=...
+  // PATCH /api/sessions/:id/archive?harnessId=...
   .patch(
     '/:id/archive',
     zValidator('param', idParamSchema),
@@ -219,7 +239,7 @@ const sessions = new Hono()
     },
   )
 
-  // PATCH /api/sessions/:id/unarchive?harness=...
+  // PATCH /api/sessions/:id/unarchive?harnessId=...
   .patch(
     '/:id/unarchive',
     zValidator('param', idParamSchema),
@@ -235,7 +255,7 @@ const sessions = new Hono()
     },
   )
 
-  // POST /api/sessions/:id/message?harness=...
+  // POST /api/sessions/:id/message?harnessId=...
   .post(
     '/:id/message',
     zValidator('param', idParamSchema),
@@ -266,7 +286,7 @@ const sessions = new Hono()
     },
   )
 
-  // POST /api/sessions/:id/abort?harness=...
+  // POST /api/sessions/:id/abort?harnessId=...
   .post(
     '/:id/abort',
     zValidator('param', idParamSchema),
@@ -281,7 +301,7 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/stream?harness=... (SSE)
+  // GET /api/sessions/:id/stream?harnessId=... (SSE)
   .get(
     '/:id/stream',
     zValidator('param', idParamSchema),

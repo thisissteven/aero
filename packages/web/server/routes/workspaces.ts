@@ -1,14 +1,15 @@
 // server/routes/workspaces.ts
-//
-// Workspace operations no longer determine harness selection per workspace.
-// Calling getActiveAdapter() resolves to the global default adapter.
 
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { withPagination } from '../helper';
-import { getActiveAdapter } from '../services/harness/registry';
+import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
+import {
+  mergeAllWorkspacesAcrossAdapters,
+  mergeWorkspaceAcrossAdapters,
+} from '../services/workspace/workspaces-merger';
 
 const idParamSchema = z.object({
   id: z.string().min(1),
@@ -38,53 +39,89 @@ const addWorktreeSchema = z.object({
 });
 
 const workspaces = new Hono()
-  // GET /api/workspaces?cursor=...&limit=...&search=...
-  .get('/', zValidator('query', withPagination(z.object({}))), async (c) => {
-    const { cursor, limit, search } = c.req.valid('query');
-    const harness = await getActiveAdapter();
+  // GET /api/workspaces/merged -> Returns unified workspaces with sessions merged from ALL adapters
+  .get(
+    '/merged',
+    zValidator('query', withPagination(z.object({}))),
+    async (c) => {
+      const { cursor, limit, search } = c.req.valid('query');
+      const adapters = await getAllAdapters();
 
-    const result = await harness.listWorkspaces({
-      cursor,
-      limit,
-      search,
-    });
+      const result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+        cursor,
+        limit,
+        search,
+      });
 
-    return c.json(result);
-  })
+      return c.json(result);
+    },
+  )
+
+  // GET /api/workspaces?workspaceId=...&cursor=...&limit=...&search=...
+  .get(
+    '/',
+    zValidator(
+      'query',
+      withPagination(
+        z.object({
+          harnessId: z.string().optional(),
+        }),
+      ),
+    ),
+    async (c) => {
+      const { harnessId, cursor, limit, search } = c.req.valid('query');
+      const harness = await getActiveAdapter(harnessId);
+
+      const result = await harness.listWorkspaces({
+        cursor,
+        limit,
+        search,
+      });
+
+      return c.json(result);
+    },
+  )
 
   // POST /api/workspaces
   .post('/', zValidator('json', createWorkspaceSchema), async (c) => {
     const body = c.req.valid('json');
-
     const harness = await getActiveAdapter();
     const workspace = await harness.createWorkspace(body);
 
-    return c.json(workspace, 201);
+    const adapters = await getAllAdapters();
+    const merged = await mergeWorkspaceAcrossAdapters(adapters, workspace.id);
+
+    return c.json(merged, 201);
   })
 
-  // POST /api/workspaces/init (Initial sync on app first load)
-  .post('/init', async (c) => {
-    const harness = await getActiveAdapter();
-    const workspaces = await harness.initWorkspaces();
+  // POST /api/workspaces/init
+  .get('/init', async (c) => {
+    const adapters = await getAllAdapters();
 
-    return c.json(workspaces);
+    // Initialize primary workspace store
+    await adapters[0].initWorkspaces();
+
+    const result = await mergeAllWorkspacesAcrossAdapters(adapters, {});
+    return c.json(result.items);
   })
 
-  // POST /api/workspaces/sync (Explicit re-sync/discovery)
+  // POST /api/workspaces/sync
   .post('/sync', async (c) => {
-    const harness = await getActiveAdapter();
-    const workspaces = await harness.syncWorkspaces();
+    const adapters = await getAllAdapters();
 
-    return c.json(workspaces);
+    // Sync all adapters in parallel
+    await Promise.all(adapters.map((a) => a.syncWorkspaces()));
+
+    const result = await mergeAllWorkspacesAcrossAdapters(adapters, {});
+    return c.json(result.items);
   })
 
-  // GET /api/workspaces/:id
+  // GET /api/workspaces/:id -> Merges sessions for a single workspace
   .get('/:id', zValidator('param', idParamSchema), async (c) => {
     const { id } = c.req.valid('param');
+    const adapters = await getAllAdapters();
 
-    const harness = await getActiveAdapter();
-    const workspace = await harness.getWorkspace(id);
-
+    const workspace = await mergeWorkspaceAcrossAdapters(adapters, id);
     return c.json(workspace);
   })
 
@@ -98,7 +135,10 @@ const workspaces = new Hono()
       const body = c.req.valid('json');
 
       const harness = await getActiveAdapter();
-      const updated = await harness.updateWorkspace(id, body);
+      await harness.updateWorkspace(id, body);
+
+      const adapters = await getAllAdapters();
+      const updated = await mergeWorkspaceAcrossAdapters(adapters, id);
 
       return c.json(updated);
     },
@@ -107,10 +147,14 @@ const workspaces = new Hono()
   // DELETE /api/workspaces/:id
   .delete('/:id', zValidator('param', idParamSchema), async (c) => {
     const { id } = c.req.valid('param');
+    const adapters = await getAllAdapters();
 
-    const harness = await getActiveAdapter();
-    const ok = await harness.deleteWorkspace(id);
+    // Trigger session archiving across ALL adapters for this workspace
+    const results = await Promise.allSettled(
+      adapters.map((a) => a.deleteWorkspace(id)),
+    );
 
+    const ok = results.some((r) => r.status === 'fulfilled' && r.value);
     return c.json({ ok });
   })
 
@@ -124,7 +168,10 @@ const workspaces = new Hono()
       const body = c.req.valid('json');
 
       const harness = await getActiveAdapter();
-      const workspace = await harness.addWorktree(id, body);
+      await harness.addWorktree(id, body);
+
+      const adapters = await getAllAdapters();
+      const workspace = await mergeWorkspaceAcrossAdapters(adapters, id);
 
       return c.json(workspace);
     },
@@ -139,10 +186,13 @@ const workspaces = new Hono()
     ),
     async (c) => {
       const { id, worktreeId } = c.req.valid('param');
+      const adapters = await getAllAdapters();
 
-      const harness = await getActiveAdapter();
-      const workspace = await harness.removeWorktree(id, worktreeId);
+      await Promise.allSettled(
+        adapters.map((a) => a.removeWorktree(id, worktreeId)),
+      );
 
+      const workspace = await mergeWorkspaceAcrossAdapters(adapters, id);
       return c.json(workspace);
     },
   );
