@@ -25,6 +25,7 @@ import {
 
 import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { toTitleCase } from '@/app/lib/file';
 
 import type { AeroPart } from '../../server/services/harness/types';
 
@@ -58,6 +59,7 @@ export const ToolCallView = memo(
           return {
             iconData: Terminal,
             title: 'Shell Command',
+            codeTitle: 'Shell Command',
             code: rawOutput,
             language: 'bash',
             preview: command,
@@ -83,6 +85,7 @@ export const ToolCallView = memo(
           return {
             iconData: Pencil,
             title: 'Write File',
+            codeTitle: 'Write File',
             code,
             language: 'diff',
             copyText: code,
@@ -96,6 +99,7 @@ export const ToolCallView = memo(
           return {
             iconData: FilePlus,
             title: 'Apply Patch',
+            codeTitle: 'Apply Patch',
             code: patchText,
             language: 'diff',
             copyText: patchText,
@@ -111,7 +115,8 @@ export const ToolCallView = memo(
 
           return {
             iconData: Bars,
-            title: 'Search Pattern',
+            title: 'Search Files',
+            codeTitle: `Pattern: ${pattern}`,
             code: rawOutput,
             language: 'log',
             copyText: rawOutput,
@@ -124,7 +129,8 @@ export const ToolCallView = memo(
 
           return {
             iconData: FileMagnifier,
-            title: 'Search Files',
+            title: 'Find Files',
+            codeTitle: `Pattern: ${pattern}`,
             code: rawOutput,
             language: 'text',
             copyText: rawOutput,
@@ -139,6 +145,7 @@ export const ToolCallView = memo(
           return {
             iconData: AbbrSql,
             title: 'LSP Operation',
+            codeTitle: 'LSP Operation',
             code: rawOutput,
             language: 'json',
             copyText: rawOutput,
@@ -153,6 +160,7 @@ export const ToolCallView = memo(
           return {
             iconData: Book,
             title: 'Load Skill',
+            codeTitle: 'Load Skill',
             code: rawOutput,
             language: 'markdown',
             copyText: rawOutput,
@@ -166,6 +174,7 @@ export const ToolCallView = memo(
           return {
             iconData: Globe,
             title: 'Web Fetch',
+            codeTitle: 'Web Fetch',
             code: rawOutput,
             language: 'markdown',
             copyText: rawOutput,
@@ -179,6 +188,7 @@ export const ToolCallView = memo(
           return {
             iconData: Globe,
             title: 'Web Search',
+            codeTitle: 'Web Search',
             code: rawOutput,
             language: 'json',
             copyText: rawOutput,
@@ -192,6 +202,7 @@ export const ToolCallView = memo(
           return {
             iconData: FileQuestion,
             title: 'Question',
+            codeTitle: 'Question',
             code: rawOutput,
             language: 'markdown',
             copyText: questionText
@@ -212,6 +223,7 @@ export const ToolCallView = memo(
           return {
             iconData: ListCheck,
             title: 'Update To do List',
+            codeTitle: 'Update To do List',
             code: todos,
             language: 'json',
             copyText: todos,
@@ -228,6 +240,7 @@ export const ToolCallView = memo(
           return {
             iconData: FileText,
             title: 'Read File',
+            codeTitle: 'Read File',
             language: 'json',
             preview: path,
           };
@@ -236,7 +249,8 @@ export const ToolCallView = memo(
         default: {
           return {
             iconData: Wrench,
-            title: toolName,
+            title: toTitleCase(toolName),
+            codeTitle: toTitleCase(toolName),
             code: rawOutput,
             language: 'json',
             copyText: `// Input:\n${
@@ -288,7 +302,13 @@ export const ToolCallView = memo(
                 {duration && toolName === 'bash' && (
                   <span className='text-muted/70'>{duration}s</span>
                 )}
-                <p className='text-muted/70 max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                <p
+                  className={cn(
+                    'text-muted/70 flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
+
+                    // 'max-w-4/5 min-w-[200px]'
+                  )}
+                >
                   {toolContent.preview}
                 </p>
               </span>
@@ -296,40 +316,52 @@ export const ToolCallView = memo(
           </Disclosure.Trigger>
         </Disclosure.Heading>
 
-        <Disclosure.Content className='mt-2'>
+        <Disclosure.Content className='mt-2 pl-0'>
           <DeferredView>
-            {error && (
-              <div>
-                <div className='text-muted/70 ml-5 text-xs'>
-                  {toolContent.preview}
-                </div>
-                <Alert status='danger' className='bg-transparent shadow-none'>
-                  <Alert.Content>
-                    <Alert.Description className='text-danger'>
-                      {error}
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              </div>
-            )}
-            {hasContent && (
-              <CodeBlock className='bg-transparent'>
-                <CodeBlock.Header>
-                  <div className='text-muted min-w-0 font-mono text-xs break-all'>
-                    {toolContent.title}
+            <div className='border-default ml-2 border-l pl-5'>
+              {error && (
+                <div>
+                  <div className='text-muted/70 pt-2 text-xs'>
+                    {toolContent.preview}
                   </div>
-                  <CodeBlock.CopyButton
-                    code={toolContent.copyText}
-                    className='shrink-0'
+                  <Alert
+                    status='danger'
+                    className='bg-transparent p-0 pt-4 shadow-none'
+                  >
+                    <Alert.Content>
+                      <Alert.Description className='text-danger'>
+                        {error}
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                </div>
+              )}
+              {hasContent && (
+                <CodeBlock className='bg-transparent'>
+                  <CodeBlock.Header>
+                    <div
+                      className={cn(
+                        'text-muted min-w-0 font-mono text-xs break-all',
+                        toolName === 'glob' && 'italic',
+                        toolName === 'grep' && 'italic',
+                      )}
+                    >
+                      {toolContent.codeTitle}
+                    </div>
+                    <CodeBlock.CopyButton
+                      code={toolContent.copyText}
+                      className='shrink-0'
+                    />
+                  </CodeBlock.Header>
+                  <AdaptiveCodeBlockCode
+                    code={toolContent.code}
+                    language={toolContent.language}
+                    scrollOverflow={toolContent.code.includes('\n')}
+                    showLineNumbers={toolName === 'bash' ? false : true}
                   />
-                </CodeBlock.Header>
-                <AdaptiveCodeBlockCode
-                  code={toolContent.code}
-                  language={toolContent.language}
-                  scrollOverflow={toolContent.code.includes('\n')}
-                />
-              </CodeBlock>
-            )}
+                </CodeBlock>
+              )}
+            </div>
           </DeferredView>
         </Disclosure.Content>
       </Disclosure>

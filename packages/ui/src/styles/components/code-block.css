@@ -131,6 +131,21 @@
     color: var(--shiki-dark, var(--color-surface-secondary-foreground));
   }
 
+  /* 1. Make the line row a flex container */
+  .code-block__line {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem; /* Gap between line number and code text */
+  }
+
+  /* 2. Format the line number column */
+  .code-block__line-number {
+    flex-shrink: 0;
+    text-align: right;
+    color: var(--muted, #6e7681);
+    user-select: none;
+  }
+
   .code-block__copy-button {
     cursor: var(--cursor-interactive);
     color: var(--muted);

@@ -18,3 +18,51 @@ export const handleDownloadMarkdown = (content: string, filename: string) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+export function formatSnakeOrKebabCase(str: string): string {
+  if (!str) return '';
+
+  return (
+    str
+      // 1. Replace underscores and hyphens with spaces
+      .replace(/[-_]+/g, ' ')
+      // 2. Capitalize the first letter of the string
+      .replace(/^./, (char) => char.toUpperCase())
+  );
+}
+
+export function toTitleCase(str: string): string {
+  if (!str) return '';
+
+  return str
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function stripMarkdown(markdown: string): string {
+  if (!markdown) return '';
+
+  return (
+    markdown
+      // Remove headers (# Header)
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove code blocks (```code```)
+      .replace(/```[\s\S]*?```/g, (match) => match.replace(/```/g, ''))
+      // Remove inline code (`code`)
+      .replace(/`([^`]+)`/g, '$1')
+      // Remove images (![alt](url))
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+      // Remove links ([text](url)) -> keep text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // Remove bold and italics (*text*, **text**, _text_, __text__)
+      .replace(/(\*\*|__|\*|_)(.*?)\1/g, '$2')
+      // Remove strikethrough (~~text~~)
+      .replace(/~~(.*?)~~/g, '$1')
+      // Remove blockquotes (> quote)
+      .replace(/^\s*>\s+/gm, '')
+      // Remove horizontal rules (---, ***)
+      .replace(/^[-*_]{3,}\s*$/gm, '')
+      // Trim extra surrounding whitespace
+      .trim()
+  );
+}

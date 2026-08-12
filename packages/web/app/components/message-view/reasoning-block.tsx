@@ -1,6 +1,6 @@
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { memo, ReactElement, useRef } from 'react';
+import { memo, ReactElement, useMemo, useRef } from 'react';
 
 import {
   AdaptiveMarkdown,
@@ -10,6 +10,7 @@ import {
 } from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
+import { stripMarkdown } from '@/app/lib/file';
 
 export const ReasoningBlock = memo(function ReasoningBlock({
   blockId,
@@ -23,6 +24,8 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   text: string;
 }): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const preview = useMemo(() => stripMarkdown(text.slice(0, 150)), [text]);
 
   return (
     <ChainOfThought key={blockId}>
@@ -40,7 +43,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
             />
           </div>
         }
-        preview={text.slice(0, 150)}
+        preview={preview}
       >
         <span className='text-foreground'>Thinking</span>
       </ChainOfThought.Trigger>
