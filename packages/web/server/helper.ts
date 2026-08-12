@@ -32,7 +32,7 @@ export const withPagination = <T extends z.ZodRawShape>(
 ) =>
   schema.extend({
     cursor: z.string().optional(),
-    limit: z.coerce.number().min(1).max(100).optional(),
+    limit: z.coerce.number().min(1).max(GET_ALL_LIMIT).optional(),
     search: z.string().optional(),
   });
 

@@ -1,6 +1,6 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
-import { cn, Sidebar, Spinner } from '@aero/ui';
+import { cn, ListLayout, Sidebar, Spinner, Virtualizer } from '@aero/ui';
 
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
@@ -12,6 +12,8 @@ interface RecentChatsProps {
   pathname: string;
   idPrefix?: string;
   sessionsQuery: ReturnType<typeof useSessions>;
+  /** Fixed row height for virtualizer calculations */
+  rowHeight?: number;
 }
 
 export const RecentChats = memo(function Recents({
@@ -19,6 +21,7 @@ export const RecentChats = memo(function Recents({
   pathname,
   idPrefix = '',
   sessionsQuery,
+  rowHeight = 38,
 }: RecentChatsProps) {
   const {
     items: sessions,
@@ -27,24 +30,50 @@ export const RecentChats = memo(function Recents({
     isFetchingNextPage,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
+  // Define layout instance for virtualizer
+  const layout = useMemo(
+    () =>
+      new ListLayout<AeroSessionSummary>({
+        rowHeight,
+      }),
+    [rowHeight],
+  );
+
+  // Derives current active session ID
+  const selectedKeys = useMemo(() => {
+    const match = pathname.match(/\/sessions\/([^/]+)/);
+    const id = match ? match[1] : pathname.replace(/^\//, '');
+    return id ? [id] : [];
+  }, [pathname]);
+
   return (
-    <Sidebar.Group>
+    <Sidebar.Group className='p-0'>
       <Sidebar.GroupLabel>Recent</Sidebar.GroupLabel>
 
-      <Sidebar.Menu aria-label='Recent chats'>
-        {sessions.map((session) => (
-          <ChatSidebarSessionItem
-            key={session.id}
-            idPrefix={idPrefix}
-            basePath={basePath}
-            disableNavigation={false}
-            pathname={pathname}
-            session={session}
-          />
-        ))}
-      </Sidebar.Menu>
+      {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
+      <Virtualizer layout={layout}>
+        <Sidebar.Menu<AeroSessionSummary>
+          aria-label='Recent chats'
+          items={sessions}
+          selectionMode='single'
+          selectedKeys={selectedKeys}
+          dependencies={[pathname]}
+        >
+          {(session) => (
+            <ChatSidebarSessionItem
+              key={session.id}
+              idPrefix={idPrefix}
+              basePath={basePath}
+              disableNavigation={false}
+              pathname={pathname}
+              session={session}
+            />
+          )}
+        </Sidebar.Menu>
+      </Virtualizer>
 
-      <div ref={loadMoreRef} />
+      {/* Sentinel element for infinite scroll */}
+      <div ref={loadMoreRef} className='h-1' />
 
       {hasNextPage && (
         <div

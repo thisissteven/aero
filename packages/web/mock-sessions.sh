@@ -6,16 +6,41 @@ TITLES=(
   "Just this one"
 )
 
+DIRECTORY="/path/to/your/workspace"
+
 for i in $(seq 1 1000); do
   TITLE="${TITLES[$RANDOM % ${#TITLES[@]}]} #$i"
 
-  curl --noproxy localhost -s -X POST \
+  echo "=== Creating session $i: $TITLE ==="
+
+  TMP_BODY=$(mktemp)
+
+  HTTP_STATUS=$(curl --noproxy localhost -s -o "$TMP_BODY" -w "%{http_code}" -X POST \
     "${API_URL}" \
     -H "Content-Type: application/json" \
-    -d "{\"title\":\"${TITLE}\"}" \
-    > /dev/null
+    -d "{
+      \"title\": \"${TITLE}\",
+      \"directory\": \"${DIRECTORY}\",
+      \"parts\": [
+        {
+          \"type\": \"text\",
+          \"text\": \"Initial prompt for ${TITLE}\"
+        }
+      ]
+    }")
 
-  echo "Created session $i: $TITLE"
+  echo "Status: $HTTP_STATUS"
+  echo "Response:"
+
+  if command -v jq &> /dev/null; then
+    jq . "$TMP_BODY"
+  else
+    cat "$TMP_BODY"
+  fi
+
+  rm -f "$TMP_BODY"
+
+  echo -e "\n-----------------------------------\n"
 done
 
-echo "Done. Created 100 sessions."
+echo "Done."

@@ -147,6 +147,7 @@ export const ChatSidebarSessionItem = memo(
     idPrefix,
     pathname,
     session,
+    ...props
   }: ChatSidebarSessionItemProps) {
     const navigate = useNavigate();
     const [, startTransition] = useTransition();
@@ -157,7 +158,6 @@ export const ChatSidebarSessionItem = memo(
       pathname === session.id ||
       pathname === `/${session.id}`;
 
-    // 2. Non-blocking navigation transition on click
     const handlePress = () => {
       if (disableNavigation || isCurrent) return;
       startTransition(() => {
@@ -167,6 +167,7 @@ export const ChatSidebarSessionItem = memo(
 
     return (
       <Sidebar.MenuItem
+        {...props}
         id={`${idPrefix}${session.id}`}
         isCurrent={isCurrent}
         textValue={session.title}

@@ -120,7 +120,6 @@ export const SidebarContents = memo(function SidebarContents({
       <Sidebar.Content offset={2} className='py-2'>
         <RecentChats
           basePath={basePath}
-          idPrefix={idPrefix}
           pathname={pathname}
           sessionsQuery={sessionsQuery}
         />

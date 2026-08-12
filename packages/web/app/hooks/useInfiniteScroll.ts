@@ -19,7 +19,7 @@ export function useInfiniteScroll<TItem extends { id: string }>(
   infiniteQuery: InfiniteQueryLike<TItem>,
   options: UseInfiniteScrollOptions = {},
 ) {
-  const { limitWithoutSearch, search, threshold = 0.1, rootRef } = options;
+  const { limitWithoutSearch, search, threshold = 0.8, rootRef } = options;
   const { data, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage } =
     infiniteQuery;
 
