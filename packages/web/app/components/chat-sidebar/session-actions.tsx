@@ -32,7 +32,7 @@ export function RenameSession({
   sessionId: string;
   from: SessionRenameFromEnum;
 }) {
-  const { rename } = useSessionRenameStore();
+  const rename = useSessionRenameStore((state) => state.rename);
 
   return (
     <Dropdown.Item className='gap-2' onPress={() => rename(sessionId, from)}>
@@ -179,7 +179,7 @@ export function ArchiveSessionIconButton({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const { openModal } = useGlobalModalStore();
+  const openModal = useGlobalModalStore((state) => state.openModal);
 
   return (
     <Sidebar.MenuAction
@@ -217,7 +217,7 @@ export function ArchiveSession({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const { openModal } = useGlobalModalStore();
+  const openModal = useGlobalModalStore((state) => state.openModal);
 
   return (
     <Dropdown.Item
@@ -293,7 +293,7 @@ export function DeleteSession({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const { openModal } = useGlobalModalStore();
+  const openModal = useGlobalModalStore((state) => state.openModal);
 
   return (
     <Dropdown.Item

@@ -98,7 +98,7 @@ export function SessionTitleEditable({
   iconSize?: number;
 }) {
   const { mutateAsync, isPending } = useRenameSession();
-  const { cancelRename } = useSessionRenameStore();
+  const cancelRename = useSessionRenameStore((state) => state.cancelRename);
   const queryClient = useQueryClient();
 
   const [value, setValue] = useState(sessionTitle);
@@ -223,7 +223,7 @@ function SessionTitle({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const { state } = useSessionRenameStore();
+  const state = useSessionRenameStore((state) => state.state);
 
   const isRenaming =
     state.isRenaming &&

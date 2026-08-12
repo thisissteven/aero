@@ -4,7 +4,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { cn, Tooltip } from '@aero/ui';
 
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
-import { useSpeech } from '@/app/providers';
+import { useSpeechStore } from '@/app/stores/speech';
 
 export function MessageActionsCopy({ copyText }: { copyText: string }) {
   const { copied, copy } = useCopyToClipboard();
@@ -60,7 +60,10 @@ export function MessageActionsReadAloud({
   id: string;
   text: string;
 }) {
-  const { activeId, isSpeaking, toggle, isSupported } = useSpeech();
+  const activeId = useSpeechStore((state) => state.activeId);
+  const isSpeaking = useSpeechStore((state) => state.isSpeaking);
+  const isSupported = useSpeechStore((state) => state.isSupported);
+  const toggle = useSpeechStore((state) => state.toggle);
 
   const isThisPlaying = activeId === id && isSpeaking;
 

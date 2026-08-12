@@ -34,7 +34,7 @@ export function SessionItemSummary({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const { state } = useSessionRenameStore();
+  const state = useSessionRenameStore((state) => state.state);
 
   const isRenaming =
     state.isRenaming &&

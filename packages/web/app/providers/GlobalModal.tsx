@@ -67,7 +67,9 @@ export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
 }));
 
 export function GlobalModal() {
-  const { isOpen, toggleOpen, options } = useGlobalModalStore();
+  const isOpen = useGlobalModalStore((state) => state.isOpen);
+  const toggleOpen = useGlobalModalStore((state) => state.toggleOpen);
+  const options = useGlobalModalStore((state) => state.options);
 
   return (
     <Modal isOpen={isOpen} onOpenChange={toggleOpen}>
