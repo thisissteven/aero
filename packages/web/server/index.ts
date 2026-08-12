@@ -2,13 +2,15 @@
 
 import { Hono } from 'hono';
 
+import poolRoutes from './routes/pool';
 import sessions from './routes/sessions';
 import workspaces from './routes/workspaces';
 
 const app = new Hono()
   .basePath('/api')
   .route('/sessions', sessions)
-  .route('/workspaces', workspaces);
+  .route('/workspaces', workspaces)
+  .route('/pool', poolRoutes);
 
 export default app;
 

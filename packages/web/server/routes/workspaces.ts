@@ -95,7 +95,7 @@ const workspaces = new Hono()
   })
 
   // POST /api/workspaces/init
-  .get('/init', async (c) => {
+  .post('/init', async (c) => {
     const adapters = await getAllAdapters();
 
     // Initialize primary workspace store

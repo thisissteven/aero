@@ -73,3 +73,24 @@ export async function listSessionsAcrossAdapters(
     nextCursor,
   };
 }
+
+export async function listArchivedSessionsAcrossAdapters(
+  adapters: HarnessAdapter[],
+): Promise<AeroSessionSummary[]> {
+  const results = await Promise.allSettled(
+    adapters.map((adapter) => adapter.listArchivedSessions()),
+  );
+
+  // Aggregate sessions into a single list
+  const allSessions: AeroSessionSummary[] = [];
+  for (const res of results) {
+    if (res.status === 'fulfilled') {
+      allSessions.push(...res.value);
+    }
+  }
+
+  // Sort all merged sessions descending by `updatedAt`
+  allSessions.sort((a, b) => b.updatedAt - a.updatedAt);
+
+  return allSessions;
+}

@@ -5,7 +5,10 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
-import { listSessionsAcrossAdapters } from '@/server/services/sessions/sessions-merger';
+import {
+  listArchivedSessionsAcrossAdapters,
+  listSessionsAcrossAdapters,
+} from '@/server/services/sessions/sessions-merger';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 
 import {
@@ -77,6 +80,15 @@ const sessions = new Hono()
       return c.json(result);
     },
   )
+
+  // GET /api/sessions/archived/merged?directory=...
+  .get('/archived/merged', async (c) => {
+    const adapters = await getAllAdapters();
+
+    const result = await listArchivedSessionsAcrossAdapters(adapters);
+
+    return c.json(result);
+  })
 
   // GET /api/sessions/archived?harnessId=...
   .get('/archived', zValidator('query', harnessQuerySchema), async (c) => {

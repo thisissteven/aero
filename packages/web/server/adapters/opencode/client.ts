@@ -1,63 +1,24 @@
 // server/adapters/opencode/client.ts
 
-import {
-  createOpencodeClient,
-  createOpencodeServer,
-} from '@opencode-ai/sdk/v2';
+import type { createOpencodeClient } from '@opencode-ai/sdk/v2';
 
-type OpencodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
+import { opencodePool } from './pool';
+
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
-interface OpencodeSetup {
-  server: OpencodeServer;
-  client: OpencodeClient;
+/**
+ * Executes an operation using the best available OpenCode instance from the pool.
+ */
+export async function withOpencodeClient<T>(
+  action: (client: OpencodeClient) => Promise<T>,
+): Promise<T> {
+  return opencodePool.execute((client) => action(client));
 }
 
-let setupPromise: Promise<OpencodeSetup> | null = null;
-
-export async function getOpencodeSetup(): Promise<OpencodeSetup> {
-  if (!setupPromise) {
-    setupPromise = (async () => {
-      const server = await createOpencodeServer({
-        hostname: '127.0.0.1',
-        port: 56789,
-      });
-
-      const client = createOpencodeClient({
-        baseUrl: server.url,
-      });
-
-      await waitForServerReady(client);
-
-      return { server, client };
-    })();
-  }
-
-  return setupPromise;
-}
-
+/**
+ * Fallback direct client getter (acquires least-busy node).
+ */
 export async function getOpencodeClient(): Promise<OpencodeClient> {
-  const { client } = await getOpencodeSetup();
-  return client;
-}
-
-export async function getOpencodeServer(): Promise<OpencodeServer> {
-  const { server } = await getOpencodeSetup();
-  return server;
-}
-
-async function waitForServerReady(
-  client: OpencodeClient,
-  maxRetries = 15,
-  delayMs = 200,
-) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      await client.session.list({ limit: 1 });
-      return;
-    } catch {
-      await new Promise((res) => setTimeout(res, delayMs));
-    }
-  }
-  throw new Error('OpenCode server failed to respond on 127.0.0.1:56789');
+  const node = await opencodePool.getNode();
+  return node.client;
 }
