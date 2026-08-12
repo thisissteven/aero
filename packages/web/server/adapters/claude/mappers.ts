@@ -14,6 +14,7 @@ export interface StoredClaudeSession {
   id: string;
   title: string;
   workspace: string;
+  parentId?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -23,6 +24,7 @@ export function toAeroSession(s: StoredClaudeSession): AeroSessionSummary {
     id: s.id,
     title: s.title || 'Untitled session',
     harnessId: 'claude',
+    parentId: s.parentId,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
     workspace: normalizePath(s.workspace),

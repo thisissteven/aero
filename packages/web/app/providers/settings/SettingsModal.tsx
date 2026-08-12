@@ -16,7 +16,6 @@ import {
   Gear,
   Globe,
   LogoMcp,
-  Magnifier,
   Microphone,
   Persons,
   PersonWorker,
@@ -131,28 +130,25 @@ export function SettingsModal() {
     >
       <Modal.Backdrop variant='blur'>
         <Modal.Container size='cover'>
-          <Modal.Dialog className='my-auto h-180 w-full max-w-5xl overflow-hidden rounded-md border-0 bg-transparent p-0 shadow-none'>
-            <div className='border-border bg-surface text-foreground relative flex h-full w-full overflow-hidden rounded-xl border shadow-2xl'>
+          <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none'>
+            <div className='text-foreground relative flex h-full w-full'>
               {/* Native Close Trigger */}
               <Modal.CloseTrigger className='text-muted hover:text-foreground absolute top-4 right-4 z-10 transition-colors' />
 
               {/* Left Sidebar */}
-              <aside className='border-separator bg-surface flex w-64 shrink-0 flex-col justify-between border-r'>
+              <aside className='border-separator flex w-64 shrink-0 flex-col justify-between border-r'>
                 <div
                   ref={sidebarNavRef}
-                  className='flex scrollbar-thin flex-col gap-3 overflow-y-auto p-3'
+                  className='relative flex scrollbar-thin flex-col gap-1 overflow-y-auto'
                 >
                   {/* Search Bar */}
-                  <div className='relative'>
-                    <Icon
-                      data={Magnifier}
-                      className='text-muted absolute top-1/2 left-2.5 size-4 -translate-y-1/2'
-                    />
+                  <div className='relative sticky top-0 px-3 py-3'>
+                    <div className='bg-surface/50 absolute inset-0 -z-[1] -translate-y-1/2 backdrop-blur-sm'></div>
                     <SearchField
                       value={searchQuery}
                       onChange={setSearchQuery}
-                      className='w-full'
-                      variant='secondary'
+                      className='relative w-full'
+                      variant='primary'
                     >
                       <SearchField.Group>
                         <SearchField.SearchIcon />
@@ -166,7 +162,7 @@ export function SettingsModal() {
                   </div>
 
                   {/* Navigation Items */}
-                  <nav className='flex flex-col gap-4'>
+                  <nav className='flex flex-col gap-4 px-3 pb-3'>
                     {NAV_SECTIONS.map((section, idx) => {
                       const filteredItems = section.items.filter((item) =>
                         item.label
@@ -262,7 +258,7 @@ export function SettingsModal() {
    ========================================================================== */
 function AppearanceView() {
   return (
-    <div className='flex-1 space-y-8 overflow-y-auto p-8'>
+    <div className='flex-1 scrollbar-thin space-y-8 overflow-y-auto p-8'>
       <div>
         <h2 className='text-foreground text-xl font-medium'>Appearance</h2>
         <p className='text-muted mt-1 text-xs'>
@@ -437,7 +433,7 @@ function SkillsView({ selectedSkillId, onSelectSkill }: SkillsViewProps) {
           </button>
         </div>
 
-        <div className='space-y-4 overflow-y-auto'>
+        <div className='scrollbar-thin space-y-4 overflow-y-auto'>
           <div>
             <span className='text-muted mb-2 block text-[10px] font-semibold tracking-wider uppercase'>
               PROJECT SKILLS
@@ -473,7 +469,7 @@ function SkillsView({ selectedSkillId, onSelectSkill }: SkillsViewProps) {
       </div>
 
       {/* Detail Pane */}
-      <div className='flex-1 space-y-6 overflow-y-auto p-6'>
+      <div className='flex-1 scrollbar-thin space-y-6 overflow-y-auto p-6'>
         <div>
           <h2 className='text-foreground text-lg font-medium'>
             {selectedSkillId || 'find-skills'}

@@ -28,6 +28,7 @@ export interface AeroSessionSummary {
   id: string;
   title: string;
   harnessId: HarnessId;
+  parentId?: string;
   workspace: string;
   createdAt: number;
   updatedAt: number;
@@ -45,6 +46,7 @@ export type AeroPartRequest =
       input?: unknown;
       output?: unknown;
       error?: string;
+      duration?: number;
     }
   | { type: 'file'; path: string; mimeType?: string }
   | { type: 'reasoning'; text: string };

@@ -30,6 +30,7 @@ export function toAeroSession(s: Session): AeroSessionSummary {
     id: s.id,
     title: s.title || 'Untitled session',
     harnessId: 'opencode',
+    parentId: s.parentID,
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
@@ -41,6 +42,7 @@ export function toAeroSessionV2(s: SessionV2Info): AeroSessionSummary {
     id: s.id,
     title: s.title || 'Untitled session',
     harnessId: 'opencode',
+    parentId: s.parentID,
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.location.directory),
@@ -64,6 +66,12 @@ export function toAeroPart(p: Part): AeroPart {
         // into fields that aren't there on every variant.
         output: p.state.status === 'completed' ? p.state.output : undefined,
         error: p.state.status === 'error' ? p.state.error : undefined,
+        duration:
+          p.state.status === 'completed'
+            ? Math.max(0.1, (p.state.time.end - p.state.time.start) / 1000)
+            : p.state.status === 'error'
+              ? Math.max(0.1, (p.state.time.end - p.state.time.start) / 1000)
+              : undefined,
       };
 
     case 'file':

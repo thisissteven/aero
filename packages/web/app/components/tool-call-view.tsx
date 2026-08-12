@@ -15,9 +15,16 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
 
-import { AdaptiveCodeBlockCode, CodeBlock, Disclosure } from '@aero/ui';
+import {
+  AdaptiveCodeBlockCode,
+  Alert,
+  cn,
+  CodeBlock,
+  Disclosure,
+} from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
+import { FileTypeIcon } from '@/app/components/file-type-icon';
 
 import type { AeroPart } from '../../server/services/harness/types';
 
@@ -40,8 +47,7 @@ export const ToolCallView = memo(
   }: {
     part: Extract<AeroPart, { type: 'tool' }>;
   }) {
-    const { toolName, input, output, status } = part;
-    const isCompleted = status === 'completed';
+    const { toolName, input, output, status, error, duration } = part;
 
     const toolContent = useMemo(() => {
       const rawOutput = formatOutput(output);
@@ -248,8 +254,12 @@ export const ToolCallView = memo(
       <Disclosure defaultExpanded={false}>
         <Disclosure.Heading>
           <Disclosure.Trigger
-            className='text-muted/70! group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100'
-            isDisabled={!hasContent}
+            className={cn(
+              'group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100',
+              status === 'error' && 'text-danger',
+              status === 'completed' && 'text-muted/70',
+            )}
+            isDisabled={!hasContent && !error}
           >
             <div className='flex min-w-0 flex-1 items-center gap-2'>
               <div className='relative shrink-0'>
@@ -263,9 +273,22 @@ export const ToolCallView = memo(
                   }}
                 />
               </div>
-              <span className='flex items-center gap-2 truncate'>
-                <span className='text-foreground'>{toolContent.title}</span>
-                <p className='max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+              <span className='flex items-center justify-start gap-2 truncate'>
+                <span
+                  className={cn(
+                    status === 'error' && 'text-danger',
+                    status === 'completed' && 'text-foreground',
+                  )}
+                >
+                  {toolContent.title}
+                </span>
+                {toolName === 'read' && toolContent.preview && (
+                  <FileTypeIcon filePath={toolContent.preview} />
+                )}
+                {duration && toolName === 'bash' && (
+                  <span className='text-muted/70'>{duration}s</span>
+                )}
+                <p className='text-muted/70 max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
                   {toolContent.preview}
                 </p>
               </span>
@@ -275,6 +298,20 @@ export const ToolCallView = memo(
 
         <Disclosure.Content className='mt-2'>
           <DeferredView>
+            {error && (
+              <div>
+                <div className='text-muted/70 ml-5 text-xs'>
+                  {toolContent.preview}
+                </div>
+                <Alert status='danger' className='bg-transparent shadow-none'>
+                  <Alert.Content>
+                    <Alert.Description className='text-danger'>
+                      {error}
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              </div>
+            )}
             {hasContent && (
               <CodeBlock className='bg-transparent'>
                 <CodeBlock.Header>

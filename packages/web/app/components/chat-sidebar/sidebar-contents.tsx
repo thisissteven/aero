@@ -10,7 +10,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { memo, useTransition } from 'react';
 
-import { Avatar, Kbd, Sidebar, Tooltip } from '@aero/ui';
+import { Kbd, Sidebar, Tooltip } from '@aero/ui';
 
 import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
 import { SettingsButton } from '@/app/components/chat-sidebar/settings-button';
@@ -46,21 +46,6 @@ export const SidebarContents = memo(function SidebarContents({
   return (
     <>
       <Sidebar.Header className='px-0 pb-0'>
-        <div className='flex items-center gap-3 px-4 py-1'>
-          <Avatar className='size-9'>
-            <Avatar.Image alt={'User'} />
-            <Avatar.Fallback>DH</Avatar.Fallback>
-          </Avatar>
-          <div className='flex min-w-0 flex-col' data-sidebar='label'>
-            <span className='text-foreground text-sm leading-tight font-medium'>
-              {'Darnell Howe'}
-            </span>
-            <span className='text-muted text-xs leading-tight font-medium'>
-              {'darnell@email.com'}
-            </span>
-          </div>
-        </div>
-
         <Sidebar.Group className='px-3'>
           <Sidebar.Menu aria-label='Chat actions'>
             <Sidebar.MenuItem
@@ -113,9 +98,9 @@ export const SidebarContents = memo(function SidebarContents({
             </Sidebar.MenuItem>
           </Sidebar.Menu>
         </Sidebar.Group>
-
-        <Sidebar.Separator className='my-0' />
       </Sidebar.Header>
+
+      <Sidebar.Separator className='mb-0' />
 
       <Sidebar.Content offset={2} className='py-2'>
         <RecentChats

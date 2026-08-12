@@ -115,7 +115,7 @@ export function NewChatPage() {
             {suggestionItems.map((suggestion) => (
               <PromptSuggestion.Item
                 key={suggestion.label}
-                className='items-center justify-start'
+                className='bg-primary items-center justify-start'
                 showEndIcon={false}
                 onPress={() => handleSubmit(suggestion.label)}
                 isDisabled={isPending}

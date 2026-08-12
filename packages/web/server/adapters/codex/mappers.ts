@@ -11,6 +11,7 @@ import type {
 export interface StoredCodexSession {
   id: string;
   title?: string;
+  parentId?: string;
   workspace: string;
   createdAt?: number;
   updatedAt?: number;
@@ -21,6 +22,7 @@ export function toAeroSession(s: StoredCodexSession): AeroSessionSummary {
     id: s.id,
     title: s.title || 'Untitled session',
     harnessId: 'codex',
+    parentId: s.parentId,
     createdAt: s.createdAt ?? Date.now(),
     updatedAt: s.updatedAt ?? Date.now(),
     workspace: normalizePath(s.workspace),
