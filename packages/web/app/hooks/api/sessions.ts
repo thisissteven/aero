@@ -17,6 +17,7 @@ import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { HarnessId } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
+const $sessionsMerged = honoClient.api.sessions.merged;
 const $archivedSessions = honoClient.api.sessions.archived;
 const $session = honoClient.api.sessions[':id'];
 const $messages = honoClient.api.sessions[':id'].messages;
@@ -29,7 +30,7 @@ const $unarchive = honoClient.api.sessions[':id'].unarchive;
 const $rename = honoClient.api.sessions[':id'].rename;
 
 export const sessionKeys = {
-  all: (harnessId?: string) => ['sessions', harnessId ?? 'default'] as const,
+  merged: () => ['sessions', 'default'] as const,
   allArchived: (harnessId?: string) =>
     ['sessions', harnessId ?? 'default', 'all-archived'] as const,
   detail: (harnessId: string | undefined, sessionId: string) =>
@@ -51,18 +52,17 @@ export const sessionKeys = {
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
 
-export function useSessions(harnessId?: string, search?: string) {
+export function useSessions(search?: string) {
   return useInfiniteQuery({
-    queryKey: [...sessionKeys.all(harnessId), search],
+    queryKey: [...sessionKeys.merged(), search],
 
     initialPageParam: undefined as string | undefined,
 
     placeholderData: keepPreviousData,
 
     queryFn: async ({ pageParam }) => {
-      const res = await $sessions.$get({
+      const res = await $sessionsMerged.$get({
         query: {
-          harnessId,
           cursor: pageParam,
           limit: PAGINATION_LIMIT.toString(),
           search: search || undefined,
@@ -130,15 +130,10 @@ export function useCreateSession(defaultharnessId?: HarnessId) {
       if (!res.ok) throw new Error('Failed to create session');
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: sessionKeys.all(data.harnessId),
+        queryKey: sessionKeys.merged(),
       });
-      if (defaultharnessId && defaultharnessId !== data.harnessId) {
-        queryClient.invalidateQueries({
-          queryKey: sessionKeys.all(defaultharnessId),
-        });
-      }
     },
   });
 }
@@ -159,7 +154,7 @@ export function useDeleteSession(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
       queryClient.removeQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });
@@ -273,7 +268,7 @@ export function useArchiveSession(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });
@@ -296,7 +291,7 @@ export function useUnarchiveSession(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.all(harnessId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });

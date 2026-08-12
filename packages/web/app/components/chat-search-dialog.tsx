@@ -8,13 +8,12 @@ import { useDebounce } from '@/app/hooks/useDebounce';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
 
-import type { ChatSession } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSearchDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (session: ChatSession | AeroSessionSummary) => void;
+  onSelect: (session: AeroSessionSummary) => void;
 }
 
 export function ChatSearchDialog({
@@ -28,14 +27,14 @@ export function ChatSearchDialog({
   // Ref for the scrollable container (Command.List / RAC Menu wrapper)
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const sessionsQuery = useSessions(undefined, debouncedSearch || undefined);
+  const sessionsQuery = useSessions(debouncedSearch || undefined);
 
   const {
     items: sessions,
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteScroll<ChatSession | AeroSessionSummary>(sessionsQuery, {
+  } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery, {
     search: debouncedSearch,
     rootRef: listRef,
     limitWithoutSearch: 10,
@@ -94,9 +93,6 @@ export function ChatSearchDialog({
                 className='pb-0.5'
               >
                 {sessions.map((session) => {
-                  const preview =
-                    'preview' in session ? session.preview : 'Recent chat';
-
                   const updatedAtStr = formatCompactRelativeTime(
                     session.updatedAt,
                   );
@@ -105,7 +101,7 @@ export function ChatSearchDialog({
                     <Command.Item
                       key={session.id}
                       id={session.id}
-                      textValue={`${session.title} ${preview}`}
+                      textValue={`${session.title} Recent chat`}
                       onAction={() => onSelect(session)}
                     >
                       <Comment />
@@ -116,7 +112,7 @@ export function ChatSearchDialog({
                         </span>
 
                         <span className='text-muted truncate text-xs'>
-                          {preview}
+                          Recent chat
                         </span>
                       </div>
 

@@ -109,12 +109,22 @@
     margin-top: calc(var(--spacing, 0.25rem) * 1);
   }
 
-  .markdown li::marker {
+  .markdown ol li::marker {
+    color: var(--foreground);
+  }
+
+  .markdown ul li::marker {
     color: var(--muted);
   }
 
   @supports (color: color-mix(in lab, red, red)) {
-    .markdown li::marker {
+    .markdown ol li::marker {
+      color: color-mix(in oklab, var(--foreground) 50%, transparent);
+    }
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .markdown ul li::marker {
       color: color-mix(in oklab, var(--muted) 50%, transparent);
     }
   }

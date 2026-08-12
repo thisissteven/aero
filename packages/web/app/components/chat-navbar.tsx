@@ -139,7 +139,7 @@ export function SessionTitleEditable({
 
           await Promise.all([
             queryClient.invalidateQueries({
-              queryKey: sessionKeys.all(undefined),
+              queryKey: sessionKeys.merged(),
             }),
             queryClient.invalidateQueries({
               queryKey: sessionKeys.detail(undefined, sessionId),

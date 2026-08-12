@@ -3,7 +3,6 @@ import { memo } from 'react';
 import { cn, Sidebar, Spinner } from '@aero/ui';
 
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
-import { ChatSession } from '@/app/data/chat';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
@@ -26,7 +25,7 @@ export const RecentChats = memo(function Recents({
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteScroll<ChatSession | AeroSessionSummary>(sessionsQuery);
+  } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
   return (
     <Sidebar.Group>

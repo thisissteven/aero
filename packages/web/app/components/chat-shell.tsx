@@ -19,7 +19,7 @@ import { AppLayout, Tooltip, Typography } from '@aero/ui';
 import { ChatNavbar } from './chat-navbar';
 import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
-import type { ChatActivePage, ChatSession } from '../data/chat';
+import type { ChatActivePage } from '../data/chat';
 import { resolveChatActivePage } from '../data/chat';
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
@@ -107,7 +107,7 @@ export function ChatShell({
   );
 
   const handleSessionSelect = useCallback(
-    (session: ChatSession | AeroSessionSummary) => {
+    (session: AeroSessionSummary) => {
       setIsSearchOpen(false);
 
       if (!disableNavigation) {

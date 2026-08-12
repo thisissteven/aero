@@ -6,6 +6,7 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
 import { listSessionsAcrossAdapters } from '@/server/services/sessions/sessions-merger';
+import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 
 import {
   groupMessages,
@@ -21,6 +22,22 @@ const harnessQuerySchema = z.object({
 
 const idParamSchema = z.object({
   id: z.string().min(1),
+});
+
+const createSessionInputSchema = z.object({
+  title: z.string().optional(),
+  directory: z.string().optional(),
+  harnessId: z.string().optional(),
+  parts: z.custom<AeroPartRequest[]>(
+    (val) => Array.isArray(val),
+    'parts must be an array',
+  ),
+  model: z
+    .object({
+      providerId: z.string(),
+      modelId: z.string(),
+    })
+    .optional(),
 });
 
 const sessions = new Hono()
@@ -72,27 +89,11 @@ const sessions = new Hono()
     return c.json(result);
   })
 
-  // POST /api/sessions?harnessId=... body: { title?, harnessId?, parts, model? }
+  // POST /api/sessions?harnessId=... body: { title?, harnessId?, directory?, parts, model? }
   .post(
     '/',
     zValidator('query', harnessQuerySchema),
-    zValidator(
-      'json',
-      z.object({
-        title: z.string().optional(),
-        harnessId: z.string().optional(),
-        parts: z.custom<AeroPartRequest[]>(
-          (val) => Array.isArray(val),
-          'parts must be an array',
-        ),
-        model: z
-          .object({
-            providerId: z.string(),
-            modelId: z.string(),
-          })
-          .optional(),
-      }),
-    ),
+    zValidator('json', createSessionInputSchema),
     async (c) => {
       const { harnessId: queryHarness } = c.req.valid('query');
       const body = c.req.valid('json');
@@ -101,8 +102,17 @@ const sessions = new Hono()
       const harnessId = body.harnessId || queryHarness;
       const harness = await getActiveAdapter(harnessId);
 
+      let directory = body.directory;
+
+      // Fall back to a newly created .aero/workspaces/<uuid> workspace if directory is undefined
+      if (!directory) {
+        const workspace = await createStandaloneWorkspace(body.title);
+        directory = workspace.directory;
+      }
+
       const session = await harness.createSession({
         title: body.title,
+        directory,
         harnessId,
       });
 

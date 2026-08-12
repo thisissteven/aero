@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { AERO_DIR, WORKSPACES_PATH } from '@/server/helper';
 import { getBasename, normalizePath } from '@/server/shared';
@@ -180,4 +181,25 @@ export async function removeWorktreeFromWorkspace(
   workspace.updatedAt = Date.now();
   await writeAll(all);
   return workspace;
+}
+
+/**
+ * Creates a unique workspace directory under .aero/workspaces/<uuid>
+ * and registers it in workspaces storage.
+ */
+export async function createStandaloneWorkspace(
+  name?: string,
+): Promise<AeroWorkspace> {
+  const workspaceDir = normalizePath(
+    join(AERO_DIR, 'workspaces', randomUUID()),
+  );
+
+  // Ensure physical directory exists on disk
+  await mkdir(workspaceDir, { recursive: true });
+
+  // Register in workspaces storage using your existing storage method
+  return createWorkspace({
+    name: name || 'Standalone Session',
+    directory: workspaceDir,
+  });
 }

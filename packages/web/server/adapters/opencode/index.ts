@@ -335,6 +335,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       const session = unwrap(
         await client.session.create({
           title: input.title,
+          directory: input.directory,
         }),
       );
 

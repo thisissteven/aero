@@ -95,6 +95,7 @@ export type AeroEvent =
 export interface CreateSessionInput {
   title?: string;
   harnessId?: HarnessId;
+  directory?: string;
 }
 
 export interface RenameSessionInput {
