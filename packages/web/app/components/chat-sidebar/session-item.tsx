@@ -3,7 +3,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { memo, useRef, useState, useTransition } from 'react';
 
-import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
+import { cn, Dropdown, Separator, Sidebar, useSidebar } from '@aero/ui';
 
 import {
   ArchiveSession,
@@ -14,7 +14,7 @@ import {
   RenameSession,
   SelectSession,
 } from '@/app/components/chat-sidebar/session-actions';
-import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSessionRenameStore } from '@/app/stores/session-rename';
@@ -159,6 +159,8 @@ export const ChatSidebarSessionItem = memo(
     const rename = useSessionRenameStore((state) => state.rename);
     const lastPressTimeRef = useRef<number>(0);
 
+    const { setMobileOpen } = useSidebar();
+
     const handlePress = () => {
       const now = Date.now();
       const DOUBLE_PRESS_THRESHOLD = 300; // ms window for double click
@@ -172,6 +174,7 @@ export const ChatSidebarSessionItem = memo(
         lastPressTimeRef.current = now;
 
         if (!isCurrent) {
+          setMobileOpen(false);
           startTransition(() => {
             navigate({ to: fullHref });
           });
@@ -179,7 +182,7 @@ export const ChatSidebarSessionItem = memo(
       }
     };
 
-    const isEditMode = useSidebarStore((state) => state.isEditMode);
+    const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
 
     return (
       <Sidebar.MenuItem

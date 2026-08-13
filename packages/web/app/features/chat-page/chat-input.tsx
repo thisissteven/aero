@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { PromptInput } from '@aero/ui';
 
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
+import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
   const [value, setValue] = useState('');
@@ -14,6 +15,9 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
     if (!text) return;
     setValue('');
   }
+
+  const isMobile = useWindowSize((size) => size.width < 768);
+
   return (
     <PromptInput
       className='w-full max-w-[780px]'
@@ -31,10 +35,14 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
         </PromptInput.Content>
         <PromptInput.Toolbar>
           <PromptInput.ToolbarStart className='items-end justify-start'>
+            <PromptInput.Action aria-label='Use voice'>
+              <Icon aria-hidden data={Microphone} />
+            </PromptInput.Action>
             <CollapsibleActions
-              expandBehavior='vertical'
-              expandOrigin='trigger'
-              gap={44}
+              expandBehavior='horizontal'
+              expandOrigin='trigger-right'
+              gap={isMobile ? 48 : 42}
+              distance={isMobile ? 48 : 42}
             >
               <CollapsibleActions.Trigger>
                 <PromptInput.Action aria-label='Add context'>
@@ -53,9 +61,6 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
                 </PromptInput.Action>
               </CollapsibleActions.Contents>
             </CollapsibleActions>
-            <PromptInput.Action aria-label='Use voice'>
-              <Icon aria-hidden data={Microphone} />
-            </PromptInput.Action>
           </PromptInput.ToolbarStart>
           <PromptInput.ToolbarEnd>
             <PromptInput.Send />

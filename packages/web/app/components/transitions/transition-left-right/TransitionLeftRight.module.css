@@ -1,0 +1,50 @@
+.container {
+  position: relative;
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Smoothly animate container height changes */
+  transition: height 0.2s ease;
+}
+
+/* Left Page */
+.leftPage {
+  min-width: 100%;
+  flex-basis: 0;
+  flex-shrink: 0;
+  height: fit-content;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  opacity: 1;
+}
+
+.leftPage.slideLeft {
+  transform: translateX(-24px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Right Page */
+.rightPage {
+  position: absolute;
+  top: 0;
+  left: 24px;
+  width: 100%;
+  /* Removed height: 100% so it measures content height, not container height */
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rightPage.slideIn {
+  transform: translateX(-24px);
+  opacity: 1;
+  pointer-events: auto;
+}

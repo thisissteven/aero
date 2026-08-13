@@ -14,6 +14,8 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useIsomorphicLayoutEffect } from '@aero/ui';
+
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 
@@ -362,6 +364,13 @@ export function CollapsibleActions({
           outline: 2px solid var(--accent, #0073e5);
           outline-offset: 2px;
         }
+
+        /* Only set overflow: visible while the speed dial is actively OPEN */
+        [data-vaul-drawer]:has(.speed-dial-portal-layer[data-open="true"]),
+        [data-slot="sheet-content"]:has(.speed-dial-portal-layer[data-open="true"]),
+        .sheet_content:has(.speed-dial-portal-layer[data-open="true"]) {
+          overflow: visible !important;
+        }
       `}</style>
 
       <div className='speed-dial-container'>{children}</div>
@@ -408,6 +417,24 @@ export function CollapsibleActionsTrigger({ children }: TriggerProps) {
 /*                              Contents Component                            */
 /* -------------------------------------------------------------------------- */
 
+function getAutoContainer(element: HTMLElement | null): HTMLElement {
+  if (typeof window === 'undefined' || !element) return document.body;
+
+  // Find the exact drawer/sheet container element
+  const container = element.closest<HTMLElement>(
+    [
+      '[data-vaul-drawer]',
+      '[data-slot="sheet-content"]',
+      '[role="dialog"]',
+      'dialog',
+      '[role="alertdialog"]',
+      '[aria-modal="true"]',
+    ].join(', '),
+  );
+
+  return container || document.body;
+}
+
 export function CollapsibleActionsContents({
   children,
 }: {
@@ -416,7 +443,7 @@ export function CollapsibleActionsContents({
   const {
     isOpen,
     setIsOpen,
-    triggerPos,
+    triggerRef,
     portalRef,
     distance,
     gap,
@@ -424,6 +451,61 @@ export function CollapsibleActionsContents({
     expandOrigin,
     flip,
   } = useCollapsibleActions();
+
+  // 1. Initialize immediately with document.body so the portal DOM node exists
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
+    return typeof window !== 'undefined' ? document.body : null;
+  });
+
+  const [adjustedPos, setAdjustedPos] = useState<Position>({ top: 0, left: 0 });
+
+  // 2. Synchronous position and container calculation
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+
+    const target = getAutoContainer(triggerRef.current);
+    setPortalTarget(target);
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+
+    if (target && target !== document.body) {
+      // Relative offset inside modal/dialog container
+      const containerRect = target.getBoundingClientRect();
+      setAdjustedPos({
+        top: Math.round(
+          triggerRect.top - containerRect.top + triggerRect.height / 2,
+        ),
+        left: Math.round(
+          triggerRect.left - containerRect.left + triggerRect.width / 2,
+        ),
+      });
+    } else {
+      // Relative offset inside viewport
+      setAdjustedPos({
+        top: Math.round(triggerRect.top + triggerRect.height / 2),
+        left: Math.round(triggerRect.left + triggerRect.width / 2),
+      });
+    }
+  }, [triggerRef]);
+
+  // Detect container immediately on mount (before paint)
+  useIsomorphicLayoutEffect(() => {
+    updatePosition();
+  }, [updatePosition]);
+
+  // Recalculate on scroll, resize, or when menu opens
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+      };
+    }
+  }, [isOpen, updatePosition]);
 
   const items = Children.toArray(children).filter(isValidElement);
   const positions = getPositions(
@@ -441,8 +523,8 @@ export function CollapsibleActionsContents({
       className='speed-dial-portal-layer'
       data-open={isOpen}
       style={{
-        top: `${triggerPos.top}px`,
-        left: `${triggerPos.left}px`,
+        top: `${adjustedPos.top}px`,
+        left: `${adjustedPos.left}px`,
       }}
     >
       {/* Liquid SVG Gooey Filter */}
@@ -524,8 +606,8 @@ export function CollapsibleActionsContents({
     </div>
   );
 
-  if (typeof window === 'undefined') return null;
-  return createPortal(portalContent, document.body);
+  if (!portalTarget) return null;
+  return createPortal(portalContent, portalTarget);
 }
 
 // Attach subcomponents

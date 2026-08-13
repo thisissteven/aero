@@ -15,7 +15,7 @@ import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
-interface RecentChatsProps {
+interface WorkspacesProps {
   pathname: string;
   idPrefix?: string;
   sessionsQuery: ReturnType<typeof useSessions>;
@@ -23,7 +23,7 @@ interface RecentChatsProps {
   rowHeight?: number;
 }
 
-function RecentChatsLoader({ enabled }: { enabled: boolean }) {
+function WorkspacesLoader({ enabled }: { enabled: boolean }) {
   if (!enabled) return null;
 
   return (
@@ -39,12 +39,12 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
   );
 }
 
-export const RecentChats = memo(function Recents({
+export const Workspaces = memo(function Recents({
   pathname,
   idPrefix = '',
   sessionsQuery,
   rowHeight = 38,
-}: RecentChatsProps) {
+}: WorkspacesProps) {
   const {
     items: sessions,
     loadMoreRef,
@@ -73,14 +73,14 @@ export const RecentChats = memo(function Recents({
     <>
       <div className='px-2 pt-2'>
         <Sidebar.GroupLabel className='flex items-center justify-between'>
-          Recent Sessions
+          Workspaces
           <RecentsToggleEditModeButton />
         </Sidebar.GroupLabel>
       </div>
 
       <Sidebar.Content offset={2} className='py-2'>
         <Sidebar.Group>
-          <RecentChatsLoader enabled={isLoading} />
+          <WorkspacesLoader enabled={isLoading} />
 
           {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
           <Virtualizer layout={layout}>

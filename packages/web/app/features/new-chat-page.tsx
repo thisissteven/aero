@@ -24,6 +24,7 @@ import {
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { useCreateSession } from '@/app/hooks/api/sessions';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
+import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 const suggestionItems = [
   { icon: Paintbrush, label: 'Design a launch page' },
@@ -58,6 +59,8 @@ export function NewChatPage() {
         onError: () => toast.danger('Failed to create session'),
       },
     );
+
+  const isMobile = useWindowSize((size) => size.width < 768);
 
   return (
     <div
@@ -97,10 +100,14 @@ export function NewChatPage() {
             </PromptInput.Content>
             <PromptInput.Toolbar>
               <PromptInput.ToolbarStart className='items-end justify-start'>
+                <PromptInput.Action aria-label='Use voice'>
+                  <Icon aria-hidden data={Microphone} />
+                </PromptInput.Action>
                 <CollapsibleActions
-                  expandBehavior='vertical'
-                  expandOrigin='trigger'
-                  gap={44}
+                  expandBehavior='horizontal'
+                  expandOrigin='trigger-right'
+                  gap={isMobile ? 48 : 42}
+                  distance={isMobile ? 48 : 42}
                 >
                   <CollapsibleActions.Trigger>
                     <PromptInput.Action aria-label='Add context'>
@@ -119,9 +126,6 @@ export function NewChatPage() {
                     </PromptInput.Action>
                   </CollapsibleActions.Contents>
                 </CollapsibleActions>
-                <PromptInput.Action aria-label='Use voice'>
-                  <Icon aria-hidden data={Microphone} />
-                </PromptInput.Action>
               </PromptInput.ToolbarStart>
               <PromptInput.ToolbarEnd>
                 <PromptInput.Send />

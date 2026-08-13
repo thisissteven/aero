@@ -13,7 +13,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
-import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { HarnessId } from '@/server/services/harness/types';
 
@@ -133,9 +133,12 @@ export function useDeleteBulkSessions(harnessId?: string) {
 
   return useMutation({
     mutationFn: async (sessionIds: string[]) => {
-      const res = await $sessions.delete.bulk.$delete({
-        query: { harnessId, ids: sessionIds.join(',') },
-      });
+      const [res] = await Promise.all([
+        $sessions.delete.bulk.$delete({
+          query: { harnessId, ids: sessionIds.join(',') },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
       if (!res.ok) throw new Error('Failed to delete sessions');
       return res.json();
     },
@@ -143,7 +146,7 @@ export function useDeleteBulkSessions(harnessId?: string) {
       queryClient
         .invalidateQueries({ queryKey: sessionKeys.merged() })
         .then(() => {
-          useSidebarStore.getState().clearSelectedSessionIds();
+          useRecentsSidebarStore.getState().clearSelectedSessionIds();
         });
     },
   });
@@ -288,9 +291,12 @@ export function useArchiveBulkSessions(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionIds: string[]) => {
-      const res = await $sessions.archive.bulk.$patch({
-        query: { harnessId, ids: sessionIds.join(',') },
-      });
+      const [res] = await Promise.all([
+        $sessions.archive.bulk.$patch({
+          query: { harnessId, ids: sessionIds.join(',') },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
       if (!res.ok) throw new Error('Failed to archive sessions');
       return res.json();
     },
@@ -298,7 +304,7 @@ export function useArchiveBulkSessions(harnessId?: string) {
       queryClient
         .invalidateQueries({ queryKey: sessionKeys.merged() })
         .then(() => {
-          useSidebarStore.getState().clearSelectedSessionIds();
+          useRecentsSidebarStore.getState().clearSelectedSessionIds();
         });
     },
   });
@@ -328,9 +334,12 @@ export function useUnarchiveBulkSessions(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionIds: string[]) => {
-      const res = await $sessions.unarchive.bulk.$patch({
-        query: { harnessId, ids: sessionIds.join(',') },
-      });
+      const [res] = await Promise.all([
+        $sessions.unarchive.bulk.$patch({
+          query: { harnessId, ids: sessionIds.join(',') },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
       if (!res.ok) throw new Error('Failed to unarchive sessions');
       return res.json();
     },
@@ -338,7 +347,7 @@ export function useUnarchiveBulkSessions(harnessId?: string) {
       queryClient
         .invalidateQueries({ queryKey: sessionKeys.merged() })
         .then(() => {
-          useSidebarStore.getState().clearSelectedSessionIds();
+          useRecentsSidebarStore.getState().clearSelectedSessionIds();
         });
     },
   });

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, StateCreator } from 'zustand';
 
 type SidebarStore = {
   isEditMode: boolean;
@@ -16,7 +16,7 @@ type SidebarStore = {
   clearSelectedSessionIds: () => void;
 };
 
-export const useSidebarStore = create<SidebarStore>((set) => ({
+const sidebarStoreSlice: StateCreator<SidebarStore> = (set) => ({
   isEditMode: false,
   selectedSessionIds: [],
   lastSelectedId: null,
@@ -106,4 +106,9 @@ export const useSidebarStore = create<SidebarStore>((set) => ({
         lastSelectedId: sessionId,
       };
     }),
-}));
+});
+
+export const createSidebarStore = () => create<SidebarStore>(sidebarStoreSlice);
+
+export const useRecentsSidebarStore = createSidebarStore();
+export const useWorkspacesSidebarStore = createSidebarStore();

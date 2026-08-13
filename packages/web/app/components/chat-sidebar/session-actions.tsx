@@ -13,7 +13,7 @@ import { useRef } from 'react';
 
 import { Button, Checkbox, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
 
-import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
   sessionKeys,
@@ -32,9 +32,11 @@ import {
   useSessionRenameStore,
 } from '@/app/stores/session-rename';
 
-export function ToggleEditModeButton() {
-  const isEditMode = useSidebarStore((state) => state.isEditMode);
-  const toggleIsEditMode = useSidebarStore((state) => state.toggleisEditMode);
+export function RecentsToggleEditModeButton() {
+  const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
+  const toggleIsEditMode = useRecentsSidebarStore(
+    (state) => state.toggleisEditMode,
+  );
   const openModal = useGlobalModalStore((state) => state.openModal);
 
   return (
@@ -48,7 +50,7 @@ export function ToggleEditModeButton() {
     >
       <CollapsibleActions.Trigger>
         <Checkbox
-          name='edit-mode'
+          name='edit-mode-recents'
           slot='selection'
           isSelected={isEditMode}
           onChange={toggleIsEditMode}
@@ -62,9 +64,10 @@ export function ToggleEditModeButton() {
       </CollapsibleActions.Trigger>
       <CollapsibleActions.Contents>
         <Button
-          variant='danger'
+          variant='danger-soft'
           onPress={() => {
-            const sessionIds = useSidebarStore.getState().selectedSessionIds;
+            const sessionIds =
+              useRecentsSidebarStore.getState().selectedSessionIds;
             openModal({
               children: (
                 <DeleteBulkSessionsConfirmationModal sessionIds={sessionIds} />
@@ -76,9 +79,10 @@ export function ToggleEditModeButton() {
           <Icon data={TrashBin} />
         </Button>
         <Button
-          variant='secondary'
+          variant='tertiary'
           onPress={() => {
-            const sessionIds = useSidebarStore.getState().selectedSessionIds;
+            const sessionIds =
+              useRecentsSidebarStore.getState().selectedSessionIds;
             openModal({
               children: (
                 <ArchiveBulkSessionsConfirmationModal sessionIds={sessionIds} />
@@ -98,10 +102,10 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
   const queryClient = useQueryClient();
   const isShiftPressedRef = useRef(false);
 
-  const isSelected = useSidebarStore((state) =>
+  const isSelected = useRecentsSidebarStore((state) =>
     state.selectedSessionIds.includes(sessionId),
   );
-  const toggleSessionSelection = useSidebarStore(
+  const toggleSessionSelection = useRecentsSidebarStore(
     (state) => state.toggleSessionSelection,
   );
 
@@ -549,8 +553,8 @@ export function DeleteSession({
         });
       }}
     >
-      <Icon data={TrashBin} className='text-danger' />
-      <Label className='text-danger! font-medium'>Delete</Label>
+      <Icon data={TrashBin} className='text-danger-soft-foreground' />
+      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
     </Dropdown.Item>
   );
 }
