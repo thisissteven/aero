@@ -1,7 +1,7 @@
 import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
-import { memo, useState, useTransition } from 'react';
+import { memo, useRef, useState, useTransition } from 'react';
 
 import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
 
@@ -156,11 +156,27 @@ export const ChatSidebarSessionItem = memo(
       pathname === session.id ||
       pathname === `/${session.id}`;
 
+    const rename = useSessionRenameStore((state) => state.rename);
+    const lastPressTimeRef = useRef<number>(0);
+
     const handlePress = () => {
-      if (isCurrent) return;
-      startTransition(() => {
-        navigate({ to: fullHref });
-      });
+      const now = Date.now();
+      const DOUBLE_PRESS_THRESHOLD = 300; // ms window for double click
+
+      if (now - lastPressTimeRef.current < DOUBLE_PRESS_THRESHOLD) {
+        // DOUBLE PRESS DETECTED
+        lastPressTimeRef.current = 0; // Reset timer
+        rename(session.id, 'sidebar');
+      } else {
+        // SINGLE PRESS
+        lastPressTimeRef.current = now;
+
+        if (!isCurrent) {
+          startTransition(() => {
+            navigate({ to: fullHref });
+          });
+        }
+      }
     };
 
     const isEditMode = useSidebarStore((state) => state.isEditMode);

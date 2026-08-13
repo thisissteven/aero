@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Archive,
   Check,
@@ -8,15 +7,20 @@ import {
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon, Label } from '@gravity-ui/uikit';
-import { useQueryClient } from '@tanstack/react-query';
+import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
 import { Button, Checkbox, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
 
 import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
+  sessionKeys,
+  SessionsPageResponse,
+  useArchiveBulkSessions,
   useArchiveSession,
+  useDeleteBulkSessions,
   useDeleteSession,
   useSessionMarkdown,
 } from '@/app/hooks/api/sessions';
@@ -31,19 +35,62 @@ import {
 export function ToggleEditModeButton() {
   const isEditMode = useSidebarStore((state) => state.isEditMode);
   const toggleIsEditMode = useSidebarStore((state) => state.toggleisEditMode);
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
   return (
-    <Checkbox
-      name='edit-mode'
-      slot='selection'
-      isSelected={isEditMode}
-      onChange={toggleIsEditMode}
+    <CollapsibleActions
+      expandBehavior='vertical'
+      expandOrigin='trigger-right'
+      gap={48}
+      distance={56}
+      open={isEditMode}
+      flip
     >
-      <Checkbox.Content>
-        <Checkbox.Control>
-          <Checkbox.Indicator />
-        </Checkbox.Control>
-      </Checkbox.Content>
-    </Checkbox>
+      <CollapsibleActions.Trigger>
+        <Checkbox
+          name='edit-mode'
+          slot='selection'
+          isSelected={isEditMode}
+          onChange={toggleIsEditMode}
+        >
+          <Checkbox.Content>
+            <Checkbox.Control>
+              <Checkbox.Indicator />
+            </Checkbox.Control>
+          </Checkbox.Content>
+        </Checkbox>
+      </CollapsibleActions.Trigger>
+      <CollapsibleActions.Contents>
+        <Button
+          variant='danger'
+          onPress={() => {
+            const sessionIds = useSidebarStore.getState().selectedSessionIds;
+            openModal({
+              children: (
+                <DeleteBulkSessionsConfirmationModal sessionIds={sessionIds} />
+              ),
+            });
+          }}
+          isIconOnly
+        >
+          <Icon data={TrashBin} />
+        </Button>
+        <Button
+          variant='secondary'
+          onPress={() => {
+            const sessionIds = useSidebarStore.getState().selectedSessionIds;
+            openModal({
+              children: (
+                <ArchiveBulkSessionsConfirmationModal sessionIds={sessionIds} />
+              ),
+            });
+          }}
+          isIconOnly
+        >
+          <Icon data={Archive} />
+        </Button>
+      </CollapsibleActions.Contents>
+    </CollapsibleActions>
   );
 }
 
@@ -69,43 +116,22 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
 
   // Safely extract ordered IDs from TanStack Query infinite data cache
   const getOrderedSessionIds = (): string[] => {
-    const cache = queryClient.getQueryCache();
-    const queries = cache.findAll();
-
-    // Find the infinite query entry that holds `pages`
-    const sessionQuery = queries.find((q) => {
-      const data = q.state.data as any;
-      return data && Array.isArray(data.pages);
+    // Finds queries matching ['sessions', 'default'] prefix
+    const queries = queryClient.getQueriesData<
+      InfiniteData<SessionsPageResponse>
+    >({
+      queryKey: [...sessionKeys.merged(), undefined],
+      exact: true,
     });
 
-    const data = sessionQuery?.state.data as any;
-    if (!data?.pages || !Array.isArray(data.pages)) return [];
+    // Get the most recently updated query matching this key
+    const activeQuery = queries[queries.length - 1];
+    const data = activeQuery?.[1];
 
-    const ids: string[] = [];
+    if (!data?.pages) return [];
 
-    for (const page of data.pages) {
-      if (!page) continue;
-
-      let items: any[] = [];
-      if (Array.isArray(page)) {
-        items = page;
-      } else if (typeof page === 'object') {
-        // Find whichever property key holds the session array (sessions, data, items, etc.)
-        const arrayKey = Object.keys(page).find((key) =>
-          Array.isArray((page as any)[key]),
-        );
-        if (arrayKey) {
-          items = (page as any)[arrayKey];
-        }
-      }
-
-      for (const item of items) {
-        const id = typeof item === 'string' ? item : item?.id;
-        if (id) ids.push(id);
-      }
-    }
-
-    return ids;
+    // Directly map the pages to IDs
+    return data.pages.flatMap((page) => page.items.map((item) => item.id));
   };
 
   const handleSelectionChange = () => {
@@ -242,6 +268,54 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
   );
 }
 
+function ArchiveBulkSessionsConfirmationModal({
+  sessionIds,
+}: {
+  sessionIds: string[];
+}) {
+  const { mutateAsync } = useArchiveBulkSessions();
+
+  const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Archive sessions?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          A total of {sessionIds.length} session
+          {sessionIds.length > 1 ? 's' : ''} will be archived.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='tertiary'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync(sessionIds), {
+              loading: 'Archiving sessions...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Sessions archived';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Archive
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
 function ArchiveSessionConfirmationModal({
   sessionId,
   sessionTitle,
@@ -353,6 +427,54 @@ export function ArchiveSession({
       <Icon data={Archive} />
       <Label>Archive</Label>
     </Dropdown.Item>
+  );
+}
+
+function DeleteBulkSessionsConfirmationModal({
+  sessionIds,
+}: {
+  sessionIds: string[];
+}) {
+  const { mutateAsync } = useDeleteBulkSessions();
+
+  const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Delete sessions?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          A total of {sessionIds.length} session
+          {sessionIds.length > 1 ? 's' : ''} will be deleted.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='tertiary'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync(sessionIds), {
+              loading: 'Deleting sessions...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Sessions deleted';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Archive
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
   );
 }
 

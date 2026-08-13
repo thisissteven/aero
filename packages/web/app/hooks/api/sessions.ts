@@ -11,23 +11,14 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import type { InferRequestType } from 'hono/client';
+import type { InferRequestType, InferResponseType } from 'hono/client';
 
+import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { HarnessId } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
-const $sessionsMerged = honoClient.api.sessions.merged;
-const $archivedSessions = honoClient.api.sessions.archived;
-const $session = honoClient.api.sessions[':id'];
-const $messages = honoClient.api.sessions[':id'].messages;
-const $message = honoClient.api.sessions[':id'].message;
-const $markdown = honoClient.api.sessions[':id'].markdown;
-const $abort = honoClient.api.sessions[':id'].abort;
-const $toc = honoClient.api.sessions[':id'].toc;
-const $archive = honoClient.api.sessions[':id'].archive;
-const $unarchive = honoClient.api.sessions[':id'].unarchive;
-const $rename = honoClient.api.sessions[':id'].rename;
+const $individualSession = honoClient.api.sessions[':id'];
 
 export const sessionKeys = {
   merged: () => ['sessions', 'default'] as const,
@@ -39,18 +30,17 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'messages'] as const,
   toc: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'toc'] as const,
-  markdown: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'markdown'] as const,
-  archive: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'archive'] as const,
-  unarchive: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'unarchive'] as const,
-  rename: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'rename'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
-type SendMessageInput = InferRequestType<typeof $message.$post>['json'];
+type SendMessageInput = InferRequestType<
+  typeof $individualSession.message.$post
+>['json'];
+
+export type SessionsPageResponse = InferResponseType<
+  typeof $sessions.merged.$get,
+  200
+>;
 
 export function useSessions(search?: string) {
   return useInfiniteQuery({
@@ -61,7 +51,7 @@ export function useSessions(search?: string) {
     placeholderData: keepPreviousData,
 
     queryFn: async ({ pageParam }) => {
-      const res = await $sessionsMerged.$get({
+      const res = await $sessions.merged.$get({
         query: {
           cursor: pageParam,
           limit: PAGINATION_LIMIT.toString(),
@@ -84,7 +74,7 @@ export function useSessionsArchived(harnessId?: string) {
   return useQuery({
     queryKey: sessionKeys.allArchived(harnessId),
     queryFn: async () => {
-      const res = await $archivedSessions.$get({
+      const res = await $sessions.archived.$get({
         query: {
           harnessId,
         },
@@ -99,7 +89,7 @@ export function useSession(harnessId: string | undefined, sessionId: string) {
   return useQuery({
     queryKey: sessionKeys.detail(harnessId, sessionId),
     queryFn: async () => {
-      const res = await $session.$get({
+      const res = await $individualSession.$get({
         param: { id: sessionId },
         query: { harnessId },
       });
@@ -138,13 +128,34 @@ export function useCreateSession(defaultharnessId?: HarnessId) {
   });
 }
 
+export function useDeleteBulkSessions(harnessId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const res = await $sessions.delete.bulk.$delete({
+        query: { harnessId, ids: sessionIds.join(',') },
+      });
+      if (!res.ok) throw new Error('Failed to delete sessions');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient
+        .invalidateQueries({ queryKey: sessionKeys.merged() })
+        .then(() => {
+          useSidebarStore.getState().clearSelectedSessionIds();
+        });
+    },
+  });
+}
+
 export function useDeleteSession(harnessId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const [res] = await Promise.all([
-        $session.$delete({
+        $individualSession.$delete({
           param: { id: sessionId },
           query: { harnessId },
         }),
@@ -169,7 +180,7 @@ export function useSessionMessages(
   return useQuery({
     queryKey: sessionKeys.messages(harnessId, sessionId),
     queryFn: async () => {
-      const res = await $messages.$get({
+      const res = await $individualSession.messages.$get({
         param: { id: sessionId },
         query: { harnessId },
       });
@@ -187,7 +198,7 @@ export function useSessionToc(
   return useQuery({
     queryKey: sessionKeys.toc(harnessId, sessionId),
     queryFn: async () => {
-      const res = await $toc.$get({
+      const res = await $individualSession.toc.$get({
         param: { id: sessionId },
         query: { harnessId },
       });
@@ -201,7 +212,7 @@ export function useSessionToc(
 export function useSessionMarkdown(harnessId?: string) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const res = await $markdown.$get({
+      const res = await $individualSession.markdown.$get({
         param: { id: sessionId },
         query: { harnessId },
       });
@@ -218,7 +229,7 @@ export function useSendMessage(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SendMessageInput) => {
-      const res = await $message.$post({
+      const res = await $individualSession.message.$post({
         param: { id: sessionId },
         query: { harnessId },
         json: input,
@@ -238,7 +249,7 @@ export function useAbortSession(harnessId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const res = await $abort.$post({
+      const res = await $individualSession.abort.$post({
         param: { id: sessionId },
         query: { harnessId },
       });
@@ -258,7 +269,7 @@ export function useArchiveSession(harnessId?: string) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const [res] = await Promise.all([
-        $archive.$patch({
+        $individualSession.archive.$patch({
           param: { id: sessionId },
           query: { harnessId },
         }),
@@ -267,11 +278,28 @@ export function useArchiveSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to archive session');
       return res.json();
     },
-    onSuccess: (_data, sessionId) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
+    },
+  });
+}
+
+export function useArchiveBulkSessions(harnessId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const res = await $sessions.archive.bulk.$patch({
+        query: { harnessId, ids: sessionIds.join(',') },
       });
+      if (!res.ok) throw new Error('Failed to archive sessions');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient
+        .invalidateQueries({ queryKey: sessionKeys.merged() })
+        .then(() => {
+          useSidebarStore.getState().clearSelectedSessionIds();
+        });
     },
   });
 }
@@ -281,7 +309,7 @@ export function useUnarchiveSession(harnessId?: string) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const [res] = await Promise.all([
-        $unarchive.$patch({
+        $individualSession.unarchive.$patch({
           param: { id: sessionId },
           query: { harnessId },
         }),
@@ -290,11 +318,28 @@ export function useUnarchiveSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to unarchive session');
       return res.json();
     },
-    onSuccess: (_data, sessionId) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
+    },
+  });
+}
+
+export function useUnarchiveBulkSessions(harnessId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const res = await $sessions.unarchive.bulk.$patch({
+        query: { harnessId, ids: sessionIds.join(',') },
       });
+      if (!res.ok) throw new Error('Failed to unarchive sessions');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient
+        .invalidateQueries({ queryKey: sessionKeys.merged() })
+        .then(() => {
+          useSidebarStore.getState().clearSelectedSessionIds();
+        });
     },
   });
 }
@@ -308,7 +353,7 @@ export function useRenameSession(harnessId?: string) {
       sessionId: string;
       title: string;
     }) => {
-      const res = await $rename.$patch({
+      const res = await $individualSession.rename.$patch({
         param: { id: sessionId },
         query: { harnessId },
         json: { title },

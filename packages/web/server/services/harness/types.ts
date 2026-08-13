@@ -172,12 +172,15 @@ export interface HarnessAdapter {
   createSession(input: CreateSessionInput): Promise<AeroSessionSummary>;
   getSession(sessionId: string): Promise<AeroSessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
+  deleteBulkSessions(sessionIds: string[]): Promise<boolean>;
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
   renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
   archiveSession(sessionId: string): Promise<AeroSessionSummary>;
+  archiveBulkSessions(sessionId: string[]): Promise<boolean>;
   unarchiveSession(sessionId: string): Promise<AeroSessionSummary>;
+  unarchiveBulkSessions(sessionId: string[]): Promise<boolean>;
   sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
   sendMessageSync(
     sessionId: string,

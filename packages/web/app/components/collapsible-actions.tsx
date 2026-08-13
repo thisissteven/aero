@@ -6,6 +6,7 @@ import React, {
   isValidElement,
   ReactElement,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -24,38 +25,42 @@ interface Position {
   left: number;
 }
 
-interface AttachContextActionContextValue {
+interface CollapsibleActionsContextValue {
   isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsOpen: (value: React.SetStateAction<boolean>) => void;
   toggle: () => void;
   triggerRef: React.RefObject<HTMLDivElement | null>;
   portalRef: React.RefObject<HTMLDivElement | null>;
   triggerPos: Position;
   updatePosition: () => void;
+  distance: number;
   gap: number;
   expandBehavior: ExpandBehavior;
   expandOrigin: ExpandOrigin;
+  flip: boolean;
 }
 
-const AttachContextActionContext =
-  createContext<AttachContextActionContextValue | null>(null);
+const CollapsibleActionsContext =
+  createContext<CollapsibleActionsContextValue | null>(null);
 
-function useAttachContextAction() {
-  const ctx = useContext(AttachContextActionContext);
+function useCollapsibleActions() {
+  const ctx = useContext(CollapsibleActionsContext);
   if (!ctx) {
     throw new Error(
-      'AttachContextAction subcomponents must be used within <AttachContextAction>',
+      'CollapsibleActions subcomponents must be used within <CollapsibleActions>',
     );
   }
   return ctx;
 }
 
-// Helper to calculate item coordinates based on behavior, origin, and gap
+// Helper to calculate item coordinates based on behavior, origin, distance, gap, and flip
 function getPositions(
   count: number,
+  distance: number,
   gap: number,
   behavior: ExpandBehavior = 'spread',
   origin: ExpandOrigin = 'trigger',
+  flip: boolean = false,
 ) {
   if (count <= 0) return [];
 
@@ -72,12 +77,17 @@ function getPositions(
       endAngle = 30;
     }
 
+    if (flip) {
+      startAngle = -startAngle;
+      endAngle = -endAngle;
+    }
+
     if (count === 1) {
       const midAngle = ((startAngle + endAngle) / 2) * (Math.PI / 180);
       return [
         {
-          fx: Math.round(gap * Math.cos(midAngle)),
-          fy: Math.round(gap * Math.sin(midAngle)),
+          fx: Math.round(distance * Math.cos(midAngle)),
+          fy: Math.round(distance * Math.sin(midAngle)),
         },
       ];
     }
@@ -86,22 +96,29 @@ function getPositions(
     return Array.from({ length: count }, (_, i) => {
       const angle = (startAngle + i * step) * (Math.PI / 180);
       return {
-        fx: Math.round(gap * Math.cos(angle)),
-        fy: Math.round(gap * Math.sin(angle)),
+        fx: Math.round(distance * Math.cos(angle)),
+        fy: Math.round(distance * Math.sin(angle)),
       };
     });
   }
 
   // 2. VERTICAL LINE BEHAVIOR
   if (behavior === 'vertical') {
-    let fxOffset = 0;
-    if (origin === 'trigger-left') fxOffset = -14;
-    if (origin === 'trigger-right') fxOffset = 14;
+    const yDir = flip ? 1 : -1;
 
+    // Trigger Origin: Column centered horizontally above/below trigger
+    if (origin === 'trigger') {
+      return Array.from({ length: count }, (_, i) => ({
+        fx: 0,
+        fy: yDir * Math.round(distance + i * gap),
+      }));
+    }
+
+    // Trigger-Left / Trigger-Right: Column starts directly beside the trigger
+    const xOffset = origin === 'trigger-left' ? -distance : distance;
     return Array.from({ length: count }, (_, i) => ({
-      fx: fxOffset,
-      // Item 0 is at offset -1*gap, Item 1 at -2*gap, etc.
-      fy: -Math.round((i + 1) * gap),
+      fx: xOffset,
+      fy: yDir * Math.round(i * gap),
     }));
   }
 
@@ -109,59 +126,82 @@ function getPositions(
   if (behavior === 'horizontal') {
     if (origin === 'trigger-left') {
       return Array.from({ length: count }, (_, i) => ({
-        // Item 0 is at offset -1*gap, Item 1 at -2*gap, etc.
-        fx: -Math.round((i + 1) * gap),
+        fx: -Math.round(distance + i * gap),
         fy: 0,
       }));
     }
 
     if (origin === 'trigger-right') {
       return Array.from({ length: count }, (_, i) => ({
-        // Item 0 is at offset +1*gap, Item 1 at +2*gap, etc.
-        fx: Math.round((i + 1) * gap),
+        fx: Math.round(distance + i * gap),
         fy: 0,
       }));
     }
 
-    // Centered horizontal spread above trigger
+    // Centered horizontal spread above/below trigger
     const half = (count - 1) / 2;
+    const yOffset = flip ? distance : -distance;
     return Array.from({ length: count }, (_, i) => ({
       fx: Math.round((i - half) * gap),
-      fy: -gap,
+      fy: yOffset,
     }));
   }
 
   return [];
 }
 
-export interface AttachContextActionProps {
+export interface CollapsibleActionsProps {
   children: ReactNode;
+  /** Controlled open state */
+  open?: boolean;
+  /** Callback fired when open state changes */
+  onOpenChange?: (open: boolean) => void;
+  /** Default open state when uncontrolled */
   defaultOpen?: boolean;
-  /** Spacing from trigger to first item, and between consecutive items. Defaults to 48. */
-  gap?: number;
-  /** Legacy distance prop (falls back to gap if omitted). */
+  /** Distance from trigger center to the first uncollapsed item. Defaults to 48. */
   distance?: number;
+  /** Distance between consecutive uncollapsed items. Defaults to 40. */
+  gap?: number;
   /** Layout pattern for expanding items. Defaults to 'spread'. */
   expandBehavior?: ExpandBehavior;
   /** Anchor orientation relative to the trigger. Defaults to 'trigger'. */
   expandOrigin?: ExpandOrigin;
+  /** When true, expands downward instead of upward. Defaults to false. */
+  flip?: boolean;
 }
 
-export function AttachContextAction({
+export function CollapsibleActions({
   children,
+  open: controlledOpen,
+  onOpenChange,
   defaultOpen = false,
-  gap,
-  distance,
+  distance = 48,
+  gap = 40,
   expandBehavior = 'spread',
   expandOrigin = 'trigger',
-}: AttachContextActionProps) {
-  const effectiveGap = gap ?? distance ?? 48;
+  flip = false,
+}: CollapsibleActionsProps) {
+  const isControlled = controlledOpen !== undefined;
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
+
   const [triggerPos, setTriggerPos] = useState<Position>({ top: 0, left: 0 });
 
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
+
+  const setIsOpen = useCallback(
+    (value: React.SetStateAction<boolean>) => {
+      const nextOpen = typeof value === 'function' ? value(isOpen) : value;
+
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+    },
+    [isControlled, isOpen, onOpenChange],
+  );
 
   // Close menu when clicking outside trigger or portal overlay
   useOnClickOutside([triggerRef, portalRef], () => {
@@ -172,24 +212,26 @@ export function AttachContextAction({
     ignoreInputs: false,
   });
 
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       setTriggerPos({
-        top: Math.round(rect.top + rect.height / 2 + window.scrollY),
-        left: Math.round(rect.left + rect.width / 2 + window.scrollX),
+        top: Math.round(rect.top + rect.height / 2),
+        left: Math.round(rect.left + rect.width / 2),
       });
     }
-  };
+  }, []);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     if (!isOpen) updatePosition();
     setIsOpen((prev) => !prev);
-  };
+  }, [isOpen, setIsOpen, updatePosition]);
 
-  // Re-calculate position on scroll, window resize, OR trigger container resize (e.g. textarea expanding)
+  // Re-calculate position on scroll, window resize, OR trigger container resize
   useEffect(() => {
     if (isOpen) {
+      updatePosition();
+
       window.addEventListener('resize', updatePosition);
       window.addEventListener('scroll', updatePosition, true);
 
@@ -205,10 +247,10 @@ export function AttachContextAction({
         if (resizeObserver) resizeObserver.disconnect();
       };
     }
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   return (
-    <AttachContextActionContext.Provider
+    <CollapsibleActionsContext.Provider
       value={{
         isOpen,
         setIsOpen,
@@ -217,9 +259,11 @@ export function AttachContextAction({
         portalRef,
         triggerPos,
         updatePosition,
-        gap: effectiveGap,
+        distance,
+        gap,
         expandBehavior,
         expandOrigin,
+        flip,
       }}
     >
       <style>{`
@@ -321,7 +365,7 @@ export function AttachContextAction({
       `}</style>
 
       <div className='speed-dial-container'>{children}</div>
-    </AttachContextActionContext.Provider>
+    </CollapsibleActionsContext.Provider>
   );
 }
 
@@ -329,22 +373,22 @@ export function AttachContextAction({
 /*                               Component Types                              */
 /* -------------------------------------------------------------------------- */
 
-interface AttachContextActionActionProps extends HTMLAttributes<HTMLElement> {
+interface CollapsibleActionsActionProps extends HTMLAttributes<HTMLElement> {
   'aria-expanded'?: boolean;
   tabIndex?: number;
 }
 
 interface TriggerProps {
-  children: ReactElement<AttachContextActionActionProps>;
+  children: ReactElement<CollapsibleActionsActionProps>;
 }
 
 /* -------------------------------------------------------------------------- */
 /*                               Trigger Component                            */
 /* -------------------------------------------------------------------------- */
 
-export function AttachContextActionTrigger({ children }: TriggerProps) {
+export function CollapsibleActionsTrigger({ children }: TriggerProps) {
   const { isOpen, toggle, triggerRef, updatePosition } =
-    useAttachContextAction();
+    useCollapsibleActions();
 
   return (
     <div ref={triggerRef} className='speed-dial-trigger-wrapper'>
@@ -364,7 +408,7 @@ export function AttachContextActionTrigger({ children }: TriggerProps) {
 /*                              Contents Component                            */
 /* -------------------------------------------------------------------------- */
 
-export function AttachContextActionContents({
+export function CollapsibleActionsContents({
   children,
 }: {
   children: ReactNode;
@@ -374,17 +418,21 @@ export function AttachContextActionContents({
     setIsOpen,
     triggerPos,
     portalRef,
+    distance,
     gap,
     expandBehavior,
     expandOrigin,
-  } = useAttachContextAction();
+    flip,
+  } = useCollapsibleActions();
 
   const items = Children.toArray(children).filter(isValidElement);
   const positions = getPositions(
     items.length,
+    distance,
     gap,
     expandBehavior,
     expandOrigin,
+    flip,
   );
 
   const portalContent = (
@@ -455,7 +503,7 @@ export function AttachContextActionContents({
         } as React.CSSProperties;
 
         const actionChild =
-          child as ReactElement<AttachContextActionActionProps>;
+          child as ReactElement<CollapsibleActionsActionProps>;
 
         return (
           <div
@@ -481,5 +529,5 @@ export function AttachContextActionContents({
 }
 
 // Attach subcomponents
-AttachContextAction.Trigger = AttachContextActionTrigger;
-AttachContextAction.Contents = AttachContextActionContents;
+CollapsibleActions.Trigger = CollapsibleActionsTrigger;
+CollapsibleActions.Contents = CollapsibleActionsContents;

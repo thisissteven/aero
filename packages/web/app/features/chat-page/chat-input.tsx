@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 import { PromptInput } from '@aero/ui';
 
-import { AttachContextAction } from '@/app/components/attach-context-action';
+import { CollapsibleActions } from '@/app/components/collapsible-actions';
 
 export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
   const [value, setValue] = useState('');
@@ -31,17 +31,17 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
         </PromptInput.Content>
         <PromptInput.Toolbar>
           <PromptInput.ToolbarStart className='items-end justify-start'>
-            <AttachContextAction
+            <CollapsibleActions
               expandBehavior='vertical'
               expandOrigin='trigger'
               gap={44}
             >
-              <AttachContextAction.Trigger>
+              <CollapsibleActions.Trigger>
                 <PromptInput.Action aria-label='Add context'>
                   <Icon aria-hidden data={Plus} />
                 </PromptInput.Action>
-              </AttachContextAction.Trigger>
-              <AttachContextAction.Contents>
+              </CollapsibleActions.Trigger>
+              <CollapsibleActions.Contents>
                 <PromptInput.Action aria-label='Attach Files'>
                   <Icon aria-hidden data={File} />
                 </PromptInput.Action>
@@ -51,8 +51,8 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
                 <PromptInput.Action aria-label='Attach Folders'>
                   <Icon aria-hidden data={Folder} />
                 </PromptInput.Action>
-              </AttachContextAction.Contents>
-            </AttachContextAction>
+              </CollapsibleActions.Contents>
+            </CollapsibleActions>
             <PromptInput.Action aria-label='Use voice'>
               <Icon aria-hidden data={Microphone} />
             </PromptInput.Action>

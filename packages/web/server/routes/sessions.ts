@@ -27,6 +27,19 @@ const idParamSchema = z.object({
   id: z.string().min(1),
 });
 
+const bulkIdsQuerySchema = z.object({
+  ids: z
+    .string()
+    .min(1)
+    .transform((val) =>
+      val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().min(1)).min(1, 'At least one ID is required')),
+});
+
 const createSessionInputSchema = z.object({
   title: z.string().optional(),
   directory: z.string().optional(),
@@ -169,6 +182,19 @@ const sessions = new Hono()
     },
   )
 
+  // DELETE /api/sessions/delete/bulk?harnessId=...
+  .delete(
+    '/delete/bulk',
+    zValidator('query', harnessQuerySchema.extend(bulkIdsQuerySchema.shape)),
+    async (c) => {
+      const { harnessId, ids } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const ok = await harness.deleteBulkSessions(ids);
+      return c.json(ok);
+    },
+  )
+
   // GET /api/sessions/:id/messages?harnessId=...
   .get(
     '/:id/messages',
@@ -245,6 +271,20 @@ const sessions = new Hono()
     },
   )
 
+  // PATCH /api/sessions/archive/bulk?harnessId=...
+  .patch(
+    '/archive/bulk',
+    zValidator('query', harnessQuerySchema.extend(bulkIdsQuerySchema.shape)),
+    async (c) => {
+      const { harnessId, ids } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const ok = await harness.archiveBulkSessions(ids);
+
+      return c.json(ok);
+    },
+  )
+
   // PATCH /api/sessions/:id/archive?harnessId=...
   .patch(
     '/:id/archive',
@@ -258,6 +298,20 @@ const sessions = new Hono()
       const session = await harness.archiveSession(id);
 
       return c.json(session);
+    },
+  )
+
+  // PATCH /api/sessions/unarchive/bulk?harnessId=...
+  .patch(
+    '/unarchive/bulk',
+    zValidator('query', harnessQuerySchema.extend(bulkIdsQuerySchema.shape)),
+    async (c) => {
+      const { harnessId, ids } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const ok = await harness.unarchiveBulkSessions(ids);
+
+      return c.json(ok);
     },
   )
 

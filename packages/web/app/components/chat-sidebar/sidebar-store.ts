@@ -13,6 +13,7 @@ type SidebarStore = {
     isShiftPressed: boolean,
     orderedIds: string[],
   ) => void;
+  clearSelectedSessionIds: () => void;
 };
 
 export const useSidebarStore = create<SidebarStore>((set) => ({
@@ -56,6 +57,12 @@ export const useSidebarStore = create<SidebarStore>((set) => ({
         ),
       };
     }),
+
+  clearSelectedSessionIds: () =>
+    set(() => ({
+      selectedSessionIds: [],
+      lastSelectedId: null,
+    })),
 
   toggleSessionSelection: (sessionId, isShiftPressed, orderedIds) =>
     set((state) => {

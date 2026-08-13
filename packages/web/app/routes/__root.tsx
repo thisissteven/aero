@@ -16,6 +16,7 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   useSpeechInit();
+
   return (
     <ThemeProvider>
       <QueryProvider>

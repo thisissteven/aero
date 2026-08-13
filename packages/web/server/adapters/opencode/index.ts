@@ -5,6 +5,7 @@
 // and a different mappers.ts.
 
 import type { Event } from '@opencode-ai/sdk/v2';
+import pLimit from 'p-limit';
 
 import { getOpencodeClient } from '@/server/adapters/opencode/client';
 import {
@@ -355,6 +356,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return unwrap(await client.session.delete({ sessionID }));
     },
 
+    async deleteBulkSessions(sessionIDs) {
+      const limit = pLimit(50);
+
+      try {
+        await Promise.all(
+          sessionIDs.map((sessionID) =>
+            limit(async () => {
+              await client.session.delete({
+                sessionID,
+              });
+            }),
+          ),
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
     async listMessages(sessionID) {
       const entries = unwrap(await client.session.messages({ sessionID }));
       return entries.map(toAeroMessage);
@@ -455,6 +475,27 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroSession(session);
     },
 
+    async archiveBulkSessions(sessionIDs: string[]) {
+      const limit = pLimit(50);
+      const archivedTime = Date.now();
+
+      try {
+        await Promise.all(
+          sessionIDs.map((sessionID) =>
+            limit(async () => {
+              await client.session.update({
+                sessionID,
+                time: { archived: archivedTime },
+              });
+            }),
+          ),
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
     async unarchiveSession(sessionID) {
       const session = unwrap(
         await client.session.update({
@@ -466,6 +507,26 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       return toAeroSession(session);
+    },
+
+    async unarchiveBulkSessions(sessionIDs: string[]) {
+      const limit = pLimit(50);
+
+      try {
+        await Promise.all(
+          sessionIDs.map((sessionID) =>
+            limit(async () => {
+              await client.session.update({
+                sessionID,
+                time: { archived: undefined },
+              });
+            }),
+          ),
+        );
+        return true;
+      } catch {
+        return false;
+      }
     },
 
     async renameSession({ sessionId, title }) {

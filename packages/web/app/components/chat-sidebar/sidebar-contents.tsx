@@ -102,12 +102,15 @@ export const SidebarContents = memo(function SidebarContents({
 
       <Sidebar.Separator className='mb-0' />
 
+      <div className='px-2 pt-2'>
+        <Sidebar.GroupLabel className='flex items-center justify-between'>
+          Recent
+          <ToggleEditModeButton />
+        </Sidebar.GroupLabel>
+      </div>
+
       <Sidebar.Content offset={2} className='py-2'>
-        <Sidebar.Group className='p-0'>
-          <Sidebar.GroupLabel className='flex items-center justify-between'>
-            Recent
-            <ToggleEditModeButton />
-          </Sidebar.GroupLabel>
+        <Sidebar.Group>
           <RecentChats pathname={pathname} sessionsQuery={sessionsQuery} />
         </Sidebar.Group>
       </Sidebar.Content>
