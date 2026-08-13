@@ -28,8 +28,9 @@ import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
 import { useGlobalModalStore } from '@/app/providers/GlobalModal';
 import {
-  SessionRenameFromEnum,
-  useSessionRenameStore,
+  useNavbarSessionRenameStore,
+  useRecentsSessionRenameStore,
+  useWorkspacesSessionRenameStore,
 } from '@/app/stores/session-rename';
 
 export function RecentsToggleEditModeButton() {
@@ -177,12 +178,31 @@ export function RenameSession({
   from,
 }: {
   sessionId: string;
-  from: SessionRenameFromEnum;
+  from: 'recents' | 'navbar' | 'workspaces';
 }) {
-  const rename = useSessionRenameStore((state) => state.rename);
+  const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
+  const renameNavbar = useNavbarSessionRenameStore((state) => state.rename);
+  const renameWorkspaces = useWorkspacesSessionRenameStore(
+    (state) => state.rename,
+  );
 
   return (
-    <Dropdown.Item className='gap-2' onPress={() => rename(sessionId, from)}>
+    <Dropdown.Item
+      className='gap-2'
+      onPress={() => {
+        switch (from) {
+          case 'navbar':
+            renameNavbar(sessionId);
+            break;
+          case 'recents':
+            renameRecents(sessionId);
+            break;
+          case 'workspaces':
+            renameWorkspaces(sessionId);
+            break;
+        }
+      }}
+    >
       <Icon data={Pencil} />
       <Label>Rename</Label>
     </Dropdown.Item>

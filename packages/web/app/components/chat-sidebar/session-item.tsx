@@ -17,7 +17,7 @@ import {
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
-import { useSessionRenameStore } from '@/app/stores/session-rename';
+import { useRecentsSessionRenameStore } from '@/app/stores/session-rename';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 import { isWorktree } from '@/server/shared';
 
@@ -34,12 +34,9 @@ export function SessionItemSummary({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const state = useSessionRenameStore((state) => state.state);
+  const state = useRecentsSessionRenameStore((state) => state.state);
 
-  const isRenaming =
-    state.isRenaming &&
-    state.sessionId === session.id &&
-    state.from === 'sidebar';
+  const isRenaming = state.isRenaming && state.sessionId === session.id;
 
   if (!isRenaming) {
     return (
@@ -94,7 +91,7 @@ export function SessionItemSummary({
               placement='bottom end'
             >
               <Dropdown.Menu aria-label={`${session.title} actions`}>
-                <RenameSession sessionId={session.id} from='sidebar' />
+                <RenameSession sessionId={session.id} from='recents' />
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator />
@@ -156,7 +153,7 @@ export const ChatSidebarSessionItem = memo(
       pathname === session.id ||
       pathname === `/${session.id}`;
 
-    const rename = useSessionRenameStore((state) => state.rename);
+    const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
     const lastPressTimeRef = useRef<number>(0);
 
     const { setMobileOpen } = useSidebar();
@@ -168,7 +165,7 @@ export const ChatSidebarSessionItem = memo(
       if (now - lastPressTimeRef.current < DOUBLE_PRESS_THRESHOLD) {
         // DOUBLE PRESS DETECTED
         lastPressTimeRef.current = 0; // Reset timer
-        rename(session.id, 'sidebar');
+        renameRecents(session.id);
       } else {
         // SINGLE PRESS
         lastPressTimeRef.current = now;

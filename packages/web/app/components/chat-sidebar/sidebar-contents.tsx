@@ -15,12 +15,10 @@ import { Kbd, Sidebar, Tooltip } from '@aero/ui';
 
 import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
 import { SettingsButton } from '@/app/components/chat-sidebar/settings-button';
-import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
 import { useSessions } from '@/app/hooks/api/sessions';
 
 import { ChatSidebarProps } from './index';
-import { Workspaces } from './workspaces';
 
 interface SidebarContentsProps extends ChatSidebarProps {
   idPrefix?: string;
@@ -126,6 +124,8 @@ export const SidebarContents = memo(function SidebarContents({
 
       <Sidebar.Separator className='mb-0' />
 
+      <RecentChats pathname={pathname} sessionsQuery={sessionsQuery} />
+      {/* 
       <TransitionInOut
         current={isWorkspacesOpen ? 'second' : 'first'}
         first={
@@ -134,7 +134,7 @@ export const SidebarContents = memo(function SidebarContents({
         second={
           <Workspaces pathname={pathname} sessionsQuery={sessionsQuery} />
         }
-      />
+      /> */}
 
       <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>
         <div className='mt-1.5 space-x-2 px-4'>

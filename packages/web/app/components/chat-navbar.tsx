@@ -22,7 +22,7 @@ import {
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
-import { useSessionRenameStore } from '@/app/stores/session-rename';
+import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
 
 import type { ChatActivePage } from '../data/chat';
 
@@ -83,12 +83,9 @@ function SessionTitle({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const state = useSessionRenameStore((state) => state.state);
+  const state = useNavbarSessionRenameStore((state) => state.state);
 
-  const isRenaming =
-    state.isRenaming &&
-    state.sessionId === sessionId &&
-    state.from === 'navbar';
+  const isRenaming = state.isRenaming && state.sessionId === sessionId;
 
   return (
     <div className='relative h-5 max-w-sm max-sm:max-w-[200px] sm:h-6 sm:max-w-lg'>

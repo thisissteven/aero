@@ -1,33 +1,30 @@
-import { create } from 'zustand';
-
-export type SessionRenameFromEnum = 'sidebar' | 'navbar';
+import { create, StateCreator } from 'zustand';
 
 interface SessionRenameStore {
   state: {
     isRenaming: boolean;
     sessionId?: string;
-    from: SessionRenameFromEnum;
   };
 
-  rename: (sessionId: string, from: SessionRenameFromEnum) => void;
+  rename: (sessionId: string) => void;
   cancelRename: () => void;
 }
 
 const defaultState = {
   isRenaming: false,
   sessionId: undefined,
-  from: 'sidebar',
 } as SessionRenameStore['state'];
 
-export const useSessionRenameStore = create<SessionRenameStore>((set) => ({
+export const sessionRenameStoreSlice: StateCreator<SessionRenameStore> = (
+  set,
+) => ({
   state: defaultState,
 
-  rename: (sessionId, from) =>
+  rename: (sessionId) =>
     set({
       state: {
         isRenaming: true,
         sessionId,
-        from,
       },
     }),
 
@@ -35,4 +32,11 @@ export const useSessionRenameStore = create<SessionRenameStore>((set) => ({
     set({
       state: defaultState,
     }),
-}));
+});
+
+export const createSessionRenameStore = () =>
+  create<SessionRenameStore>(sessionRenameStoreSlice);
+
+export const useNavbarSessionRenameStore = createSessionRenameStore();
+export const useRecentsSessionRenameStore = createSessionRenameStore();
+export const useWorkspacesSessionRenameStore = createSessionRenameStore();

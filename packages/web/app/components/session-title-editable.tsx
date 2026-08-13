@@ -8,7 +8,10 @@ import { cn, toast } from '@aero/ui';
 import { sessionKeys, useRenameSession } from '@/app/hooks/api/sessions';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
-import { useSessionRenameStore } from '@/app/stores/session-rename';
+import {
+  useNavbarSessionRenameStore,
+  useRecentsSessionRenameStore,
+} from '@/app/stores/session-rename';
 
 export function SessionTitleEditable({
   sessionId,
@@ -24,15 +27,30 @@ export function SessionTitleEditable({
   iconSize?: number;
 }) {
   const { mutateAsync, isPending } = useRenameSession();
-  const cancelRename = useSessionRenameStore((state) => state.cancelRename);
+  const cancelRename = useNavbarSessionRenameStore(
+    (state) => state.cancelRename,
+  );
+  const cancelRenameNavbar = useRecentsSessionRenameStore(
+    (state) => state.cancelRename,
+  );
   const queryClient = useQueryClient();
 
   const [value, setValue] = useState(sessionTitle);
 
   const ref = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  useOnClickOutside(formRef, cancelRename);
-  useKeyPress('Escape', cancelRename, { ignoreInputs: false });
+  useOnClickOutside(formRef, () => {
+    cancelRename();
+    cancelRenameNavbar();
+  });
+  useKeyPress(
+    'Escape',
+    () => {
+      cancelRename();
+      cancelRenameNavbar();
+    },
+    { ignoreInputs: false },
+  );
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -57,6 +75,7 @@ export function SessionTitleEditable({
 
         if (title === sessionTitle) {
           cancelRename();
+          cancelRenameNavbar();
           return;
         }
 
@@ -73,6 +92,7 @@ export function SessionTitleEditable({
           ]);
 
           cancelRename();
+          cancelRenameNavbar();
         };
 
         toast.promise(processRename(), {
@@ -132,6 +152,7 @@ export function SessionTitleEditable({
             onClick={(e) => {
               e.stopPropagation();
               cancelRename();
+              cancelRenameNavbar();
             }}
           >
             <Icon data={Xmark} size={iconSize} />
