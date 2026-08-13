@@ -12,7 +12,9 @@ import {
   DeleteSession,
   ExportMarkdown,
   RenameSession,
+  SelectSession,
 } from '@/app/components/chat-sidebar/session-actions';
+import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSessionRenameStore } from '@/app/stores/session-rename';
@@ -20,8 +22,6 @@ import { AeroSessionSummary } from '@/server/services/harness/types';
 import { isWorktree } from '@/server/shared';
 
 interface ChatSidebarSessionItemProps {
-  basePath: string;
-  disableNavigation: boolean;
   idPrefix: string;
   pathname: string;
   session: AeroSessionSummary;
@@ -142,8 +142,6 @@ export function SessionItemSummary({
 
 export const ChatSidebarSessionItem = memo(
   function ChatSidebarSessionItem({
-    basePath,
-    disableNavigation,
     idPrefix,
     pathname,
     session,
@@ -152,18 +150,20 @@ export const ChatSidebarSessionItem = memo(
     const navigate = useNavigate();
     const [, startTransition] = useTransition();
 
-    const fullHref = `${basePath}/sessions/${session.id}`;
+    const fullHref = `/sessions/${session.id}`;
     const isCurrent =
       pathname === fullHref ||
       pathname === session.id ||
       pathname === `/${session.id}`;
 
     const handlePress = () => {
-      if (disableNavigation || isCurrent) return;
+      if (isCurrent) return;
       startTransition(() => {
         navigate({ to: fullHref });
       });
     };
+
+    const isEditMode = useSidebarStore((state) => state.isEditMode);
 
     return (
       <Sidebar.MenuItem
@@ -173,26 +173,26 @@ export const ChatSidebarSessionItem = memo(
         textValue={session.title}
         onPress={handlePress}
       >
+        {isEditMode && <SelectSession sessionId={session.id} />}
         <SessionItemSummary session={session} />
       </Sidebar.MenuItem>
     );
   },
   (prev, next) => {
     const prevIsCurrent =
-      prev.pathname === `${prev.basePath}/sessions/${prev.session.id}` ||
+      prev.pathname === `/sessions/${prev.session.id}` ||
       prev.pathname === prev.session.id ||
       prev.pathname === `/${prev.session.id}`;
 
     const nextIsCurrent =
-      next.pathname === `${next.basePath}/sessions/${next.session.id}` ||
+      next.pathname === `/sessions/${next.session.id}` ||
       next.pathname === next.session.id ||
       next.pathname === `/${next.session.id}`;
 
     return (
       prev.session.id === next.session.id &&
       prev.session.title === next.session.title &&
-      prevIsCurrent === nextIsCurrent &&
-      prev.disableNavigation === next.disableNavigation
+      prevIsCurrent === nextIsCurrent
     );
   },
 );

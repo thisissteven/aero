@@ -58,11 +58,8 @@ export type ChatActivePage =
   | { kind: 'plugins' }
   | { kind: 'sessions' };
 
-export function resolveChatActivePage(
-  pathname: string,
-  basePath: string,
-): ChatActivePage {
-  const trimmedBase = basePath.replace(/\/$/, '');
+export function resolveChatActivePage(pathname: string): ChatActivePage {
+  const trimmedBase = ''.replace(/\/$/, '');
   const raw = pathname.startsWith(trimmedBase)
     ? pathname.slice(trimmedBase.length)
     : pathname;

@@ -6,23 +6,14 @@ import { useKeyPress } from '@/app/hooks/useKeyPress';
 
 export interface ChatSidebarProps {
   pathname: string;
-  basePath: string;
-  disableNavigation?: boolean;
   onSearch?: () => void;
 }
 
-export function ChatSidebar({
-  basePath,
-  disableNavigation = false,
-  pathname,
-  onSearch,
-}: ChatSidebarProps) {
+export function ChatSidebar({ pathname, onSearch }: ChatSidebarProps) {
   const sessionsQuery = useSessions();
   const { toggleSidebar, isMobile } = useSidebar();
 
   const contentProps = {
-    basePath,
-    disableNavigation,
     pathname,
     sessionsQuery,
     onSearch,

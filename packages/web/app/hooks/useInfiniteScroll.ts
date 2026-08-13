@@ -6,6 +6,7 @@ export interface InfiniteQueryLike<TItem> {
   isFetchingNextPage: boolean;
   hasNextPage: boolean | undefined;
   fetchNextPage: () => void;
+  isLoading: boolean;
 }
 
 export interface UseInfiniteScrollOptions {
@@ -20,8 +21,14 @@ export function useInfiniteScroll<TItem extends { id: string }>(
   options: UseInfiniteScrollOptions = {},
 ) {
   const { limitWithoutSearch, search, threshold = 0.8, rootRef } = options;
-  const { data, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    infiniteQuery;
+  const {
+    data,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isLoading,
+  } = infiniteQuery;
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const currentSentinelRef = useRef<HTMLElement | null>(null);
@@ -150,5 +157,6 @@ export function useInfiniteScroll<TItem extends { id: string }>(
     loadMoreRef,
     hasNextPage: shouldEnableInfiniteScroll,
     isFetchingNextPage,
+    isLoading,
   };
 }

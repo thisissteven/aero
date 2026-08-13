@@ -64,11 +64,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
 ];
 
-export interface LibraryPageProps {
-  basePath?: string;
-}
-
-export function LibraryPage({ basePath = '' }: LibraryPageProps) {
+export function LibraryPage() {
   return (
     <div className='h-full min-h-0 overflow-y-auto'>
       <div className='mx-auto flex w-full max-w-[960px] flex-col gap-6 px-4 py-8'>
@@ -85,9 +81,7 @@ export function LibraryPage({ basePath = '' }: LibraryPageProps) {
 
         <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
           {LIBRARY_ITEMS.map((item) => {
-            const href = item.sessionId
-              ? `${basePath}/${item.sessionId}`
-              : undefined;
+            const href = item.sessionId ? `/${item.sessionId}` : undefined;
             const card = (
               <Card className='flex h-full flex-col gap-3 rounded-2xl transition-colors'>
                 <Card.Header>

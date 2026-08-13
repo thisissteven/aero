@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Archive,
   Check,
@@ -7,11 +8,13 @@ import {
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon, Label } from '@gravity-ui/uikit';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import { Button, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
+import { Button, Checkbox, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
 
+import { useSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import {
   useArchiveSession,
   useDeleteSession,
@@ -24,6 +27,120 @@ import {
   SessionRenameFromEnum,
   useSessionRenameStore,
 } from '@/app/stores/session-rename';
+
+export function ToggleEditModeButton() {
+  const isEditMode = useSidebarStore((state) => state.isEditMode);
+  const toggleIsEditMode = useSidebarStore((state) => state.toggleisEditMode);
+  return (
+    <Checkbox
+      name='edit-mode'
+      slot='selection'
+      isSelected={isEditMode}
+      onChange={toggleIsEditMode}
+    >
+      <Checkbox.Content>
+        <Checkbox.Control>
+          <Checkbox.Indicator />
+        </Checkbox.Control>
+      </Checkbox.Content>
+    </Checkbox>
+  );
+}
+
+export function SelectSession({ sessionId }: { sessionId: string }) {
+  const queryClient = useQueryClient();
+  const isShiftPressedRef = useRef(false);
+
+  const isSelected = useSidebarStore((state) =>
+    state.selectedSessionIds.includes(sessionId),
+  );
+  const toggleSessionSelection = useSidebarStore(
+    (state) => state.toggleSessionSelection,
+  );
+
+  // Capture shiftKey in CAPTURE phase before React Aria handles the event
+  const handlePointerDownCapture = (e: React.PointerEvent) => {
+    isShiftPressedRef.current = e.shiftKey;
+    if (e.shiftKey) {
+      // Prevent browser text-selection highlighting on Shift + Click
+      e.preventDefault();
+    }
+  };
+
+  // Safely extract ordered IDs from TanStack Query infinite data cache
+  const getOrderedSessionIds = (): string[] => {
+    const cache = queryClient.getQueryCache();
+    const queries = cache.findAll();
+
+    // Find the infinite query entry that holds `pages`
+    const sessionQuery = queries.find((q) => {
+      const data = q.state.data as any;
+      return data && Array.isArray(data.pages);
+    });
+
+    const data = sessionQuery?.state.data as any;
+    if (!data?.pages || !Array.isArray(data.pages)) return [];
+
+    const ids: string[] = [];
+
+    for (const page of data.pages) {
+      if (!page) continue;
+
+      let items: any[] = [];
+      if (Array.isArray(page)) {
+        items = page;
+      } else if (typeof page === 'object') {
+        // Find whichever property key holds the session array (sessions, data, items, etc.)
+        const arrayKey = Object.keys(page).find((key) =>
+          Array.isArray((page as any)[key]),
+        );
+        if (arrayKey) {
+          items = (page as any)[arrayKey];
+        }
+      }
+
+      for (const item of items) {
+        const id = typeof item === 'string' ? item : item?.id;
+        if (id) ids.push(id);
+      }
+    }
+
+    return ids;
+  };
+
+  const handleSelectionChange = () => {
+    const isShiftPressed = isShiftPressedRef.current;
+    isShiftPressedRef.current = false; // Reset ref state
+
+    let orderedIds: string[] = [];
+    if (isShiftPressed) {
+      orderedIds = getOrderedSessionIds();
+    }
+
+    toggleSessionSelection(sessionId, isShiftPressed, orderedIds);
+  };
+
+  return (
+    <div
+      className='select-none'
+      onPointerDownCapture={handlePointerDownCapture}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Checkbox
+        name={`session-${sessionId}`}
+        slot='selection'
+        isSelected={isSelected}
+        onChange={handleSelectionChange}
+      >
+        <Checkbox.Content>
+          <Checkbox.Control>
+            <Checkbox.Indicator />
+          </Checkbox.Control>
+        </Checkbox.Content>
+      </Checkbox>
+    </div>
+  );
+}
 
 export function RenameSession({
   sessionId,

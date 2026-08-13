@@ -15,7 +15,6 @@ import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
 interface RecentChatsProps {
-  basePath: string;
   pathname: string;
   idPrefix?: string;
   sessionsQuery: ReturnType<typeof useSessions>;
@@ -40,7 +39,6 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
 }
 
 export const RecentChats = memo(function Recents({
-  basePath,
   pathname,
   idPrefix = '',
   sessionsQuery,
@@ -51,6 +49,7 @@ export const RecentChats = memo(function Recents({
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
+    isLoading,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
   // Define layout instance for virtualizer
@@ -70,10 +69,8 @@ export const RecentChats = memo(function Recents({
   }, [pathname]);
 
   return (
-    <Sidebar.Group className='p-0'>
-      <Sidebar.GroupLabel>Recent</Sidebar.GroupLabel>
-
-      <RecentChatsLoader enabled={!sessions && isFetchingNextPage} />
+    <>
+      <RecentChatsLoader enabled={isLoading} />
 
       {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
       <Virtualizer layout={layout}>
@@ -88,8 +85,6 @@ export const RecentChats = memo(function Recents({
             <ChatSidebarSessionItem
               key={session.id}
               idPrefix={idPrefix}
-              basePath={basePath}
-              disableNavigation={false}
               pathname={pathname}
               session={session}
             />
@@ -110,6 +105,6 @@ export const RecentChats = memo(function Recents({
           <Spinner className='text-muted size-4' />
         </div>
       )}
-    </Sidebar.Group>
+    </>
   );
 });

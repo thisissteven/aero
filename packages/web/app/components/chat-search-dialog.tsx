@@ -1,4 +1,6 @@
-import { Comment, Magnifier } from '@gravity-ui/icons';
+import { Comment, Gear, Magnifier } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
+import { useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import { cn, Command, CommandItem, Kbd, Spinner } from '@aero/ui';
@@ -7,13 +9,14 @@ import { useSessions } from '@/app/hooks/api/sessions';
 import { useDebounce } from '@/app/hooks/useDebounce';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
 import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatSearchDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (session: AeroSessionSummary) => void;
+  onSelect: (callback: () => void) => void;
 }
 
 export function ChatSearchDialog({
@@ -44,6 +47,9 @@ export function ChatSearchDialog({
     if (!open) setSearchValue('');
     onOpenChange(open);
   };
+
+  const navigate = useNavigate();
+  const openSettingsModal = useSettingsModalStore((state) => state.openModal);
 
   return (
     <Command>
@@ -77,6 +83,7 @@ export function ChatSearchDialog({
               ref={listRef}
               selectedKeys={[]}
               selectionMode='single'
+              autoFocus
               renderEmptyState={() => (
                 <div className='text-muted flex h-16 items-center justify-center text-sm'>
                   {sessionsQuery.isFetching
@@ -87,46 +94,65 @@ export function ChatSearchDialog({
               className='scroll-py-8'
             >
               {!debouncedSearch && (
-                <Command.Group heading='Menu' className='pb-0.5'>
-                  <CommandItem>New Chat</CommandItem>
-                  <CommandItem>Settings</CommandItem>
+                <Command.Group heading='Actions' className='pb-0.5'>
+                  <CommandItem
+                    onAction={() =>
+                      onSelect(() => {
+                        navigate({
+                          to: `/new`,
+                        });
+                      })
+                    }
+                  >
+                    <Icon data={Comment} />
+                    New Chat
+                  </CommandItem>
+                  <CommandItem onAction={() => onSelect(openSettingsModal)}>
+                    <Icon data={Gear} />
+                    Settings
+                  </CommandItem>
                 </Command.Group>
               )}
-              <Command.Group
-                heading={debouncedSearch ? 'Search results' : 'Recent chats'}
-                className='pb-0.5'
-              >
-                {sessions.map((session) => {
-                  const updatedAtStr = formatCompactRelativeTime(
-                    session.updatedAt,
-                  );
+              {!debouncedSearch && (
+                <Command.Group heading='Recent Chats' className='pb-0.5'>
+                  {sessions.map((session) => {
+                    const updatedAtStr = formatCompactRelativeTime(
+                      session.updatedAt,
+                    );
 
-                  return (
-                    <Command.Item
-                      key={session.id}
-                      id={session.id}
-                      textValue={`${session.title} Recent chat`}
-                      onAction={() => onSelect(session)}
-                    >
-                      <Comment />
+                    return (
+                      <Command.Item
+                        key={session.id}
+                        id={session.id}
+                        textValue={`${session.title} Recent chat`}
+                        onAction={() =>
+                          onSelect(() => {
+                            navigate({
+                              to: `/sessions/${session.id}`,
+                            });
+                          })
+                        }
+                      >
+                        <Comment />
 
-                      <div className='flex min-w-0 flex-col'>
-                        <span className='text-foreground truncate text-sm font-medium'>
-                          {session.title}
+                        <div className='flex min-w-0 flex-col'>
+                          <span className='text-foreground truncate text-sm font-medium'>
+                            {session.title}
+                          </span>
+
+                          <span className='text-muted truncate text-xs'>
+                            Recent chat
+                          </span>
+                        </div>
+
+                        <span className='text-muted ml-auto shrink-0 text-[11px]'>
+                          {updatedAtStr}
                         </span>
-
-                        <span className='text-muted truncate text-xs'>
-                          Recent chat
-                        </span>
-                      </div>
-
-                      <span className='text-muted ml-auto shrink-0 text-[11px]'>
-                        {updatedAtStr}
-                      </span>
-                    </Command.Item>
-                  );
-                })}
-              </Command.Group>
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              )}
               {!!debouncedSearch && (
                 <Command.Group heading='Search results' className='pb-0.5'>
                   {sessions.map((session) => {
@@ -139,9 +165,13 @@ export function ChatSearchDialog({
                         key={session.id}
                         id={session.id}
                         textValue={`${session.title} Recent chat`}
-                        onAction={() => onSelect(session)}
+                        onAction={() =>
+                          onSelect(() =>
+                            navigate({ to: `/sessions/${session.id}` }),
+                          )
+                        }
                       >
-                        <Comment />
+                        <Icon data={Comment} />
 
                         <div className='flex min-w-0 flex-col'>
                           <span className='text-foreground truncate text-sm font-medium'>

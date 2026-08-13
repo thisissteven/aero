@@ -78,6 +78,7 @@ function Contents({ minimal = false }: { minimal?: boolean }) {
     </>
   );
 }
+
 function Palette({
   label = 'Open Command Palette',
   size = 'md',

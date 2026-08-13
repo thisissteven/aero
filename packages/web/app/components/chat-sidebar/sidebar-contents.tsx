@@ -13,6 +13,7 @@ import { memo, useTransition } from 'react';
 import { Kbd, Sidebar, Tooltip } from '@aero/ui';
 
 import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
+import { ToggleEditModeButton } from '@/app/components/chat-sidebar/session-actions';
 import { SettingsButton } from '@/app/components/chat-sidebar/settings-button';
 import { useSessions } from '@/app/hooks/api/sessions';
 
@@ -24,7 +25,6 @@ interface SidebarContentsProps extends ChatSidebarProps {
 }
 
 export const SidebarContents = memo(function SidebarContents({
-  basePath,
   idPrefix = '',
   pathname,
   sessionsQuery,
@@ -103,11 +103,13 @@ export const SidebarContents = memo(function SidebarContents({
       <Sidebar.Separator className='mb-0' />
 
       <Sidebar.Content offset={2} className='py-2'>
-        <RecentChats
-          basePath={basePath}
-          pathname={pathname}
-          sessionsQuery={sessionsQuery}
-        />
+        <Sidebar.Group className='p-0'>
+          <Sidebar.GroupLabel className='flex items-center justify-between'>
+            Recent
+            <ToggleEditModeButton />
+          </Sidebar.GroupLabel>
+          <RecentChats pathname={pathname} sessionsQuery={sessionsQuery} />
+        </Sidebar.Group>
       </Sidebar.Content>
 
       <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>

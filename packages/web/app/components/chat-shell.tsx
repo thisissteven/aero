@@ -21,12 +21,9 @@ import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
 import type { ChatActivePage } from '../data/chat';
 import { resolveChatActivePage } from '../data/chat';
-import type { AeroSessionSummary } from '../../server/services/harness/types';
 
 export interface ChatShellProps {
   children: ReactNode;
-  basePath?: string;
-  disableNavigation?: boolean;
 }
 
 const collapsibleNav = [
@@ -78,11 +75,7 @@ const collapsibleNav = [
   },
 ] as const;
 
-export function ChatShell({
-  basePath = '',
-  children,
-  disableNavigation = false,
-}: ChatShellProps) {
+export function ChatShell({ children }: ChatShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -92,36 +85,27 @@ export function ChatShell({
 
   const handleNavigate = useCallback(
     (href: string) => {
-      if (disableNavigation) return;
-
       navigate({
-        to: `${basePath}${href}`,
+        to: `/${href}`,
       });
     },
-    [navigate, basePath, disableNavigation],
+    [navigate],
   );
 
   const activePage = useMemo<ChatActivePage>(
-    () => resolveChatActivePage(pathname, basePath),
-    [pathname, basePath],
+    () => resolveChatActivePage(pathname),
+    [pathname],
   );
 
-  const handleSessionSelect = useCallback(
-    (session: AeroSessionSummary) => {
+  const onSelect = useCallback(
+    (callback: () => void) => {
       setIsSearchOpen(false);
-
-      if (!disableNavigation) {
-        navigate({
-          to: `${basePath}/sessions/${session.id}`,
-        });
-      }
+      callback();
     },
-    [navigate, basePath, disableNavigation],
+    [navigate],
   );
 
   useEffect(() => {
-    if (disableNavigation) return;
-
     const handleKeyDown = (event: KeyboardEvent) => {
       const isMac =
         typeof navigator !== 'undefined' &&
@@ -140,7 +124,7 @@ export function ChatShell({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [disableNavigation]);
+  }, []);
 
   return (
     <AppLayout
@@ -148,10 +132,8 @@ export function ChatShell({
       navbar={<ChatNavbar activePage={activePage} />}
       sidebar={
         <ChatSidebar
-          basePath={basePath}
-          disableNavigation={disableNavigation}
           pathname={pathname}
-          onSearch={disableNavigation ? undefined : () => setIsSearchOpen(true)}
+          onSearch={() => setIsSearchOpen(true)}
         />
       }
       // aside
@@ -198,7 +180,7 @@ export function ChatShell({
       <ChatSearchDialog
         isOpen={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        onSelect={handleSessionSelect}
+        onSelect={onSelect}
       />
     </AppLayout>
   );

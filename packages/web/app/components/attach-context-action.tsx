@@ -13,6 +13,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 
 export type ExpandBehavior = 'spread' | 'vertical' | 'horizontal';
@@ -167,6 +168,10 @@ export function AttachContextAction({
     if (isOpen) setIsOpen(false);
   });
 
+  useKeyPress('Escape', () => setIsOpen(false), {
+    ignoreInputs: false,
+  });
+
   const updatePosition = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
@@ -233,7 +238,7 @@ export function AttachContextAction({
 
         /* Fixed floating portal layer placed in document.body */
         .speed-dial-portal-layer {
-          position: absolute;
+          position: fixed;
           top: 0;
           left: 0;
           width: 0;

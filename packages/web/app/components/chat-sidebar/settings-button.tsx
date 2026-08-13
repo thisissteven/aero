@@ -3,7 +3,7 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { Tooltip } from '@aero/ui';
 
-import { useSettingsModalStore } from '@/app/providers/settings/store';
+import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
 export function SettingsButton() {
   const { openModal } = useSettingsModalStore();

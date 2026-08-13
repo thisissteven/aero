@@ -29,7 +29,7 @@ import { SVGProps, useEffect, useRef } from 'react';
 
 import { Modal, SearchField } from '@aero/ui';
 
-import { SettingsTab, useSettingsModalStore } from './store';
+import { SettingsTab, useSettingsModalStore } from './settings-store';
 
 interface NavItem {
   id: SettingsTab;
