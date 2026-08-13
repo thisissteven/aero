@@ -103,7 +103,7 @@ export function useSession(harnessId: string | undefined, sessionId: string) {
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch session');
+      if (!res.ok) return null;
       return res.json();
     },
     enabled: !!sessionId,

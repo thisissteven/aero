@@ -1,6 +1,13 @@
 import { memo, useMemo } from 'react';
 
-import { cn, ListLayout, Sidebar, Spinner, Virtualizer } from '@aero/ui';
+import {
+  cn,
+  ListLayout,
+  Sidebar,
+  Skeleton,
+  Spinner,
+  Virtualizer,
+} from '@aero/ui';
 
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
@@ -14,6 +21,22 @@ interface RecentChatsProps {
   sessionsQuery: ReturnType<typeof useSessions>;
   /** Fixed row height for virtualizer calculations */
   rowHeight?: number;
+}
+
+function RecentChatsLoader({ enabled }: { enabled: boolean }) {
+  if (!enabled) return null;
+
+  return (
+    <ul className='space-y-1'>
+      {Array.from({ length: 20 }, (_, i) => {
+        return (
+          <li key={i}>
+            <Skeleton className='h-9 w-full rounded-2xl' />
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 export const RecentChats = memo(function Recents({
@@ -49,6 +72,8 @@ export const RecentChats = memo(function Recents({
   return (
     <Sidebar.Group className='p-0'>
       <Sidebar.GroupLabel>Recent</Sidebar.GroupLabel>
+
+      <RecentChatsLoader enabled={!sessions && isFetchingNextPage} />
 
       {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
       <Virtualizer layout={layout}>

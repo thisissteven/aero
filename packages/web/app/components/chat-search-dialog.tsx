@@ -1,7 +1,7 @@
 import { Comment, Magnifier } from '@gravity-ui/icons';
 import { useRef, useState } from 'react';
 
-import { cn, Command, Kbd, Spinner } from '@aero/ui';
+import { cn, Command, CommandItem, Kbd, Spinner } from '@aero/ui';
 
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useDebounce } from '@/app/hooks/useDebounce';
@@ -77,8 +77,6 @@ export function ChatSearchDialog({
               ref={listRef}
               selectedKeys={[]}
               selectionMode='single'
-              shouldFocusWrap={false}
-              autoFocus={false}
               renderEmptyState={() => (
                 <div className='text-muted flex h-16 items-center justify-center text-sm'>
                   {sessionsQuery.isFetching
@@ -88,6 +86,12 @@ export function ChatSearchDialog({
               )}
               className='scroll-py-8'
             >
+              {!debouncedSearch && (
+                <Command.Group heading='Menu' className='pb-0.5'>
+                  <CommandItem>New Chat</CommandItem>
+                  <CommandItem>Settings</CommandItem>
+                </Command.Group>
+              )}
               <Command.Group
                 heading={debouncedSearch ? 'Search results' : 'Recent chats'}
                 className='pb-0.5'
@@ -122,28 +126,62 @@ export function ChatSearchDialog({
                     </Command.Item>
                   );
                 })}
-
-                {/* Loader / Sentinel kept inside Command.Group as a valid focusable Command.Item */}
-                {hasNextPage && (
-                  <Command.Item
-                    key='sentinel-loader'
-                    id='sentinel-loader'
-                    textValue='loading more items'
-                    ref={loadMoreRef}
-                    className='flex cursor-default items-center justify-center py-2 text-sm aria-selected:bg-transparent'
-                    isDisabled
-                  >
-                    <div
-                      className={cn(
-                        'flex items-center justify-center transition-opacity',
-                        isFetchingNextPage ? 'opacity-100' : 'opacity-0',
-                      )}
-                    >
-                      <Spinner className='text-muted size-4' />
-                    </div>
-                  </Command.Item>
-                )}
               </Command.Group>
+              {!!debouncedSearch && (
+                <Command.Group heading='Search results' className='pb-0.5'>
+                  {sessions.map((session) => {
+                    const updatedAtStr = formatCompactRelativeTime(
+                      session.updatedAt,
+                    );
+
+                    return (
+                      <Command.Item
+                        key={session.id}
+                        id={session.id}
+                        textValue={`${session.title} Recent chat`}
+                        onAction={() => onSelect(session)}
+                      >
+                        <Comment />
+
+                        <div className='flex min-w-0 flex-col'>
+                          <span className='text-foreground truncate text-sm font-medium'>
+                            {session.title}
+                          </span>
+
+                          <span className='text-muted truncate text-xs'>
+                            Recent chat
+                          </span>
+                        </div>
+
+                        <span className='text-muted ml-auto shrink-0 text-[11px]'>
+                          {updatedAtStr}
+                        </span>
+                      </Command.Item>
+                    );
+                  })}
+
+                  {/* Loader / Sentinel kept inside Command.Group as a valid focusable Command.Item */}
+                  {hasNextPage && (
+                    <Command.Item
+                      key='sentinel-loader'
+                      id='sentinel-loader'
+                      textValue='loading more items'
+                      ref={loadMoreRef}
+                      className='flex cursor-default items-center justify-center py-2 text-sm aria-selected:bg-transparent'
+                      isDisabled
+                    >
+                      <div
+                        className={cn(
+                          'flex items-center justify-center transition-opacity',
+                          isFetchingNextPage ? 'opacity-100' : 'opacity-0',
+                        )}
+                      >
+                        <Spinner className='text-muted size-4' />
+                      </div>
+                    </Command.Item>
+                  )}
+                </Command.Group>
+              )}
             </Command.List>
 
             <Command.Footer className='justify-between [&_kbd]:h-5 [&_kbd]:text-xs'>

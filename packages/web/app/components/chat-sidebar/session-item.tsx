@@ -5,7 +5,6 @@ import { memo, useState, useTransition } from 'react';
 
 import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
 
-import { SessionTitleEditable } from '@/app/components/chat-navbar';
 import {
   ArchiveSession,
   ArchiveSessionIconButton,
@@ -14,6 +13,7 @@ import {
   ExportMarkdown,
   RenameSession,
 } from '@/app/components/chat-sidebar/session-actions';
+import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSessionRenameStore } from '@/app/stores/session-rename';
 import { AeroSessionSummary } from '@/server/services/harness/types';

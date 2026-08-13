@@ -5,6 +5,7 @@ import { cn } from '@aero/ui';
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
+import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import {
   VirtualizedChatFeed,
   VirtualizedChatFeedRef,
@@ -49,9 +50,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
       )}
     >
       {notFound ? (
-        <div className='grid h-full w-full place-items-center'>
-          <span className='text-muted text-sm'>Session not found.</span>
-        </div>
+        <SessionNotFound sessionId={sessionId} />
       ) : (
         <>
           <ChatTocSection

@@ -1,8 +1,11 @@
 import {
   Database,
+  File,
+  Folder,
   Microphone,
   MusicNote,
   Paintbrush,
+  Picture,
   Plus,
   Text,
 } from '@gravity-ui/icons';
@@ -18,6 +21,7 @@ import {
   toast,
 } from '@aero/ui';
 
+import { AttachContextAction } from '@/app/components/attach-context-action';
 import { useCreateSession } from '@/app/hooks/api/sessions';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 
@@ -92,15 +96,31 @@ export function NewChatPage() {
               />
             </PromptInput.Content>
             <PromptInput.Toolbar>
-              <PromptInput.ToolbarStart>
-                <PromptInput.Action aria-label='Use voice' tooltip='Use voice'>
-                  <Icon aria-hidden data={Microphone} />
-                </PromptInput.Action>
-                <PromptInput.Action
-                  aria-label='Add context'
-                  tooltip='Add context'
+              <PromptInput.ToolbarStart className='items-end justify-start'>
+                <AttachContextAction
+                  expandBehavior='vertical'
+                  expandOrigin='trigger'
+                  gap={44}
                 >
-                  <Icon aria-hidden data={Plus} />
+                  <AttachContextAction.Trigger>
+                    <PromptInput.Action aria-label='Add context'>
+                      <Icon aria-hidden data={Plus} />
+                    </PromptInput.Action>
+                  </AttachContextAction.Trigger>
+                  <AttachContextAction.Contents>
+                    <PromptInput.Action aria-label='Attach Files'>
+                      <Icon aria-hidden data={File} />
+                    </PromptInput.Action>
+                    <PromptInput.Action aria-label='Attach Images'>
+                      <Icon aria-hidden data={Picture} />
+                    </PromptInput.Action>
+                    <PromptInput.Action aria-label='Attach Folders'>
+                      <Icon aria-hidden data={Folder} />
+                    </PromptInput.Action>
+                  </AttachContextAction.Contents>
+                </AttachContextAction>
+                <PromptInput.Action aria-label='Use voice'>
+                  <Icon aria-hidden data={Microphone} />
                 </PromptInput.Action>
               </PromptInput.ToolbarStart>
               <PromptInput.ToolbarEnd>

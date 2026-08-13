@@ -59,7 +59,7 @@ export const ToolCallView = memo(
           return {
             iconData: Terminal,
             title: 'Shell Command',
-            codeTitle: 'Shell Command',
+            codeTitle: command,
             code: rawOutput,
             language: 'bash',
             preview: command,
