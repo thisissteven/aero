@@ -129,7 +129,7 @@ export function ChatShell({ children }: ChatShellProps) {
           {collapsibleNav.map((item) => (
             <Tooltip key={item.label} delay={300}>
               <Tooltip.Trigger aria-label={item.label}>
-                <div className='px-1 py-1.5 opacity-50 transition hover:opacity-100'>
+                <div className='px-1 py-1.5 opacity-50 transition hover:opacity-80'>
                   {item.icon}
                 </div>
               </Tooltip.Trigger>

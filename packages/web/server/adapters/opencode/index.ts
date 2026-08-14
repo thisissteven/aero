@@ -338,6 +338,27 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         .map(toAeroSessionExperimental);
     },
 
+    async revertMessage(sessionID, messageID) {
+      const session = unwrap(
+        await clientV2.session.revert({
+          sessionID,
+          messageID,
+        }),
+      );
+
+      return toAeroSessionV2(session);
+    },
+
+    async unrevertMessage(sessionID) {
+      const session = unwrap(
+        await clientV2.session.unrevert({
+          sessionID,
+        }),
+      );
+
+      return toAeroSessionV2(session);
+    },
+
     async createSession(input) {
       const session = unwrap(
         await clientV2.session.create({

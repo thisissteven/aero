@@ -1,6 +1,7 @@
 // server/index.ts
 
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 
 import { initProxyConfig } from './proxy-loader';
 import poolRoutes from './routes/pool';
@@ -14,6 +15,32 @@ const app = new Hono()
   .route('/sessions', sessions)
   .route('/workspaces', workspaces)
   .route('/pool', poolRoutes);
+
+app.onError((err, c) => {
+  console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);
+
+  // Handle Hono's built-in HTTP Exceptions (e.g., throw new HTTPException(400, { message: 'Invalid ID' }))
+  if (err instanceof HTTPException) {
+    return c.json(
+      {
+        success: false,
+        message: err.message,
+      },
+      err.status,
+    );
+  }
+
+  // Handle standard thrown Errors or unexpected crashes
+  return c.json(
+    {
+      success: false,
+      message: err.message || 'Internal Server Error',
+      // Useful for debugging in development; consider omitting or hiding in production
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+    },
+    500,
+  );
+});
 
 export default app;
 

@@ -13,7 +13,6 @@ import {
   ExportMarkdown,
   RenameSession,
   SelectSession,
-  ShareUnshareSession,
 } from '@/app/components/chat-sidebar/session-actions';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
@@ -83,7 +82,7 @@ export function SessionItemSummary({
             >
               <Icon
                 data={EllipsisVertical}
-                className='opacity-50 transition-opacity group-hover:opacity-100'
+                className='opacity-50 transition-opacity group-hover:opacity-80'
                 style={{
                   width: 12,
                   height: 12,
@@ -98,11 +97,6 @@ export function SessionItemSummary({
               <Dropdown.Menu aria-label={`${session.title} actions`}>
                 <RenameSession sessionId={session.id} from='recents' />
                 <CopySessionId sessionId={session.id} />
-                <Separator className='my-0.5 h-[0.5px]' />
-                <ShareUnshareSession
-                  sessionId={session.id}
-                  sharedUrl={session.sharedUrl}
-                />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator className='my-0.5 h-[0.5px]' />
                 <ArchiveSession

@@ -157,7 +157,7 @@ function SessionsNavbarContent() {
           >
             <Icon
               data={Ellipsis}
-              className='opacity-50 transition-opacity hover:opacity-100'
+              className='opacity-50 transition-opacity hover:opacity-80'
               style={{
                 width: 14,
                 height: 14,

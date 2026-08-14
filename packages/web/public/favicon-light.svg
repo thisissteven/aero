@@ -1,0 +1,9 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="48" fill="white"/>
+
+  <!-- Water droplet -->
+  <path
+    d="M128 42C128 42 68 111 68 153C68 186.137 94.863 213 128 213C161.137 213 188 186.137 188 153C188 111 128 42 128 42Z"
+    fill="#000000"
+  />
+</svg>

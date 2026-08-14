@@ -26,6 +26,16 @@ function getSystemTheme(): 'light' | 'dark' {
     : 'light';
 }
 
+function updateFavicon(resolved: 'light' | 'dark') {
+  if (typeof window === 'undefined') return;
+
+  const favicon = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+  if (favicon) {
+    favicon.href =
+      resolved === 'dark' ? '/favicon-dark.svg' : '/favicon-light.svg';
+  }
+}
+
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
 
@@ -36,6 +46,9 @@ function applyTheme(theme: Theme) {
 
   // attribute based
   root.dataset.theme = resolved;
+
+  // Dynamically update favicon based on calculated theme
+  updateFavicon(resolved);
 
   return resolved;
 }
@@ -50,7 +63,6 @@ function applyThemeWithoutTransitions(theme: Theme) {
   const resolved = applyTheme(theme);
 
   // 3. Force DOM reflow to immediately flush style updates
-  // (Accessing window.getComputedStyle triggers layout recalculation)
   void window.getComputedStyle(root).opacity;
 
   // 4. Re-enable transitions on the next paint cycle
@@ -109,7 +121,7 @@ export function ThemeProvider({
       setTheme(nextTheme);
     },
     {
-      modifiers: { meta: false, ctrl: false, alt: false }, // ignore Cmd+D / Ctrl+D
+      modifiers: { meta: false, ctrl: false, alt: false },
     },
   );
 

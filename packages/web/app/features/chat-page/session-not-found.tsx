@@ -11,7 +11,7 @@ export function SessionNotFound({ sessionId }: { sessionId: string }) {
   return (
     <div className='grid h-full w-full place-items-center'>
       <div className='grid place-items-center gap-2'>
-        <div className='text-muted text-sm'>Session not found.</div>
+        <div className='text-muted text-sm'>An error occurred.</div>
         <Button
           onPress={async () => {
             try {

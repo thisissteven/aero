@@ -78,11 +78,15 @@ export function RecentsToggleEditModeButton() {
           onPress={() => {
             const sessionIds =
               useRecentsSidebarStore.getState().selectedSessionIds;
-            openModal({
-              children: (
-                <DeleteBulkSessionsConfirmationModal sessionIds={sessionIds} />
-              ),
-            });
+            if (sessionIds.length > 0) {
+              openModal({
+                children: (
+                  <DeleteBulkSessionsConfirmationModal
+                    sessionIds={sessionIds}
+                  />
+                ),
+              });
+            }
           }}
           isIconOnly
         >
@@ -93,11 +97,15 @@ export function RecentsToggleEditModeButton() {
           onPress={() => {
             const sessionIds =
               useRecentsSidebarStore.getState().selectedSessionIds;
-            openModal({
-              children: (
-                <ArchiveBulkSessionsConfirmationModal sessionIds={sessionIds} />
-              ),
-            });
+            if (sessionIds.length > 0) {
+              openModal({
+                children: (
+                  <ArchiveBulkSessionsConfirmationModal
+                    sessionIds={sessionIds}
+                  />
+                ),
+              });
+            }
           }}
           isIconOnly
         >
@@ -301,23 +309,26 @@ export function UnshareSession({ sessionId }: { sessionId: string }) {
 export function ShareSession({ sessionId }: { sessionId: string }) {
   const { mutateAsync } = useShareSession();
 
+  const handleOnPress = async () => {
+    const data = await mutateAsync(sessionId);
+    if (data.sharedUrl) {
+      try {
+        await navigator.clipboard.writeText(data.sharedUrl);
+        return 'Session link copied to clipboard';
+      } catch {
+        throw new Error('Clipboard not supported');
+      }
+    }
+  };
+
   return (
     <Dropdown.Item
       className='gap-1'
       onPress={() => {
-        toast.promise(mutateAsync(sessionId), {
+        toast.promise(handleOnPress, {
           loading: 'Retrieving session link...',
           error: (err) => err.message,
-          success: async (data) => {
-            if (data.sharedUrl) {
-              try {
-                await navigator.clipboard.writeText(data.sharedUrl);
-                return 'Session link copied to clipboard';
-              } catch {
-                return 'Clipboard not supported';
-              }
-            }
-          },
+          success: 'Session link copied to clipboard',
         });
       }}
     >
@@ -492,7 +503,7 @@ export function ArchiveSessionIconButton({
     >
       <Icon
         data={Archive}
-        className='opacity-50 transition-opacity group-hover:opacity-100'
+        className='opacity-50 transition-opacity group-hover:opacity-80'
         style={{
           width: 12,
           height: 12,

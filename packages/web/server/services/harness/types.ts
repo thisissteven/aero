@@ -165,6 +165,20 @@ export interface HarnessAdapter {
   initWorkspaces(): Promise<AeroWorkspaceSummary[]>;
   syncWorkspaces(): Promise<AeroWorkspaceSummary[]>;
 
+  // Messages Opereations
+  listMessages(sessionId: string): Promise<AeroMessage[]>;
+  messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
+  sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
+  sendMessageSync(
+    sessionId: string,
+    input: SendMessageInput,
+  ): Promise<AeroMessage>;
+  revertMessage(
+    sessionId: string,
+    messageId: string,
+  ): Promise<AeroSessionSummary>;
+  unrevertMessage(sessionId: string): Promise<AeroSessionSummary>;
+
   // Session Operations
   listSessions(
     params: BasePaginationParams,
@@ -174,9 +188,7 @@ export interface HarnessAdapter {
   getSession(sessionId: string): Promise<AeroSessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
   deleteBulkSessions(sessionIds: string[]): Promise<boolean>;
-  listMessages(sessionId: string): Promise<AeroMessage[]>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;
-  messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
   shareSession(sessionId: string): Promise<AeroSessionSummary>;
   unshareSession(sessionId: string): Promise<AeroSessionSummary>;
   renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
@@ -184,11 +196,7 @@ export interface HarnessAdapter {
   archiveBulkSessions(sessionId: string[]): Promise<boolean>;
   unarchiveSession(sessionId: string): Promise<AeroSessionSummary>;
   unarchiveBulkSessions(sessionId: string[]): Promise<boolean>;
-  sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
-  sendMessageSync(
-    sessionId: string,
-    input: SendMessageInput,
-  ): Promise<AeroMessage>;
+
   abortSession(sessionId: string): Promise<boolean>;
 
   /** Live event stream, already normalized to AeroEvent. */

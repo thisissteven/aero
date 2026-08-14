@@ -9,6 +9,7 @@ import {
   SettingsModal,
   ThemeProvider,
 } from '@/app/providers';
+import { KeyPressProvider } from '@/app/providers/key-press';
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -27,6 +28,7 @@ function RootLayout() {
         />
         <GlobalModal />
         <SettingsModal />
+        <KeyPressProvider />
         <Outlet />
       </QueryProvider>
     </ThemeProvider>

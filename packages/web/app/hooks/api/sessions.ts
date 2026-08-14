@@ -227,7 +227,6 @@ export function useShareSession(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });
@@ -247,7 +246,6 @@ export function useUnshareSession(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });

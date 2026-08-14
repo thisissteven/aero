@@ -1,24 +1,21 @@
 import {
   ArrowUturnCcwLeft,
-  CircleInfo,
-  CircleQuestion,
   Comment,
   Folder,
   Magnifier,
   PlugWire,
 } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { memo, useState, useTransition } from 'react';
 
-import { Kbd, Sidebar, Tooltip } from '@aero/ui';
+import { Kbd, Sidebar } from '@aero/ui';
 
 import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
-import { SettingsButton } from '@/app/components/chat-sidebar/settings-button';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
 import { useSessions } from '@/app/hooks/api/sessions';
 
 import { ChatSidebarProps } from './index';
+import { SidebarFooter } from './sidebar-footer';
 
 interface SidebarContentsProps extends ChatSidebarProps {
   idPrefix?: string;
@@ -136,33 +133,7 @@ export const SidebarContents = memo(function SidebarContents({
         }
       /> */}
 
-      <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>
-        <div className='mt-1.5 space-x-2 px-4'>
-          <SettingsButton />
-
-          <Tooltip delay={0}>
-            <Tooltip.Trigger>
-              <div className='px-1 opacity-50 transition hover:opacity-100'>
-                <Icon data={CircleQuestion} size={18} />
-              </div>
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-              <p>Shortcuts</p>
-            </Tooltip.Content>
-          </Tooltip>
-
-          <Tooltip delay={0}>
-            <Tooltip.Trigger>
-              <div className='px-1 opacity-50 transition hover:opacity-100'>
-                <Icon data={CircleInfo} size={18} />
-              </div>
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-              <p>About Aero</p>
-            </Tooltip.Content>
-          </Tooltip>
-        </div>
-      </Sidebar.Footer>
+      <SidebarFooter />
     </>
   );
 });
