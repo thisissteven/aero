@@ -18,6 +18,7 @@ import {
   DeleteSession,
   ExportMarkdown,
   RenameSession,
+  ShareUnshareSession,
 } from '@/app/components/chat-sidebar/session-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
@@ -149,7 +150,7 @@ function SessionsNavbarContent() {
         </div>
       </div>
       <div>
-        <Dropdown>
+        <Dropdown size='sm'>
           <Dropdown.Trigger
             aria-label={`More actions for ${session.title}`}
             className='mt-1.5 ml-2'
@@ -171,8 +172,13 @@ function SessionsNavbarContent() {
             <Dropdown.Menu aria-label={`${session.title} actions`}>
               <RenameSession sessionId={session.id} from='navbar' />
               <CopySessionId sessionId={session.id} />
+              <Separator className='my-0.5 h-[0.5px]' />
+              <ShareUnshareSession
+                sessionId={session.id}
+                sharedUrl={session.sharedUrl}
+              />
               <ExportMarkdown sessionId={session.id} />
-              <Separator />
+              <Separator className='my-0.5 h-[0.5px]' />
               <ArchiveSession
                 sessionId={session.id}
                 sessionTitle={session.title}

@@ -215,6 +215,32 @@ export function useSessionToc(
   });
 }
 
+export function useShareSession(harnessId?: string) {
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await $individualSession.share.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to share session');
+      return res.json();
+    },
+  });
+}
+
+export function useUnshareSession(harnessId?: string) {
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await $individualSession.unshare.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to unshare session');
+      return res.json();
+    },
+  });
+}
+
 export function useSessionMarkdown(harnessId?: string) {
   return useMutation({
     mutationFn: async (sessionId: string) => {

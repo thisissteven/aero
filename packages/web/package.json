@@ -32,7 +32,8 @@
     "react-hook-form": "^7.84.0",
     "virtua": "catalog:",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "which": "^5.0.0"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.26.1",

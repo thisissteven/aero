@@ -11,12 +11,8 @@ export function CommandPaletteDialog({ children }: { children: ReactNode }) {
 
   return (
     <Command.Dialog
-      filter={(textValue, query) => {
-        if (textValue === '__sentinel__') return true;
-        return textValue
-          .toLocaleLowerCase()
-          .includes(query.toLocaleLowerCase());
-      }}
+      // Bypass client-side filtering since flatItems is pre-filtered
+      filter={() => true}
       inputValue={debouncedSearch}
       allowEscape
     >

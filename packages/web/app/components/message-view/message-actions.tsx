@@ -46,7 +46,7 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
         </span>
       </Tooltip.Trigger>
 
-      <Tooltip.Content>
+      <Tooltip.Content placement='bottom' offset={8}>
         <span>Copy message</span>
       </Tooltip.Content>
     </Tooltip>
@@ -87,7 +87,7 @@ export function MessageActionsReadAloud({
         />
       </Tooltip.Trigger>
 
-      <Tooltip.Content>
+      <Tooltip.Content placement='bottom' offset={8}>
         <span>{isThisPlaying ? 'Stop reading' : 'Read aloud'}</span>
       </Tooltip.Content>
     </Tooltip>

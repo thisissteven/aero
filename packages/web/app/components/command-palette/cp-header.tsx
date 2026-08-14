@@ -24,7 +24,7 @@ export function CommandPaletteHeader() {
             onChange={() => toggleSelectedFilters(filter)}
             key={filter}
             size='sm'
-            className='h-7 px-4 text-xs'
+            className='h-6 px-3 text-xs'
           >
             {filter}
           </ToggleButton>

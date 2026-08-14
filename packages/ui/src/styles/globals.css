@@ -16,6 +16,7 @@
 @import './components/command.css';
 @import './components/code-block.css';
 @import './components/context-menu.css';
+@import './components/dropdown.css';
 @import './components/floating-toc.css';
 @import './components/hover-card.css';
 @import './components/item-card.css';

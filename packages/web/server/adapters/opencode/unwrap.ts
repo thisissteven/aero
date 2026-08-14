@@ -14,14 +14,27 @@
 
 export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   if (result.error) {
-    const message =
-      typeof result.error === 'object' &&
-      result.error !== null &&
-      'message' in result.error
-        ? String((result.error as { message: unknown }).message)
-        : String(result.error);
+    let message: string;
+
+    if (typeof result.error === 'object' && result.error !== null) {
+      if ('message' in result.error) {
+        const msgProp = (result.error as { message: unknown }).message;
+        // If message is an object or array, stringify it; otherwise cast to string
+        message =
+          typeof msgProp === 'object' && msgProp !== null
+            ? JSON.stringify(msgProp)
+            : String(msgProp);
+      } else {
+        // Fallback if there is no message property but it is an object
+        message = JSON.stringify(result.error);
+      }
+    } else {
+      message = String(result.error);
+    }
+
     throw new Error(`opencode request failed: ${message}`);
   }
+
   if (result.data === undefined) {
     throw new Error('opencode request returned no data and no error');
   }

@@ -1,5 +1,7 @@
 import {
   Archive,
+  ArrowUpFromSquare,
+  ArrowUpFromSquareSlash,
   Check,
   Copy,
   LogoMarkdown,
@@ -23,9 +25,12 @@ import {
   useDeleteBulkSessions,
   useDeleteSession,
   useSessionMarkdown,
+  useShareSession,
+  useUnshareSession,
 } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
+import { copyButtonCss } from '@/app/lib/file';
 import { useTheme } from '@/app/providers';
 import { useGlobalModalStore } from '@/app/providers/GlobalModal';
 import {
@@ -81,7 +86,7 @@ export function RecentsToggleEditModeButton() {
           }}
           isIconOnly
         >
-          <Icon data={TrashBin} />
+          <Icon size={14} data={TrashBin} />
         </Button>
         <Button
           variant='tertiary'
@@ -96,7 +101,7 @@ export function RecentsToggleEditModeButton() {
           }}
           isIconOnly
         >
-          <Icon data={Archive} />
+          <Icon size={14} data={Archive} />
         </Button>
       </CollapsibleActions.Contents>
     </CollapsibleActions>
@@ -196,7 +201,7 @@ export function RenameSession({
 
   return (
     <Dropdown.Item
-      className='gap-2'
+      className='gap-1'
       onPress={() => {
         switch (from) {
           case 'navbar':
@@ -211,7 +216,7 @@ export function RenameSession({
         }
       }}
     >
-      <Icon data={Pencil} />
+      <Icon size={14} data={Pencil} />
       <Label>Rename</Label>
     </Dropdown.Item>
   );
@@ -226,55 +231,119 @@ export function CopySessionId({ sessionId }: { sessionId: string }) {
 
   return (
     <Dropdown.Item onPress={() => copy(sessionId)} shouldCloseOnSelect={false}>
-      <style>{`
-        .t-text-swap {
-          --text-swap-dur: 150ms;
-          --text-swap-translate-y: 4px;
-          --text-swap-blur: 2px;
-          --text-swap-ease: ease-in-out;
+      <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
 
-          display: flex;
-          transform: translateY(0);
-          filter: blur(0);
-          opacity: 1;
-          transition:
-            transform var(--text-swap-dur) var(--text-swap-ease),
-            filter var(--text-swap-dur) var(--text-swap-ease),
-            opacity var(--text-swap-dur) var(--text-swap-ease);
-          will-change: transform, filter, opacity;
-        }
-
-        .t-text-swap.is-exit {
-          transform: translateY(calc(var(--text-swap-translate-y) * -1));
-          filter: blur(var(--text-swap-blur));
-          opacity: 0;
-        }
-
-        .t-text-swap.is-enter-start {
-          transform: translateY(var(--text-swap-translate-y));
-          filter: blur(var(--text-swap-blur));
-          opacity: 0;
-          transition: none;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .t-text-swap {
-            transition: none !important;
-          }
-        }
-      `}</style>
-
-      <div ref={containerRef} className='t-text-swap items-center gap-2'>
+      <div ref={containerRef} className='t-text-swap items-center gap-1.25'>
         <div className='shrink-0'>
-          {copied ? <Icon data={Check} /> : <Icon data={Copy} />}
+          {copied ? (
+            <Icon size={14} data={Check} />
+          ) : (
+            <Icon size={14} data={Copy} />
+          )}
         </div>
 
         <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Session Id'}
+          {copied ? 'Copied' : 'Copy Session ID'}
         </Label>
       </div>
     </Dropdown.Item>
   );
+}
+
+export function CopySessionUrl({ sharedUrl }: { sharedUrl: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { copied, copy } = useCopyToClipboard({
+    animatedRef: containerRef,
+  });
+
+  return (
+    <Dropdown.Item onPress={() => copy(sharedUrl)} shouldCloseOnSelect={false}>
+      <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
+
+      <div ref={containerRef} className='t-text-swap items-center gap-1.25'>
+        <div className='shrink-0'>
+          {copied ? (
+            <Icon size={14} data={Check} />
+          ) : (
+            <Icon size={14} data={Copy} />
+          )}
+        </div>
+
+        <Label className='min-w-0 flex-1'>
+          {copied ? 'Copied' : 'Copy Shared Link'}
+        </Label>
+      </div>
+    </Dropdown.Item>
+  );
+}
+
+export function UnshareSession({ sessionId }: { sessionId: string }) {
+  const { mutateAsync } = useUnshareSession();
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      onPress={() => {
+        toast.promise(mutateAsync(sessionId), {
+          loading: 'Unsharing session...',
+          error: (err) => err.message,
+          success: 'Session unshared',
+        });
+      }}
+    >
+      <Icon size={14} data={ArrowUpFromSquareSlash} className='shrink-0' />
+      <Label>Unshare session</Label>
+    </Dropdown.Item>
+  );
+}
+
+export function ShareSession({ sessionId }: { sessionId: string }) {
+  const { mutateAsync } = useShareSession();
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      onPress={() => {
+        toast.promise(mutateAsync(sessionId), {
+          loading: 'Retrieving session link...',
+          error: (err) => err.message,
+          success: async (data) => {
+            if (data.sharedUrl) {
+              try {
+                await navigator.clipboard.writeText(data.sharedUrl);
+                return 'Session link copied to clipboard';
+              } catch {
+                return 'Clipboard not supported';
+              }
+            }
+          },
+        });
+      }}
+    >
+      <Icon size={14} data={ArrowUpFromSquare} className='shrink-0' />
+      <Label>Share session</Label>
+    </Dropdown.Item>
+  );
+}
+
+export function ShareUnshareSession({
+  sessionId,
+  sharedUrl,
+}: {
+  sessionId: string;
+  sharedUrl?: string;
+}) {
+  if (sharedUrl) {
+    return (
+      <>
+        <CopySessionUrl sharedUrl={sharedUrl} />
+        <UnshareSession sessionId={sessionId} />
+      </>
+    );
+  }
+
+  return <ShareSession sessionId={sessionId} />;
 }
 
 export function ExportMarkdown({ sessionId }: { sessionId: string }) {
@@ -282,7 +351,7 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
 
   return (
     <Dropdown.Item
-      className='gap-2'
+      className='gap-1'
       onPress={() => {
         toast.promise(mutateAsync(sessionId), {
           loading: 'Retrieving markdown...',
@@ -294,7 +363,7 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
         });
       }}
     >
-      <Icon data={LogoMarkdown} className='shrink-0' />
+      <Icon size={14} data={LogoMarkdown} className='shrink-0' />
       <Label>Export Markdown</Label>
     </Dropdown.Item>
   );
@@ -444,7 +513,7 @@ export function ArchiveSession({
 
   return (
     <Dropdown.Item
-      className='gap-2'
+      className='gap-1'
       onPress={() => {
         openModal({
           children: (
@@ -456,7 +525,7 @@ export function ArchiveSession({
         });
       }}
     >
-      <Icon data={Archive} />
+      <Icon size={14} data={Archive} />
       <Label>Archive</Label>
     </Dropdown.Item>
   );
@@ -568,7 +637,7 @@ export function DeleteSession({
 
   return (
     <Dropdown.Item
-      className='gap-2'
+      className='gap-1'
       variant='danger'
       onPress={() => {
         openModal({
@@ -581,7 +650,7 @@ export function DeleteSession({
         });
       }}
     >
-      <Icon data={TrashBin} className='text-danger-soft-foreground' />
+      <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
       <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
     </Dropdown.Item>
   );

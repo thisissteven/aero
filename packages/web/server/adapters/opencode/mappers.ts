@@ -10,10 +10,12 @@
 // SDK docs' typesUrl). Check that file against your installed
 // @opencode-ai/sdk version and adjust field access here if anything drifted.
 
+import { Session as SessionV1 } from '@opencode-ai/sdk';
 import type {
+  GlobalSession,
   Message,
   Part,
-  Session,
+  Session as SessionV2,
   SessionV2Info,
 } from '@opencode-ai/sdk/v2';
 
@@ -25,7 +27,7 @@ import type {
   AeroSessionSummary,
 } from '../../services/harness/types';
 
-export function toAeroSession(s: Session): AeroSessionSummary {
+export function toAeroSession(s: SessionV1): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
@@ -34,10 +36,39 @@ export function toAeroSession(s: Session): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
+    sharedUrl: s.share?.url,
   };
 }
 
-export function toAeroSessionV2(s: SessionV2Info): AeroSessionSummary {
+export function toAeroSessionExperimental(
+  s: GlobalSession,
+): AeroSessionSummary {
+  return {
+    id: s.id,
+    title: s.title || 'Untitled session',
+    harnessId: 'opencode',
+    parentId: s.parentID,
+    createdAt: s.time?.created ?? Date.now(),
+    updatedAt: s.time?.updated ?? Date.now(),
+    workspace: normalizePath(s.directory),
+    sharedUrl: s.share?.url,
+  };
+}
+
+export function toAeroSessionV2(s: SessionV2): AeroSessionSummary {
+  return {
+    id: s.id,
+    title: s.title || 'Untitled session',
+    harnessId: 'opencode',
+    parentId: s.parentID,
+    createdAt: s.time?.created ?? Date.now(),
+    updatedAt: s.time?.updated ?? Date.now(),
+    workspace: normalizePath(s.directory),
+    sharedUrl: s.share?.url,
+  };
+}
+
+export function toAeroSessionV2Info(s: SessionV2Info): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',

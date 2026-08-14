@@ -127,7 +127,7 @@ const sessions = new Hono()
       const harnessId = body.harnessId || queryHarness;
       const harness = await getActiveAdapter(harnessId);
 
-      let directory = body.directory;
+      let directory = body.directory || 'C:/Users/Steven/Downloads/aero';
 
       // Fall back to a newly created .aero/workspaces/<uuid> workspace if directory is undefined
       if (!directory) {
@@ -226,6 +226,38 @@ const sessions = new Hono()
       if (items.length < 3) return c.json([]);
 
       return c.json(items);
+    },
+  )
+
+  // GET /api/sessions/:id/share?harnessId=...
+  .get(
+    '/:id/share',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.shareSession(id);
+
+      return c.json(session);
+    },
+  )
+
+  // GET /api/sessions/:id/unshare?harnessId=...
+  .get(
+    '/:id/unshare',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.unshareSession(id);
+
+      return c.json(session);
     },
   )
 

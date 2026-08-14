@@ -29,6 +29,7 @@ export interface AeroSessionSummary {
   title: string;
   harnessId: HarnessId;
   parentId?: string;
+  sharedUrl?: string;
   workspace: string;
   createdAt: number;
   updatedAt: number;
@@ -176,6 +177,8 @@ export interface HarnessAdapter {
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
+  shareSession(sessionId: string): Promise<AeroSessionSummary>;
+  unshareSession(sessionId: string): Promise<AeroSessionSummary>;
   renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
   archiveSession(sessionId: string): Promise<AeroSessionSummary>;
   archiveBulkSessions(sessionId: string[]): Promise<boolean>;

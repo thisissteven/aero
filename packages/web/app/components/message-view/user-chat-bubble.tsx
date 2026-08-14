@@ -144,7 +144,7 @@ export const UserChatBubble = memo(
               />
             </Tooltip.Trigger>
 
-            <Tooltip.Content>
+            <Tooltip.Content placement='bottom' offset={8}>
               <span>Revert from here</span>
             </Tooltip.Content>
           </Tooltip>
@@ -157,7 +157,7 @@ export const UserChatBubble = memo(
               />
             </Tooltip.Trigger>
 
-            <Tooltip.Content>
+            <Tooltip.Content placement='bottom' offset={8}>
               <span>Fork from here</span>
             </Tooltip.Content>
           </Tooltip>
@@ -170,7 +170,7 @@ export const UserChatBubble = memo(
               />
             </Tooltip.Trigger>
 
-            <Tooltip.Content>
+            <Tooltip.Content placement='bottom' offset={8}>
               <span>Pin into context (survives compaction)</span>
             </Tooltip.Content>
           </Tooltip>

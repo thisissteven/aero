@@ -13,6 +13,7 @@ import {
   ExportMarkdown,
   RenameSession,
   SelectSession,
+  ShareUnshareSession,
 } from '@/app/components/chat-sidebar/session-actions';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
@@ -70,7 +71,11 @@ export function SessionItemSummary({
             sessionId={session.id}
             sessionTitle={session.title}
           />
-          <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
+          <Dropdown
+            size='sm'
+            isOpen={dropdownOpen}
+            onOpenChange={setDropdownOpen}
+          >
             <Dropdown.Trigger
               aria-label={`More actions for ${session.title}`}
               className='sidebar__menu-action group'
@@ -93,8 +98,13 @@ export function SessionItemSummary({
               <Dropdown.Menu aria-label={`${session.title} actions`}>
                 <RenameSession sessionId={session.id} from='recents' />
                 <CopySessionId sessionId={session.id} />
+                <Separator className='my-0.5 h-[0.5px]' />
+                <ShareUnshareSession
+                  sessionId={session.id}
+                  sharedUrl={session.sharedUrl}
+                />
                 <ExportMarkdown sessionId={session.id} />
-                <Separator />
+                <Separator className='my-0.5 h-[0.5px]' />
                 <ArchiveSession
                   sessionId={session.id}
                   sessionTitle={session.title}
