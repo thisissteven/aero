@@ -26,6 +26,7 @@ import {
 } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
+import { useTheme } from '@/app/providers';
 import { useGlobalModalStore } from '@/app/providers/GlobalModal';
 import {
   useNavbarSessionRenameStore,
@@ -39,6 +40,8 @@ export function RecentsToggleEditModeButton() {
     (state) => state.toggleisEditMode,
   );
   const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const { theme } = useTheme();
 
   return (
     <CollapsibleActions
@@ -55,6 +58,7 @@ export function RecentsToggleEditModeButton() {
           slot='selection'
           isSelected={isEditMode}
           onChange={toggleIsEditMode}
+          variant={theme === 'dark' ? 'secondary' : 'primary'}
         >
           <Checkbox.Content>
             <Checkbox.Control>
@@ -151,6 +155,8 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
     toggleSessionSelection(sessionId, isShiftPressed, orderedIds);
   };
 
+  const { theme } = useTheme();
+
   return (
     <div
       className='select-none'
@@ -162,6 +168,8 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
         slot='selection'
         isSelected={isSelected}
         onChange={handleSelectionChange}
+        variant={theme === 'dark' ? 'secondary' : 'primary'}
+        className="dark:group-hover:[&_[data-slot='checkbox-control']]:!bg-field dark:group-hover:[&_[data-slot='checkbox-control']]:!shadow-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!bg-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!shadow-field"
       >
         <Checkbox.Content>
           <Checkbox.Control>
@@ -495,7 +503,7 @@ function DeleteBulkSessionsConfirmationModal({
           }}
           variant='danger'
         >
-          Archive
+          Delete
         </Button>
       </Modal.Footer>
     </Modal.Dialog>

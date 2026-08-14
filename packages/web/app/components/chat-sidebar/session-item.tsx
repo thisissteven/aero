@@ -188,6 +188,7 @@ export const ChatSidebarSessionItem = memo(
         isCurrent={isCurrent}
         textValue={session.title}
         onPress={handlePress}
+        className='group'
       >
         {isEditMode && <SelectSession sessionId={session.id} />}
         <SessionItemSummary session={session} />

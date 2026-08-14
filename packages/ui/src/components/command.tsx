@@ -137,6 +137,7 @@ export function CommandDialog({
           /* 2. Catch Escape at the HTML layer before the input intercepts it */
           onKeyDownCapture={(e) => {
             if (e.key === 'Escape' && allowEscape) {
+              e.preventDefault();
               e.stopPropagation(); // Stop SearchField from clearing text
               close(); // Directly close the Dialog container
             }

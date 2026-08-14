@@ -51,13 +51,16 @@ export function useSessions(search?: string) {
     placeholderData: keepPreviousData,
 
     queryFn: async ({ pageParam }) => {
-      const res = await $sessions.merged.$get({
-        query: {
-          cursor: pageParam,
-          limit: PAGINATION_LIMIT.toString(),
-          search: search || undefined,
-        },
-      });
+      const [res] = await Promise.all([
+        $sessions.merged.$get({
+          query: {
+            cursor: pageParam,
+            limit: PAGINATION_LIMIT.toString(),
+            search: search || undefined,
+          },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
 
       if (!res.ok) {
         throw new Error('Failed to fetch sessions');

@@ -12,13 +12,15 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { AppLayout, Tooltip, Typography } from '@aero/ui';
 
+import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
+
 import { ChatNavbar } from './chat-navbar';
-import { ChatSearchDialog } from './chat-search-dialog';
 import { ChatSidebar } from './chat-sidebar';
+import { CommandPalette } from './command-palette';
 import type { ChatActivePage } from '../data/chat';
 import { resolveChatActivePage } from '../data/chat';
 
@@ -81,8 +83,6 @@ export function ChatShell({ children }: ChatShellProps) {
 
   const pathname = location.pathname;
 
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
   const handleNavigate = useCallback(
     (href: string) => {
       navigate({
@@ -97,34 +97,7 @@ export function ChatShell({ children }: ChatShellProps) {
     [pathname],
   );
 
-  const onSelect = useCallback(
-    (callback: () => void) => {
-      setIsSearchOpen(false);
-      callback();
-    },
-    [navigate],
-  );
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isMac =
-        typeof navigator !== 'undefined' &&
-        /Mac|iPhone|iPad/.test(navigator.platform);
-
-      const modifier = isMac ? event.metaKey : event.ctrlKey;
-
-      if (modifier && (event.key === 'k' || event.key === 'K')) {
-        event.preventDefault();
-        setIsSearchOpen((open) => !open);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
+  const setIsSearchOpen = useCommandPaletteStore((state) => state.setIsOpen);
 
   return (
     <AppLayout
@@ -177,11 +150,7 @@ export function ChatShell({ children }: ChatShellProps) {
         </div>
       </div>
 
-      <ChatSearchDialog
-        isOpen={isSearchOpen}
-        onOpenChange={setIsSearchOpen}
-        onSelect={onSelect}
-      />
+      <CommandPalette />
     </AppLayout>
   );
 }
