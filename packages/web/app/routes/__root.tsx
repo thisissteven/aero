@@ -2,6 +2,8 @@ import { createRootRoute, Outlet } from '@tanstack/react-router';
 
 import { ToastProvider } from '@aero/ui';
 
+import { I18nProvider } from '@/app/hooks/i18n';
+import { translations } from '@/app/hooks/i18n/locales/translations';
 import { useSpeechInit } from '@/app/hooks/useSpeechInit';
 import {
   GlobalModal,
@@ -21,15 +23,17 @@ function RootLayout() {
   return (
     <ThemeProvider>
       <QueryProvider>
-        <ToastProvider
-          placement='top end'
-          width={280}
-          className='xs:mx-2 sm:mx-3'
-        />
-        <GlobalModal />
-        <SettingsModal />
-        <KeyPressProvider />
-        <Outlet />
+        <I18nProvider translations={translations} defaultLanguage='en'>
+          <ToastProvider
+            placement='top end'
+            width={280}
+            className='xs:mx-2 sm:mx-3'
+          />
+          <GlobalModal />
+          <SettingsModal />
+          <KeyPressProvider />
+          <Outlet />
+        </I18nProvider>
       </QueryProvider>
     </ThemeProvider>
   );
