@@ -2,12 +2,56 @@ import { createContext, type ReactNode, useEffect, useState } from 'react';
 
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 
-type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system';
+
+export type ColorTheme =
+  | 'aero'
+  | 'amoled'
+  | 'aura'
+  | 'ayu'
+  | 'carbonfox'
+  | 'catppuccin'
+  | 'cursor'
+  | 'dracula'
+  | 'fields-of-the-shire'
+  | 'flexoki'
+  | 'github'
+  | 'gruvbox'
+  | 'jetbrains'
+  | 'kanagawa'
+  | 'lucent-orng'
+  | 'mono'
+  | 'mono-plus'
+  | 'monokai'
+  | 'nightowl'
+  | 'nord'
+  | 'oc-2'
+  | 'onedarkpro'
+  | 'orng'
+  | 'rosepine'
+  | 'shadesofpurple'
+  | 'solarized'
+  | 'tokyonight'
+  | 'vercel'
+  | 'vesper'
+  | 'vitesse'
+  | 'zenburn';
 
 interface ThemeContextValue {
+  /** Current light/dark/system preference. */
   theme: Theme;
+
+  /** Actual resolved theme after resolving "system". */
   resolvedTheme: 'light' | 'dark';
+
+  /** Current color palette/theme ID. */
+  colorTheme: ColorTheme;
+
+  /** Change light/dark/system mode. */
   setTheme: (theme: Theme) => void;
+
+  /** Change the color palette without changing light/dark mode. */
+  setColorTheme: (colorTheme: ColorTheme) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | undefined>(
@@ -15,6 +59,9 @@ export const ThemeContext = createContext<ThemeContextValue | undefined>(
 );
 
 const STORAGE_KEY = 'theme';
+const COLOR_THEME_STORAGE_KEY = 'color-theme';
+
+const DEFAULT_COLOR_THEME: ColorTheme = 'dracula';
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') {
@@ -27,45 +74,54 @@ function getSystemTheme(): 'light' | 'dark' {
 }
 
 function updateFavicon(resolved: 'light' | 'dark') {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
 
   const favicon = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+
   if (favicon) {
     favicon.href =
       resolved === 'dark' ? '/favicon-dark.svg' : '/favicon-light.svg';
   }
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme, colorTheme: ColorTheme): 'light' | 'dark' {
   const root = document.documentElement;
 
   const resolved = theme === 'system' ? getSystemTheme() : theme;
 
-  // class based (Tailwind style)
+  // Light / dark mode
   root.classList.toggle('dark', resolved === 'dark');
 
-  // attribute based
+  // Keep this for compatibility with existing selectors.
   root.dataset.theme = resolved;
 
-  // Dynamically update favicon based on calculated theme
+  // Color palette
+  root.dataset.colorTheme = colorTheme;
+
+  // Favicon
   updateFavicon(resolved);
 
   return resolved;
 }
 
-function applyThemeWithoutTransitions(theme: Theme) {
+function applyThemeWithoutTransitions(
+  theme: Theme,
+  colorTheme: ColorTheme,
+): 'light' | 'dark' {
   const root = document.documentElement;
 
-  // 1. Disable transitions across the whole document
+  // Disable transitions across the whole document.
   root.classList.add('disable-transitions');
 
-  // 2. Apply theme updates
-  const resolved = applyTheme(theme);
+  // Apply theme updates.
+  const resolved = applyTheme(theme, colorTheme);
 
-  // 3. Force DOM reflow to immediately flush style updates
+  // Force DOM reflow to immediately flush style updates.
   void window.getComputedStyle(root).opacity;
 
-  // 4. Re-enable transitions on the next paint cycle
+  // Re-enable transitions on the next paint cycle.
   requestAnimationFrame(() => {
     root.classList.remove('disable-transitions');
   });
@@ -73,30 +129,106 @@ function applyThemeWithoutTransitions(theme: Theme) {
   return resolved;
 }
 
+function getStoredTheme(defaultTheme: Theme): Theme {
+  if (typeof window === 'undefined') {
+    return defaultTheme;
+  }
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+
+  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    return stored;
+  }
+
+  return defaultTheme;
+}
+
+function getStoredColorTheme(defaultColorTheme: ColorTheme): ColorTheme {
+  if (typeof window === 'undefined') {
+    return defaultColorTheme;
+  }
+
+  const stored = localStorage.getItem(COLOR_THEME_STORAGE_KEY);
+
+  if (isColorTheme(stored)) {
+    return stored;
+  }
+
+  return defaultColorTheme;
+}
+
+function isColorTheme(value: string | null): value is ColorTheme {
+  return value !== null && COLOR_THEMES.includes(value as ColorTheme);
+}
+
+export const COLOR_THEMES: readonly ColorTheme[] = [
+  'aero',
+  'amoled',
+  'aura',
+  'ayu',
+  'carbonfox',
+  'catppuccin',
+  'cursor',
+  'dracula',
+  'fields-of-the-shire',
+  'flexoki',
+  'github',
+  'gruvbox',
+  'jetbrains',
+  'kanagawa',
+  'lucent-orng',
+  'mono',
+  'mono-plus',
+  'monokai',
+  'nightowl',
+  'nord',
+  'oc-2',
+  'onedarkpro',
+  'orng',
+  'rosepine',
+  'shadesofpurple',
+  'solarized',
+  'tokyonight',
+  'vercel',
+  'vesper',
+  'vitesse',
+  'zenburn',
+] as const;
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
+  defaultColorTheme = DEFAULT_COLOR_THEME,
 }: {
   children: ReactNode;
   defaultTheme?: Theme;
+  defaultColorTheme?: ColorTheme;
 }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? defaultTheme;
-  });
+  const [theme, setThemeState] = useState<Theme>(() =>
+    getStoredTheme(defaultTheme),
+  );
+
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>(() =>
+    getStoredColorTheme(defaultColorTheme),
+  );
 
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() =>
-    applyTheme(theme),
+    applyTheme(theme, colorTheme),
   );
 
   function setTheme(nextTheme: Theme) {
     setThemeState(nextTheme);
-
     localStorage.setItem(STORAGE_KEY, nextTheme);
+  }
+
+  function setColorTheme(nextColorTheme: ColorTheme) {
+    setColorThemeState(nextColorTheme);
+    localStorage.setItem(COLOR_THEME_STORAGE_KEY, nextColorTheme);
   }
 
   useEffect(() => {
     const update = () => {
-      setResolvedTheme(applyThemeWithoutTransitions(theme));
+      setResolvedTheme(applyThemeWithoutTransitions(theme, colorTheme));
     };
 
     update();
@@ -112,16 +244,21 @@ export function ThemeProvider({
     return () => {
       media.removeEventListener('change', update);
     };
-  }, [theme]);
+  }, [theme, colorTheme]);
 
   useKeyPress(
     'd',
     () => {
       const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+
       setTheme(nextTheme);
     },
     {
-      modifiers: { meta: false, ctrl: false, alt: false },
+      modifiers: {
+        meta: false,
+        ctrl: false,
+        alt: false,
+      },
     },
   );
 
@@ -130,7 +267,9 @@ export function ThemeProvider({
       value={{
         theme,
         resolvedTheme,
+        colorTheme,
         setTheme,
+        setColorTheme,
       }}
     >
       {children}

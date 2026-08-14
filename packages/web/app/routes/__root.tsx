@@ -21,7 +21,7 @@ function RootLayout() {
   useSpeechInit();
 
   return (
-    <ThemeProvider>
+    <ThemeProvider defaultColorTheme='aero' defaultTheme='system'>
       <QueryProvider>
         <I18nProvider translations={translations} defaultLanguage='en'>
           <ToastProvider

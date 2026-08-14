@@ -6,7 +6,6 @@ import {
   Box,
   BranchesDown,
   ChartBar,
-  CircleInfo,
   Clock,
   Code,
   Comment,
@@ -28,6 +27,8 @@ import { Icon } from '@gravity-ui/uikit';
 import { SVGProps, useEffect, useRef } from 'react';
 
 import { Modal, SearchField } from '@aero/ui';
+
+import { AppearanceView } from '@/app/providers/settings/appearance-view';
 
 import { SettingsTab, useSettingsModalStore } from './settings-store';
 
@@ -128,7 +129,9 @@ export function SettingsModal() {
         if (!open) handleClose();
       }}
     >
-      <Modal.Backdrop variant='blur'>
+      <Modal.Backdrop
+      //  variant='blur'
+      >
         <Modal.Container size='cover'>
           <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none'>
             <div className='text-foreground relative flex h-full w-full'>
@@ -250,142 +253,6 @@ export function SettingsModal() {
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
-  );
-}
-
-/* ==========================================================================
-   Appearance Tab View
-   ========================================================================== */
-function AppearanceView() {
-  return (
-    <div className='flex-1 scrollbar-thin space-y-8 overflow-y-auto p-8'>
-      <div>
-        <h2 className='text-foreground text-xl font-medium'>Appearance</h2>
-        <p className='text-muted mt-1 text-xs'>
-          Customize how Aero looks and feels.
-        </p>
-      </div>
-
-      {/* Color Mode & Theme */}
-      <section className='space-y-4'>
-        <h3 className='text-foreground text-xs font-semibold'>
-          Color mode & Theme
-        </h3>
-        <div className='grid grid-cols-2 gap-8'>
-          <div className='space-y-2'>
-            {['System', 'Light', 'Dark'].map((mode) => (
-              <label
-                key={mode}
-                className='text-foreground flex cursor-pointer items-center gap-2.5 text-xs'
-              >
-                <input
-                  type='radio'
-                  name='color-mode'
-                  defaultChecked={mode === 'Dark'}
-                  className='accent-accent'
-                />
-                {mode}
-              </label>
-            ))}
-          </div>
-
-          <div className='space-y-4'>
-            <div>
-              <label className='text-muted mb-1.5 block text-xs'>
-                Light Theme
-              </label>
-              <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-3 py-1.5 text-xs'>
-                <option>Aero</option>
-              </select>
-            </div>
-            <div>
-              <label className='text-muted mb-1.5 block text-xs'>
-                Dark Theme
-              </label>
-              <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-3 py-1.5 text-xs'>
-                <option>Aero</option>
-              </select>
-            </div>
-            <button className='text-accent flex items-center gap-1.5 text-xs hover:opacity-80'>
-              <Icon data={ArrowsRotateRight} className='size-3.5' />
-              <span>Reload themes</span>
-              <Icon data={CircleInfo} className='text-muted ml-0.5 size-3.5' />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <hr className='border-separator' />
-
-      {/* Window Controls */}
-      <section className='space-y-4'>
-        <div className='flex items-center gap-1.5'>
-          <h3 className='text-foreground text-xs font-semibold'>
-            Window controls
-          </h3>
-          <Icon data={CircleInfo} className='text-muted size-3.5' />
-        </div>
-        <div className='grid grid-cols-2 gap-8'>
-          <div>
-            <label className='text-muted mb-2 block text-xs'>
-              Window controls position
-            </label>
-            <div className='border-border bg-surface-secondary inline-flex gap-1 rounded-md border p-1'>
-              <button className='text-muted hover:text-foreground rounded px-3 py-1 text-xs'>
-                left
-              </button>
-              <button className='bg-accent text-accent-foreground rounded px-3 py-1 text-xs font-medium'>
-                right
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className='text-muted mb-2 block text-xs'>Style</label>
-            <div className='border-border bg-surface-secondary inline-flex gap-1 rounded-md border p-1'>
-              <button className='bg-accent text-accent-foreground rounded px-3 py-1 text-xs font-medium'>
-                classic
-              </button>
-              <button className='text-muted hover:text-foreground rounded px-3 py-1 text-xs'>
-                traffic lights
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <hr className='border-separator' />
-
-      {/* Localization */}
-      <section className='space-y-4'>
-        <h3 className='text-foreground text-xs font-semibold'>Localization</h3>
-        <div className='grid grid-cols-2 gap-8'>
-          <div>
-            <label className='text-muted mb-1.5 block text-xs'>Language</label>
-            <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-3 py-1.5 text-xs'>
-              <option>English</option>
-            </select>
-          </div>
-          <div className='space-y-4'>
-            <div>
-              <label className='text-muted mb-1.5 block text-xs'>
-                Time Format
-              </label>
-              <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-3 py-1.5 text-xs'>
-                <option>Auto</option>
-              </select>
-            </div>
-            <div>
-              <label className='text-muted mb-1.5 block text-xs'>
-                Week Starts On
-              </label>
-              <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-3 py-1.5 text-xs'>
-                <option>Auto</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
   );
 }
 
