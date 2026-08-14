@@ -10,16 +10,15 @@
 // SDK docs' typesUrl). Check that file against your installed
 // @opencode-ai/sdk version and adjust field access here if anything drifted.
 
-import { Session as SessionV1 } from '@opencode-ai/sdk';
-import type {
-  GlobalSession,
-  Message,
-  Part,
-  Session as SessionV2,
-  SessionV2Info,
-} from '@opencode-ai/sdk/v2';
+import type { Message, Part } from '@opencode-ai/sdk/v2';
 
 import { normalizePath } from '@/server/shared';
+import type {
+  ExtendedGlobalSession,
+  ExtendedSessionV1,
+  ExtendedSessionV2,
+  ExtendedSessionV2Info,
+} from '@/server/types/opencode-sdk';
 
 import type {
   AeroMessage,
@@ -27,7 +26,7 @@ import type {
   AeroSessionSummary,
 } from '../../services/harness/types';
 
-export function toAeroSession(s: SessionV1): AeroSessionSummary {
+export function toAeroSession(s: ExtendedSessionV1): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
@@ -36,12 +35,12 @@ export function toAeroSession(s: SessionV1): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
-    sharedUrl: s.share?.url,
+    sharedUrl: s.metadata?.sharedUrl,
   };
 }
 
 export function toAeroSessionExperimental(
-  s: GlobalSession,
+  s: ExtendedGlobalSession,
 ): AeroSessionSummary {
   return {
     id: s.id,
@@ -51,11 +50,11 @@ export function toAeroSessionExperimental(
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
-    sharedUrl: s.share?.url,
+    sharedUrl: s.metadata?.sharedUrl,
   };
 }
 
-export function toAeroSessionV2(s: SessionV2): AeroSessionSummary {
+export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
@@ -64,11 +63,13 @@ export function toAeroSessionV2(s: SessionV2): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
-    sharedUrl: s.share?.url,
+    sharedUrl: s.metadata?.sharedUrl,
   };
 }
 
-export function toAeroSessionV2Info(s: SessionV2Info): AeroSessionSummary {
+export function toAeroSessionV2Info(
+  s: ExtendedSessionV2Info,
+): AeroSessionSummary {
   return {
     id: s.id,
     title: s.title || 'Untitled session',
@@ -77,6 +78,7 @@ export function toAeroSessionV2Info(s: SessionV2Info): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.location.directory),
+    sharedUrl: s.metadata?.sharedUrl,
   };
 }
 

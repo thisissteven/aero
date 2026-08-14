@@ -23,6 +23,7 @@
     "@opencode-ai/sdk": "^1.18.11",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.18",
+    "get-system-proxy": "^1.0.0",
     "hono": "^4.12.32",
     "motion": "^12.43.0",
     "next-themes": "^0.4.6",
@@ -32,8 +33,7 @@
     "react-hook-form": "^7.84.0",
     "virtua": "catalog:",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14",
-    "which": "^5.0.0"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.26.1",

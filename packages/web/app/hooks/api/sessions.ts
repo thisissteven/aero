@@ -216,6 +216,7 @@ export function useSessionToc(
 }
 
 export function useShareSession(harnessId?: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $individualSession.share.$get({
@@ -225,10 +226,17 @@ export function useShareSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to share session');
       return res.json();
     },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
+    },
   });
 }
 
 export function useUnshareSession(harnessId?: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $individualSession.unshare.$get({
@@ -237,6 +245,12 @@ export function useUnshareSession(harnessId?: string) {
       });
       if (!res.ok) throw new Error('Failed to unshare session');
       return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
     },
   });
 }

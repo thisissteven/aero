@@ -2,9 +2,12 @@
 
 import { Hono } from 'hono';
 
+import { initProxyConfig } from './proxy-loader';
 import poolRoutes from './routes/pool';
 import sessions from './routes/sessions';
 import workspaces from './routes/workspaces';
+
+initProxyConfig();
 
 const app = new Hono()
   .basePath('/api')

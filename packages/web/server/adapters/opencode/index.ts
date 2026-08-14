@@ -368,34 +368,57 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return unwrap(await clientV2.session.delete({ sessionID }));
     },
 
-    async shareSession(sessionID: string) {
-      const sessionInfo = await clientV2.session.get({ sessionID });
-      const directory = sessionInfo.data?.directory;
-
-      // Fallback: If directory contains special/non-Latin-1 characters,
-      // ensure it doesn't break the SDK or server request
-      const result = await clientV2.session.share({
+    async shareSession(sessionID) {
+      const sessionDetails = await clientV2.session.get({
         sessionID,
-        directory: directory ? encodeURI(directory) : undefined,
       });
 
-      const session = unwrap(result);
-      return toAeroSessionV2(session);
+      const session = unwrap(
+        await clientV2.session.share({
+          sessionID,
+          directory: sessionDetails.data?.directory,
+        }),
+      );
+
+      const updatedSession = unwrap(
+        await clientV2.session.update({
+          sessionID,
+          metadata: {
+            ...sessionDetails.data?.metadata,
+            sharedUrl: session.share?.url,
+          },
+        }),
+      );
+
+      return toAeroSessionV2(updatedSession);
     },
 
     async unshareSession(sessionID) {
-      const sessionInfo = await clientV2.session.get({ sessionID });
-      const session = unwrap(
-        await clientV2.session.unshare({
+      const sessionDetails = await clientV2.session.get({
+        sessionID,
+      });
+
+      await clientV2.session.unshare({
+        sessionID,
+        directory: sessionDetails.data?.directory,
+      });
+
+      const updatedSession = unwrap(
+        await clientV2.session.update({
           sessionID,
-          directory: sessionInfo.data?.directory,
+          directory: sessionDetails.data?.directory,
+          metadata: {
+            ...sessionDetails.data?.metadata,
+            sharedUrl: undefined,
+          },
         }),
       );
-      return toAeroSessionV2(session);
+
+      return toAeroSessionV2(updatedSession);
     },
 
     async deleteBulkSessions(sessionIDs) {
-      const limit = pLimit(50);
+      const limit = pLimit(10);
 
       try {
         await Promise.all(
