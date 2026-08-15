@@ -127,7 +127,7 @@ const sessions = new Hono()
       const harnessId = body.harnessId || queryHarness;
       const harness = await getActiveAdapter(harnessId);
 
-      let directory = body.directory || 'C:/Users/Steven/Downloads/aero';
+      let directory = body.directory;
 
       // Fall back to a newly created .aero/workspaces/<uuid> workspace if directory is undefined
       if (!directory) {

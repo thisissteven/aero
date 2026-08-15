@@ -85,7 +85,7 @@ export const RecentChats = memo(function Recents({
           {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
           <Virtualizer layout={layout}>
             <Sidebar.Menu<AeroSessionSummary>
-              aria-label='Recent chats'
+              aria-label='Recent sessions'
               items={sessions}
               selectionMode='single'
               selectedKeys={selectedKeys}
@@ -94,7 +94,7 @@ export const RecentChats = memo(function Recents({
               {(session) => (
                 <ChatSidebarSessionItem
                   key={session.id}
-                  idPrefix={idPrefix}
+                  idPrefix='recents'
                   pathname={pathname}
                   session={session}
                 />
@@ -103,18 +103,20 @@ export const RecentChats = memo(function Recents({
           </Virtualizer>
 
           {/* Sentinel element for infinite scroll */}
-          <div ref={loadMoreRef}>
-            <div
-              aria-hidden={!hasNextPage}
-              className={cn(
-                'flex items-center justify-center py-2 text-sm',
-                isFetchingNextPage && 'opacity-100',
-                !hasNextPage && 'h-0 py-0 opacity-0',
-              )}
-            >
-              <Spinner className='text-muted size-4' />
+          {hasNextPage && (
+            <div ref={loadMoreRef} className='h-9'>
+              <div
+                aria-hidden={!hasNextPage}
+                className={cn(
+                  'flex items-center justify-center py-2 text-sm',
+                  isFetchingNextPage && 'opacity-100',
+                  !hasNextPage && 'h-0 py-0 opacity-0',
+                )}
+              >
+                <Spinner className='text-muted size-4' />
+              </div>
             </div>
-          </div>
+          )}
         </Sidebar.Group>
       </Sidebar.Content>
     </>

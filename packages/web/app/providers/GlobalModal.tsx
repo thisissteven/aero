@@ -37,7 +37,8 @@ interface ConfirmationStore {
   };
   openModal: (options: { children?: ReactNode }) => void;
   closeModal: () => void;
-  toggleOpen: (isOpen: boolean) => void;
+  setOpen: (isOpen: boolean) => void;
+  toggleOpen: (options: { children?: ReactNode }) => void;
 }
 
 export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
@@ -55,12 +56,21 @@ export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
       },
     }),
 
+  toggleOpen: (options) =>
+    set((state) => ({
+      isOpen: !state.isOpen,
+      options: {
+        children: options.children ?? defaultChildren,
+        ...options,
+      },
+    })),
+
   closeModal: () =>
     set({
       isOpen: false,
     }),
 
-  toggleOpen: (isOpen) =>
+  setOpen: (isOpen) =>
     set({
       isOpen,
     }),
@@ -68,11 +78,11 @@ export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
 
 export function GlobalModal() {
   const isOpen = useGlobalModalStore((state) => state.isOpen);
-  const toggleOpen = useGlobalModalStore((state) => state.toggleOpen);
+  const setOpen = useGlobalModalStore((state) => state.setOpen);
   const options = useGlobalModalStore((state) => state.options);
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={toggleOpen}>
+    <Modal isOpen={isOpen} onOpenChange={setOpen}>
       <Modal.Backdrop>
         <Modal.Container>{options.children}</Modal.Container>
       </Modal.Backdrop>

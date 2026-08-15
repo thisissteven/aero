@@ -36,6 +36,7 @@ interface SettingsStore {
   sidebarScrollTop: number;
   openModal: (initialTab?: SettingsTab) => void;
   closeModal: () => void;
+  toggleOpenModal: () => void;
   setActiveTab: (tab: SettingsTab) => void;
   setSearchQuery: (query: string) => void;
   setSelectedSkillId: (id: string | null) => void;
@@ -53,6 +54,11 @@ export const useSettingsModalStore = create<SettingsStore>((set) => ({
     set((state) => ({
       isOpen: true,
       activeTab: initialTab ?? state.activeTab,
+    })),
+
+  toggleOpenModal: () =>
+    set(({ isOpen }) => ({
+      isOpen: !isOpen,
     })),
 
   closeModal: () => set({ isOpen: false }),

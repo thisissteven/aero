@@ -6,7 +6,7 @@ TITLES=(
   "Just this one"
 )
 
-DIRECTORY="/path/to/your/workspace"
+DIRECTORY="C:/Users/Steven/downloads/aero favicon"
 
 for i in $(seq 1 1000); do
   TITLE="${TITLES[$RANDOM % ${#TITLES[@]}]} #$i"

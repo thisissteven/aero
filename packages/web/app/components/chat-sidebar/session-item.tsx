@@ -25,6 +25,7 @@ interface ChatSidebarSessionItemProps {
   idPrefix: string;
   pathname: string;
   session: AeroSessionSummary;
+  isWorktreeItem?: boolean;
 }
 
 export function SessionItemSummary({
@@ -193,6 +194,83 @@ export const ChatSidebarSessionItem = memo(
         textValue={session.title}
         onPress={handlePress}
         className='group'
+      >
+        {isEditMode && <SelectSession sessionId={session.id} />}
+        <SessionItemSummary session={session} />
+      </Sidebar.MenuItem>
+    );
+  },
+  (prev, next) => {
+    const prevIsCurrent =
+      prev.pathname === `/sessions/${prev.session.id}` ||
+      prev.pathname === prev.session.id ||
+      prev.pathname === `/${prev.session.id}`;
+
+    const nextIsCurrent =
+      next.pathname === `/sessions/${next.session.id}` ||
+      next.pathname === next.session.id ||
+      next.pathname === `/${next.session.id}`;
+
+    return (
+      prev.session.id === next.session.id &&
+      prev.session.title === next.session.title &&
+      prevIsCurrent === nextIsCurrent
+    );
+  },
+);
+
+export const WorkspaceSessionItem = memo(
+  function ChatSidebarSessionItem({
+    idPrefix,
+    pathname,
+    session,
+    ...props
+  }: ChatSidebarSessionItemProps) {
+    const navigate = useNavigate();
+    const [, startTransition] = useTransition();
+
+    const fullHref = `/sessions/${session.id}`;
+    const isCurrent =
+      pathname === fullHref ||
+      pathname === session.id ||
+      pathname === `/${session.id}`;
+
+    const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
+    const lastPressTimeRef = useRef<number>(0);
+
+    const { setMobileOpen } = useSidebar();
+
+    const handlePress = () => {
+      const now = Date.now();
+      const DOUBLE_PRESS_THRESHOLD = 300; // ms window for double click
+
+      if (now - lastPressTimeRef.current < DOUBLE_PRESS_THRESHOLD) {
+        // DOUBLE PRESS DETECTED
+        lastPressTimeRef.current = 0; // Reset timer
+        renameRecents(session.id);
+      } else {
+        // SINGLE PRESS
+        lastPressTimeRef.current = now;
+
+        if (!isCurrent) {
+          setMobileOpen(false);
+          startTransition(() => {
+            navigate({ to: fullHref });
+          });
+        }
+      }
+    };
+
+    const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
+
+    return (
+      <Sidebar.MenuItem
+        {...props}
+        id={`${idPrefix}${session.id}`}
+        isCurrent={isCurrent}
+        textValue={session.title}
+        onPress={handlePress}
+        className='group [--sidebar-menu-guide-count:1]'
       >
         {isEditMode && <SelectSession sessionId={session.id} />}
         <SessionItemSummary session={session} />

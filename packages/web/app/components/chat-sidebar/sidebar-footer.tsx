@@ -51,11 +51,14 @@ export function SidebarFooter() {
   const openAboutModal = useGlobalModalStore((state) => state.openModal);
   const openShortcutsModal = useGlobalModalStore((state) => state.openModal);
   return (
-    <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-0'>
+    <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-1 pb-3'>
       <div className='mt-1.5 space-x-2 px-4'>
         <Tooltip delay={0}>
-          <Tooltip.Trigger onClick={() => openSettingsModal()}>
-            <div className='px-1 opacity-50 transition hover:opacity-80'>
+          <Tooltip.Trigger
+            onClick={() => openSettingsModal()}
+            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
+          >
+            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
               <Icon data={Gear} size={18} />
             </div>
           </Tooltip.Trigger>
@@ -71,8 +74,9 @@ export function SidebarFooter() {
                 children: <ShortcutsModal />,
               })
             }
+            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
           >
-            <div className='px-1 opacity-50 transition hover:opacity-80'>
+            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
               <Icon data={CircleQuestion} size={18} />
             </div>
           </Tooltip.Trigger>
@@ -88,8 +92,9 @@ export function SidebarFooter() {
                 children: <AboutModal />,
               })
             }
+            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
           >
-            <div className='px-1 opacity-50 transition hover:opacity-80'>
+            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
               <Icon data={CircleInfo} size={18} />
             </div>
           </Tooltip.Trigger>

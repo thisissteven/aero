@@ -10,16 +10,15 @@ import {
 } from '@aero/ui';
 
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session-actions';
-import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
-import { useSessions } from '@/app/hooks/api/sessions';
+import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace-item';
+import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
-import { AeroSessionSummary } from '@/server/services/harness/types';
+import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 interface WorkspacesProps {
   pathname: string;
   idPrefix?: string;
-  sessionsQuery: ReturnType<typeof useSessions>;
-  /** Fixed row height for virtualizer calculations */
+  workspacesQuery: ReturnType<typeof useWorkspaces>;
   rowHeight?: number;
 }
 
@@ -39,35 +38,28 @@ function WorkspacesLoader({ enabled }: { enabled: boolean }) {
   );
 }
 
-export const Workspaces = memo(function Recents({
-  pathname,
+export const Workspaces = memo(function Workspaces({
   idPrefix = '',
-  sessionsQuery,
-  rowHeight = 38,
+  pathname,
+  workspacesQuery,
+  rowHeight = 36,
 }: WorkspacesProps) {
   const {
-    items: sessions,
+    items: workspaces,
     loadMoreRef,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
+  } = useInfiniteScroll<AeroWorkspaceSummary>(workspacesQuery);
 
   // Define layout instance for virtualizer
   const layout = useMemo(
     () =>
-      new ListLayout<AeroSessionSummary>({
-        rowHeight,
+      new ListLayout<AeroWorkspaceSummary>({
+        estimatedRowSize: rowHeight,
       }),
     [rowHeight],
   );
-
-  // Derives current active session ID
-  const selectedKeys = useMemo(() => {
-    const match = pathname.match(/\/sessions\/([^/]+)/);
-    const id = match ? match[1] : pathname.replace(/^\//, '');
-    return id ? [id] : [];
-  }, [pathname]);
 
   return (
     <>
@@ -84,37 +76,38 @@ export const Workspaces = memo(function Recents({
 
           {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
           <Virtualizer layout={layout}>
-            <Sidebar.Menu<AeroSessionSummary>
-              aria-label='Recent chats'
-              items={sessions}
+            <Sidebar.Menu<AeroWorkspaceSummary>
+              aria-label='Recent workspaces'
+              items={workspaces}
               selectionMode='single'
-              selectedKeys={selectedKeys}
               dependencies={[pathname]}
             >
-              {(session) => (
-                <ChatSidebarSessionItem
-                  key={session.id}
+              {(workspace) => (
+                <ChatSidebarWorkspaceItem
+                  key={workspace.id}
                   idPrefix={idPrefix}
                   pathname={pathname}
-                  session={session}
+                  workspace={workspace}
                 />
               )}
             </Sidebar.Menu>
           </Virtualizer>
 
           {/* Sentinel element for infinite scroll */}
-          <div ref={loadMoreRef}>
-            <div
-              aria-hidden={!hasNextPage}
-              className={cn(
-                'flex items-center justify-center py-2 text-sm',
-                isFetchingNextPage && 'opacity-100',
-                !hasNextPage && 'h-0 py-0 opacity-0',
-              )}
-            >
-              <Spinner className='text-muted size-4' />
+          {hasNextPage && (
+            <div ref={loadMoreRef} className='h-9'>
+              <div
+                aria-hidden={!hasNextPage}
+                className={cn(
+                  'flex items-center justify-center py-2 text-sm',
+                  isFetchingNextPage && 'opacity-100',
+                  !hasNextPage && 'h-0 py-0 opacity-0',
+                )}
+              >
+                <Spinner className='text-muted size-4' />
+              </div>
             </div>
-          </div>
+          )}
         </Sidebar.Group>
       </Sidebar.Content>
     </>

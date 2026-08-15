@@ -10,9 +10,11 @@ export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 export type ConversationRole = 'user' | 'assistant' | 'system';
 
 export interface AeroWorktreeSummary {
+  id: string;
   name: string;
   directory: string;
   sessions: AeroSessionSummary[];
+  hasMoreSessions: boolean;
 }
 
 export interface AeroWorkspaceSummary {

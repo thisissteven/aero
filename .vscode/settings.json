@@ -21,5 +21,25 @@
   "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
   "tailwindCSS.lint.cssConflict": "ignore",
   "js/ts.preferences.importModuleSpecifier": "non-relative",
-  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib",
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "apps/docs": true,
+    "apps/storybook": true,
+    "packages/cli": true
+    // "packages/ui": true
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "apps/docs": true,
+    "apps/storybook": true,
+    "packages/cli": true
+    // "packages/ui": true
+  },
+
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": false,
+  "js/ts.implicitProjectConfig.checkJs": false
 }
