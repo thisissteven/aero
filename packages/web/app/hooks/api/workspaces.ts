@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { InferResponseType } from 'hono/client';
 
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 
@@ -16,6 +17,11 @@ export const workspaceKeys = {
   detail: (workspaceId: string) =>
     ['workspaces', workspaceId, 'detail'] as const,
 };
+
+export type WorkspacesPageResponse = InferResponseType<
+  typeof $workspaces.merged.$get,
+  200
+>;
 
 export function useWorkspaces(search?: string) {
   return useInfiniteQuery({

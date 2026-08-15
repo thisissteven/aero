@@ -11,6 +11,10 @@ import { memo, useState, useTransition } from 'react';
 import { Kbd, Sidebar } from '@aero/ui';
 
 import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
+import {
+  useRecentsSidebarStore,
+  useWorkspacesSidebarStore,
+} from '@/app/components/chat-sidebar/sidebar-store';
 import { Workspaces } from '@/app/components/chat-sidebar/workspaces';
 import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
@@ -48,6 +52,14 @@ export const SidebarContents = memo(function SidebarContents({
 
   const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false);
 
+  const toggleIsEditModeRecents = useRecentsSidebarStore(
+    (state) => state.toggleisEditMode,
+  );
+
+  const toggleIsEditModeWorkspaces = useWorkspacesSidebarStore(
+    (state) => state.toggleisEditMode,
+  );
+
   return (
     <>
       <Sidebar.Header className='px-0 pb-0'>
@@ -81,7 +93,12 @@ export const SidebarContents = memo(function SidebarContents({
 
                 <Sidebar.MenuItem
                   textValue='Workspaces'
-                  onPress={() => setIsWorkspacesOpen(true)}
+                  onPress={() => {
+                    if (useRecentsSidebarStore.getState().isEditMode) {
+                      toggleIsEditModeRecents();
+                    }
+                    setIsWorkspacesOpen(true);
+                  }}
                   closeMobileOnAction={false}
                 >
                   <Sidebar.MenuIcon>
@@ -110,7 +127,12 @@ export const SidebarContents = memo(function SidebarContents({
               <Sidebar.Menu aria-label='Chat actions'>
                 <Sidebar.MenuItem
                   textValue='Back'
-                  onPress={() => setIsWorkspacesOpen(false)}
+                  onPress={() => {
+                    if (useWorkspacesSidebarStore.getState().isEditMode) {
+                      toggleIsEditModeWorkspaces();
+                    }
+                    setIsWorkspacesOpen(false);
+                  }}
                   closeMobileOnAction={false}
                 >
                   <Sidebar.MenuIcon>

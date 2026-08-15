@@ -81,6 +81,7 @@ export const RecentChats = memo(function Recents({
                   idPrefix='recents'
                   pathname={pathname}
                   session={session}
+                  from='recents'
                 />
               )}
             </Sidebar.Menu>

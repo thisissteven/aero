@@ -9,7 +9,7 @@ import {
   Virtualizer,
 } from '@aero/ui';
 
-import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session-actions';
+import { WorkspacesToggleEditModeButton } from '@/app/components/chat-sidebar/workspace-actions';
 import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace-item';
 import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
@@ -56,7 +56,7 @@ export const Workspaces = memo(function Workspaces({
       <div className='px-2 pt-2'>
         <Sidebar.GroupLabel className='flex items-center justify-between'>
           Workspaces
-          <RecentsToggleEditModeButton />
+          <WorkspacesToggleEditModeButton />
         </Sidebar.GroupLabel>
       </div>
 

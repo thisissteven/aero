@@ -1,4 +1,4 @@
-import { Card, Chip } from '@aero/ui';
+import { Card, Chip, ListView, ListViewItem } from '@aero/ui';
 
 interface LibraryItem {
   id: string;
@@ -64,6 +64,11 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
 ];
 
+const items = Array.from({ length: 10000 }, (_, i) => ({
+  number: i,
+  height: Math.random() * 100,
+}));
+
 export function LibraryPage() {
   return (
     <div className='h-full min-h-0 overflow-y-auto'>
@@ -113,6 +118,16 @@ export function LibraryPage() {
           })}
         </div>
       </div>
+
+      <ListView virtualized className='h-96 w-80 overflow-y-auto' items={items}>
+        {({ number, height }) => {
+          return (
+            <ListViewItem key={number} style={{ height }}>
+              Hello {number}
+            </ListViewItem>
+          );
+        }}
+      </ListView>
     </div>
   );
 }

@@ -37,7 +37,7 @@ const containsActiveSession = (
 // sessions already loaded — duplicate ids inside the same Sidebar collection
 // cause its internal collection state to thrash on every render, which shows
 // up as "Maximum update depth exceeded" the moment that node expands.
-function dedupeById<T extends { id: string | number }>(items: T[]): T[] {
+export function dedupeById<T extends { id: string | number }>(items: T[]): T[] {
   const seen = new Set<string>();
   const out: T[] = [];
   for (const item of items) {
@@ -57,7 +57,7 @@ function dedupeById<T extends { id: string | number }>(items: T[]): T[] {
 // once folded into "root" sessions, once again as a full worktree branch,
 // with colliding derived ids. Keying everything off directory make both the
 // root pick and the exclusion filter agree.
-function dedupeWorktreesByDirectory(
+export function dedupeWorktreesByDirectory(
   worktrees: AeroWorktreeSummary[],
 ): AeroWorktreeSummary[] {
   const seen = new Set<string>();
@@ -176,6 +176,7 @@ export const ChatSidebarWorkspaceItem = memo(
               pathname={pathname}
               session={session}
               isWorktreeItem
+              from='workspaces'
             />
           ))}
 
@@ -257,6 +258,7 @@ export const ChatSidebarWorkspaceItem = memo(
                       idPrefix={worktreeItemId}
                       pathname={pathname}
                       session={session}
+                      from='workspaces'
                     />
                   ))}
                 </Sidebar.Submenu>

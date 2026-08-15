@@ -127,15 +127,6 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
     (state) => state.toggleSessionSelection,
   );
 
-  // Capture shiftKey in CAPTURE phase before React Aria handles the event
-  const handlePointerDownCapture = (e: React.PointerEvent) => {
-    isShiftPressedRef.current = e.shiftKey;
-    if (e.shiftKey) {
-      // Prevent browser text-selection highlighting on Shift + Click
-      e.preventDefault();
-    }
-  };
-
   // Safely extract ordered IDs from TanStack Query infinite data cache
   const getOrderedSessionIds = (): string[] => {
     // Finds queries matching ['sessions', 'default'] prefix
@@ -154,6 +145,15 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
 
     // Directly map the pages to IDs
     return data.pages.flatMap((page) => page.items.map((item) => item.id));
+  };
+
+  // Capture shiftKey in CAPTURE phase before React Aria handles the event
+  const handlePointerDownCapture = (e: React.PointerEvent) => {
+    isShiftPressedRef.current = e.shiftKey;
+    if (e.shiftKey) {
+      // Prevent browser text-selection highlighting on Shift + Click
+      e.preventDefault();
+    }
   };
 
   const handleSelectionChange = () => {
@@ -380,7 +380,7 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
   );
 }
 
-function ArchiveBulkSessionsConfirmationModal({
+export function ArchiveBulkSessionsConfirmationModal({
   sessionIds,
 }: {
   sessionIds: string[];
@@ -542,7 +542,7 @@ export function ArchiveSession({
   );
 }
 
-function DeleteBulkSessionsConfirmationModal({
+export function DeleteBulkSessionsConfirmationModal({
   sessionIds,
 }: {
   sessionIds: string[];

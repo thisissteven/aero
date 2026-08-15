@@ -14,7 +14,11 @@ import {
   RenameSession,
   SelectSession,
 } from '@/app/components/chat-sidebar/session-actions';
-import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import {
+  useRecentsSidebarStore,
+  useWorkspacesSidebarStore,
+} from '@/app/components/chat-sidebar/sidebar-store';
+import { SelectWorkspaceSession } from '@/app/components/chat-sidebar/workspace-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useRecentsSessionRenameStore } from '@/app/stores/session-rename';
@@ -25,6 +29,7 @@ interface ChatSidebarSessionItemProps {
   idPrefix: string;
   pathname: string;
   session: AeroSessionSummary;
+  from: 'recents' | 'navbar' | 'workspaces';
   isWorktreeItem?: boolean;
 }
 
@@ -32,10 +37,12 @@ export function SessionItemSummary({
   session,
   isWorktreeItem,
   isCurrent,
+  from,
 }: {
   session: ChatSidebarSessionItemProps['session'];
   isWorktreeItem?: boolean;
   isCurrent?: boolean;
+  from: 'recents' | 'navbar' | 'workspaces';
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -107,7 +114,7 @@ export function SessionItemSummary({
               placement='bottom end'
             >
               <Dropdown.Menu aria-label={`${session.title} actions`}>
-                <RenameSession sessionId={session.id} from='recents' />
+                <RenameSession sessionId={session.id} from={from} />
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator className='my-0.5 h-[0.5px]' />
@@ -159,6 +166,7 @@ export const ChatSidebarSessionItem = memo(
     pathname,
     session,
     isWorktreeItem,
+    from,
     ...props
   }: ChatSidebarSessionItemProps) {
     const navigate = useNavigate();
@@ -196,7 +204,12 @@ export const ChatSidebarSessionItem = memo(
       }
     };
 
-    const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
+    const isEditModeRecents = useRecentsSidebarStore(
+      (state) => state.isEditMode,
+    );
+    const isEditModeWorkspaces = useWorkspacesSidebarStore(
+      (state) => state.isEditMode,
+    );
 
     return (
       <Sidebar.MenuItem
@@ -207,11 +220,17 @@ export const ChatSidebarSessionItem = memo(
         onPress={handlePress}
         className='group'
       >
-        {isEditMode && <SelectSession sessionId={session.id} />}
+        {isEditModeRecents && from === 'recents' && (
+          <SelectSession sessionId={session.id} />
+        )}
+        {isEditModeWorkspaces && from === 'workspaces' && (
+          <SelectWorkspaceSession sessionId={session.id} />
+        )}
         <SessionItemSummary
           session={session}
           isWorktreeItem={isWorktreeItem}
           isCurrent={isCurrent}
+          from={from}
         />
       </Sidebar.MenuItem>
     );
@@ -277,7 +296,7 @@ export const WorkspaceSessionItem = memo(
       }
     };
 
-    const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
+    const isEditMode = useWorkspacesSidebarStore((state) => state.isEditMode);
 
     return (
       <Sidebar.MenuItem
@@ -288,11 +307,12 @@ export const WorkspaceSessionItem = memo(
         onPress={handlePress}
         className='group [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
       >
-        {isEditMode && <SelectSession sessionId={session.id} />}
+        {isEditMode && <SelectWorkspaceSession sessionId={session.id} />}
         <SessionItemSummary
           session={session}
           isCurrent={isCurrent}
           isWorktreeItem
+          from='workspaces'
         />
       </Sidebar.MenuItem>
     );
