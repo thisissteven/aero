@@ -78,7 +78,7 @@ export const VirtualizedCodeBlockCode = memo(function VirtualizedCodeBlockCode({
   className,
   code,
   darkTheme = 'github-dark',
-  itemSize,
+  itemSize = 24,
   language = 'plaintext',
   scrollOverflow = false,
   showLineNumbers = false,

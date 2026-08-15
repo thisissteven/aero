@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 
 import {
   cn,
@@ -41,7 +41,6 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
 
 export const RecentChats = memo(function Recents({
   pathname,
-  idPrefix = '',
   sessionsQuery,
   rowHeight = 38,
 }: RecentChatsProps) {
@@ -52,22 +51,6 @@ export const RecentChats = memo(function Recents({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
-
-  // Define layout instance for virtualizer
-  const layout = useMemo(
-    () =>
-      new ListLayout<AeroSessionSummary>({
-        rowHeight,
-      }),
-    [rowHeight],
-  );
-
-  // Derives current active session ID
-  const selectedKeys = useMemo(() => {
-    const match = pathname.match(/\/sessions\/([^/]+)/);
-    const id = match ? match[1] : pathname.replace(/^\//, '');
-    return id ? [id] : [];
-  }, [pathname]);
 
   return (
     <>
@@ -82,13 +65,14 @@ export const RecentChats = memo(function Recents({
         <Sidebar.Group>
           <RecentChatsLoader enabled={isLoading} />
 
-          {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
-          <Virtualizer layout={layout}>
+          <Virtualizer
+            layout={ListLayout}
+            layoutOptions={{ rowSize: rowHeight }}
+          >
             <Sidebar.Menu<AeroSessionSummary>
               aria-label='Recent sessions'
               items={sessions}
               selectionMode='single'
-              selectedKeys={selectedKeys}
               dependencies={[pathname]}
             >
               {(session) => (

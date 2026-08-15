@@ -30,8 +30,12 @@ interface ChatSidebarSessionItemProps {
 
 export function SessionItemSummary({
   session,
+  isWorktreeItem,
+  isCurrent,
 }: {
   session: ChatSidebarSessionItemProps['session'];
+  isWorktreeItem?: boolean;
+  isCurrent?: boolean;
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -43,7 +47,14 @@ export function SessionItemSummary({
     return (
       <>
         <Sidebar.MenuItemContent>
-          <Sidebar.MenuLabel>{session.title}</Sidebar.MenuLabel>
+          <Sidebar.MenuLabel
+            className={cn(
+              isWorktreeItem && 'text-muted',
+              isCurrent && 'text-foreground',
+            )}
+          >
+            {session.title}
+          </Sidebar.MenuLabel>
         </Sidebar.MenuItemContent>
 
         {isWorktree(session.workspace) ? (
@@ -147,6 +158,7 @@ export const ChatSidebarSessionItem = memo(
     idPrefix,
     pathname,
     session,
+    isWorktreeItem,
     ...props
   }: ChatSidebarSessionItemProps) {
     const navigate = useNavigate();
@@ -191,12 +203,16 @@ export const ChatSidebarSessionItem = memo(
         {...props}
         id={`${idPrefix}${session.id}`}
         isCurrent={isCurrent}
-        textValue={session.title}
+        textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
         className='group'
       >
         {isEditMode && <SelectSession sessionId={session.id} />}
-        <SessionItemSummary session={session} />
+        <SessionItemSummary
+          session={session}
+          isWorktreeItem={isWorktreeItem}
+          isCurrent={isCurrent}
+        />
       </Sidebar.MenuItem>
     );
   },
@@ -268,12 +284,16 @@ export const WorkspaceSessionItem = memo(
         {...props}
         id={`${idPrefix}${session.id}`}
         isCurrent={isCurrent}
-        textValue={session.title}
+        textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
-        className='group [--sidebar-menu-guide-count:1]'
+        className='group [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
       >
         {isEditMode && <SelectSession sessionId={session.id} />}
-        <SessionItemSummary session={session} />
+        <SessionItemSummary
+          session={session}
+          isCurrent={isCurrent}
+          isWorktreeItem
+        />
       </Sidebar.MenuItem>
     );
   },

@@ -18,7 +18,6 @@ export interface AdaptiveCodeBlockCodeProps extends CodeBlockCodeProps {
 
 export const AdaptiveCodeBlockCode = memo(function AdaptiveCodeBlockCode({
   code,
-  itemSize,
   scrollOverflow,
   virtualizeLineThreshold = 300,
   ...props
@@ -34,7 +33,6 @@ export const AdaptiveCodeBlockCode = memo(function AdaptiveCodeBlockCode({
   return shouldVirtualize ? (
     <VirtualizedCodeBlockCode
       code={code}
-      itemSize={itemSize}
       scrollOverflow={scrollOverflow}
       showLineNumbers
       {...props}

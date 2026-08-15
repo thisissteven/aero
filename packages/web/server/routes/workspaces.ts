@@ -47,11 +47,22 @@ const workspaces = new Hono()
       const { cursor, limit, search } = c.req.valid('query');
       const adapters = await getAllAdapters();
 
-      const result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+      let result = await mergeAllWorkspacesAcrossAdapters(adapters, {
         cursor,
         limit,
         search,
       });
+
+      // First-load guard: nothing in store yet, and this isn't a filtered/paged query
+      if (result.items.length === 0 && !cursor && !search) {
+        await adapters[0].initWorkspaces();
+        await Promise.all(adapters.map((a) => a.syncWorkspaces()));
+        result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+          cursor,
+          limit,
+          search,
+        });
+      }
 
       return c.json(result);
     },

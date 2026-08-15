@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 
 import {
   cn,
@@ -39,10 +39,9 @@ function WorkspacesLoader({ enabled }: { enabled: boolean }) {
 }
 
 export const Workspaces = memo(function Workspaces({
-  idPrefix = '',
   pathname,
   workspacesQuery,
-  rowHeight = 36,
+  rowHeight = 38,
 }: WorkspacesProps) {
   const {
     items: workspaces,
@@ -51,15 +50,6 @@ export const Workspaces = memo(function Workspaces({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteScroll<AeroWorkspaceSummary>(workspacesQuery);
-
-  // Define layout instance for virtualizer
-  const layout = useMemo(
-    () =>
-      new ListLayout<AeroWorkspaceSummary>({
-        estimatedRowSize: rowHeight,
-      }),
-    [rowHeight],
-  );
 
   return (
     <>
@@ -74,8 +64,10 @@ export const Workspaces = memo(function Workspaces({
         <Sidebar.Group>
           <WorkspacesLoader enabled={isLoading} />
 
-          {/* Passing dependencies forces Virtualizer to update when pathname/selection changes */}
-          <Virtualizer layout={layout}>
+          <Virtualizer
+            layout={ListLayout}
+            layoutOptions={{ rowSize: rowHeight }}
+          >
             <Sidebar.Menu<AeroWorkspaceSummary>
               aria-label='Recent workspaces'
               items={workspaces}
@@ -85,7 +77,7 @@ export const Workspaces = memo(function Workspaces({
               {(workspace) => (
                 <ChatSidebarWorkspaceItem
                   key={workspace.id}
-                  idPrefix={idPrefix}
+                  idPrefix='workspaces'
                   pathname={pathname}
                   workspace={workspace}
                 />
