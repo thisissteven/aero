@@ -45,7 +45,7 @@ interface SettingsStore {
 
 export const useSettingsModalStore = create<SettingsStore>((set) => ({
   isOpen: false,
-  activeTab: 'appearance',
+  activeTab: 'general',
   searchQuery: '',
   selectedSkillId: 'find-skills',
   sidebarScrollTop: 0,

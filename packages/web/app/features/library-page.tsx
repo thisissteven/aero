@@ -1,4 +1,4 @@
-import { Card, Chip, ListView, ListViewItem } from '@aero/ui';
+import { Card, Chip } from '@aero/ui';
 
 interface LibraryItem {
   id: string;
@@ -119,7 +119,7 @@ export function LibraryPage() {
         </div>
       </div>
 
-      <ListView virtualized className='h-96 w-80 overflow-y-auto' items={items}>
+      {/* <ListView virtualized className='h-96 w-80 overflow-y-auto' items={items}>
         {({ number, height }) => {
           return (
             <ListViewItem key={number} style={{ height }}>
@@ -127,7 +127,7 @@ export function LibraryPage() {
             </ListViewItem>
           );
         }}
-      </ListView>
+      </ListView> */}
     </div>
   );
 }

@@ -28,7 +28,8 @@ import { SVGProps, useEffect, useRef } from 'react';
 
 import { Modal, SearchField } from '@aero/ui';
 
-import { AppearanceView } from '@/app/providers/settings/appearance-view';
+import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
+import { GeneralView } from '@/app/providers/settings/general/general-view';
 
 import { SettingsTab, useSettingsModalStore } from './settings-store';
 
@@ -229,6 +230,7 @@ export function SettingsModal() {
 
               {/* Main Content Area */}
               <main className='flex flex-1 overflow-hidden'>
+                {activeTab === 'general' && <GeneralView />}
                 {activeTab === 'appearance' && <AppearanceView />}
                 {activeTab === 'skills' && (
                   <SkillsView
@@ -236,7 +238,7 @@ export function SettingsModal() {
                     onSelectSkill={setSelectedSkillId}
                   />
                 )}
-                {activeTab !== 'appearance' && activeTab !== 'skills' && (
+                {activeTab !== 'appearance' && activeTab !== 'general' && (
                   <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
                     Content for
                     <div className='text-foreground mx-1 capitalize'>

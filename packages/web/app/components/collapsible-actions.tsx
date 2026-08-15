@@ -55,7 +55,6 @@ function useCollapsibleActions() {
   return ctx;
 }
 
-// Helper to calculate item coordinates based on behavior, origin, distance, gap, and flip
 function getPositions(
   count: number,
   distance: number,
@@ -66,7 +65,6 @@ function getPositions(
 ) {
   if (count <= 0) return [];
 
-  // 1. SPREAD (ARC) BEHAVIOR
   if (behavior === 'spread') {
     let startAngle = -150;
     let endAngle = -30;
@@ -104,11 +102,9 @@ function getPositions(
     });
   }
 
-  // 2. VERTICAL LINE BEHAVIOR
   if (behavior === 'vertical') {
     const yDir = flip ? 1 : -1;
 
-    // Trigger Origin: Column centered horizontally above/below trigger
     if (origin === 'trigger') {
       return Array.from({ length: count }, (_, i) => ({
         fx: 0,
@@ -116,7 +112,6 @@ function getPositions(
       }));
     }
 
-    // Trigger-Left / Trigger-Right: Column starts directly beside the trigger
     const xOffset = origin === 'trigger-left' ? -distance : distance;
     return Array.from({ length: count }, (_, i) => ({
       fx: xOffset,
@@ -124,7 +119,6 @@ function getPositions(
     }));
   }
 
-  // 3. HORIZONTAL LINE BEHAVIOR
   if (behavior === 'horizontal') {
     if (origin === 'trigger-left') {
       return Array.from({ length: count }, (_, i) => ({
@@ -140,7 +134,6 @@ function getPositions(
       }));
     }
 
-    // Centered horizontal spread above/below trigger
     const half = (count - 1) / 2;
     const yOffset = flip ? distance : -distance;
     return Array.from({ length: count }, (_, i) => ({
@@ -154,21 +147,13 @@ function getPositions(
 
 export interface CollapsibleActionsProps {
   children: ReactNode;
-  /** Controlled open state */
   open?: boolean;
-  /** Callback fired when open state changes */
   onOpenChange?: (open: boolean) => void;
-  /** Default open state when uncontrolled */
   defaultOpen?: boolean;
-  /** Distance from trigger center to the first uncollapsed item. Defaults to 48. */
   distance?: number;
-  /** Distance between consecutive uncollapsed items. Defaults to 40. */
   gap?: number;
-  /** Layout pattern for expanding items. Defaults to 'spread'. */
   expandBehavior?: ExpandBehavior;
-  /** Anchor orientation relative to the trigger. Defaults to 'trigger'. */
   expandOrigin?: ExpandOrigin;
-  /** When true, expands downward instead of upward. Defaults to false. */
   flip?: boolean;
 }
 
@@ -205,7 +190,6 @@ export function CollapsibleActions({
     [isControlled, isOpen, onOpenChange],
   );
 
-  // Close menu when clicking outside trigger or portal overlay
   useOnClickOutside([triggerRef, portalRef], () => {
     if (isOpen) setIsOpen(false);
   });
@@ -229,7 +213,6 @@ export function CollapsibleActions({
     setIsOpen((prev) => !prev);
   }, [isOpen, setIsOpen, updatePosition]);
 
-  // Re-calculate position on scroll, window resize, OR trigger container resize
   useEffect(() => {
     if (isOpen) {
       updatePosition();
@@ -282,7 +265,6 @@ export function CollapsibleActions({
           display: inline-flex;
         }
 
-        /* Fixed floating portal layer placed in document.body */
         .speed-dial-portal-layer {
           position: fixed;
           top: 0;
@@ -301,13 +283,11 @@ export function CollapsibleActions({
           --pv4l: 1;
         }
 
-        /* Active/Open State */
         .speed-dial-portal-layer[data-open="true"] {
           opacity: 1;
           visibility: visible;
         }
 
-        /* Large SVG container (600x600) to prevent clipping when expanding far */
         .speed-dial-svg {
           position: absolute;
           top: -300px;
@@ -320,18 +300,35 @@ export function CollapsibleActions({
 
         .speed-dial-circle {
           fill: var(--surface, #181818);
-          transition: transform var(--pv3g) var(--pv34), fill 0.2s ease;
           transform-origin: 300px 300px;
-          transform: translate(0, 0);
+          /* Default state: disembunyikan & kuncinya dikecilkan biar ga bocor keluar trigger */
+          transform: translate(0, 0) scale(0);
+          opacity: 0;
+          transition: transform var(--pv3g) var(--pv34), opacity 150ms ease, fill 0.2s ease;
         }
 
+        /* Saat Aktif Open: mekar ke posisi tujuan */
         .speed-dial-portal-layer[data-open="true"] .speed-dial-circle {
-          transform: translate(calc(var(--fx, 0px) * var(--pv4l)), calc(var(--fy, 0px) * var(--pv4l)));
-          transition: transform var(--pv3x) var(--pv3i), fill 0.2s ease;
+          opacity: 1;
+          transform: translate(calc(var(--fx, 0px) * var(--pv4l)), calc(var(--fy, 0px) * var(--pv4l))) scale(1);
+          transition: transform var(--pv3x) var(--pv3i), opacity 150ms ease, fill 0.2s ease;
           transition-delay: calc(var(--i, 0) * var(--pv4a));
         }
 
-        /* Wrapper for each floating action child inside portal */
+        /* Center base circle (titik tengah penyambung gooey): hanya muncul pas open */
+        .speed-dial-portal-layer[data-open="true"] .speed-dial-circle-center {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        .speed-dial-circle-center {
+          fill: var(--surface, #181818);
+          transform-origin: 300px 300px;
+          transform: scale(0);
+          opacity: 0;
+          transition: transform 200ms ease, opacity 200ms ease;
+        }
+
         .speed-dial-item-wrapper {
           position: absolute;
           top: -20px;
@@ -342,8 +339,9 @@ export function CollapsibleActions({
           align-items: center;
           justify-content: center;
           pointer-events: none;
-          transform: translate(0, 0);
-          transition: transform var(--pv3g) var(--pv34);
+          transform: translate(0, 0) scale(0);
+          opacity: 0;
+          transition: transform var(--pv3g) var(--pv34), opacity 150ms ease;
 
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
@@ -353,19 +351,18 @@ export function CollapsibleActions({
 
         .speed-dial-portal-layer[data-open="true"] .speed-dial-item-wrapper {
           pointer-events: auto;
-          transform: translate(calc(var(--fx, 0px) * var(--pv4l)), calc(var(--fy, 0px) * var(--pv4l)));
-          transition: transform var(--pv3x) var(--pv3i);
+          opacity: 1;
+          transform: translate(calc(var(--fx, 0px) * var(--pv4l)), calc(var(--fy, 0px) * var(--pv4l))) scale(1);
+          transition: transform var(--pv3x) var(--pv3i), opacity 150ms ease;
           transition-delay: calc(var(--i, 0) * var(--pv4a));
         }
 
-        /* Accent focus rings */
         .speed-dial-portal-layer button:focus-visible,
         .speed-dial-container button:focus-visible {
           outline: 2px solid var(--accent, #0073e5);
           outline-offset: 2px;
         }
 
-        /* Only set overflow: visible while the speed dial is actively OPEN */
         [data-vaul-drawer]:has(.speed-dial-portal-layer[data-open="true"]),
         [data-slot="sheet-content"]:has(.speed-dial-portal-layer[data-open="true"]),
         .sheet_content:has(.speed-dial-portal-layer[data-open="true"]) {
@@ -378,10 +375,6 @@ export function CollapsibleActions({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Component Types                              */
-/* -------------------------------------------------------------------------- */
-
 interface CollapsibleActionsActionProps extends HTMLAttributes<HTMLElement> {
   'aria-expanded'?: boolean;
   tabIndex?: number;
@@ -390,10 +383,6 @@ interface CollapsibleActionsActionProps extends HTMLAttributes<HTMLElement> {
 interface TriggerProps {
   children: ReactElement<CollapsibleActionsActionProps>;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                               Trigger Component                            */
-/* -------------------------------------------------------------------------- */
 
 export function CollapsibleActionsTrigger({ children }: TriggerProps) {
   const { isOpen, toggle, triggerRef, updatePosition } =
@@ -413,14 +402,9 @@ export function CollapsibleActionsTrigger({ children }: TriggerProps) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              Contents Component                            */
-/* -------------------------------------------------------------------------- */
-
 function getAutoContainer(element: HTMLElement | null): HTMLElement {
   if (typeof window === 'undefined' || !element) return document.body;
 
-  // Find the exact drawer/sheet container element
   const container = element.closest<HTMLElement>(
     [
       '[data-vaul-drawer]',
@@ -442,7 +426,6 @@ export function CollapsibleActionsContents({
 }) {
   const {
     isOpen,
-    setIsOpen,
     triggerRef,
     portalRef,
     distance,
@@ -450,16 +433,15 @@ export function CollapsibleActionsContents({
     expandBehavior,
     expandOrigin,
     flip,
+    setIsOpen,
   } = useCollapsibleActions();
 
-  // 1. Initialize immediately with document.body so the portal DOM node exists
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
     return typeof window !== 'undefined' ? document.body : null;
   });
 
   const [adjustedPos, setAdjustedPos] = useState<Position>({ top: 0, left: 0 });
 
-  // 2. Synchronous position and container calculation
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
 
@@ -469,7 +451,6 @@ export function CollapsibleActionsContents({
     const triggerRect = triggerRef.current.getBoundingClientRect();
 
     if (target && target !== document.body) {
-      // Relative offset inside modal/dialog container
       const containerRect = target.getBoundingClientRect();
       setAdjustedPos({
         top: Math.round(
@@ -480,7 +461,6 @@ export function CollapsibleActionsContents({
         ),
       });
     } else {
-      // Relative offset inside viewport
       setAdjustedPos({
         top: Math.round(triggerRect.top + triggerRect.height / 2),
         left: Math.round(triggerRect.left + triggerRect.width / 2),
@@ -488,12 +468,10 @@ export function CollapsibleActionsContents({
     }
   }, [triggerRef]);
 
-  // Detect container immediately on mount (before paint)
   useIsomorphicLayoutEffect(() => {
     updatePosition();
   }, [updatePosition]);
 
-  // Recalculate on scroll, resize, or when menu opens
   useEffect(() => {
     if (isOpen) {
       updatePosition();
@@ -527,7 +505,6 @@ export function CollapsibleActionsContents({
         left: `${adjustedPos.left}px`,
       }}
     >
-      {/* Liquid SVG Gooey Filter */}
       <svg
         className='speed-dial-svg'
         viewBox='0 0 600 600'
@@ -571,11 +548,16 @@ export function CollapsibleActionsContents({
               />
             );
           })}
-          <circle className='speed-dial-circle' cx='300' cy='300' r='18' />
+          {/* Lingkaran pusat gooey hanya aktif/tampil saat menu dalam keadaan OPEN */}
+          <circle
+            className='speed-dial-circle-center'
+            cx='300'
+            cy='300'
+            r='18'
+          />
         </g>
       </svg>
 
-      {/* Floating Action Items */}
       {items.map((child, index) => {
         const pos = positions[index] || { fx: 0, fy: 0 };
         const style = {
@@ -610,6 +592,5 @@ export function CollapsibleActionsContents({
   return createPortal(portalContent, portalTarget);
 }
 
-// Attach subcomponents
 CollapsibleActions.Trigger = CollapsibleActionsTrigger;
 CollapsibleActions.Contents = CollapsibleActionsContents;

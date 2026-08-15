@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useEffect, useState } from 'react';
 
 import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -246,18 +247,41 @@ export function ThemeProvider({
     };
   }, [theme, colorTheme]);
 
-  useKeyPress(
-    'd',
-    () => {
-      const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+  const isMac =
+    typeof window !== 'undefined' &&
+    /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
-      setTheme(nextTheme);
+  useKeyPress(
+    '/',
+    () => {
+      const cycleMap: Record<Theme, Theme> = {
+        light: 'dark',
+        dark: 'system',
+        system: 'light',
+      };
+
+      const nextMode = cycleMap[theme] ?? 'light';
+      setTheme(nextMode);
+
+      const nextResolved =
+        nextMode === 'system'
+          ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
+          : nextMode;
+
+      const nextColorTheme =
+        nextResolved === 'dark'
+          ? useAppearanceStore.getState().darkTheme
+          : useAppearanceStore.getState().lightTheme;
+      setColorTheme(nextColorTheme);
     },
     {
       modifiers: {
-        meta: false,
-        ctrl: false,
+        ctrl: !isMac,
+        meta: isMac,
         alt: false,
+        shift: false,
       },
     },
   );

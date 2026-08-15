@@ -14,6 +14,81 @@
   }
 </script>
 <script src="/react-scan/install-hook.global.js"></script>
+<script>
+  function applyThemeToAllFrames(themeName) {
+    // 1. Apply to the current component iframe document
+    document.documentElement.setAttribute('data-color-theme', themeName);
+    document.body.setAttribute('data-color-theme', themeName);
+
+    // 2. Also try applying it to Storybook's parent window if accessible
+    try {
+      if (window.parent && window.parent.document) {
+        window.parent.document.documentElement.setAttribute(
+          'data-color-theme',
+          themeName,
+        );
+
+        // Find Storybook's manager/preview container elements and force it there too
+        const previewIframe = window.parent.document.getElementById(
+          'storybook-preview-iframe',
+        );
+        if (previewIframe) {
+          previewIframe.setAttribute('data-color-theme', themeName);
+        }
+      }
+    } catch (e) {
+      // Catch any cross-origin browser security blocking
+      console.warn(
+        'Storybook parent window theme injection bypassed due to browser security.',
+        e,
+      );
+    }
+  }
+
+  function triggerThemePrompt() {
+    const currentTheme =
+      localStorage.getItem('sb-custom-color-theme') || 'light';
+    const userInput = prompt('Enter your data-color-theme:', currentTheme);
+
+    if (userInput !== null) {
+      const selectedTheme = userInput.trim() || 'light';
+      localStorage.setItem('sb-custom-color-theme', selectedTheme);
+      applyThemeToAllFrames(selectedTheme);
+    }
+  }
+
+  // Run automatically on load
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('sb-custom-color-theme');
+    if (savedTheme) {
+      applyThemeToAllFrames(savedTheme);
+    } else {
+      triggerThemePrompt();
+    }
+  });
+
+  // Hotfix: Re-apply theme if Storybook re-renders components dynamically
+  const observer = new MutationObserver(() => {
+    const savedTheme = localStorage.getItem('sb-custom-color-theme') || 'light';
+    if (
+      document.documentElement.getAttribute('data-color-theme') !== savedTheme
+    ) {
+      applyThemeToAllFrames(savedTheme);
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true });
+
+  // Trigger on demand with 'T' key
+  window.addEventListener('keydown', (event) => {
+    if (
+      event.key.toLowerCase() === 't' &&
+      event.target.tagName !== 'INPUT' &&
+      event.target.tagName !== 'TEXTAREA'
+    ) {
+      triggerThemePrompt();
+    }
+  });
+</script>
 
 <style>
   html,
