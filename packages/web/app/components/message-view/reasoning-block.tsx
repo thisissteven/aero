@@ -1,6 +1,15 @@
+'use client';
+
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { memo, ReactElement, useMemo, useRef } from 'react';
+import {
+  memo,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
   AdaptiveMarkdown,
@@ -17,25 +26,49 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   isFile,
   onFileClick,
   text,
+  isStreaming,
 }: {
   blockId: string;
   isFile: (path: string) => boolean;
   onFileClick: (path: string) => void;
   text: string;
+  isStreaming: boolean;
 }): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isDirtyRef = useRef(false);
+
+  // Initialize state based on whether it starts as streaming
+  const [isOpen, setIsOpen] = useState(isStreaming);
+
+  // Sync state with streaming status unless the user manually interacted
+  useEffect(() => {
+    if (!isDirtyRef.current) {
+      setIsOpen(isStreaming);
+    }
+  }, [isStreaming]);
+
+  // Track manual user interactions
+  const handleOpenChange = (open: boolean) => {
+    isDirtyRef.current = true;
+    setIsOpen(open);
+  };
 
   const preview = useMemo(() => stripMarkdown(text.slice(0, 150)), [text]);
 
   return (
-    <ChainOfThought key={blockId}>
+    <ChainOfThought
+      key={blockId}
+      isStreaming={isStreaming}
+      isExpanded={isOpen}
+      onExpandedChange={handleOpenChange}
+    >
       <ChainOfThought.Trigger
         icon={
           <div className='relative shrink-0'>
             <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
             <Icon
               data={Bulb}
-              className='absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
+              className='text-muted absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
               style={{
                 width: 12,
                 height: 12,
@@ -58,6 +91,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
                   isFile={isFile}
                   onFileClick={onFileClick}
                   scrollRef={scrollRef}
+                  isStreaming={isStreaming}
                 >
                   {text}
                 </AdaptiveMarkdown>

@@ -37,9 +37,18 @@ const handleIsWorktreeFile = (cleanText: string): boolean => {
 const handleOpenFileInEditor = (path: string) => path;
 
 export const AssistantChatBubble = memo(
-  function AssistantChatBubble({ turn }: { turn: AeroConversationTurn }) {
+  function AssistantChatBubble({
+    turn,
+    isStreaming,
+  }: {
+    turn: AeroConversationTurn;
+    isStreaming: boolean;
+  }) {
     const parts = turn.parts;
     const baseKey = turn.id;
+
+    // Check if turn has no content yet or last tool is still running
+    const isEmptyTurn = parts.length === 0;
 
     const assistantTextResponse = useMemo(() => {
       return parts
@@ -57,12 +66,15 @@ export const AssistantChatBubble = memo(
           <ChatMessage.Content>
             {parts.map((part, index) => {
               const blockId = `${baseKey}-part-${index}`;
+              const isLastPart = index === parts.length - 1;
+
+              const isPartStreaming = isStreaming && isLastPart;
 
               switch (part.type) {
-                case 'text':
+                case 'text': {
                   if (!part.text) return null;
                   return (
-                    <div key={blockId} className='py-2'>
+                    <div key={blockId} className='relative py-2'>
                       <Markdown
                         id={blockId}
                         isFile={handleIsWorktreeFile}
@@ -72,18 +84,22 @@ export const AssistantChatBubble = memo(
                       </Markdown>
                     </div>
                   );
+                }
 
-                case 'reasoning':
-                  if (!part.text) return null;
+                case 'reasoning': {
+                  if (!part.text && !isLastPart) return null;
                   return (
-                    <ReasoningBlock
-                      key={blockId}
-                      blockId={blockId}
-                      isFile={handleIsWorktreeFile}
-                      onFileClick={handleOpenFileInEditor}
-                      text={part.text}
-                    />
+                    <div key={blockId} className='relative'>
+                      <ReasoningBlock
+                        blockId={blockId}
+                        isFile={handleIsWorktreeFile}
+                        onFileClick={handleOpenFileInEditor}
+                        text={part.text}
+                        isStreaming={isPartStreaming}
+                      />
+                    </div>
                   );
+                }
 
                 case 'tool':
                   return <ToolCallView key={blockId} part={part} />;
@@ -93,43 +109,47 @@ export const AssistantChatBubble = memo(
               }
             })}
           </ChatMessage.Content>
-          <div className='flex w-full justify-start gap-3 pr-3 pb-3'>
-            <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
-              <Icon data={Clock} size={12} className='opacity-80' />
-              {formatDateTime(turn.createdAt)}
+
+          {/* Action Footer */}
+          {!isStreaming && (
+            <div className='flex w-full justify-start gap-3 pr-3 pb-3'>
+              <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
+                <Icon data={Clock} size={12} className='opacity-80' />
+                {formatDateTime(turn.createdAt)}
+              </div>
+              <MessageActionsReadAloud
+                id={turn.id}
+                text={assistantTextResponse}
+              />
+              <Tooltip delay={300}>
+                <Tooltip.Trigger>
+                  <Icon
+                    data={CodeFork}
+                    size={16}
+                    className='opacity-50 transition hover:opacity-80'
+                  />
+                </Tooltip.Trigger>
+
+                <Tooltip.Content placement='bottom' offset={8}>
+                  <span>Fork from here</span>
+                </Tooltip.Content>
+              </Tooltip>
+              <Tooltip delay={300}>
+                <Tooltip.Trigger>
+                  <Icon
+                    data={Pin}
+                    size={16}
+                    className='opacity-50 transition hover:opacity-80'
+                  />
+                </Tooltip.Trigger>
+
+                <Tooltip.Content placement='bottom' offset={8}>
+                  <span>Pin into context (survives compaction)</span>
+                </Tooltip.Content>
+              </Tooltip>
+              <MessageActionsCopy copyText={assistantTextResponse} />
             </div>
-            <MessageActionsReadAloud
-              id={turn.id}
-              text={assistantTextResponse}
-            />
-            <Tooltip delay={300}>
-              <Tooltip.Trigger>
-                <Icon
-                  data={CodeFork}
-                  size={16}
-                  className='opacity-50 transition hover:opacity-80'
-                />
-              </Tooltip.Trigger>
-
-              <Tooltip.Content placement='bottom' offset={8}>
-                <span>Fork from here</span>
-              </Tooltip.Content>
-            </Tooltip>
-            <Tooltip delay={300}>
-              <Tooltip.Trigger>
-                <Icon
-                  data={Pin}
-                  size={16}
-                  className='opacity-50 transition hover:opacity-80'
-                />
-              </Tooltip.Trigger>
-
-              <Tooltip.Content placement='bottom' offset={8}>
-                <span>Pin into context (survives compaction)</span>
-              </Tooltip.Content>
-            </Tooltip>
-            <MessageActionsCopy copyText={assistantTextResponse} />
-          </div>
+          )}
         </ChatMessage.Body>
       </ChatMessage.Assistant>
     );

@@ -6,6 +6,7 @@ import type {
   ComponentPropsWithRef,
   NamedExoticComponent,
   ReactElement,
+  RefObject,
 } from 'react';
 import { createContext, memo, useContext, useMemo } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
@@ -128,6 +129,7 @@ export interface MarkdownProps extends Omit<
   isFile?: (path: string) => boolean;
   /** Optional callback triggered when a file inline code is clicked */
   onFileClick?: (path: string) => void;
+  scrollRef?: RefObject<HTMLElement | null>;
 }
 
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
@@ -138,6 +140,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     id,
     isFile,
     onFileClick,
+    scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
     // Completely bypass using marked.lexer during high-frequency scrolls

@@ -1,16 +1,12 @@
 'use client';
 
-import type {
-  ComponentPropsWithRef,
-  NamedExoticComponent,
-  ReactElement,
-  RefObject,
-} from 'react';
-import { memo } from 'react';
+import type { ComponentPropsWithRef, ReactElement, RefObject } from 'react';
+import { memo, useRef } from 'react';
 import type { Components } from 'react-markdown';
 
 import { Markdown } from './markdown';
 import { VirtualizedMarkdown } from './virtualized-markdown';
+import { useAutoScroll } from '../hooks/useAutoScroll';
 
 export interface AdaptiveMarkdownProps extends Omit<
   ComponentPropsWithRef<'div'>,
@@ -32,28 +28,39 @@ export interface AdaptiveMarkdownProps extends Omit<
    * string just to decide.
    */
   virtualizeThreshold?: number;
+  isStreaming?: boolean;
 }
 
-export const AdaptiveMarkdown: NamedExoticComponent<AdaptiveMarkdownProps> =
-  memo(function AdaptiveMarkdown({
-    children,
-    itemSize,
-    scrollRef,
-    virtualizeThreshold = 4000,
-    ...props
-  }: AdaptiveMarkdownProps): ReactElement {
-    // Same rule as AdaptiveCodeBlockCode: no proven bounded viewport, no virtualization —
-    // otherwise you get virtua's tracking overhead for zero windowing benefit.
-    const shouldVirtualize =
-      !!scrollRef && children.length >= virtualizeThreshold;
+const VIRTUALIZE_THRESHOLD = 2000;
 
-    return shouldVirtualize ? (
-      <VirtualizedMarkdown itemSize={itemSize} scrollRef={scrollRef} {...props}>
-        {children}
-      </VirtualizedMarkdown>
-    ) : (
-      <Markdown {...props}>{children}</Markdown>
-    );
+export const AdaptiveMarkdown = memo(function AdaptiveMarkdown({
+  children,
+  isStreaming,
+  scrollRef,
+  ...props
+}: AdaptiveMarkdownProps): ReactElement {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const shouldVirtualize = children.length > VIRTUALIZE_THRESHOLD;
+
+  useAutoScroll({
+    scrollRef: scrollRef ?? { current: null },
+    contentRef,
+    isStreaming,
   });
 
+  return (
+    <div ref={contentRef}>
+      {shouldVirtualize ? (
+        <VirtualizedMarkdown scrollRef={scrollRef} {...props}>
+          {children}
+        </VirtualizedMarkdown>
+      ) : (
+        <Markdown scrollRef={scrollRef} {...props}>
+          {children}
+        </Markdown>
+      )}
+    </div>
+  );
+});
 AdaptiveMarkdown.displayName = 'AdaptiveMarkdown';

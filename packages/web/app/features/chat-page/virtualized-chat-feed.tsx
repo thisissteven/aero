@@ -183,7 +183,7 @@ export const VirtualizedChatFeed = React.memo(
                   key={turn.id}
                   className='mx-auto w-full px-3 pb-8 md:max-w-[720px]'
                 >
-                  <MessageView turn={turn} />
+                  <MessageView turn={turn} isStreaming={false} />
                 </div>
               );
             }}

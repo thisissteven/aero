@@ -86,14 +86,10 @@ export interface VirtualizedMarkdownProps extends Omit<
 > {
   children: string;
   components?: Partial<Components>;
-  id: string; // Enforce explicitly passed stable identity keys
-  /** Optional function to determine if inline code is a file path */
+  id: string;
   isFile?: (path: string) => boolean;
-  /** Item size hint forwarded to virtua for first-paint offset estimation */
   itemSize?: number;
-  /** Optional callback triggered when a file inline code is clicked */
   onFileClick?: (path: string) => void;
-  /** Ref to the actual scrollable ancestor (e.g. the wrapping ScrollShadow's ref). Required — without it virtua can't find the real viewport. */
   scrollRef?: RefObject<HTMLElement | null>;
 }
 
@@ -134,11 +130,9 @@ export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps>
             scrollRef={scrollRef}
           >
             {(block, index) => (
-              <MemoizedBlock
-                key={`${id}-${index}-${fastHash(block)}`}
-                components={renderers}
-                content={block}
-              />
+              <div key={`${id}-${index}-${fastHash(block)}`} className='mb-4'>
+                <MemoizedBlock components={renderers} content={block} />
+              </div>
             )}
           </Virtualizer>
         </div>

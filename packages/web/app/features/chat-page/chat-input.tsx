@@ -41,8 +41,8 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
             <CollapsibleActions
               expandBehavior='horizontal'
               expandOrigin='trigger-right'
-              gap={isMobile ? 48 : 46}
-              distance={isMobile ? 48 : 46}
+              gap={isMobile ? 48 : 42}
+              distance={isMobile ? 48 : 42}
             >
               <CollapsibleActions.Trigger>
                 <PromptInput.Action aria-label='Add context'>

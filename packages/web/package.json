@@ -32,6 +32,7 @@
     "react-aria-components": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "^7.84.0",
+    "streamdown": "^2.5.0",
     "virtua": "catalog:",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"

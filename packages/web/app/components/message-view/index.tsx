@@ -7,8 +7,10 @@ import { UserChatBubble } from './user-chat-bubble';
 
 export const MessageView = memo(function MessageView({
   turn,
+  isStreaming,
 }: {
   turn: AeroConversationTurn;
+  isStreaming: boolean;
 }) {
   const isUser = turn.role === 'user';
 
@@ -16,5 +18,5 @@ export const MessageView = memo(function MessageView({
     return <UserChatBubble turn={turn} />;
   }
 
-  return <AssistantChatBubble turn={turn} />;
+  return <AssistantChatBubble turn={turn} isStreaming={isStreaming} />;
 });

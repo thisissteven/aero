@@ -1,37 +1,14 @@
-import {
-  Database,
-  File,
-  Folder,
-  Microphone,
-  MusicNote,
-  Paintbrush,
-  Picture,
-  Plus,
-  Text,
-} from '@gravity-ui/icons';
+import { File, Folder, Microphone, Picture, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import {
-  cn,
-  PromptInput,
-  PromptSuggestion,
-  TextShimmer,
-  toast,
-} from '@aero/ui';
+import { cn, PromptInput, TextShimmer, toast } from '@aero/ui';
 
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { useCreateSession } from '@/app/hooks/api/sessions';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
-
-const suggestionItems = [
-  { icon: Paintbrush, label: 'Design a launch page' },
-  { icon: Text, label: 'Summarize meeting notes' },
-  { icon: MusicNote, label: 'Generate a sound brief' },
-  { icon: Database, label: 'Plan a data model' },
-];
 
 export function NewChatPage() {
   const [value, setValue] = useState('');
@@ -133,25 +110,6 @@ export function NewChatPage() {
             </PromptInput.Toolbar>
           </PromptInput.Shell>
         </PromptInput>
-
-        <PromptSuggestion className='w-full max-w-[560px]'>
-          <PromptSuggestion.Items className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
-            {suggestionItems.map((suggestion) => (
-              <PromptSuggestion.Item
-                key={suggestion.label}
-                className='bg-primary items-center justify-start'
-                showEndIcon={false}
-                onPress={() => handleSubmit(suggestion.label)}
-                isDisabled={isPending}
-              >
-                <span className='inline-flex min-w-0 items-center gap-2'>
-                  <Icon data={suggestion.icon} />
-                  <span className='truncate'>{suggestion.label}</span>
-                </span>
-              </PromptSuggestion.Item>
-            ))}
-          </PromptSuggestion.Items>
-        </PromptSuggestion>
       </div>
     </div>
   );

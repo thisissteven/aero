@@ -51,7 +51,7 @@
     --caret-color: #0a0a0a;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f1f1f133;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #eaeaea 89%, #0a0a0a 11%);
@@ -296,7 +296,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #000000cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #0a0a0a 89%, #ffffff 11%);
@@ -540,7 +540,7 @@
     --caret-color: #15101f;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #15101f20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f1ebfb 89%, #2d2640 11%);
@@ -739,7 +739,7 @@
     /* Surface Colors */
     --surface: #201e2b;
     --surface-foreground: #edecee;
-    --surface-secondary: #1a1921;
+    --surface-secondary: #25232f;
     --surface-secondary-foreground: #8a8282;
     --surface-tertiary: #25232f;
     --surface-tertiary-foreground: #edecee;
@@ -779,7 +779,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #201e2b 89%, #edecee 11%);
@@ -977,7 +977,7 @@
     /* Surface Colors */
     --surface: #faf6ed;
     --surface-foreground: #4f5964;
-    --surface-secondary: #f7f3eb;
+    --surface-secondary: #fff7e5;
     --surface-secondary-foreground: #777e87;
     --surface-tertiary: #fff7e5;
     --surface-tertiary-foreground: #394049;
@@ -1017,7 +1017,7 @@
     --caret-color: #1b232b;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1b232b20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #faf6ed 89%, #394049 11%);
@@ -1216,7 +1216,7 @@
     /* Surface Colors */
     --surface: #17202a;
     --surface-foreground: #d6dae0;
-    --surface-secondary: #18222c;
+    --surface-secondary: #1e252d;
     --surface-secondary-foreground: #777e86;
     --surface-tertiary: #1e252d;
     --surface-tertiary-foreground: #d6dae0;
@@ -1256,7 +1256,7 @@
     --caret-color: #fbfbfd;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fbfbfd20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #17202a 89%, #d6dae0 11%);
@@ -1454,7 +1454,7 @@
     /* Surface Colors */
     --surface: #f4f4f7;
     --surface-foreground: #161616;
-    --surface-secondary: #f4f4f4;
+    --surface-secondary: #f2f2f8;
     --surface-secondary-foreground: #868585;
     --surface-tertiary: #f2f2f8;
     --surface-tertiary-foreground: #161616;
@@ -1494,7 +1494,7 @@
     --caret-color: #000000;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000020;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f4f4f7 89%, #161616 11%);
@@ -1693,7 +1693,7 @@
     /* Surface Colors */
     --surface: #222222;
     --surface-foreground: #f2f4f8;
-    --surface-secondary: #222222;
+    --surface-secondary: #292828;
     --surface-secondary-foreground: #8b8a8a;
     --surface-tertiary: #292828;
     --surface-tertiary-foreground: #f2f4f8;
@@ -1733,7 +1733,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #222222 89%, #f2f4f8 11%);
@@ -1931,7 +1931,7 @@
     /* Surface Colors */
     --surface: #fbefea;
     --surface-foreground: #4c4f69;
-    --surface-secondary: #f8ebe9;
+    --surface-secondary: #fdeeee;
     --surface-secondary-foreground: #888992;
     --surface-tertiary: #fdeeee;
     --surface-tertiary-foreground: #2e314a;
@@ -1971,7 +1971,7 @@
     --caret-color: #1f1f2a;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1f1f2a20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fbefea 89%, #2e314a 11%);
@@ -2170,7 +2170,7 @@
     /* Surface Colors */
     --surface: #282841;
     --surface-foreground: #cdd6f4;
-    --surface-secondary: #2a273b;
+    --surface-secondary: #2f2f50;
     --surface-secondary-foreground: #969cb1;
     --surface-tertiary: #2f2f50;
     --surface-tertiary-foreground: #cdd6f4;
@@ -2210,7 +2210,7 @@
     --caret-color: #f4f2ff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f4f2ff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #282841 89%, #cdd6f4 11%);
@@ -2408,7 +2408,7 @@
     /* Surface Colors */
     --surface: #f5f5f5;
     --surface-foreground: #131313;
-    --surface-secondary: #eeeeee;
+    --surface-secondary: #e5e5e5;
     --surface-secondary-foreground: #141414ad;
     --surface-tertiary: #e5e5e5;
     --surface-tertiary-foreground: #131313;
@@ -2448,7 +2448,7 @@
     --caret-color: #050505;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fcfcfc33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f5f5f5 89%, #131313 11%);
@@ -2653,7 +2653,7 @@
     /* Surface Colors */
     --surface: #161616;
     --surface-foreground: #e4e4e4;
-    --surface-secondary: #1c1c1c;
+    --surface-secondary: #232323;
     --surface-secondary-foreground: #e4e4e45e;
     --surface-tertiary: #232323;
     --surface-tertiary-foreground: #e4e4e4;
@@ -2693,7 +2693,7 @@
     --caret-color: #fcfcfc;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #0e0e0ecc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #161616 89%, #e4e4e4 11%);
@@ -2897,7 +2897,7 @@
     /* Surface Colors */
     --surface: #eeeee5;
     --surface-foreground: #1f1f2f;
-    --surface-secondary: #eff1eb;
+    --surface-secondary: #edeee7;
     --surface-secondary-foreground: #6c6c7a;
     --surface-tertiary: #edeee7;
     --surface-tertiary-foreground: #1f1f2f;
@@ -2937,7 +2937,7 @@
     --caret-color: #05040c;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #05040c20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #eeeee5 89%, #1f1f2f 11%);
@@ -3136,7 +3136,7 @@
     /* Surface Colors */
     --surface: #161722;
     --surface-foreground: #f8f8f2;
-    --surface-secondary: #181926;
+    --surface-secondary: #222436;
     --surface-secondary-foreground: #7c7e9c;
     --surface-tertiary: #222436;
     --surface-tertiary-foreground: #f8f8f2;
@@ -3176,7 +3176,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #161722 89%, #f8f8f2 11%);
@@ -3374,7 +3374,7 @@
     /* Surface Colors */
     --surface: #fcf9f0;
     --surface-foreground: #1a1612;
-    --surface-secondary: #f4efe3;
+    --surface-secondary: #efe8da;
     --surface-secondary-foreground: #5a5048;
     --surface-tertiary: #efe8da;
     --surface-tertiary-foreground: #1a1612;
@@ -3414,7 +3414,7 @@
     --caret-color: #1a1612;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1a161220;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fcf9f0 89%, #1a1612 11%);
@@ -3613,7 +3613,7 @@
     /* Surface Colors */
     --surface: #2b2622;
     --surface-foreground: #ebe0d1;
-    --surface-secondary: #23201c;
+    --surface-secondary: #332d28;
     --surface-secondary-foreground: #83796f;
     --surface-tertiary: #332d28;
     --surface-tertiary-foreground: #ebe0d1;
@@ -3653,7 +3653,7 @@
     --caret-color: #ebe0d1;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1b1815cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #2b2622 89%, #ebe0d1 11%);
@@ -3851,7 +3851,7 @@
     /* Surface Colors */
     --surface: #fbfaf2;
     --surface-foreground: #100f0f;
-    --surface-secondary: #f6f5ee;
+    --surface-secondary: #f7f4ec;
     --surface-secondary-foreground: #686663;
     --surface-tertiary: #f7f4ec;
     --surface-tertiary-foreground: #100f0f;
@@ -3891,7 +3891,7 @@
     --caret-color: #100f0f;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #100f0f20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fbfaf2 89%, #100f0f 11%);
@@ -4090,7 +4090,7 @@
     /* Surface Colors */
     --surface: #1c1a19;
     --surface-foreground: #cecdc3;
-    --surface-secondary: #1c1b1a;
+    --surface-secondary: #1e1d1c;
     --surface-secondary-foreground: #807e79;
     --surface-tertiary: #1e1d1c;
     --surface-tertiary-foreground: #cecdc3;
@@ -4130,7 +4130,7 @@
     --caret-color: #cecdc3;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000080;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #1c1a19 89%, #cecdc3 11%);
@@ -4328,7 +4328,7 @@
     /* Surface Colors */
     --surface: #f9f9f9;
     --surface-foreground: #1e2329;
-    --surface-secondary: #f2f3f3;
+    --surface-secondary: #eaeaeb;
     --surface-secondary-foreground: #57606a;
     --surface-tertiary: #eaeaeb;
     --surface-tertiary-foreground: #1e2329;
@@ -4368,7 +4368,7 @@
     --caret-color: #0e1319;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f9f9f9 89%, #1e2329 11%);
@@ -4573,7 +4573,7 @@
     /* Surface Colors */
     --surface: #0c0f16;
     --surface-foreground: #ccd4dc;
-    --surface-secondary: #12151b;
+    --surface-secondary: #181c22;
     --surface-secondary-foreground: #8b949e;
     --surface-tertiary: #181c22;
     --surface-tertiary-foreground: #ccd4dc;
@@ -4613,7 +4613,7 @@
     --caret-color: #fafbfc;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #05080ecc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #0c0f16 89%, #ccd4dc 11%);
@@ -4817,7 +4817,7 @@
     /* Surface Colors */
     --surface: #efebcd;
     --surface-foreground: #3c3836;
-    --surface-secondary: #f2e5bc;
+    --surface-secondary: #fdf9e8;
     --surface-secondary-foreground: #7c6f64;
     --surface-tertiary: #fdf9e8;
     --surface-tertiary-foreground: #3c3836;
@@ -4857,7 +4857,7 @@
     --caret-color: #282828;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #28282820;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #efebcd 89%, #3c3836 11%);
@@ -5056,7 +5056,7 @@
     /* Surface Colors */
     --surface: #25292b;
     --surface-foreground: #ebdbb2;
-    --surface-secondary: #32302f;
+    --surface-secondary: #3e3c3a;
     --surface-secondary-foreground: #918574;
     --surface-tertiary: #3e3c3a;
     --surface-tertiary-foreground: #ebdbb2;
@@ -5096,7 +5096,7 @@
     --caret-color: #fbf1c7;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fbf1c720;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #25292b 89%, #ebdbb2 11%);
@@ -5294,7 +5294,7 @@
     /* Surface Colors */
     --surface: #ffffff;
     --surface-foreground: #000000;
-    --surface-secondary: #f7f8fa;
+    --surface-secondary: #ecf0f8;
     --surface-secondary-foreground: #404040;
     --surface-tertiary: #ecf0f8;
     --surface-tertiary-foreground: #000000;
@@ -5334,7 +5334,7 @@
     --caret-color: #000000;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000025;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #ffffff 89%, #000000 11%);
@@ -5534,7 +5534,7 @@
     /* Surface Colors */
     --surface: #2b2d30;
     --surface-foreground: #dfe1e5;
-    --surface-secondary: #26282b;
+    --surface-secondary: #2c2d32;
     --surface-secondary-foreground: #9fa0a2;
     --surface-tertiary: #2c2d32;
     --surface-tertiary-foreground: #dfe1e5;
@@ -5574,7 +5574,7 @@
     --caret-color: #ced0d6;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000080;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #2b2d30 89%, #dfe1e5 11%);
@@ -5773,7 +5773,7 @@
     /* Surface Colors */
     --surface: #eae4bf;
     --surface-foreground: #545464;
-    --surface-secondary: #e7dba0;
+    --surface-secondary: #f4fff0;
     --surface-secondary-foreground: #6c6c67;
     --surface-tertiary: #f4fff0;
     --surface-tertiary-foreground: #545464;
@@ -5813,7 +5813,7 @@
     --caret-color: #545464;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #54546433;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #eae4bf 89%, #545464 11%);
@@ -6012,7 +6012,7 @@
     /* Surface Colors */
     --surface: #2a2a37;
     --surface-foreground: #dcd7ba;
-    --surface-secondary: #23232d;
+    --surface-secondary: #2f2f3d;
     --surface-secondary-foreground: #7e7e77;
     --surface-tertiary: #2f2f3d;
     --surface-tertiary-foreground: #dcd7ba;
@@ -6052,7 +6052,7 @@
     --caret-color: #dcd7ba;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #16161dcc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #2a2a37 89%, #dcd7ba 11%);
@@ -6250,7 +6250,7 @@
     /* Surface Colors */
     --surface: #f7f1ed;
     --surface-foreground: #181818;
-    --surface-secondary: #f1eae6;
+    --surface-secondary: #e8e2de;
     --surface-secondary-foreground: #8a8a8a;
     --surface-tertiary: #e8e2de;
     --surface-tertiary-foreground: #181818;
@@ -6290,7 +6290,7 @@
     --caret-color: #090909;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fef7f333;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f7f1ed 89%, #181818 11%);
@@ -6495,7 +6495,7 @@
     /* Surface Colors */
     --surface: #221411;
     --surface-foreground: #eeeeee;
-    --surface-secondary: #281b17;
+    --surface-secondary: #2f221f;
     --surface-secondary-foreground: #808080;
     --surface-tertiary: #2f221f;
     --surface-tertiary-foreground: #eeeeee;
@@ -6535,7 +6535,7 @@
     --caret-color: #fdfdfd;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1a0c08cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #221411 89%, #eeeeee 11%);
@@ -6739,7 +6739,7 @@
     /* Surface Colors */
     --surface: #fafafa;
     --surface-foreground: #1a1a1a;
-    --surface-secondary: #f5f5f5;
+    --surface-secondary: #f0f0f0;
     --surface-secondary-foreground: #757575;
     --surface-tertiary: #f0f0f0;
     --surface-tertiary-foreground: #1a1a1a;
@@ -6779,7 +6779,7 @@
     --caret-color: #1a1a1a;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000020;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fafafa 89%, #1a1a1a 11%);
@@ -6978,7 +6978,7 @@
     /* Surface Colors */
     --surface: #141414;
     --surface-foreground: #e5e5e5;
-    --surface-secondary: #0a0a0a;
+    --surface-secondary: #1a1a1a;
     --surface-secondary-foreground: #808080;
     --surface-tertiary: #1a1a1a;
     --surface-tertiary-foreground: #e5e5e5;
@@ -7018,7 +7018,7 @@
     --caret-color: #e5e5e5;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000080;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #141414 89%, #e5e5e5 11%);
@@ -7216,7 +7216,7 @@
     /* Surface Colors */
     --surface: #fafafa;
     --surface-foreground: #1a1a1a;
-    --surface-secondary: #f5f5f5;
+    --surface-secondary: #f0f0f0;
     --surface-secondary-foreground: #6f6f6f;
     --surface-tertiary: #f0f0f0;
     --surface-tertiary-foreground: #1a1a1a;
@@ -7256,7 +7256,7 @@
     --caret-color: #1a1a1a;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000020;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fafafa 89%, #1a1a1a 11%);
@@ -7434,7 +7434,7 @@
     /* Surface Colors */
     --surface: #141414;
     --surface-foreground: #e5e5e5;
-    --surface-secondary: #0a0a0a;
+    --surface-secondary: #1a1a1a;
     --surface-secondary-foreground: #808080;
     --surface-tertiary: #1a1a1a;
     --surface-tertiary-foreground: #e5e5e5;
@@ -7474,7 +7474,7 @@
     --caret-color: #e5e5e5;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000080;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #141414 89%, #e5e5e5 11%);
@@ -7651,7 +7651,7 @@
     /* Surface Colors */
     --surface: #fbf5e8;
     --surface-foreground: #292318;
-    --surface-secondary: #f8f2e6;
+    --surface-secondary: #f7efdd;
     --surface-secondary-foreground: #887c6a;
     --surface-tertiary: #f7efdd;
     --surface-tertiary-foreground: #292318;
@@ -7691,7 +7691,7 @@
     --caret-color: #1c150c;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1c150c20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #fbf5e8 89%, #292318 11%);
@@ -7890,7 +7890,7 @@
     /* Surface Colors */
     --surface: #21221a;
     --surface-foreground: #f8f8f2;
-    --surface-secondary: #282a20;
+    --surface-secondary: #36372a;
     --surface-secondary-foreground: #939390;
     --surface-tertiary: #36372a;
     --surface-tertiary-foreground: #f8f8f2;
@@ -7930,7 +7930,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #21221a 89%, #f8f8f2 11%);
@@ -8168,7 +8168,7 @@
     --caret-color: #1a1a1a;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1a1a1a20;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #ffffff 89%, #403f53 11%);
@@ -8367,7 +8367,7 @@
     /* Surface Colors */
     --surface: #001122;
     --surface-foreground: #d6deeb;
-    --surface-secondary: #0b253a;
+    --surface-secondary: #0f283f;
     --surface-secondary-foreground: #7d8892;
     --surface-tertiary: #0f283f;
     --surface-tertiary-foreground: #d6deeb;
@@ -8407,7 +8407,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #001122 89%, #d6deeb 11%);
@@ -8605,7 +8605,7 @@
     /* Surface Colors */
     --surface: #e7ebf5;
     --surface-foreground: #2e3440;
-    --surface-secondary: #e4e8f0;
+    --surface-secondary: #dee4f0;
     --surface-secondary-foreground: #6e7481;
     --surface-tertiary: #dee4f0;
     --surface-tertiary-foreground: #2e3440;
@@ -8645,7 +8645,7 @@
     --caret-color: #1f2530;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1f253020;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #e7ebf5 89%, #2e3440 11%);
@@ -8844,7 +8844,7 @@
     /* Surface Colors */
     --surface: #1c202a;
     --surface-foreground: #e5e9f0;
-    --surface-secondary: #222938;
+    --surface-secondary: #272f40;
     --surface-secondary-foreground: #7c828e;
     --surface-tertiary: #272f40;
     --surface-tertiary-foreground: #e5e9f0;
@@ -8884,7 +8884,7 @@
     --caret-color: #f8fafc;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f8fafc20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #1c202a 89%, #e5e9f0 11%);
@@ -9082,7 +9082,7 @@
     /* Surface Colors */
     --surface: #f1f1f1;
     --surface-foreground: #161210;
-    --surface-secondary: #ebebeb;
+    --surface-secondary: #e2e2e2;
     --surface-secondary-foreground: #302c2a;
     --surface-tertiary: #e2e2e2;
     --surface-tertiary-foreground: #161210;
@@ -9122,7 +9122,7 @@
     --caret-color: #070504;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f8f8f833;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f1f1f1 89%, #161210 11%);
@@ -9327,7 +9327,7 @@
     /* Surface Colors */
     --surface: #151414;
     --surface-foreground: #f1ece8;
-    --surface-secondary: #1b1b1a;
+    --surface-secondary: #282727;
     --surface-secondary-foreground: #cdc8c5;
     --surface-tertiary: #282727;
     --surface-tertiary-foreground: #f1ece8;
@@ -9367,7 +9367,7 @@
     --caret-color: #fefdfd;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #121212cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #151414 89%, #f1ece8 11%);
@@ -9571,7 +9571,7 @@
     /* Surface Colors */
     --surface: #f0f5fa;
     --surface-foreground: #2b303b;
-    --surface-secondary: #eef0f4;
+    --surface-secondary: #eaedf4;
     --surface-secondary-foreground: #6e727b;
     --surface-tertiary: #eaedf4;
     --surface-tertiary-foreground: #2b303b;
@@ -9611,7 +9611,7 @@
     --caret-color: #0e1118;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #0e111820;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f0f5fa 89%, #2b303b 11%);
@@ -9810,7 +9810,7 @@
     /* Surface Colors */
     --surface: #232832;
     --surface-foreground: #abb2bf;
-    --surface-secondary: #212631;
+    --surface-secondary: #2e3442;
     --surface-secondary-foreground: #737a89;
     --surface-tertiary: #2e3442;
     --surface-tertiary-foreground: #abb2bf;
@@ -9850,7 +9850,7 @@
     --caret-color: #f6f7fb;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f6f7fb20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #232832 89%, #abb2bf 11%);
@@ -10048,7 +10048,7 @@
     /* Surface Colors */
     --surface: #f8f8f8;
     --surface-foreground: #181818;
-    --surface-secondary: #f2f2f2;
+    --surface-secondary: #e9e9e9;
     --surface-secondary-foreground: #8a8a8a;
     --surface-tertiary: #e9e9e9;
     --surface-tertiary-foreground: #181818;
@@ -10088,7 +10088,7 @@
     --caret-color: #090909;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f8f8f8 89%, #181818 11%);
@@ -10293,7 +10293,7 @@
     /* Surface Colors */
     --surface: #0e0e0e;
     --surface-foreground: #eeeeee;
-    --surface-secondary: #141414;
+    --surface-secondary: #1c1c1c;
     --surface-secondary-foreground: #808080;
     --surface-tertiary: #1c1c1c;
     --surface-tertiary-foreground: #eeeeee;
@@ -10333,7 +10333,7 @@
     --caret-color: #fdfdfd;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #050505cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #0e0e0e 89%, #eeeeee 11%);
@@ -10537,7 +10537,7 @@
     /* Surface Colors */
     --surface: #f6f0ec;
     --surface-foreground: #454066;
-    --surface-secondary: #f2ebe8;
+    --surface-secondary: #ebe5e3;
     --surface-secondary-foreground: #9893a5;
     --surface-tertiary: #ebe5e3;
     --surface-tertiary-foreground: #454066;
@@ -10577,7 +10577,7 @@
     --caret-color: #332d53;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fbf5ef33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f6f0ec 89%, #454066 11%);
@@ -10782,7 +10782,7 @@
     /* Surface Colors */
     --surface: #14121e;
     --surface-foreground: #e0def5;
-    --surface-secondary: #1a1824;
+    --surface-secondary: #211f2c;
     --surface-secondary-foreground: #6e6a86;
     --surface-tertiary: #211f2c;
     --surface-tertiary-foreground: #e0def5;
@@ -10822,7 +10822,7 @@
     --caret-color: #fcfcfe;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #0c0a16cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #14121e 89%, #e0def5 11%);
@@ -11026,7 +11026,7 @@
     /* Surface Colors */
     --surface: #f3e9f9;
     --surface-foreground: #32224f;
-    --surface-secondary: #ede4f4;
+    --surface-secondary: #e6dcee;
     --surface-secondary-foreground: #4e406b;
     --surface-tertiary: #e6dcee;
     --surface-tertiary-foreground: #32224f;
@@ -11066,7 +11066,7 @@
     --caret-color: #210f3d;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #f8effe33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f3e9f9 89%, #32224f 11%);
@@ -11271,7 +11271,7 @@
     /* Surface Colors */
     --surface: #170e25;
     --surface-foreground: #f5f0fe;
-    --surface-secondary: #1d142c;
+    --surface-secondary: #251c33;
     --surface-secondary-foreground: #d1ccd8;
     --surface-tertiary: #251c33;
     --surface-tertiary-foreground: #f5f0fe;
@@ -11311,7 +11311,7 @@
     --caret-color: #fefeff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #0e051dcc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #170e25 89%, #f5f0fe 11%);
@@ -11555,7 +11555,7 @@
     --caret-color: #073642;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #07364220;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #faf3dc 89%, #586e75 11%);
@@ -11754,7 +11754,7 @@
     /* Surface Colors */
     --surface: #052832;
     --surface-foreground: #93a1a1;
-    --surface-secondary: #02232e;
+    --surface-secondary: #042b34;
     --surface-secondary-foreground: #6f7475;
     --surface-tertiary: #042b34;
     --surface-tertiary-foreground: #93a1a1;
@@ -11794,7 +11794,7 @@
     --caret-color: #fdf6e3;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fdf6e320;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #052832 89%, #93a1a1 11%);
@@ -11992,7 +11992,7 @@
     /* Surface Colors */
     --surface: #dee0ee;
     --surface-foreground: #273153;
-    --surface-secondary: #dee0ea;
+    --surface-secondary: #dadce6;
     --surface-secondary-foreground: #686e9b;
     --surface-tertiary: #dadce6;
     --surface-tertiary-foreground: #273153;
@@ -12032,7 +12032,7 @@
     --caret-color: #1c2544;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #1c254420;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #dee0ee 89%, #273153 11%);
@@ -12231,7 +12231,7 @@
     /* Surface Colors */
     --surface: #131629;
     --surface-foreground: #c0caf5;
-    --surface-secondary: #111428;
+    --surface-secondary: #171b30;
     --surface-secondary-foreground: #6a739d;
     --surface-tertiary: #171b30;
     --surface-tertiary-foreground: #c0caf5;
@@ -12271,7 +12271,7 @@
     --caret-color: #eaeaff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #eaeaff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #131629 89%, #c0caf5 11%);
@@ -12469,7 +12469,7 @@
     /* Surface Colors */
     --surface: #f8f8f8;
     --surface-foreground: #161616;
-    --surface-secondary: #f1f1f1;
+    --surface-secondary: #e8e8e8;
     --surface-secondary-foreground: #666666;
     --surface-tertiary: #e8e8e8;
     --surface-tertiary-foreground: #161616;
@@ -12509,7 +12509,7 @@
     --caret-color: #070707;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff33;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f8f8f8 89%, #161616 11%);
@@ -12714,7 +12714,7 @@
     /* Surface Colors */
     --surface: #090909;
     --surface-foreground: #ededed;
-    --surface-secondary: #0f0f0f;
+    --surface-secondary: #171717;
     --surface-secondary-foreground: #878787;
     --surface-tertiary: #171717;
     --surface-tertiary-foreground: #ededed;
@@ -12754,7 +12754,7 @@
     --caret-color: #fdfdfd;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #000000cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #090909 89%, #ededed 11%);
@@ -12958,7 +12958,7 @@
     /* Surface Colors */
     --surface: #f6f5f5;
     --surface-foreground: #101010;
-    --surface-secondary: #f8f8f8;
+    --surface-secondary: #f5f3f3;
     --surface-secondary-foreground: #6e6d6d;
     --surface-tertiary: #f5f3f3;
     --surface-tertiary-foreground: #101010;
@@ -12998,7 +12998,7 @@
     --caret-color: #000000;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #00000020;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f6f5f5 89%, #101010 11%);
@@ -13197,7 +13197,7 @@
     /* Surface Colors */
     --surface: #242121;
     --surface-foreground: #ffffff;
-    --surface-secondary: #1c1b1b;
+    --surface-secondary: #232323;
     --surface-secondary-foreground: #848484;
     --surface-tertiary: #232323;
     --surface-tertiary-foreground: #e8e5e5;
@@ -13237,7 +13237,7 @@
     --caret-color: #ffffff;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff20;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #242121 89%, #e8e5e5 11%);
@@ -13436,7 +13436,7 @@
     /* Surface Colors */
     --surface: #1a1a1a;
     --surface-foreground: #dbd7caee;
-    --surface-secondary: #171717;
+    --surface-secondary: #212020;
     --surface-secondary-foreground: #c0beb99c;
     --surface-tertiary: #212020;
     --surface-tertiary-foreground: #dbd7caee;
@@ -13476,7 +13476,7 @@
     --caret-color: #cecdc3;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #12121280;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #1a1a1a 89%, #dbd7caee 11%);
@@ -13693,7 +13693,7 @@
     --caret-color: #cecdc3;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #ffffff80;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f7f7f7 89%, #2c2c28 11%);
@@ -13870,7 +13870,7 @@
     /* Surface Colors */
     --surface: #f9f9ef;
     --surface-foreground: #333333;
-    --surface-secondary: #f4f4e9;
+    --surface-secondary: #ecece2;
     --surface-secondary-foreground: #6f6f6f;
     --surface-tertiary: #ecece2;
     --surface-tertiary-foreground: #333333;
@@ -13910,7 +13910,7 @@
     --caret-color: #222222;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #fffff433;
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #f9f9ef 89%, #333333 11%);
@@ -14115,7 +14115,7 @@
     /* Surface Colors */
     --surface: #2d2d2c;
     --surface-foreground: #dcdccb;
-    --surface-secondary: #323231;
+    --surface-secondary: #383836;
     --surface-secondary-foreground: #9f9f9f;
     --surface-tertiary: #383836;
     --surface-tertiary-foreground: #dcdccb;
@@ -14155,7 +14155,7 @@
     --caret-color: #fcfcfa;
 
     /* Backdrop Dimmed Layer */
-    --backdrop: #262626cc;
+    --backdrop: rgba(0, 0, 0, 0.6);
 
     /* Surface Hover Calculations */
     --surface-hover: color-mix(in oklab, #2d2d2c 89%, #dcdccb 11%);

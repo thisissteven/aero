@@ -6,10 +6,8 @@ import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
-import {
-  VirtualizedChatFeed,
-  VirtualizedChatFeedRef,
-} from '@/app/features/chat-page/virtualized-chat-feed';
+import { VirtualizedChatFeedRef } from '@/app/features/chat-page/virtualized-chat-feed';
+import { MockChatPage } from '@/app/features/mock-chat';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -57,12 +55,13 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
             activeGroupIndex={activeGroupIndex}
             onSelectTocItem={handleSelectTocItem}
           />
-          <VirtualizedChatFeed
+          {/* <VirtualizedChatFeed
             key={sessionId}
             ref={feedRef}
             groups={groups}
             onActiveGroupIndexChange={setActiveGroupIndex}
-          />
+          /> */}
+          <MockChatPage mockGroups={groups} />
         </>
       )}
 

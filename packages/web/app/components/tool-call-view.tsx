@@ -282,7 +282,7 @@ export const ToolCallView = memo(
                 <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
                 <Icon
                   data={toolContent.iconData}
-                  className='absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'
+                  className='text-muted absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'
                   style={{
                     width: 12,
                     height: 12,
