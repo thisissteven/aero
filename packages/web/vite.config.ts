@@ -5,10 +5,26 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// https://vite.dev/config/
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
+  },
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('shiki')) return 'vendor-shiki';
+            if (id.includes('maplibre-gl')) return 'vendor-maplibre';
+            if (id.includes('recharts')) return 'vendor-charts';
+            if (id.includes('@tiptap')) return 'vendor-editor';
+            if (id.includes('@heroui') || id.includes('motion'))
+              return 'vendor-ui';
+          }
+        },
+      },
+    },
   },
   plugins: [
     tanstackRouter({
@@ -20,8 +36,6 @@ export default defineConfig({
     devServer({
       entry: 'server/index.ts',
       adapter: bunAdapter,
-      // Only route /api/* through Hono — everything else (the React app,
-      // HMR client, assets) falls through to Vite's normal dev handling.
       exclude: [/^\/(?!api\/).*/],
     }),
     react(),

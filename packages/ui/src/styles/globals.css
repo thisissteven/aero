@@ -70,7 +70,7 @@
 
 @source '../components/**/*.tsx';
 
-@import '../../generated/themes.css';
+/* @import '../../generated/themes.css'; */
 
 :root {
   --chart-1: oklch(from var(--accent) calc(l - 0.24) c h);

@@ -17,6 +17,7 @@ import { memo, useMemo } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
+  AdaptiveCodeBlockCodeProps,
   Alert,
   cn,
   CodeBlock,
@@ -26,6 +27,7 @@ import {
 import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { toTitleCase } from '@/app/lib/file';
+import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 
 import type { AeroPart } from '../../server/services/harness/types';
 
@@ -353,7 +355,7 @@ export const ToolCallView = memo(
                       className='shrink-0'
                     />
                   </CodeBlock.Header>
-                  <AdaptiveCodeBlockCode
+                  <CodeBlockContent
                     code={toolContent.code}
                     language={toolContent.language}
                     scrollOverflow={toolContent.code.includes('\n')}
@@ -372,5 +374,60 @@ export const ToolCallView = memo(
   // prev.part.output === next.part.output &&
   // prev.part.input === next.part.input,
 );
+
+const SHIKI_THEME_MAP: Record<string, { light: string; dark: string }> = {
+  github: { light: 'github-light', dark: 'github-dark' },
+  catppuccin: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
+  gruvbox: { light: 'gruvbox-light-medium', dark: 'gruvbox-dark-medium' },
+  kanagawa: { light: 'kanagawa-lotus', dark: 'kanagawa-wave' },
+  rosepine: { light: 'rose-pine-dawn', dark: 'rose-pine' },
+  solarized: { light: 'solarized-light', dark: 'solarized-dark' },
+  vitesse: { light: 'vitesse-light', dark: 'vitesse-dark' },
+
+  ayu: { light: 'ayu-dark', dark: 'ayu-dark' },
+  dracula: { light: 'dracula', dark: 'dracula' },
+  monokai: { light: 'monokai', dark: 'monokai' },
+  nord: { light: 'nord', dark: 'nord' },
+  vesper: { light: 'vesper', dark: 'vesper' },
+  zenburn: { light: 'zenburn', dark: 'zenburn' },
+  nightowl: { light: 'night-owl', dark: 'night-owl' },
+  onedarkpro: { light: 'one-dark-pro', dark: 'one-dark-pro' },
+  tokyonight: { light: 'tokyo-night', dark: 'tokyo-night' },
+};
+
+export function getShikiTheme(
+  themeName: string | undefined,
+  mode: 'light' | 'dark',
+): string | undefined {
+  if (!themeName) return undefined;
+
+  const entry = SHIKI_THEME_MAP[themeName.toLowerCase()];
+  if (!entry) return undefined;
+
+  return entry[mode];
+}
+
+function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
+  const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
+  const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
+
+  const lightTheme = useMemo(
+    () => getShikiTheme(colorThemeLight, 'light'),
+    [colorThemeLight],
+  );
+
+  const darkTheme = useMemo(
+    () => getShikiTheme(colorThemeDark, 'dark'),
+    [colorThemeDark],
+  );
+
+  return (
+    <AdaptiveCodeBlockCode
+      {...props}
+      theme={lightTheme}
+      darkTheme={darkTheme}
+    />
+  );
+}
 
 ToolCallView.displayName = 'ToolCallView';

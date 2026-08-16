@@ -6,8 +6,8 @@
 //   2. add a case to buildAdapter() below
 // No route or frontend change required if the interface holds.
 
-import { createClaudeAdapter } from '@/server/adapters/claude';
-import { createCodexAdapter } from '@/server/adapters/codex';
+// import { createClaudeAdapter } from '@/server/adapters/claude';
+// import { createCodexAdapter } from '@/server/adapters/codex';
 import { createOpencodeAdapter } from '@/server/adapters/opencode';
 import { readHarnessesConfig } from '@/server/storage/harnesses';
 
@@ -19,10 +19,10 @@ async function buildAdapter(id: HarnessId): Promise<HarnessAdapter> {
   switch (id) {
     case 'opencode':
       return createOpencodeAdapter();
-    case 'codex':
-      return createCodexAdapter();
-    case 'claude':
-      return createClaudeAdapter();
+    // case 'codex':
+    //   return createCodexAdapter();
+    // case 'claude':
+    //   return createClaudeAdapter();
     default:
       throw new Error(`No harness adapter registered for "${id}"`);
   }
@@ -34,8 +34,8 @@ export async function getAllAdapters(): Promise<HarnessAdapter[]> {
   // Try initializing each adapter independently
   const results = await Promise.allSettled([
     createOpencodeAdapter(),
-    createCodexAdapter(),
-    createClaudeAdapter(),
+    // createCodexAdapter(),
+    // createClaudeAdapter(),
   ]);
 
   for (const res of results) {

@@ -7,5 +7,11 @@
       "@/server/*": ["./server/*"]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "vite.config.ts", "server/**/*.ts"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "vite.config.ts",
+    "server/**/*.ts"
+  ],
+  "exclude": ["server/adapters/claude/*.ts", "server/adapters/codex/*.ts"]
 }

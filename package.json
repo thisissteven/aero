@@ -44,7 +44,8 @@
     "storybook:preview": "turbo run preview --filter=@aero/storybook",
     "web:dev": "turbo run dev --filter=@aero/web",
     "web:build": "turbo run build --filter=@aero/web",
-    "web:preview": "turbo run preview --filter=@aero/web"
+    "web:preview": "turbo run preview --filter=@aero/web",
+    "tree": "node ./scripts/tree.js"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
@@ -78,8 +79,5 @@
     "*.{ts,tsx,md,json,css}": [
       "prettier --write --ignore-unknown"
     ]
-  },
-  "dependencies": {
-    "react-aria": "^3.51.0"
   }
 }
