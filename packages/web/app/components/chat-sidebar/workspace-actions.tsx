@@ -8,6 +8,7 @@ import { Button, Checkbox } from '@aero/ui';
 import {
   ArchiveBulkSessionsConfirmationModal,
   DeleteBulkSessionsConfirmationModal,
+  getCheckboxVariant,
 } from '@/app/components/chat-sidebar/session-actions';
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import {
@@ -28,7 +29,9 @@ export function WorkspacesToggleEditModeButton() {
   );
   const openModal = useGlobalModalStore((state) => state.openModal);
 
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+
+  const variant = getCheckboxVariant(resolvedTheme);
 
   return (
     <CollapsibleActions
@@ -45,7 +48,7 @@ export function WorkspacesToggleEditModeButton() {
           slot='selection'
           isSelected={isEditMode}
           onChange={toggleIsEditMode}
-          variant={theme === 'dark' ? 'secondary' : 'primary'}
+          variant={variant}
         >
           <Checkbox.Content>
             <Checkbox.Control>
@@ -75,7 +78,7 @@ export function WorkspacesToggleEditModeButton() {
           <Icon size={14} data={TrashBin} />
         </Button>
         <Button
-          variant='tertiary'
+          variant='outline'
           onPress={() => {
             const sessionIds =
               useWorkspacesSidebarStore.getState().selectedSessionIds;
@@ -175,7 +178,9 @@ export function SelectWorkspaceSession({ sessionId }: { sessionId: string }) {
     toggleSessionSelection(sessionId, isShiftPressed, orderedIds);
   };
 
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+
+  const variant = getCheckboxVariant(resolvedTheme);
 
   return (
     <div
@@ -188,7 +193,7 @@ export function SelectWorkspaceSession({ sessionId }: { sessionId: string }) {
         slot='selection'
         isSelected={isSelected}
         onChange={handleSelectionChange}
-        variant={theme === 'dark' ? 'secondary' : 'primary'}
+        variant={variant}
         className="dark:group-hover:[&_[data-slot='checkbox-control']]:!bg-field dark:group-hover:[&_[data-slot='checkbox-control']]:!shadow-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!bg-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!shadow-field"
       >
         <Checkbox.Content>

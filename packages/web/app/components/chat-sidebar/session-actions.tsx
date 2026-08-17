@@ -31,13 +31,17 @@ import {
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
 import { copyButtonCss } from '@/app/lib/file';
-import { useTheme } from '@/app/providers';
+import { Theme, useTheme } from '@/app/providers';
 import { useGlobalModalStore } from '@/app/providers/GlobalModal';
 import {
   useNavbarSessionRenameStore,
   useRecentsSessionRenameStore,
   useWorkspacesSessionRenameStore,
 } from '@/app/stores/session-rename';
+
+export function getCheckboxVariant(theme: Theme) {
+  return theme === 'dark' ? 'secondary' : 'primary';
+}
 
 export function RecentsToggleEditModeButton() {
   const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);
@@ -46,7 +50,9 @@ export function RecentsToggleEditModeButton() {
   );
   const openModal = useGlobalModalStore((state) => state.openModal);
 
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+
+  const variant = getCheckboxVariant(resolvedTheme);
 
   return (
     <CollapsibleActions
@@ -63,7 +69,7 @@ export function RecentsToggleEditModeButton() {
           slot='selection'
           isSelected={isEditMode}
           onChange={toggleIsEditMode}
-          variant={theme === 'dark' ? 'secondary' : 'primary'}
+          variant={variant}
         >
           <Checkbox.Content>
             <Checkbox.Control>
@@ -93,7 +99,7 @@ export function RecentsToggleEditModeButton() {
           <Icon size={14} data={TrashBin} />
         </Button>
         <Button
-          variant='tertiary'
+          variant='outline'
           onPress={() => {
             const sessionIds =
               useRecentsSidebarStore.getState().selectedSessionIds;
@@ -168,7 +174,9 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
     toggleSessionSelection(sessionId, isShiftPressed, orderedIds);
   };
 
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+
+  const variant = getCheckboxVariant(resolvedTheme);
 
   return (
     <div
@@ -181,7 +189,7 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
         slot='selection'
         isSelected={isSelected}
         onChange={handleSelectionChange}
-        variant={theme === 'dark' ? 'secondary' : 'primary'}
+        variant={variant}
         className="dark:group-hover:[&_[data-slot='checkbox-control']]:!bg-field dark:group-hover:[&_[data-slot='checkbox-control']]:!shadow-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!bg-field dark:group-data-[current=true]:[&_[data-slot='checkbox-control']]:!shadow-field"
       >
         <Checkbox.Content>

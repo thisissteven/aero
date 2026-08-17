@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable } from '@aero/ui';
 
-import { collapsibleNav } from '@/app/components/chat-aside';
+import { collapsibleNav } from '@/app/components/chat-aside/chat-aside';
 import { useChatPanelStore } from '@/app/stores/chat-panel-store';
 
 export function ChatAsidePanel() {

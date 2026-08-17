@@ -25,7 +25,7 @@ import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
 
-import type { ChatActivePage } from '../data/chat';
+import type { ChatActivePage } from '../../data/chat';
 
 export interface ChatNavbarProps {
   activePage: ChatActivePage;

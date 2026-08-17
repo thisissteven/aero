@@ -108,7 +108,7 @@ export function SidebarFooter() {
 }
 
 export function AboutModal() {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   return (
     <Modal.Dialog className='bg-surface text-foreground border-separator rounded-2xl border p-6 shadow-xl sm:max-w-[360px]'>
@@ -118,7 +118,11 @@ export function AboutModal() {
         {/* Logo Container */}
         <div className='bg-surface-secondary border-separator flex h-16 w-16 items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
           <img
-            src={theme === 'dark' ? '/favicon-dark.svg' : '/favicon-light.svg'}
+            src={
+              resolvedTheme === 'dark'
+                ? '/favicon-dark.svg'
+                : '/favicon-light.svg'
+            }
             alt='Aero Logo'
             className='h-10 w-10 object-contain'
           />

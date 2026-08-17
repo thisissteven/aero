@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { NavItemId } from '@/app/components/chat-aside';
+import type { NavItemId } from '@/app/components/chat-aside/chat-aside';
 
 interface ChatPanelState {
   isOpen: boolean;

@@ -271,6 +271,7 @@ export function ThemeProvider({
       setColorTheme(nextColorTheme);
     },
     {
+      ignoreInputs: false,
       modifiers: { mod: true },
     },
   );

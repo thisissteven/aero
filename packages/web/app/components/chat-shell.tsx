@@ -6,12 +6,12 @@ import { AppLayout, Resizable } from '@aero/ui';
 
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 
-import { ChatAsidePanel } from './chat-aside-panel';
+import { ChatAsidePanel } from './chat-aside/chat-aside-panel';
+import { ConnectedChatAside } from './chat-aside/connected-chat-aside';
 import { ChatMainContentPanel } from './chat-main-content-panel';
+import { ConnectedChatNavbar } from './chat-navbar/connected-chat-navbar';
 import { ChatSidebar } from './chat-sidebar';
 import { CommandPalette } from './command-palette';
-import { ConnectedChatAside } from './connected-chat-aside';
-import { ConnectedChatNavbar } from './connected-chat-navbar';
 
 export interface ChatShellProps {
   children: ReactNode;
