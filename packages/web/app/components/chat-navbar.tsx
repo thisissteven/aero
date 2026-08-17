@@ -29,14 +29,18 @@ import type { ChatActivePage } from '../data/chat';
 
 export interface ChatNavbarProps {
   activePage: ChatActivePage;
+  isAsideExpanded: boolean;
 }
 
-export function ChatNavbar({ activePage }: ChatNavbarProps) {
+export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
   const isNew = activePage.kind === 'new';
   const isSessions = activePage.kind === 'sessions';
 
   return (
-    <Navbar maxWidth='full'>
+    <Navbar maxWidth='full' className='relative h-14'>
+      {isAsideExpanded && (
+        <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
+      )}
       <Navbar.Header className='overflow-hidden'>
         <AppLayout.MenuToggle />
         <Sidebar.Trigger />

@@ -52,7 +52,11 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
     }
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: distance < 2000 ? 'smooth' : 'auto',
+    });
   };
 
   const buttonElement = (

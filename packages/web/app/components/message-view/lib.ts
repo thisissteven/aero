@@ -16,6 +16,7 @@
 // This is defensive and works for both in-place mutation and replace-by-ref
 // streaming patterns.
 
+import { formatDateTime } from '@/app/lib/date';
 import {
   AeroConversationTurn,
   AeroPart,
@@ -78,4 +79,71 @@ export type FlatConversationVirtualItem =
   | {
       id: string;
       type: 'spacer';
+    }
+  | {
+      id: string;
+      type: 'spacer-footer';
     };
+
+export function buildFlatConversationItems(
+  displayedGroups: AeroConversationTurn[],
+  isStreaming: boolean,
+): { flatItems: FlatConversationVirtualItem[]; groupFlatIndex: number[] } {
+  const items: FlatConversationVirtualItem[] = [];
+  const groupFlatIndex: number[] = new Array(displayedGroups.length);
+
+  displayedGroups.forEach((turn, turnIndex) => {
+    groupFlatIndex[turnIndex] = items.length; // anchor: first flat item of this turn
+
+    const isLastTurn = turnIndex === displayedGroups.length - 1;
+    const isTurnStreaming = isStreaming && isLastTurn;
+
+    if (turn.role === 'user') {
+      items.push({ id: turn.id, type: 'user', turn });
+      items.push({ id: `${turn.id}-spacer`, type: 'spacer' });
+    } else {
+      const assistantTextResponse = turn.parts
+        .filter((p) => p.type === 'text')
+        .map((p) => p.text.trim())
+        .filter(Boolean)
+        .join('\n\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      const hasFooter = !isTurnStreaming;
+
+      turn.parts.forEach((part, partIndex) => {
+        const isLastPartInTurn = partIndex === turn.parts.length - 1;
+        const isPartStreaming = isTurnStreaming && isLastPartInTurn;
+
+        if (part.type === 'text' && !part.text?.trim() && !isPartStreaming)
+          return;
+        if (part.type === 'reasoning' && !part.text?.trim() && !isPartStreaming)
+          return;
+
+        items.push({
+          id: `${turn.id}-part-${partIndex}`,
+          type: 'assistant-part',
+          turnId: turn.id,
+          part,
+          partIndex,
+          isPartStreaming,
+          isLastPartInTurn,
+        });
+      });
+
+      if (hasFooter) {
+        items.push({
+          id: `${turn.id}-footer`,
+          type: 'assistant-footer',
+          turnId: turn.id,
+          createdAt: formatDateTime(turn.createdAt),
+          assistantTextResponse,
+        });
+        items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });
+      }
+    }
+  });
+
+  return { flatItems: items, groupFlatIndex };
+}

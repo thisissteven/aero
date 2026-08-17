@@ -62,7 +62,7 @@ export const SidebarContents = memo(function SidebarContents({
 
   return (
     <>
-      <Sidebar.Header className='px-0 pb-0'>
+      <Sidebar.Header className='px-0 pt-3 pb-1'>
         <TransitionLeftRight
           current={isWorkspacesOpen ? 'right' : 'left'}
           left={
@@ -146,7 +146,7 @@ export const SidebarContents = memo(function SidebarContents({
         />
       </Sidebar.Header>
 
-      <Sidebar.Separator className='mb-0' />
+      {!isWorkspacesOpen && <Sidebar.Separator className='mb-0 h-[0.5px]' />}
 
       <TransitionInOut
         current={isWorkspacesOpen ? 'second' : 'first'}

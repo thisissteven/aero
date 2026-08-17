@@ -3,11 +3,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@aero/ui';
 
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
+import { ChatFeed } from '@/app/features/chat-page/chat-feed';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { VirtualizedChatFeedRef } from '@/app/features/chat-page/virtualized-chat-feed';
-import { MockChatPage } from '@/app/features/mock-chat';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -61,7 +61,12 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
             groups={groups}
             onActiveGroupIndexChange={setActiveGroupIndex}
           /> */}
-          <MockChatPage ref={feedRef} mockGroups={groups} />
+          {/* <MockChatPage ref={feedRef} mockGroups={groups} /> */}
+          <ChatFeed
+            groups={groups}
+            ref={feedRef}
+            onActiveGroupIndexChange={setActiveGroupIndex}
+          />
         </>
       )}
 

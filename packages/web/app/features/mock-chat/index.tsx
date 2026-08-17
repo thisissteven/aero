@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,16 +14,18 @@ import { cn, ScrollShadow } from '@aero/ui';
 import { useAutoScroll } from '@aero/ui/hooks';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
+import { buildFlatConversationItems } from '@/app/components/message-view/lib';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 import { useMockStreamFeed } from './useMockStreamFeed';
 
 export interface MockChatPageRef {
+  scrollToIndex: (index: number) => void;
   virtualizerRef: React.RefObject<VirtualizerHandle | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  /** Subscribe to scroll ticks without causing a parent re-render. Returns an unsubscribe fn. */
   subscribeScroll: (cb: () => void) => () => void;
-  scrollToIndex: (index: number) => void;
 }
 
 export const MockChatPage = forwardRef<
@@ -38,6 +41,11 @@ export const MockChatPage = forwardRef<
 
   // 1. Stream feed hook
   const { displayedGroups, isStreaming } = useMockStreamFeed(mockGroups, true);
+
+  const { flatItems, groupFlatIndex } = useMemo(
+    () => buildFlatConversationItems(mockGroups, false),
+    [mockGroups],
+  );
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
@@ -75,14 +83,16 @@ export const MockChatPage = forwardRef<
       virtualizerRef,
       scrollRef,
       subscribeScroll,
-      scrollToIndex: (index: number) => {
-        virtualizerRef.current?.scrollToIndex(index, {
-          align: 'end',
+      scrollToIndex: (groupIndex: number) => {
+        const flatIndex = groupFlatIndex[groupIndex];
+        if (flatIndex === undefined) return;
+        virtualizerRef.current?.scrollToIndex(flatIndex, {
+          align: 'start', // jump so the target bubble lands near the top
           smooth: true,
         });
       },
     }),
-    [subscribeScroll],
+    [subscribeScroll, groupFlatIndex],
   );
 
   useLayoutEffect(() => {
@@ -105,8 +115,9 @@ export const MockChatPage = forwardRef<
       >
         <div ref={contentRef} className='pb-4'>
           <ChatConversationView
-            displayedGroups={displayedGroups}
-            isStreaming={isStreaming}
+            flatItems={flatItems}
+            // isStreaming={isStreaming}
+            onScroll={() => {}}
             scrollRef={scrollRef}
             virtualizerRef={virtualizerRef}
           />

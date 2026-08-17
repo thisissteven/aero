@@ -1,21 +1,20 @@
 import {
-  ArrowRightArrowLeft,
-  CircleDashed,
-  CircleTree,
-  CodePullRequest,
-  Comment,
-  File,
-  FileCode,
-  Globe,
-  Terminal,
+  ChevronsCollapseUpRight,
+  ChevronsExpandUpRight,
+  Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { AppLayout, Tooltip, Typography } from '@aero/ui';
+import { AppLayout, Resizable } from '@aero/ui';
 
+import {
+  ChatAside,
+  collapsibleNav,
+  type NavItemId,
+} from '@/app/components/chat-aside';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 
 import { ChatNavbar } from './chat-navbar';
@@ -28,60 +27,13 @@ export interface ChatShellProps {
   children: ReactNode;
 }
 
-const collapsibleNav = [
-  {
-    icon: <Icon data={CircleTree} size={18} />,
-    label: 'Git',
-    description: 'Commits, branches, and pull requests',
-  },
-  {
-    icon: <Icon data={CircleDashed} size={18} />,
-    label: 'Context',
-    description: 'Session context and token usage',
-  },
-  {
-    icon: <Icon data={CodePullRequest} size={18} />,
-    label: 'Pull Request',
-    description:
-      'Create, review, and merge the pull request for the current branch',
-  },
-  {
-    icon: <Icon data={ArrowRightArrowLeft} size={18} />,
-    label: 'Changes',
-    description: 'Review working changes',
-  },
-  {
-    icon: <Icon data={FileCode} size={18} />,
-    label: 'Files',
-    description: 'Edit project files',
-  },
-  {
-    icon: <Icon data={Terminal} size={18} />,
-    label: 'Terminal',
-    description: 'Built-in terminal',
-  },
-  {
-    icon: <Icon data={File} size={18} />,
-    label: 'Project notes',
-    description: 'Notes, todos, and plans for the project',
-  },
-  {
-    icon: <Icon data={Globe} size={18} />,
-    label: 'Browser',
-    description: 'Built-in web browser',
-  },
-  {
-    icon: <Icon data={Comment} size={18} />,
-    label: 'Chat',
-    description: 'Session opened side by side',
-  },
-] as const;
-
 export function ChatShell({ children }: ChatShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
-
   const pathname = location.pathname;
+
+  const [activeNavItem, setActiveNavItem] = useState<NavItemId | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -99,58 +51,138 @@ export function ChatShell({ children }: ChatShellProps) {
 
   const setIsSearchOpen = useCommandPaletteStore((state) => state.setIsOpen);
 
-  return (
-    <AppLayout
-      navigate={handleNavigate}
-      navbar={<ChatNavbar activePage={activePage} />}
-      sidebar={
-        <ChatSidebar
-          pathname={pathname}
-          onSearch={() => setIsSearchOpen(true)}
-        />
-      }
-      // aside
-      // asideResizable
-      // asideMinSize='48px'
-      // asideDefaultSize='48px'
-      // asideMaxSize='480px'
-      // asideResizeBehavior='preserve-pixel-size'
-      sidebarResizable
-      sidebarCollapsible='offcanvas'
-      resizableAutoSaveId='app-layout:resizable-sidebar'
-      sidebarMinSize='240px'
-      sidebarDefaultSize='240px'
-      sidebarMaxSize='480px'
-      sidebarResizeBehavior='preserve-pixel-size'
-    >
-      <div className='flex h-full w-full'>
-        <div className='flex-1'>{children}</div>
-        <div className='h-full w-8 max-sm:hidden'>
-          {collapsibleNav.map((item) => (
-            <Tooltip key={item.label} delay={300}>
-              <Tooltip.Trigger aria-label={item.label}>
-                <div className='px-1 py-1.5 opacity-50 transition hover:opacity-80'>
-                  {item.icon}
-                </div>
-              </Tooltip.Trigger>
+  const activeNavData = useMemo(
+    () => collapsibleNav.find((item) => item.id === activeNavItem),
+    [activeNavItem],
+  );
 
-              <Tooltip.Content placement='left'>
-                <Typography
-                  type='body-sm'
-                  className='text-accent-soft-foreground'
+  const toggleNavItem = useCallback((id: NavItemId) => {
+    setActiveNavItem((prev) => {
+      if (prev === id) {
+        setIsExpanded(false);
+        return null;
+      }
+      return id;
+    });
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setActiveNavItem(null);
+    setIsExpanded(false);
+  }, []);
+
+  return (
+    <div className='bg-background text-foreground flex h-screen w-screen overflow-hidden'>
+      {/* AppLayout and ChatAside remain top-level flex siblings */}
+      <div className='h-full min-w-0 flex-1'>
+        <AppLayout
+          navigate={handleNavigate}
+          navbar={
+            <ChatNavbar
+              activePage={activePage}
+              isAsideExpanded={!!activeNavItem}
+            />
+          }
+          sidebar={
+            <ChatSidebar
+              pathname={pathname}
+              onSearch={() => setIsSearchOpen(true)}
+            />
+          }
+          sidebarResizable
+          sidebarCollapsible='offcanvas'
+          resizableAutoSaveId='app-layout:resizable-sidebar'
+          sidebarMinSize='240px'
+          sidebarDefaultSize='240px'
+          sidebarMaxSize='480px'
+          sidebarResizeBehavior='preserve-pixel-size'
+        >
+          {/* Resizable operates strictly inside AppLayout's main content area */}
+          <Resizable orientation='horizontal' autoSaveId='chat:side-panel'>
+            <Resizable.Panel className='h-full min-w-0'>
+              <div
+                className={
+                  isExpanded
+                    ? 'pointer-events-none h-0 w-0 overflow-hidden opacity-0'
+                    : 'h-full w-full'
+                }
+              >
+                {children}
+              </div>
+            </Resizable.Panel>
+
+            {/* Dynamic Aside Content Panel */}
+            {activeNavItem && (
+              <>
+                {!isExpanded && (
+                  <Resizable.Handle
+                    type='line'
+                    variant='primary'
+                    className='w-[0.6px]'
+                  />
+                )}
+                <Resizable.Panel
+                  id='aside-panel'
+                  defaultSize={isExpanded ? '100%' : '320px'}
+                  minSize={isExpanded ? '100%' : '320px'}
+                  maxSize={isExpanded ? '100%' : '640px'}
+                  groupResizeBehavior='preserve-pixel-size'
                 >
-                  {item.label}
-                </Typography>
-                <Typography type='body-xs' className='leading-4 break-normal'>
-                  {item.description}
-                </Typography>
-              </Tooltip.Content>
-            </Tooltip>
-          ))}
-        </div>
+                  <aside className='flex h-full flex-col'>
+                    {/* Header */}
+                    <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
+                      <div className='flex items-center gap-2'>
+                        <span className='flex size-4 place-items-center'>
+                          {activeNavData?.icon}
+                        </span>
+                        <span className='text-sm font-medium'>
+                          {activeNavData?.label}
+                        </span>
+                      </div>
+
+                      <div className='flex items-center gap-1.5'>
+                        <button
+                          type='button'
+                          onClick={() => setIsExpanded((prev) => !prev)}
+                          className='p-1 opacity-80 transition hover:opacity-100'
+                          title={isExpanded ? 'Collapse panel' : 'Expand panel'}
+                          aria-label='Expand panel'
+                        >
+                          {isExpanded ? (
+                            <Icon data={ChevronsCollapseUpRight} size={14} />
+                          ) : (
+                            <Icon data={ChevronsExpandUpRight} size={14} />
+                          )}
+                        </button>
+
+                        <button
+                          type='button'
+                          onClick={handleClose}
+                          className='p-1 opacity-80 transition hover:opacity-100'
+                          title='Close panel'
+                          aria-label='Close panel'
+                        >
+                          <Icon data={Xmark} size={15} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
+                      Content body: {activeNavData?.label}
+                    </div>
+                  </aside>
+                </Resizable.Panel>
+              </>
+            )}
+          </Resizable>
+        </AppLayout>
       </div>
 
+      {/* Standalone Sibling Aside Navigation Bar */}
+      <ChatAside activeItem={activeNavItem} onSelect={toggleNavItem} />
+
       <CommandPalette />
-    </AppLayout>
+    </div>
   );
 }
