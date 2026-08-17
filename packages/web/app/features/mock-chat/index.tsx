@@ -1,88 +1,95 @@
 import React, {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
-import { Virtualizer, type VirtualizerHandle } from 'virtua';
+import { type VirtualizerHandle } from 'virtua';
 
 import { cn, ScrollShadow } from '@aero/ui';
+import { useAutoScroll } from '@aero/ui/hooks';
 
-import { MessageView } from '@/app/components/message-view';
+import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 import { useMockStreamFeed } from './useMockStreamFeed';
 
-export function MockChatPage({
-  mockGroups,
-}: {
-  mockGroups: AeroConversationTurn[];
-}) {
+export interface MockChatPageRef {
+  virtualizerRef: React.RefObject<VirtualizerHandle | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  subscribeScroll: (cb: () => void) => () => void;
+  scrollToIndex: (index: number) => void;
+}
+
+export const MockChatPage = forwardRef<
+  MockChatPageRef,
+  { mockGroups: AeroConversationTurn[] }
+>(function MockChatPage({ mockGroups }, ref) {
   const virtualizerRef = useRef<VirtualizerHandle>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const listenersRef = useRef<Set<() => void>>(new Set());
 
   const [ready, setReady] = useState(false);
-  const didInitialScroll = useRef(false);
-  const userScrolledUpRef = useRef(false);
 
-  // 1. Hook drives streamed updates into displayedGroups
+  // 1. Stream feed hook
   const { displayedGroups, isStreaming } = useMockStreamFeed(mockGroups, true);
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  // 2. Initial scroll to bottom on mount
-  useLayoutEffect(() => {
-    if (didInitialScroll.current || !displayedGroups.length) return;
+  // 2. Drive auto-scrolling via hook
+  useAutoScroll({
+    scrollRef,
+    contentRef,
+    isStreaming,
+  });
 
-    const virtualizer = virtualizerRef.current;
-    if (!virtualizer) return;
+  // 3. Scroll event subscription for ScrollToBottomButton
+  const subscribeScroll = useCallback((cb: () => void) => {
+    listenersRef.current.add(cb);
+    return () => {
+      listenersRef.current.delete(cb);
+    };
+  }, []);
 
-    const raf = requestAnimationFrame(() => {
-      virtualizer.scrollToIndex(displayedGroups.length - 1, {
-        align: 'end',
-      });
-
-      didInitialScroll.current = true;
-
-      requestAnimationFrame(() => {
-        setReady(true);
-      });
-    });
-
-    return () => cancelAnimationFrame(raf);
-  }, [displayedGroups.length]);
-
-  // 3. Track manual user scrolling to un-stick auto-scroll if user scrolls up
-  const handleScroll = useCallback((offset: number) => {
+  useEffect(() => {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
 
-    const distanceFromBottom =
-      scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+    const handleScroll = () => {
+      listenersRef.current.forEach((cb) => cb());
+    };
 
-    // If user scrolled up more than 80px, pause automatic scroll tracking
-    userScrolledUpRef.current = distanceFromBottom > 80;
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 4. Reset user scroll override when a new stream cycle begins
-  useEffect(() => {
-    if (isStreaming) {
-      userScrolledUpRef.current = false;
-    }
-  }, [isStreaming]);
+  // 4. Expose ref interface to parent
+  useImperativeHandle(
+    ref,
+    () => ({
+      virtualizerRef,
+      scrollRef,
+      subscribeScroll,
+      scrollToIndex: (index: number) => {
+        virtualizerRef.current?.scrollToIndex(index, {
+          align: 'end',
+          smooth: true,
+        });
+      },
+    }),
+    [subscribeScroll],
+  );
 
-  // 5. Auto-scroll to bottom as chunks arrive
-  useEffect(() => {
-    if (!displayedGroups.length) return;
-
-    if (!userScrolledUpRef.current) {
-      virtualizerRef.current?.scrollToIndex(displayedGroups.length - 1, {
-        align: 'end',
-      });
+  useLayoutEffect(() => {
+    if (displayedGroups.length && !ready) {
+      setReady(true);
     }
-  }, [displayedGroups]);
+  }, [displayedGroups.length, ready]);
 
   return (
     <div
@@ -96,29 +103,15 @@ export function MockChatPage({
         ref={scrollRef}
         className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto pt-10'
       >
-        <Virtualizer<AeroConversationTurn>
-          ref={virtualizerRef}
-          scrollRef={scrollRef}
-          data={displayedGroups}
-          shift={true}
-          onScroll={handleScroll}
-        >
-          {(turn, index) => {
-            // Determine if this specific turn is currently streaming
-            const isLastTurn = index === displayedGroups.length - 1;
-            const isTurnStreaming = isStreaming && isLastTurn;
-
-            return (
-              <div
-                key={turn.id}
-                className='mx-auto w-full px-3 pb-8 md:max-w-[720px]'
-              >
-                <MessageView turn={turn} isStreaming={isTurnStreaming} />
-              </div>
-            );
-          }}
-        </Virtualizer>
+        <div ref={contentRef} className='pb-4'>
+          <ChatConversationView
+            displayedGroups={displayedGroups}
+            isStreaming={isStreaming}
+            scrollRef={scrollRef}
+            virtualizerRef={virtualizerRef}
+          />
+        </div>
       </ScrollShadow>
     </div>
   );
-}
+});

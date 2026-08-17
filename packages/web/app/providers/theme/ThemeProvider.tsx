@@ -33,7 +33,6 @@ export type ColorTheme =
   | 'shadesofpurple'
   | 'solarized'
   | 'tokyonight'
-  | 'vercel'
   | 'vesper'
   | 'vitesse'
   | 'zenburn';
@@ -190,7 +189,6 @@ export const COLOR_THEMES: readonly ColorTheme[] = [
   'shadesofpurple',
   'solarized',
   'tokyonight',
-  'vercel',
   'vesper',
   'vitesse',
   'zenburn',

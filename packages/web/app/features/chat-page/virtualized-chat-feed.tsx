@@ -10,7 +10,7 @@ import { Virtualizer, type VirtualizerHandle } from 'virtua';
 
 import { cn, ScrollShadow } from '@aero/ui';
 
-import { MessageView } from '@/app/components/message-view';
+import { MessageView } from '@/app/components/message-view/unused/message-view';
 import { ChatSession } from '@/app/data/chat';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { AeroConversationTurn } from '@/server/services/harness/types';
@@ -18,6 +18,7 @@ import { AeroConversationTurn } from '@/server/services/harness/types';
 export interface VirtualizedChatFeedRef {
   scrollToIndex: (index: number) => void;
   virtualizerRef: React.RefObject<VirtualizerHandle | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   /** Subscribe to scroll ticks without causing a parent re-render. Returns an unsubscribe fn. */
   subscribeScroll: (cb: () => void) => () => void;
 }
@@ -100,28 +101,6 @@ export const VirtualizedChatFeed = React.memo(
     useEffect(() => {
       resolveActiveIndexRef.current = resolveActiveIndex;
     }, [resolveActiveIndex]);
-
-    React.useImperativeHandle(
-      ref,
-      () => ({
-        scrollToIndex(index) {
-          isProgrammaticScrollRef.current = true;
-          if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-
-          virtualizerRef.current?.scrollToIndex(index, { align: 'start' });
-
-          scrollTimeoutRef.current = setTimeout(() => {
-            isProgrammaticScrollRef.current = false;
-          }, 500);
-        },
-        virtualizerRef,
-        subscribeScroll(cb) {
-          scrollListenersRef.current.add(cb);
-          return () => scrollListenersRef.current.delete(cb);
-        },
-      }),
-      [],
-    );
 
     const handleScroll = useCallback(
       (offset: number) => {

@@ -1,3 +1,4 @@
+export { useAutoScroll } from './hooks/useAutoScroll';
 export {
   createListActions,
   type ListData,

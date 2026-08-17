@@ -13,7 +13,7 @@ import { ToolCallView } from '@/app/components/tool-call-view';
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
-import { areTurnsEqual } from './lib';
+import { areTurnsEqual } from '../lib';
 
 const MOCK_WORKTREE_FILES = new Set([
   'src/components/tool-call-view.tsx',
@@ -48,7 +48,7 @@ export const AssistantChatBubble = memo(
     const baseKey = turn.id;
 
     // Check if turn has no content yet or last tool is still running
-    const isEmptyTurn = parts.length === 0;
+    // const isEmptyTurn = parts.length === 0;
 
     const assistantTextResponse = useMemo(() => {
       return parts
@@ -102,7 +102,9 @@ export const AssistantChatBubble = memo(
                 }
 
                 case 'tool':
-                  return <ToolCallView key={blockId} part={part} />;
+                  return (
+                    <ToolCallView key={blockId} part={part} blockId={blockId} />
+                  );
 
                 default:
                   return null;

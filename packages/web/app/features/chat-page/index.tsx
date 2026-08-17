@@ -61,7 +61,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
             groups={groups}
             onActiveGroupIndexChange={setActiveGroupIndex}
           /> */}
-          <MockChatPage mockGroups={groups} />
+          <MockChatPage ref={feedRef} mockGroups={groups} />
         </>
       )}
 
@@ -69,11 +69,12 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
         <div className='relative mx-auto w-full max-w-[714px]'>
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
             <ScrollToBottomButton
-              virtualizerRef={
-                feedRef.current?.virtualizerRef ?? { current: null }
-              }
+              scrollRef={{
+                get current() {
+                  return feedRef.current?.scrollRef.current ?? null;
+                },
+              }}
               subscribeScroll={subscribeScroll}
-              totalCount={groups.length}
             />
           </div>
 

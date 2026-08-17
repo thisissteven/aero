@@ -65,25 +65,29 @@ export function useMockStreamFeed(
 
               const partIndex = groupsState[turnIndex].parts.length - 1;
               const fullText = targetPart.text;
-              const CHUNK_SIZE = 4;
 
-              for (let i = CHUNK_SIZE; i <= fullText.length; i += CHUNK_SIZE) {
+              // Split text into word tokens (words including trailing spaces)
+              const words = fullText.match(/\S+\s*/g) || [];
+              const WORDS_PER_CHUNK = 1; // Increase to 2 or 3 if you want larger word chunks
+              let accumulatedText = '';
+
+              for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
                 if (cancelled) break;
 
-                const nextText = fullText.slice(0, i);
+                accumulatedText += words.slice(i, i + WORDS_PER_CHUNK).join('');
 
                 groupsState = groupsState.map((turn, tIdx) => {
                   if (tIdx !== turnIndex) return turn;
                   const updatedParts = [...turn.parts];
                   updatedParts[partIndex] = {
                     ...updatedParts[partIndex],
-                    text: nextText,
+                    text: accumulatedText,
                   } as AeroPart;
                   return { ...turn, parts: updatedParts };
                 });
 
                 setDisplayedGroups(groupsState);
-                await delay(20);
+                await delay(60); // Adjusted delay for word pace
               }
 
               if (!cancelled) {

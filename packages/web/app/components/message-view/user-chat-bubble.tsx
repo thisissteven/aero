@@ -12,6 +12,7 @@ import {
 import { ChatMessage, cn, Tooltip } from '@aero/ui';
 
 import { MessageActionsCopy } from '@/app/components/message-view/message-actions';
+import { useKeepMounted } from '@/app/hooks/useKeepMounted';
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
@@ -23,6 +24,8 @@ export const UserChatBubble = memo(
     const bubbleRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
     const shouldScrollOnCollapseRef = useRef(false);
+
+    useKeepMounted(turn.id, expanded);
 
     const text = useMemo(
       () =>

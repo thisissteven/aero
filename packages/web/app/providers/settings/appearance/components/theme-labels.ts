@@ -29,7 +29,6 @@ export const THEME_LABELS: Record<ColorTheme, string> = {
   shadesofpurple: 'Shades of Purple',
   solarized: 'Solarized',
   tokyonight: 'Tokyo Night',
-  vercel: 'Vercel',
   vesper: 'Vesper',
   vitesse: 'Vitesse',
   zenburn: 'Zenburn',

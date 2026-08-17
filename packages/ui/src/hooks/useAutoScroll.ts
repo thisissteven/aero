@@ -44,6 +44,7 @@ export function useAutoScroll({
   }, [scrollRef, isStreaming, threshold]);
 
   // 2. ResizeObserver — active only while streaming
+  // useAutoScroll.ts
   useLayoutEffect(() => {
     const scrollEl = scrollRef.current;
     const contentEl = contentRef.current;
@@ -55,6 +56,9 @@ export function useAutoScroll({
       isAutoScrollingRef.current = true;
       scrollEl.scrollTop = scrollEl.scrollHeight;
       lastScrollTopRef.current = scrollEl.scrollTop;
+
+      // Dispatch scroll event so external subscribers (ScrollToBottomButton) get notified
+      scrollEl.dispatchEvent(new Event('scroll'));
 
       requestAnimationFrame(() => {
         isAutoScrollingRef.current = false;

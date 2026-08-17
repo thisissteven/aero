@@ -19,6 +19,7 @@ import {
 } from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
+import { useKeepMounted } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 
 export const ReasoningBlock = memo(function ReasoningBlock({
@@ -38,19 +39,21 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   const isDirtyRef = useRef(false);
 
   // Initialize state based on whether it starts as streaming
-  const [isOpen, setIsOpen] = useState(isStreaming);
+  const [isExpanded, setIsExpanded] = useState(isStreaming);
+
+  useKeepMounted(blockId, isExpanded);
 
   // Sync state with streaming status unless the user manually interacted
   useEffect(() => {
     if (!isDirtyRef.current) {
-      setIsOpen(isStreaming);
+      setIsExpanded(isStreaming);
     }
   }, [isStreaming]);
 
   // Track manual user interactions
-  const handleOpenChange = (open: boolean) => {
+  const handleExpandedChange = (expanded: boolean) => {
     isDirtyRef.current = true;
-    setIsOpen(open);
+    setIsExpanded(expanded);
   };
 
   const preview = useMemo(() => stripMarkdown(text.slice(0, 150)), [text]);
@@ -59,8 +62,8 @@ export const ReasoningBlock = memo(function ReasoningBlock({
     <ChainOfThought
       key={blockId}
       isStreaming={isStreaming}
-      isExpanded={isOpen}
-      onExpandedChange={handleOpenChange}
+      isExpanded={isExpanded}
+      onExpandedChange={handleExpandedChange}
     >
       <ChainOfThought.Trigger
         icon={

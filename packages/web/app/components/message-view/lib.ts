@@ -16,7 +16,10 @@
 // This is defensive and works for both in-place mutation and replace-by-ref
 // streaming patterns.
 
-import { AeroConversationTurn } from '@/server/services/harness/types';
+import {
+  AeroConversationTurn,
+  AeroPart,
+} from '@/server/services/harness/types';
 
 // ---------------------------------------------------------------------------
 export function areTurnsEqual(
@@ -49,3 +52,30 @@ export function areTurnsEqual(
 
   return true;
 }
+
+export type FlatConversationVirtualItem =
+  | {
+      id: string;
+      type: 'user';
+      turn: AeroConversationTurn;
+    }
+  | {
+      id: string;
+      type: 'assistant-part';
+      turnId: string;
+      part: AeroPart;
+      partIndex: number;
+      isPartStreaming: boolean;
+      isLastPartInTurn: boolean;
+    }
+  | {
+      id: string;
+      type: 'assistant-footer';
+      turnId: string;
+      createdAt: string | Date;
+      assistantTextResponse: string;
+    }
+  | {
+      id: string;
+      type: 'spacer';
+    };

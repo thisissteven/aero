@@ -1,85 +1,58 @@
 // scroll-to-bottom-button.tsx
 import type { RefObject } from 'react';
-import {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useState,
-} from 'react';
-import type { VirtualizerHandle } from 'virtua';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import { Button, IconChevronDown, Tooltip } from '@aero/ui';
 
 interface ScrollToBottomButtonProps {
-  virtualizerRef: RefObject<VirtualizerHandle | null>;
-  /** Subscribe to scroll ticks from the feed; returns an unsubscribe fn. */
+  scrollRef: RefObject<HTMLElement | null>;
   subscribeScroll: (cb: () => void) => () => void;
-  totalCount: number;
   tooltip?: string;
   onClick?: () => void;
 }
 
 export const ScrollToBottomButton = memo(function ScrollToBottomButton({
-  virtualizerRef,
+  scrollRef,
   subscribeScroll,
-  totalCount,
   tooltip,
   onClick,
 }: ScrollToBottomButtonProps) {
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const threshold = 28;
 
   const checkIsAtBottom = useCallback(() => {
-    const handle = virtualizerRef.current;
-    if (!handle || handle.viewportSize === 0) {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) {
       setIsAtBottom(true);
       return;
     }
-
-    const threshold = 28; // px tolerance from bottom
     const distanceToBottom =
-      handle.scrollSize - (handle.scrollOffset + handle.viewportSize);
-
-    // setState bails out on identical value (Object.is), so this is cheap even
-    // when called every scroll frame.
+      scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
     setIsAtBottom(distanceToBottom <= threshold);
-  }, [virtualizerRef]);
+  }, [scrollRef]);
 
-  // Re-check on scroll (subscription-based: only THIS component re-renders, not the whole page)
   useEffect(() => {
     checkIsAtBottom();
     return subscribeScroll(checkIsAtBottom);
   }, [subscribeScroll, checkIsAtBottom]);
 
-  // Re-check when message count changes (e.g. new message lands while at/near bottom)
   useEffect(() => {
     checkIsAtBottom();
-  }, [totalCount, checkIsAtBottom]);
+  }, [checkIsAtBottom]);
 
-  const deferred = useDeferredValue(isAtBottom);
-
-  if (deferred) return null;
+  // isAtBottom updates are already cheap (Object.is bail-out) and now correct;
+  // deferring is unnecessary and was masking/staling the value during
+  // continuous streaming renders. Drop it.
+  if (isAtBottom) return null;
 
   const handleScrollToBottom = () => {
     if (onClick) {
       onClick();
       return;
     }
-
-    const handle = virtualizerRef.current;
-    if (!handle || totalCount === 0) return;
-
-    const lastIndex = totalCount - 1;
-    const currentBottomIndex = handle.findItemIndex(
-      handle.scrollOffset + handle.viewportSize,
-    );
-
-    const isClose = lastIndex - currentBottomIndex < 5;
-
-    handle.scrollToIndex(lastIndex, {
-      align: 'end',
-      smooth: isClose,
-    });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   };
 
   const buttonElement = (
