@@ -9,7 +9,7 @@ import {
   MessageActionsReadAloud,
 } from '@/app/components/message-view/message-actions';
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
-import { ToolCallView } from '@/app/components/tool-call-view';
+import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 

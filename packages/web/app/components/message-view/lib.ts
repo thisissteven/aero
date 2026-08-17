@@ -78,6 +78,10 @@ export type FlatConversationVirtualItem =
     }
   | {
       id: string;
+      type: 'spacer-first-item';
+    }
+  | {
+      id: string;
       type: 'spacer';
     }
   | {
@@ -97,6 +101,13 @@ export function buildFlatConversationItems(
 
     const isLastTurn = turnIndex === displayedGroups.length - 1;
     const isTurnStreaming = isStreaming && isLastTurn;
+
+    if (turnIndex === 0) {
+      items.push({
+        id: `${turn.id}-spacer-first-item`,
+        type: 'spacer-first-item',
+      });
+    }
 
     if (turn.role === 'user') {
       items.push({ id: turn.id, type: 'user', turn });

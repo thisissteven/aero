@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { ChatMessage, Markdown } from '@aero/ui';
 
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
-import { ToolCallView } from '@/app/components/tool-call-view';
+import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';
 import { AeroPart } from '@/server/services/harness/types';
 
 // Re-use your helper handlers
@@ -44,7 +44,7 @@ export const AssistantPartView = memo(function AssistantPartView({
   switch (part.type) {
     case 'text': {
       // Don't return null if streaming; let the empty shell render to establish height
-      if (!part.text && !isPartStreaming) return null;
+      // if (!part.text && !isPartStreaming) return null;
 
       return (
         <ChatMessage.Assistant className='group'>
@@ -56,7 +56,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   isFile={handleIsWorktreeFile}
                   onFileClick={handleOpenFileInEditor}
                 >
-                  {part.text || ''}
+                  {part.text}
                 </Markdown>
               </div>
             </ChatMessage.Content>
@@ -66,7 +66,7 @@ export const AssistantPartView = memo(function AssistantPartView({
     }
 
     case 'reasoning': {
-      if (!part.text && !isPartStreaming) return null;
+      // if (!part.text && !isPartStreaming) return null;
 
       return (
         <ChatMessage.Assistant className='group py-0'>
@@ -77,7 +77,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   blockId={blockId}
                   isFile={handleIsWorktreeFile}
                   onFileClick={handleOpenFileInEditor}
-                  text={part.text || ''}
+                  text={part.text}
                   isStreaming={isPartStreaming}
                 />
               </div>

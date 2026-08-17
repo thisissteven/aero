@@ -4,8 +4,6 @@ import { useCallback } from 'react';
 
 import { AppLayout, Resizable } from '@aero/ui';
 
-import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
-
 import { ChatAsidePanel } from './chat-aside/chat-aside-panel';
 import { ConnectedChatAside } from './chat-aside/connected-chat-aside';
 import { ChatMainContentPanel } from './chat-main-content-panel';
@@ -19,7 +17,6 @@ export interface ChatShellProps {
 
 export function ChatShell({ children }: ChatShellProps) {
   const navigate = useNavigate();
-  const setIsSearchOpen = useCommandPaletteStore((state) => state.setIsOpen);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -36,7 +33,7 @@ export function ChatShell({ children }: ChatShellProps) {
           toggleShortcut={null}
           navigate={handleNavigate}
           navbar={<ConnectedChatNavbar />}
-          sidebar={<ChatSidebar onSearch={() => setIsSearchOpen(true)} />}
+          sidebar={<ChatSidebar />}
           sidebarResizable
           sidebarCollapsible='offcanvas'
           resizableAutoSaveId='app-layout:resizable-sidebar'

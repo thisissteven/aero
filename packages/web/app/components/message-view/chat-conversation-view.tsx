@@ -38,8 +38,13 @@ export function ChatConversationView({
       data={flatItems}
       keepMounted={keepMounted}
       onScroll={onScroll}
+      // set shift = true if loading older messages, shift = false if streaming
+      // shift={isStreaming ? false : true}
     >
       {(item) => {
+        if (item.type === 'spacer-first-item') {
+          return <div key={item.id} className='h-10 w-full shrink-0' />;
+        }
         if (item.type === 'spacer') {
           return <div key={item.id} className='h-2 w-full shrink-0' />;
         }
@@ -47,7 +52,10 @@ export function ChatConversationView({
           return <div key={item.id} className='h-8 w-full shrink-0' />;
         }
         return (
-          <div key={item.id} className='mx-auto w-full px-3 md:max-w-[720px]'>
+          <div
+            key={item.id}
+            className='mx-auto w-full px-3 [contain:layout_style] md:max-w-[720px]'
+          >
             {item.type === 'user' && <UserChatBubble turn={item.turn} />}
             {item.type === 'assistant-part' && (
               <AssistantPartView

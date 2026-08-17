@@ -26,6 +26,7 @@ import {
 
 import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useKeepMounted } from '@/app/hooks/useKeepMounted';
 import { toTitleCase } from '@/app/lib/file';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
@@ -311,12 +312,18 @@ export const ToolCallView = memo(function ToolCallView({
               )}
               <p
                 className={cn(
-                  'text-muted/70 flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
-
-                  // 'max-w-4/5 min-w-[200px]'
+                  'text-muted/70 min-w-0 flex-1 transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
                 )}
               >
-                {toolContent.preview}
+                {toolContent.preview ? (
+                  toolName === 'read' ||
+                  toolName === 'write' ||
+                  toolName === 'edit' ? (
+                    <MiddleTruncatePath path={toolContent.preview} />
+                  ) : (
+                    toolContent.preview
+                  )
+                ) : null}
               </p>
             </span>
           </div>

@@ -1,6 +1,9 @@
+import { useCallback } from 'react';
+
 import { Sidebar, useSidebar } from '@aero/ui';
 
 import { SidebarContents } from '@/app/components/chat-sidebar/sidebar-contents';
+import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
@@ -9,7 +12,7 @@ export interface ChatSidebarProps {
   onSearch?: () => void;
 }
 
-export function ChatSidebar({ onSearch }: ChatSidebarProps) {
+export function ChatSidebar() {
   const sessionsQuery = useSessions();
   const workspacesQuery = useWorkspaces();
   const { toggleSidebar, isMobile } = useSidebar();
@@ -17,6 +20,12 @@ export function ChatSidebar({ onSearch }: ChatSidebarProps) {
   useKeyPress('l', toggleSidebar, {
     modifiers: { mod: true },
   });
+
+  const setIsSearchOpen = useCommandPaletteStore((state) => state.setIsOpen);
+
+  const onSearch = useCallback(() => {
+    setIsSearchOpen(true);
+  }, []);
 
   return (
     <>

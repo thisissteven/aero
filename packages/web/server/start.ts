@@ -1,5 +1,6 @@
 import { serve } from 'bun';
 import { Hono } from 'hono';
+// import { websocket } from 'hono/bun';
 import { serveStatic } from 'hono/bun';
 
 import api from './index';
@@ -24,6 +25,7 @@ app.get(
 
 serve({
   fetch: app.fetch,
+  // websocket,
   port: 3000,
 });
 

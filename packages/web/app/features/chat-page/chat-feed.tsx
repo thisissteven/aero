@@ -190,7 +190,7 @@ export const ChatFeed = forwardRef<
     >
       <ScrollShadow
         ref={scrollRef}
-        className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto pt-10'
+        className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto'
       >
         <div ref={contentRef} className='pb-4'>
           <ChatConversationView
