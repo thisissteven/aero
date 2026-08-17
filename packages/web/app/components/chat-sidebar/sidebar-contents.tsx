@@ -32,14 +32,13 @@ interface SidebarContentsProps extends ChatSidebarProps {
 
 export const SidebarContents = memo(function SidebarContents({
   idPrefix = '',
-  pathname,
   sessionsQuery,
   workspacesQuery,
   onSearch,
 }: SidebarContentsProps) {
   const [, startTransition] = useTransition();
 
-  const location = useLocation();
+  const { href, pathname } = useLocation();
   const navigate = useNavigate();
 
   const handleNavigate = (to: string) => {
@@ -47,8 +46,6 @@ export const SidebarContents = memo(function SidebarContents({
       navigate({ to });
     });
   };
-
-  const currentHref = location.href;
 
   const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false);
 
@@ -71,7 +68,7 @@ export const SidebarContents = memo(function SidebarContents({
                 <Sidebar.MenuItem
                   href='/new'
                   id={`${idPrefix}-new`}
-                  isCurrent={currentHref === '/new'}
+                  isCurrent={href === '/new'}
                   textValue='New Chat'
                   onPress={() => handleNavigate('/new')}
                 >
@@ -110,7 +107,7 @@ export const SidebarContents = memo(function SidebarContents({
                 <Sidebar.MenuItem
                   href='/plugins'
                   id={`${idPrefix}-plugins`}
-                  isCurrent={currentHref === '/plugins'}
+                  isCurrent={href === '/plugins'}
                   textValue='Plugins'
                   onPress={() => handleNavigate('/plugins')}
                 >

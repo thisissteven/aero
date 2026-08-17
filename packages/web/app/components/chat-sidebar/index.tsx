@@ -6,11 +6,10 @@ import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 
 export interface ChatSidebarProps {
-  pathname: string;
   onSearch?: () => void;
 }
 
-export function ChatSidebar({ pathname, onSearch }: ChatSidebarProps) {
+export function ChatSidebar({ onSearch }: ChatSidebarProps) {
   const sessionsQuery = useSessions();
   const workspacesQuery = useWorkspaces();
   const { toggleSidebar, isMobile } = useSidebar();
@@ -25,7 +24,6 @@ export function ChatSidebar({ pathname, onSearch }: ChatSidebarProps) {
         <Sidebar>
           <SidebarContents
             {...{
-              pathname,
               sessionsQuery,
               workspacesQuery,
               onSearch,
@@ -38,7 +36,6 @@ export function ChatSidebar({ pathname, onSearch }: ChatSidebarProps) {
         <Sidebar.Mobile>
           <SidebarContents
             {...{
-              pathname,
               sessionsQuery,
               workspacesQuery,
               onSearch,

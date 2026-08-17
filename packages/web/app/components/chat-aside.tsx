@@ -74,14 +74,16 @@ interface ChatAsideProps {
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
   return (
     <aside className='relative h-full w-12 shrink-0 max-sm:hidden'>
-      <div
-        className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
-        aria-hidden
-      ></div>
+      {!!activeItem && (
+        <div
+          className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
+          aria-hidden
+        ></div>
+      )}
       <div
         className={cn(
           'mt-14 flex h-full flex-col gap-2 pt-4',
-          activeItem && 'border-separator border-l',
+          !!activeItem && 'border-separator border-l',
         )}
       >
         {collapsibleNav.map((item) => {

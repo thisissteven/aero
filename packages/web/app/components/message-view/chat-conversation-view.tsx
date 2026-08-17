@@ -41,10 +41,10 @@ export function ChatConversationView({
     >
       {(item) => {
         if (item.type === 'spacer') {
-          return <div key={item.id} className='h-10 w-full shrink-0' />;
+          return <div key={item.id} className='h-2 w-full shrink-0' />;
         }
         if (item.type === 'spacer-footer') {
-          return <div key={item.id} className='h-12 w-full shrink-0' />;
+          return <div key={item.id} className='h-8 w-full shrink-0' />;
         }
         return (
           <div key={item.id} className='mx-auto w-full px-3 md:max-w-[720px]'>
