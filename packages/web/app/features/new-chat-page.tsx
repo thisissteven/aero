@@ -1,13 +1,14 @@
 import { File, Folder, Microphone, Picture, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cn, PromptInput, TextShimmer, toast } from '@aero/ui';
 
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { useCreateSession } from '@/app/hooks/api/sessions';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 export function NewChatPage() {
@@ -38,6 +39,26 @@ export function NewChatPage() {
     );
 
   const isMobile = useWindowSize((size) => size.width < 768);
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useKeyPress(
+    'i',
+    () => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    },
+    {
+      modifiers: { mod: true },
+    },
+  );
+
+  useEffect(() => {
+    if (textareaRef.current && !isMobile) {
+      textareaRef.current.focus();
+    }
+  }, [isMobile]);
 
   return (
     <div
@@ -71,6 +92,7 @@ export function NewChatPage() {
           <PromptInput.Shell className='shadow'>
             <PromptInput.Content>
               <PromptInput.TextArea
+                ref={textareaRef}
                 className='min-h-19'
                 placeholder='Describe an app, workflow, or interface...'
               />

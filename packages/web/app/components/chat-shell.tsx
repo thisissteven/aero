@@ -32,6 +32,8 @@ export function ChatShell({ children }: ChatShellProps) {
     <div className='bg-background text-foreground flex h-screen w-screen overflow-hidden'>
       <div className='h-full min-w-0 flex-1'>
         <AppLayout
+          asideToggleShortcut={null}
+          toggleShortcut={null}
           navigate={handleNavigate}
           navbar={<ConnectedChatNavbar />}
           sidebar={<ChatSidebar onSearch={() => setIsSearchOpen(true)} />}

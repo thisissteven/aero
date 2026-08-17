@@ -245,10 +245,6 @@ export function ThemeProvider({
     };
   }, [theme, colorTheme]);
 
-  const isMac =
-    typeof window !== 'undefined' &&
-    /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-
   useKeyPress(
     '/',
     () => {
@@ -275,12 +271,7 @@ export function ThemeProvider({
       setColorTheme(nextColorTheme);
     },
     {
-      modifiers: {
-        ctrl: !isMac,
-        meta: isMac,
-        alt: false,
-        shift: false,
-      },
+      modifiers: { mod: true },
     },
   );
 

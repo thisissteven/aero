@@ -1,10 +1,12 @@
 import { File, Folder, Microphone, Picture, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import React, { useState } from 'react';
+import { useLocation } from '@tanstack/react-router';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { PromptInput } from '@aero/ui';
 
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
@@ -18,6 +20,28 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
 
   const isMobile = useWindowSize((size) => size.width < 768);
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useKeyPress(
+    'i',
+    () => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    },
+    {
+      modifiers: { mod: true },
+    },
+  );
+
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (textareaRef.current && !isMobile) {
+      textareaRef.current.focus();
+    }
+  }, [pathname, isMobile]);
+
   return (
     <PromptInput
       className='w-full max-w-[780px]'
@@ -29,6 +53,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
       <PromptInput.Shell className='shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea
+            ref={textareaRef}
             className='min-h-19'
             placeholder='Describe an app, workflow, or interface...'
           />

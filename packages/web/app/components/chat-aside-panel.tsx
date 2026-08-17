@@ -4,25 +4,49 @@ import {
   Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
+import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable } from '@aero/ui';
 
 import { collapsibleNav } from '@/app/components/chat-aside';
 import { useChatPanelStore } from '@/app/stores/chat-panel-store';
 
 export function ChatAsidePanel() {
+  const isOpen = useChatPanelStore((s) => s.isOpen);
   const activeNavItem = useChatPanelStore((s) => s.activeNavItem);
   const isExpanded = useChatPanelStore((s) => s.isExpanded);
-  const toggleExpanded = useChatPanelStore((s) => s.toggleExpanded);
+  const storeToggleExpanded = useChatPanelStore((s) => s.toggleExpanded);
   const closePanel = useChatPanelStore((s) => s.closePanel);
+
+  const panelRef = useRef<PanelImperativeHandle | null>(null);
+  const lastSizeRef = useRef<number | null>(null);
 
   const activeNavData = useMemo(
     () => collapsibleNav.find((item) => item.id === activeNavItem),
     [activeNavItem],
   );
 
-  if (!activeNavItem) return null;
+  const handleToggleExpanded = () => {
+    if (!isExpanded && panelRef.current) {
+      // Store current pixel size before expanding
+      lastSizeRef.current = panelRef.current.getSize().inPixels;
+    }
+    storeToggleExpanded();
+  };
+
+  useEffect(() => {
+    if (!isExpanded && panelRef.current && lastSizeRef.current !== null) {
+      const restoredSize = `${lastSizeRef.current}px`;
+
+      // Wait for layout bounds (minSize/maxSize) to commit before resizing
+      requestAnimationFrame(() => {
+        panelRef.current?.resize(restoredSize);
+      });
+    }
+  }, [isExpanded]);
+
+  if (!isOpen || !activeNavItem) return null;
 
   return (
     <>
@@ -30,6 +54,7 @@ export function ChatAsidePanel() {
         <Resizable.Handle type='line' variant='primary' className='w-[0.6px]' />
       )}
       <Resizable.Panel
+        handleRef={panelRef}
         id='aside-panel'
         defaultSize={isExpanded ? '100%' : '320px'}
         minSize={isExpanded ? '100%' : '320px'}
@@ -50,7 +75,7 @@ export function ChatAsidePanel() {
             <div className='flex items-center gap-1.5'>
               <button
                 type='button'
-                onClick={toggleExpanded}
+                onClick={handleToggleExpanded}
                 className='p-1 opacity-80 transition hover:opacity-100'
                 title={isExpanded ? 'Collapse panel' : 'Expand panel'}
                 aria-label='Expand panel'

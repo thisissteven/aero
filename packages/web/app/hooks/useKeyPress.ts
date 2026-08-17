@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 
+const IS_MAC =
+  typeof window !== 'undefined' &&
+  /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
 interface UseKeyPressOptions {
-  /** Prevent firing when user is typing in input/textarea/contentEditable */
   ignoreInputs?: boolean;
-  /** Prevent browser default behavior */
   preventDefault?: boolean;
-  /** Stop event propagation */
   stopPropagation?: boolean;
-  /** Require or disallow modifier keys */
   modifiers?: {
+    /** Primary command modifier: `metaKey` on Mac, `ctrlKey` on Windows/Linux */
+    mod?: boolean;
     ctrl?: boolean;
     meta?: boolean;
     alt?: boolean;
@@ -25,20 +27,19 @@ export function useKeyPress(
     ignoreInputs = true,
     preventDefault = true,
     stopPropagation = true,
-    modifiers,
+    modifiers = {},
   } = options;
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
-      // 1. Check if key matches (case-insensitive)
+      // 1. Check target key
       if (event.key.toLowerCase() !== targetKey.toLowerCase()) {
         return;
       }
 
-      // 2. Ignore keypresses if typing inside an input/textarea element
+      // 2. Ignore inputs if user is typing
       if (ignoreInputs) {
         const target = event.target as HTMLElement | null;
-
         if (
           target &&
           (target.tagName === 'INPUT' ||
@@ -50,34 +51,29 @@ export function useKeyPress(
       }
 
       // 3. Modifier validation
-      if (modifiers) {
-        if (modifiers.ctrl !== undefined && event.ctrlKey !== modifiers.ctrl)
-          return;
-        if (modifiers.meta !== undefined && event.metaKey !== modifiers.meta)
-          return;
-        if (modifiers.alt !== undefined && event.altKey !== modifiers.alt)
-          return;
-        if (modifiers.shift !== undefined && event.shiftKey !== modifiers.shift)
-          return;
+      const { mod, ctrl, meta, alt, shift } = modifiers;
+
+      // Handle 'mod' (Cmd on Mac, Ctrl on Windows)
+      if (mod !== undefined) {
+        const isModPressed = IS_MAC ? event.metaKey : event.ctrlKey;
+        if (isModPressed !== mod) return;
       }
 
-      // 4. Prevent browser shortcuts (Ctrl+L, Ctrl+K, etc.)
-      if (preventDefault) {
-        event.preventDefault();
-      }
+      // Handle individual modifiers if specified
+      if (ctrl !== undefined && event.ctrlKey !== ctrl) return;
+      if (meta !== undefined && event.metaKey !== meta) return;
+      if (alt !== undefined && event.altKey !== alt) return;
+      if (shift !== undefined && event.shiftKey !== shift) return;
 
-      if (stopPropagation) {
-        event.stopPropagation();
-      }
+      // 4. Prevent default & stop propagation
+      if (preventDefault) event.preventDefault();
+      if (stopPropagation) event.stopPropagation();
 
       handler(event);
     };
 
     window.addEventListener('keydown', listener);
-
-    return () => {
-      window.removeEventListener('keydown', listener);
-    };
+    return () => window.removeEventListener('keydown', listener);
   }, [
     targetKey,
     handler,

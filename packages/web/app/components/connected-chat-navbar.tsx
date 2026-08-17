@@ -8,11 +8,9 @@ import { resolveChatActivePage } from '../data/chat';
 
 export function ConnectedChatNavbar() {
   const { pathname } = useLocation();
-  const isAsideExpanded = useChatPanelStore((s) => !!s.activeNavItem);
+  const isAsideOpen = useChatPanelStore((s) => s.isOpen);
 
   const activePage = useMemo(() => resolveChatActivePage(pathname), [pathname]);
 
-  return (
-    <ChatNavbar activePage={activePage} isAsideExpanded={isAsideExpanded} />
-  );
+  return <ChatNavbar activePage={activePage} isAsideExpanded={isAsideOpen} />;
 }

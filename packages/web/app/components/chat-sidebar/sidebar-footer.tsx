@@ -229,7 +229,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       },
       {
         label: 'New Window (desktop only)',
-        keys: ['Shift', 'Alt', 'Ctrl', 'N'],
+        keys: ['Ctrl', 'Alt', 'Shift', 'N'],
         icon: <Icon data={Display} size={14} />,
       },
     ],
@@ -239,7 +239,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     items: [
       {
         label: 'Create New Session',
-        keys: ['Ctrl', 'N'],
+        keys: ['N'],
         icon: <Icon data={Plus} size={14} />,
       },
       {
@@ -268,7 +268,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     category: 'PANELS',
     items: [
       {
-        label: 'Toggle context panel',
+        label: 'Toggle Right Panel',
         keys: ['Ctrl', 'B'],
         icon: <Icon data={LayoutSideContentRight} size={14} />,
       },

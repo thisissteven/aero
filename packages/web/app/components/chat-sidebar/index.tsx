@@ -15,7 +15,7 @@ export function ChatSidebar({ onSearch }: ChatSidebarProps) {
   const { toggleSidebar, isMobile } = useSidebar();
 
   useKeyPress('l', toggleSidebar, {
-    modifiers: { meta: false, ctrl: true, alt: false },
+    modifiers: { mod: true },
   });
 
   return (

@@ -35,7 +35,6 @@
 }
 
 /* Disable all layout and color transitions during theme toggle */
-/* Add this to your global CSS file */
 .disable-transitions,
 .disable-transitions *,
 .disable-transitions *::before,
