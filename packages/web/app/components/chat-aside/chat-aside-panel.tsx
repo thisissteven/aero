@@ -12,6 +12,7 @@ import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable } from '@aero/ui';
 
 import { collapsibleNav } from '@/app/components/chat-aside/chat-aside';
+import { TerminalPanel } from '@/app/components/chat-aside/terminal-panel';
 import { useGeneralStore } from '@/app/providers/settings/general/general-store';
 import { useChatPanelStore } from '@/app/stores/chat-panel-store';
 import type { TerminalTab } from '@/app/stores/terminal-store';
@@ -312,11 +313,7 @@ function TerminalContainer() {
         onAdd={addTab}
       />
       {tabs.map((tab) => (
-        <GhosttyTerminalInstance
-          key={tab.id}
-          tabId={tab.id}
-          isActive={tab.id === activeTabId}
-        />
+        <TerminalPanel key={tab.id} />
       ))}
     </div>
   );

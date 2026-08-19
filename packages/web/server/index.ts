@@ -6,9 +6,8 @@ import { HTTPException } from 'hono/http-exception';
 import { initProxyConfig } from './proxy-loader';
 import poolRoutes from './routes/pool';
 import sessions from './routes/sessions';
-// import terminal from './routes/terminal';
+import terminalRoutes from './routes/terminal';
 import workspaces from './routes/workspaces';
-// import { websocket } from 'hono/bun';
 
 initProxyConfig();
 
@@ -16,8 +15,8 @@ const app = new Hono()
   .basePath('/api')
   .route('/sessions', sessions)
   .route('/workspaces', workspaces)
-  // .route('/terminal', terminal)
-  .route('/pool', poolRoutes);
+  .route('/pool', poolRoutes)
+  .route('/terminal', terminalRoutes);
 
 app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);
@@ -48,7 +47,6 @@ app.onError((err, c) => {
 export default app;
 export const server = {
   fetch: app.fetch,
-  // websocket,
 };
 
 // Export the type, not the instance — this is what `hc<AppType>()` needs

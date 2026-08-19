@@ -93,7 +93,7 @@ export function NewChatPage() {
             <PromptInput.Content>
               <PromptInput.TextArea
                 ref={textareaRef}
-                className='min-h-19'
+                className='min-h-12'
                 placeholder='Describe an app, workflow, or interface...'
               />
             </PromptInput.Content>
