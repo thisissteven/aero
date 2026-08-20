@@ -27,16 +27,16 @@
     "**/.git": true,
     "**/.DS_Store": true,
     "apps/docs": true,
-    // "apps/storybook": true,
-    // "packages/ui": true
+    "apps/storybook": true,
+    // "packages/ui": true,
     "packages/cli": true
   },
 
   "search.exclude": {
     "**/node_modules": true,
     "apps/docs": true,
-    // "apps/storybook": true,
-    // "packages/ui": true
+    "apps/storybook": true,
+    // "packages/ui": true,
     "packages/cli": true
   },
 

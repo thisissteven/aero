@@ -34,6 +34,23 @@
   --scroll-shadow-size: 360px;
 }
 
+/* Hide stray cursor/textarea used for xterm/ghostty keyboard focus */
+textarea[aria-label='Terminal input'],
+div[ref] textarea {
+  caret-color: transparent !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Force ghostty container & canvas wrapper to stretch full width */
+div[ref] canvas,
+.ghostty-container {
+  width: 100% !important;
+}
+
 /* Disable all layout and color transitions during theme toggle */
 .disable-transitions,
 .disable-transitions *,

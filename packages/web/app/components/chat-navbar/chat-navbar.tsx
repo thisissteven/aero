@@ -176,13 +176,13 @@ function SessionsNavbarContent() {
             <Dropdown.Menu aria-label={`${session.title} actions`}>
               <RenameSession sessionId={session.id} from='navbar' />
               <CopySessionId sessionId={session.id} />
-              <Separator className='my-0.5 h-[0.5px]' />
+              <Separator className='my-0.5' />
               <ShareUnshareSession
                 sessionId={session.id}
                 sharedUrl={session.sharedUrl}
               />
               <ExportMarkdown sessionId={session.id} />
-              <Separator className='my-0.5 h-[0.5px]' />
+              <Separator className='my-0.5' />
               <ArchiveSession
                 sessionId={session.id}
                 sessionTitle={session.title}

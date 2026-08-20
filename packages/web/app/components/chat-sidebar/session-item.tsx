@@ -117,7 +117,7 @@ export function SessionItemSummary({
                 <RenameSession sessionId={session.id} from={from} />
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
-                <Separator className='my-0.5 h-[0.5px]' />
+                <Separator className='my-0.5' />
                 <ArchiveSession
                   sessionId={session.id}
                   sessionTitle={session.title}

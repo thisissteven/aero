@@ -143,7 +143,7 @@ export const SidebarContents = memo(function SidebarContents({
         />
       </Sidebar.Header>
 
-      {!isWorkspacesOpen && <Sidebar.Separator className='mb-0 h-[0.5px]' />}
+      {!isWorkspacesOpen && <Sidebar.Separator className='mb-0' />}
 
       <TransitionInOut
         current={isWorkspacesOpen ? 'second' : 'first'}

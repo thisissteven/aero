@@ -19,7 +19,7 @@
     "@homebridge/node-pty-prebuilt-multiarch": "^0.14.1",
     "@hono/zod-validator": "^0.9.0",
     "@hookform/resolvers": "^5.7.1",
-    "@iconify/react": "^6.0.2",
+    "@lydell/node-pty": "^1.2.0-beta.15",
     "@openai/codex-sdk": "^0.147.0",
     "@opencode-ai/sdk": "^1.18.11",
     "@tanstack/react-query": "^5.101.4",

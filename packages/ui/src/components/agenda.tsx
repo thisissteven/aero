@@ -840,6 +840,7 @@ function AgendaRoot({
     </AgendaContext>
   );
 }
+
 function slotDiv(name: string, tag: 'div' | 'header' = 'div') {
   return function Slot({
     children,
@@ -881,6 +882,7 @@ function AgendaBody({
     </div>
   );
 }
+
 function AgendaHeading({
   children,
   className,
@@ -897,6 +899,7 @@ function AgendaHeading({
     </h1>
   );
 }
+
 function AgendaNavButton({
   children,
   className,
@@ -931,6 +934,7 @@ function AgendaNavButton({
     </Button>
   );
 }
+
 function AgendaTodayButton({
   children = 'Today',
   className,
@@ -951,6 +955,7 @@ function AgendaTodayButton({
     </Button>
   );
 }
+
 function AgendaViewSelector({
   children,
   className,
@@ -984,6 +989,7 @@ function AgendaViewSelector({
     </Segment>
   );
 }
+
 function isWeekend(date: CalendarDate, timeZone: string): boolean {
   const day = date.toDate(timeZone).getDay();
 
@@ -1030,6 +1036,7 @@ function AgendaDayHeader({
     </div>
   );
 }
+
 function AgendaWeekHeader({
   children,
   className,
@@ -1049,6 +1056,7 @@ function AgendaWeekHeader({
     </div>
   );
 }
+
 function AgendaAllDaySection({
   children,
   className,
@@ -1114,6 +1122,7 @@ function AgendaAllDaySection({
     </div>
   );
 }
+
 function AgendaAllDayLabel({
   children,
   className,
@@ -1129,6 +1138,7 @@ function AgendaAllDayLabel({
     </span>
   );
 }
+
 function AgendaAllDayEvent({
   children,
   className,
@@ -1163,6 +1173,7 @@ function AgendaAllDayEvent({
     </div>
   );
 }
+
 function AgendaTimeGrid({
   children,
   className,
@@ -1268,6 +1279,7 @@ function AgendaTimeGrid({
     </div>
   );
 }
+
 function AgendaDayColumn({
   children,
   className,
@@ -1386,6 +1398,7 @@ function AgendaDayColumn({
     </div>
   );
 }
+
 function AgendaEvent({
   children,
   className,
@@ -1648,6 +1661,7 @@ function AgendaEvent({
     </m.div>
   );
 }
+
 function AgendaEventTitle({
   children,
   className,
@@ -1663,6 +1677,7 @@ function AgendaEventTitle({
     </span>
   );
 }
+
 function AgendaEventTime({
   className,
   event,
@@ -1692,6 +1707,7 @@ function AgendaEventTime({
     </span>
   );
 }
+
 function AgendaCurrentTimeIndicator({
   className,
   ...props
@@ -1771,6 +1787,7 @@ function AgendaCurrentTimeIndicator({
     </div>
   );
 }
+
 function AgendaMonthGrid({
   children,
   className,
@@ -1823,6 +1840,7 @@ function AgendaMonthGrid({
     </div>
   );
 }
+
 function AgendaMonthRow({
   children,
   className,
@@ -1841,6 +1859,7 @@ function AgendaMonthRow({
     </div>
   );
 }
+
 function AgendaMonthSpanningEvent({
   children,
   className,
@@ -1884,6 +1903,7 @@ function AgendaMonthSpanningEvent({
     </div>
   );
 }
+
 function AgendaMonthCell({
   children,
   className,
@@ -1982,6 +2002,7 @@ function AgendaMonthCell({
     </div>
   );
 }
+
 function AgendaMonthEvent({
   children,
   className,

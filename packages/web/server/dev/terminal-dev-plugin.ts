@@ -36,6 +36,8 @@ export function terminalDevPlugin(): Plugin {
         }
 
         wss.handleUpgrade(req, socket, head, (ws) => {
+          const sessionId = url.searchParams.get('sessionId') || 'default';
+          const reset = url.searchParams.get('reset') === 'true';
           const cols = Number.parseInt(
             url.searchParams.get('cols') || '80',
             10,
@@ -45,7 +47,7 @@ export function terminalDevPlugin(): Plugin {
             10,
           );
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          attachPtyToSocket(ws as any, cols, rows);
+          attachPtyToSocket(ws as any, sessionId, cols, rows, reset);
         });
       });
     },

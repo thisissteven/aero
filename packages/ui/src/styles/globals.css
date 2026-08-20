@@ -71,6 +71,7 @@
 @source '../components/**/*.tsx';
 
 @import '../../generated/themes.css';
+@import './default-theme.css';
 
 :root {
   --chart-1: oklch(from var(--accent) calc(l - 0.24) c h);
