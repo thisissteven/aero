@@ -147,7 +147,7 @@ export const VirtualizedChatFeed = React.memo(
       >
         <ScrollShadow
           ref={scrollRef}
-          className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto pt-10'
+          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto pt-10 md:scrollbar-gutter-stable'
         >
           <Virtualizer<AeroConversationTurn>
             ref={virtualizerRef}

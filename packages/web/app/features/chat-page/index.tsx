@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@aero/ui';
 
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
-import { ChatFeed } from '@/app/features/chat-page/chat-feed';
+import { ChatFeed } from '@/app/features/chat-page/chat-feed/chat-feed';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
@@ -30,7 +30,6 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
   const handleSelectTocItem = useCallback(
     (groupIndex: number) => {
       const clamped = Math.min(Math.max(groupIndex, 0), groups.length - 1);
-      setActiveGroupIndex(clamped);
       feedRef.current?.scrollToIndex(clamped);
     },
     [groups.length],
@@ -63,6 +62,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
           /> */}
           {/* <MockChatPage ref={feedRef} mockGroups={groups} /> */}
           <ChatFeed
+            key={sessionId}
             groups={groups}
             ref={feedRef}
             onActiveGroupIndexChange={setActiveGroupIndex}
@@ -74,6 +74,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
         <div className='relative mx-auto w-full max-w-[714px]'>
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
             <ScrollToBottomButton
+              key={sessionId}
               scrollRef={{
                 get current() {
                   return feedRef.current?.scrollRef.current ?? null;

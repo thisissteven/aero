@@ -2,6 +2,8 @@ import { ArrowsRotateRight, Paperclip } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useRef } from 'react';
 
+import { IconButton } from '@/app/components/ui/icon-button';
+
 import {
   TerminalInstance,
   type TerminalInstanceHandle,
@@ -50,30 +52,18 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
       <div className='border-border flex scrollbar-thin items-center justify-between overflow-x-auto border-b'>
         <TerminalTabs />
         <div className='flex shrink-0 items-center gap-1 pr-1'>
-          <button
-            type='button'
-            onClick={handleRefresh}
-            disabled={!activeSessionId}
-            title='Restart shell'
-            className='text-muted hover:bg-surface-hover hover:text-foreground rounded-md p-2 disabled:pointer-events-none disabled:opacity-50'
-          >
-            <Icon data={ArrowsRotateRight} size={14} />
-          </button>
-          <button
-            type='button'
-            onClick={handleAttach}
-            disabled={!activeSessionId}
-            title='Attach selection to chat'
-            className='text-muted hover:bg-surface-hover hover:text-foreground rounded-md p-2 disabled:pointer-events-none disabled:opacity-50'
-          >
-            <Icon data={Paperclip} size={14} />
-          </button>
+          <IconButton onPress={handleRefresh} isDisabled={!activeSessionId}>
+            <Icon data={ArrowsRotateRight} />
+          </IconButton>
+          <IconButton onPress={handleAttach} isDisabled={!activeSessionId}>
+            <Icon data={Paperclip} />
+          </IconButton>
         </div>
       </div>
       <div className='relative min-h-0 flex-1 overflow-hidden p-2'>
         {sessions.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center text-sm'>
-            No terminals open — click "+" to start one.
+            No terminals open
           </div>
         ) : (
           sessions.map((session) => (

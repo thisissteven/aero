@@ -43,8 +43,8 @@ export const MockChatPage = forwardRef<
   const { displayedGroups, isStreaming } = useMockStreamFeed(mockGroups, true);
 
   const { flatItems, groupFlatIndex } = useMemo(
-    () => buildFlatConversationItems(mockGroups, false),
-    [mockGroups],
+    () => buildFlatConversationItems(displayedGroups, isStreaming),
+    [displayedGroups, isStreaming],
   );
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
@@ -111,12 +111,11 @@ export const MockChatPage = forwardRef<
     >
       <ScrollShadow
         ref={scrollRef}
-        className='min-h-0 flex-1 scrollbar-thin scrollbar-gutter-stable overflow-y-auto pt-10'
+        className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
       >
         <div ref={contentRef} className='pb-4'>
           <ChatConversationView
             flatItems={flatItems}
-            // isStreaming={isStreaming}
             onScroll={() => {}}
             scrollRef={scrollRef}
             virtualizerRef={virtualizerRef}

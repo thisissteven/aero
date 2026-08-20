@@ -2,7 +2,7 @@
 import type { RefObject } from 'react';
 import { memo, useCallback, useEffect, useState } from 'react';
 
-import { Button, IconChevronDown, Tooltip } from '@aero/ui';
+import { Button, cn, IconChevronDown, Tooltip } from '@aero/ui';
 
 interface ScrollToBottomButtonProps {
   scrollRef: RefObject<HTMLElement | null>;
@@ -17,6 +17,14 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
   tooltip,
   onClick,
 }: ScrollToBottomButtonProps) {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsReady(true), 300);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   const [isAtBottom, setIsAtBottom] = useState(true);
   const threshold = 28;
 
@@ -65,7 +73,10 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
       size='sm'
       variant='secondary'
       aria-label='Scroll to bottom'
-      className='pointer-events-auto shadow-md transition-all duration-200'
+      className={cn(
+        'pointer-events-auto shadow-md transition-all duration-200',
+        isReady ? 'opacity-100' : 'opacity-0',
+      )}
       onPress={handleScrollToBottom}
     >
       <IconChevronDown className='text-foreground size-4' />

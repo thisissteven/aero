@@ -1,6 +1,8 @@
 import { Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
+import { IconButton } from '@/app/components/ui/icon-button';
+
 import { SessionStatusDot } from './session-status-dot';
 import {
   useActiveSessionId,
@@ -46,13 +48,9 @@ export function TerminalTabs() {
           );
         })}
       </div>
-      <button
-        type='button'
-        onClick={() => addSession()}
-        className='text-muted hover:bg-surface-hover hover:text-foreground rounded-md p-2 text-sm'
-      >
-        <Icon data={Plus} size={14} />
-      </button>
+      <IconButton onPress={() => addSession()}>
+        <Icon data={Plus} />
+      </IconButton>
     </div>
   );
 }

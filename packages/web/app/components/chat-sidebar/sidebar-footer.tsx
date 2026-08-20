@@ -43,6 +43,7 @@ import {
   Typography,
 } from '@aero/ui';
 
+import { IconButton } from '@/app/components/ui/icon-button';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
@@ -52,52 +53,51 @@ export function SidebarFooter() {
   const openShortcutsModal = useGlobalModalStore((state) => state.openModal);
   return (
     <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-1 pb-3'>
-      <div className='mt-1.5 space-x-2 px-4'>
+      <div className='mt-1.5 space-x-1 px-4'>
         <Tooltip delay={0}>
-          <Tooltip.Trigger
-            onClick={() => openSettingsModal()}
-            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
+          <IconButton
+            onPress={() => openSettingsModal()}
+            slot='trigger'
+            svgSize='sm'
           >
-            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
-              <Icon data={Gear} size={18} />
-            </div>
-          </Tooltip.Trigger>
+            <Icon data={Gear} />
+          </IconButton>
+
           <Tooltip.Content>
             <p>Settings</p>
           </Tooltip.Content>
         </Tooltip>
 
         <Tooltip delay={0}>
-          <Tooltip.Trigger
-            onClick={() =>
+          <IconButton
+            onPress={() =>
               openShortcutsModal({
                 children: <ShortcutsModal />,
               })
             }
-            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
+            slot='trigger'
+            svgSize='sm'
           >
-            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
-              <Icon data={CircleQuestion} size={18} />
-            </div>
-          </Tooltip.Trigger>
+            <Icon data={CircleQuestion} />
+          </IconButton>
+
           <Tooltip.Content>
             <p>Shortcuts</p>
           </Tooltip.Content>
         </Tooltip>
 
         <Tooltip delay={0}>
-          <Tooltip.Trigger
-            onClick={() =>
+          <IconButton
+            onPress={() =>
               openAboutModal({
                 children: <AboutModal />,
               })
             }
-            className='focus-visible:ring-accent rounded-md outline-0 focus-visible:ring-2 focus-visible:outline-none'
+            slot='trigger'
+            svgSize='sm'
           >
-            <div className='grid size-6 place-items-center opacity-50 transition hover:opacity-80'>
-              <Icon data={CircleInfo} size={18} />
-            </div>
-          </Tooltip.Trigger>
+            <Icon data={CircleInfo} />
+          </IconButton>
           <Tooltip.Content>
             <p>About Aero</p>
           </Tooltip.Content>

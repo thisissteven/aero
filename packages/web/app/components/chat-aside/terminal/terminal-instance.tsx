@@ -52,8 +52,10 @@ export const TerminalInstance = forwardRef<
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectRef = useRef<(isReset?: boolean) => void>(() => {});
 
-  // Local output buffer to restore history instantly on theme re-creation
   const historyRef = useRef<string>('');
+
+  // Visibility mask state to hide terminal until frame 1 is ready
+  const [isReady, setIsReady] = useState(false);
 
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -61,12 +63,12 @@ export const TerminalInstance = forwardRef<
   const { resolvedTheme, colorTheme } = useTheme();
   const { setSessionStatus } = useTerminalActions();
 
-  // Internal generation counter to force Ghostty UI re-creation on theme changes
   const [rendererGeneration, setRendererGeneration] = useState(0);
 
   useEffect(() => {
+    setIsReady(false);
     setRendererGeneration((gen) => gen + 1);
-  }, [resolvedTheme, colorTheme]);
+  }, [resolvedTheme, colorTheme, sessionId]);
 
   useImperativeHandle(
     ref,
@@ -74,6 +76,7 @@ export const TerminalInstance = forwardRef<
       getSelection: () => terminalRef.current?.getSelection?.() ?? '',
 
       reconnect: () => {
+        setIsReady(false);
         if (retryTimerRef.current) {
           clearTimeout(retryTimerRef.current);
           retryTimerRef.current = null;
@@ -155,12 +158,16 @@ export const TerminalInstance = forwardRef<
 
         ws.onopen = () => {
           setSessionStatus(sessionId, 'connected');
+          // Fallback timer: reveal terminal after 150ms even if shell produces no output
+          setTimeout(() => setIsReady(true), 150);
         };
 
         ws.onmessage = (event) => {
           const data = String(event.data);
           historyRef.current += data;
           terminalRef.current?.write(data);
+          // Reveal terminal instantly as soon as first content arrives
+          setIsReady(true);
         };
 
         ws.onclose = () => {
@@ -268,9 +275,9 @@ export const TerminalInstance = forwardRef<
 
         fit();
 
-        // Restore screen & scrollback buffer instantly upon theme re-render
         if (historyRef.current) {
           terminal.write(historyRef.current);
+          setIsReady(true);
         }
 
         terminal.onData((data: string) => {
@@ -355,12 +362,12 @@ export const TerminalInstance = forwardRef<
   return (
     <div
       ref={containerRef}
-      className='absolute inset-0 h-full w-full overflow-hidden p-2'
+      className='absolute inset-0 h-full w-full overflow-hidden p-2 transition-opacity duration-100'
       style={{
         backgroundColor: theme.background,
         visibility: active ? 'visible' : 'hidden',
-        pointerEvents: active ? 'auto' : 'none',
-        opacity: active ? 1 : 0,
+        pointerEvents: active && isReady ? 'auto' : 'none',
+        opacity: active && isReady ? 1 : 0,
       }}
     />
   );
