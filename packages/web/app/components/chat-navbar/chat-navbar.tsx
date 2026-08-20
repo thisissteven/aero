@@ -97,6 +97,7 @@ function SessionTitle({
       {isRenaming && (
         <SessionTitleEditable
           key={sessionId}
+          from='navbar'
           sessionId={sessionId}
           sessionTitle={sessionTitle}
         />

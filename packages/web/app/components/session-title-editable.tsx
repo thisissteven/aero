@@ -1,7 +1,7 @@
 import { Check, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn, toast } from '@aero/ui';
 
@@ -15,12 +15,14 @@ import {
 } from '@/app/stores/session-rename';
 
 export function SessionTitleEditable({
+  from,
   sessionId,
   sessionTitle,
   className = 'sm:text-base text-sm font-semibold',
   buttonClassName,
   iconSize = 14,
 }: {
+  from: 'navbar' | 'recents' | 'workspaces';
   sessionId: string;
   sessionTitle: string;
   className?: string;
@@ -37,26 +39,26 @@ export function SessionTitleEditable({
   const cancelRenameWorkspaces = useWorkspacesSessionRenameStore(
     (state) => state.cancelRename,
   );
+
+  const cancelRename = useMemo(() => {
+    switch (from) {
+      case 'navbar':
+        return cancelRenameNavbar;
+      case 'recents':
+        return cancelRenameRecents;
+      case 'workspaces':
+        return cancelRenameWorkspaces;
+    }
+  }, [from]);
+
   const queryClient = useQueryClient();
 
   const [value, setValue] = useState(sessionTitle);
 
   const ref = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  useOnClickOutside(formRef, () => {
-    cancelRenameNavbar();
-    cancelRenameWorkspaces();
-    cancelRenameRecents();
-  });
-  useKeyPress(
-    'Escape',
-    () => {
-      cancelRenameNavbar();
-      cancelRenameWorkspaces();
-      cancelRenameRecents();
-    },
-    { ignoreInputs: false },
-  );
+  useOnClickOutside(formRef, cancelRename);
+  useKeyPress('Escape', cancelRename, { ignoreInputs: false });
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -80,9 +82,7 @@ export function SessionTitleEditable({
         const title = value.trim();
 
         if (title === sessionTitle) {
-          cancelRenameNavbar();
-          cancelRenameWorkspaces();
-          cancelRenameRecents();
+          cancelRename();
           return;
         }
 
@@ -98,9 +98,7 @@ export function SessionTitleEditable({
             }),
           ]);
 
-          cancelRenameNavbar();
-          cancelRenameWorkspaces();
-          cancelRenameRecents();
+          cancelRename();
         };
 
         toast.promise(processRename(), {
@@ -159,9 +157,7 @@ export function SessionTitleEditable({
             )}
             onClick={(e) => {
               e.stopPropagation();
-              cancelRenameNavbar();
-              cancelRenameWorkspaces();
-              cancelRenameRecents();
+              cancelRename();
             }}
           >
             <Icon data={Xmark} size={iconSize} />

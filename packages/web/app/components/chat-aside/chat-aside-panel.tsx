@@ -51,13 +51,7 @@ export function ChatAsidePanel() {
 
   return (
     <>
-      {!isExpanded && (
-        <Resizable.Handle
-          type='line'
-          variant='primary'
-          // className='w-[0.6px]'
-        />
-      )}
+      {!isExpanded && <Resizable.Handle type='line' variant='primary' />}
       <Resizable.Panel
         handleRef={panelRef}
         id='aside-panel'

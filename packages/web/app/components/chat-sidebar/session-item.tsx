@@ -151,6 +151,7 @@ export function SessionItemSummary({
       {isRenaming && (
         <SessionTitleEditable
           key={session.id}
+          from={from}
           sessionId={session.id}
           sessionTitle={session.title}
           className='text-sm font-medium'
@@ -191,6 +192,9 @@ export const ChatSidebarSessionItem = memo(
       pathname === `/${session.id}`;
 
     const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
+    const renameWorkspaces = useWorkspacesSessionRenameStore(
+      (state) => state.rename,
+    );
     const lastPressTimeRef = useRef<number>(0);
 
     const { setMobileOpen } = useSidebar();
@@ -202,7 +206,8 @@ export const ChatSidebarSessionItem = memo(
       if (now - lastPressTimeRef.current < DOUBLE_PRESS_THRESHOLD) {
         // DOUBLE PRESS DETECTED
         lastPressTimeRef.current = 0; // Reset timer
-        renameRecents(session.id);
+        if (from === 'recents') renameRecents(session.id);
+        else renameWorkspaces(session.id);
       } else {
         // SINGLE PRESS
         lastPressTimeRef.current = now;
@@ -282,7 +287,9 @@ export const WorkspaceSessionItem = memo(
       pathname === session.id ||
       pathname === `/${session.id}`;
 
-    const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
+    const renameWorkspaces = useWorkspacesSessionRenameStore(
+      (state) => state.rename,
+    );
     const lastPressTimeRef = useRef<number>(0);
 
     const { setMobileOpen } = useSidebar();
@@ -294,7 +301,7 @@ export const WorkspaceSessionItem = memo(
       if (now - lastPressTimeRef.current < DOUBLE_PRESS_THRESHOLD) {
         // DOUBLE PRESS DETECTED
         lastPressTimeRef.current = 0; // Reset timer
-        renameRecents(session.id);
+        renameWorkspaces(session.id);
       } else {
         // SINGLE PRESS
         lastPressTimeRef.current = now;
