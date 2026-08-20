@@ -266,6 +266,31 @@ export function useSessionMarkdown(harnessId?: string) {
   });
 }
 
+export function useForkSession(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const res = await $individualSession.fork.$post({
+        param: { id: sessionId },
+        query: { harnessId },
+        json: {
+          messageId,
+        },
+      });
+      if (!res.ok) throw new Error('Failed to fork session');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.merged(),
+      });
+    },
+  });
+}
+
 export function useSendMessage(
   harnessId: string | undefined,
   sessionId: string,

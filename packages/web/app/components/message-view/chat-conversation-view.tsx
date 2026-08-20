@@ -56,7 +56,12 @@ export function ChatConversationView({
             key={item.id}
             className='mx-auto w-full px-3 [contain:layout_style] md:max-w-[720px]'
           >
-            {item.type === 'user' && <UserChatBubble turn={item.turn} />}
+            {item.type === 'user' && (
+              <UserChatBubble
+                turn={item.turn}
+                forkMessageId={item.forkMessageId}
+              />
+            )}
             {item.type === 'assistant-part' && (
               <AssistantPartView
                 turnId={item.turnId}
@@ -70,6 +75,7 @@ export function ChatConversationView({
                 turnId={item.turnId}
                 createdAt={item.createdAt}
                 assistantTextResponse={item.assistantTextResponse}
+                nextTurnId={item.nextTurnId}
               />
             )}
           </div>

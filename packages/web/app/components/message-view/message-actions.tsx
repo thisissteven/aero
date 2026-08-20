@@ -1,17 +1,51 @@
-import { Check, Copy, Volume } from '@gravity-ui/icons';
+import { Check, CodeFork, Copy, Volume } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useNavigate } from '@tanstack/react-router';
 
-import { cn, Tooltip } from '@aero/ui';
+import { cn, toast, Tooltip } from '@aero/ui';
 
+import { IconButton } from '@/app/components/ui/icon-button';
+import { useForkSession } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { Route } from '@/app/routes/_app/sessions/$sessionId';
 import { useSpeechStore } from '@/app/stores/speech';
+
+export function MessageActionsFork({ messageId }: { messageId: string }) {
+  const { sessionId } = Route.useParams();
+  const { mutateAsync } = useForkSession(undefined, sessionId);
+
+  const navigate = useNavigate();
+
+  return (
+    <Tooltip delay={300}>
+      <IconButton
+        onPress={async () => {
+          toast.promise(() => mutateAsync(messageId), {
+            loading: 'Forking session',
+            error: (err) => err.message,
+            success(session) {
+              navigate({ to: `/sessions/${session.id}` });
+              return 'Session forked successfully';
+            },
+          });
+        }}
+      >
+        <Icon data={CodeFork} />
+      </IconButton>
+
+      <Tooltip.Content placement='bottom' offset={8}>
+        <span>Fork from here</span>
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
 
 export function MessageActionsCopy({ copyText }: { copyText: string }) {
   const { copied, copy } = useCopyToClipboard();
 
   return (
     <Tooltip delay={300}>
-      <Tooltip.Trigger onClick={() => copy(copyText)}>
+      <IconButton onPress={() => copy(copyText)}>
         <span className='relative flex size-3.5 items-center justify-center'>
           <span
             aria-hidden={!copied}
@@ -22,11 +56,7 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
                 : 'pointer-events-none opacity-0 blur-sm',
             )}
           >
-            <Icon
-              data={Check}
-              size={16}
-              className='opacity-50 transition hover:opacity-80'
-            />
+            <Icon data={Check} />
           </span>
           <span
             aria-hidden={copied}
@@ -37,14 +67,10 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
                 : 'pointer-events-none opacity-0 blur-sm',
             )}
           >
-            <Icon
-              data={Copy}
-              size={16}
-              className='opacity-50 transition hover:opacity-80'
-            />
+            <Icon data={Copy} />
           </span>
         </span>
-      </Tooltip.Trigger>
+      </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
         <span>Copy message</span>
@@ -73,19 +99,9 @@ export function MessageActionsReadAloud({
 
   return (
     <Tooltip delay={300}>
-      <Tooltip.Trigger
-        onClick={() => toggle(id, text)}
-        aria-label={isThisPlaying ? 'Stop reading' : 'Read text aloud'}
-      >
-        <Icon
-          data={Volume}
-          size={16}
-          className={cn(
-            'opacity-50 transition hover:opacity-80',
-            isThisPlaying && 'text-accent opacity-80',
-          )}
-        />
-      </Tooltip.Trigger>
+      <IconButton onPress={() => toggle(id, text)}>
+        <Icon data={Volume} className={cn(isThisPlaying && 'text-accent')} />
+      </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
         <span>{isThisPlaying ? 'Stop reading' : 'Read aloud'}</span>

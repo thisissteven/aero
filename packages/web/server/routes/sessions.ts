@@ -363,6 +363,28 @@ const sessions = new Hono()
     },
   )
 
+  // POST /api/sessions/:id/fork?harnessId=...
+  .post(
+    '/:id/fork',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        messageId: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const body = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.forkSession(id, body.messageId);
+      return c.json(session);
+    },
+  )
+
   // POST /api/sessions/:id/message?harnessId=...
   .post(
     '/:id/message',

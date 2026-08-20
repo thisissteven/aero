@@ -11,6 +11,7 @@ import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 import {
   useNavbarSessionRenameStore,
   useRecentsSessionRenameStore,
+  useWorkspacesSessionRenameStore,
 } from '@/app/stores/session-rename';
 
 export function SessionTitleEditable({
@@ -27,10 +28,13 @@ export function SessionTitleEditable({
   iconSize?: number;
 }) {
   const { mutateAsync, isPending } = useRenameSession();
-  const cancelRename = useNavbarSessionRenameStore(
+  const cancelRenameNavbar = useNavbarSessionRenameStore(
     (state) => state.cancelRename,
   );
-  const cancelRenameNavbar = useRecentsSessionRenameStore(
+  const cancelRenameRecents = useRecentsSessionRenameStore(
+    (state) => state.cancelRename,
+  );
+  const cancelRenameWorkspaces = useWorkspacesSessionRenameStore(
     (state) => state.cancelRename,
   );
   const queryClient = useQueryClient();
@@ -40,14 +44,16 @@ export function SessionTitleEditable({
   const ref = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   useOnClickOutside(formRef, () => {
-    cancelRename();
     cancelRenameNavbar();
+    cancelRenameWorkspaces();
+    cancelRenameRecents();
   });
   useKeyPress(
     'Escape',
     () => {
-      cancelRename();
       cancelRenameNavbar();
+      cancelRenameWorkspaces();
+      cancelRenameRecents();
     },
     { ignoreInputs: false },
   );
@@ -74,8 +80,9 @@ export function SessionTitleEditable({
         const title = value.trim();
 
         if (title === sessionTitle) {
-          cancelRename();
           cancelRenameNavbar();
+          cancelRenameWorkspaces();
+          cancelRenameRecents();
           return;
         }
 
@@ -91,8 +98,9 @@ export function SessionTitleEditable({
             }),
           ]);
 
-          cancelRename();
           cancelRenameNavbar();
+          cancelRenameWorkspaces();
+          cancelRenameRecents();
         };
 
         toast.promise(processRename(), {
@@ -151,8 +159,9 @@ export function SessionTitleEditable({
             )}
             onClick={(e) => {
               e.stopPropagation();
-              cancelRename();
               cancelRenameNavbar();
+              cancelRenameWorkspaces();
+              cancelRenameRecents();
             }}
           >
             <Icon data={Xmark} size={iconSize} />

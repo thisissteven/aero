@@ -21,7 +21,10 @@ import {
 import { SelectWorkspaceSession } from '@/app/components/chat-sidebar/workspace-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { formatCompactRelativeTime } from '@/app/lib';
-import { useRecentsSessionRenameStore } from '@/app/stores/session-rename';
+import {
+  useRecentsSessionRenameStore,
+  useWorkspacesSessionRenameStore,
+} from '@/app/stores/session-rename';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 import { isWorktree } from '@/server/shared';
 
@@ -46,9 +49,18 @@ export function SessionItemSummary({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const state = useRecentsSessionRenameStore((state) => state.state);
+  const recentsState = useRecentsSessionRenameStore((state) => state.state);
+  const workspacesState = useWorkspacesSessionRenameStore(
+    (state) => state.state,
+  );
 
-  const isRenaming = state.isRenaming && state.sessionId === session.id;
+  const isRenaming =
+    (from === 'recents' &&
+      recentsState.isRenaming &&
+      recentsState.sessionId === session.id) ||
+    (from === 'workspaces' &&
+      workspacesState.isRenaming &&
+      workspacesState.sessionId === session.id);
 
   if (!isRenaming) {
     return (
@@ -56,7 +68,7 @@ export function SessionItemSummary({
         <Sidebar.MenuItemContent>
           <Sidebar.MenuLabel
             className={cn(
-              isWorktreeItem && 'text-muted',
+              isWorktreeItem && 'text-foreground/50',
               isCurrent && 'text-foreground',
             )}
           >

@@ -195,9 +195,13 @@ export interface HarnessAdapter {
   unshareSession(sessionId: string): Promise<AeroSessionSummary>;
   renameSession(input: RenameSessionInput): Promise<AeroSessionSummary>;
   archiveSession(sessionId: string): Promise<AeroSessionSummary>;
-  archiveBulkSessions(sessionId: string[]): Promise<boolean>;
+  archiveBulkSessions(sessionIds: string[]): Promise<boolean>;
   unarchiveSession(sessionId: string): Promise<AeroSessionSummary>;
-  unarchiveBulkSessions(sessionId: string[]): Promise<boolean>;
+  unarchiveBulkSessions(sessionIds: string[]): Promise<boolean>;
+  forkSession(
+    sessionId: string,
+    messageId: string,
+  ): Promise<AeroSessionSummary>;
 
   abortSession(sessionId: string): Promise<boolean>;
 

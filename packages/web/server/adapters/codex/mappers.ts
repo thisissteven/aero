@@ -1,12 +1,11 @@
 // server/adapters/codex/mappers.ts
 
-import { normalizePath } from '@/server/shared';
-
 import type {
   AeroMessage,
   AeroPart,
   AeroSessionSummary,
 } from '../../services/harness/types';
+import { normalizePath } from '../../shared';
 
 export interface StoredCodexSession {
   id: string;

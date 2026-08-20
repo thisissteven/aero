@@ -59,6 +59,7 @@ export type FlatConversationVirtualItem =
       id: string;
       type: 'user';
       turn: AeroConversationTurn;
+      forkMessageId: string;
     }
   | {
       id: string;
@@ -75,6 +76,7 @@ export type FlatConversationVirtualItem =
       turnId: string;
       createdAt: string | Date;
       assistantTextResponse: string;
+      nextTurnId: string;
     }
   | {
       id: string;
@@ -99,6 +101,9 @@ export function buildFlatConversationItems(
   displayedGroups.forEach((turn, turnIndex) => {
     groupFlatIndex[turnIndex] = items.length; // anchor: first flat item of this turn
 
+    const nextTurn = displayedGroups[turnIndex + 1];
+    const nextTurnId = nextTurn?.id;
+
     const isLastTurn = turnIndex === displayedGroups.length - 1;
     const isTurnStreaming = isStreaming && isLastTurn;
 
@@ -110,7 +115,7 @@ export function buildFlatConversationItems(
     }
 
     if (turn.role === 'user') {
-      items.push({ id: turn.id, type: 'user', turn });
+      items.push({ id: turn.id, type: 'user', turn, forkMessageId: turn.id });
       items.push({ id: `${turn.id}-spacer`, type: 'spacer' });
     } else {
       const assistantTextResponse = turn.parts
@@ -150,6 +155,7 @@ export function buildFlatConversationItems(
           turnId: turn.id,
           createdAt: formatDateTime(turn.createdAt),
           assistantTextResponse,
+          nextTurnId,
         });
         items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });
       }

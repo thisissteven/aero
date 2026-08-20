@@ -656,6 +656,21 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       }
     },
 
+    async forkSession(sessionID, messageID) {
+      const session = unwrap(
+        await withOpencodeClientV1((client) =>
+          client.session.fork({
+            path: { id: sessionID },
+            body: {
+              messageID,
+            },
+          }),
+        ),
+      );
+
+      return toAeroSession(session);
+    },
+
     async renameSession({ sessionId, title }) {
       const session = unwrap(
         await withOpencodeClientV2((client) =>

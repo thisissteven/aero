@@ -1,4 +1,4 @@
-import { ArrowUturnCcwLeft, Clock, CodeFork, Pin } from '@gravity-ui/icons';
+import { ArrowUturnCcwLeft, Clock, Pin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import {
   memo,
@@ -11,13 +11,23 @@ import {
 
 import { ChatMessage, cn, Tooltip } from '@aero/ui';
 
-import { MessageActionsCopy } from '@/app/components/message-view/message-actions';
+import {
+  MessageActionsCopy,
+  MessageActionsFork,
+} from '@/app/components/message-view/message-actions';
+import { IconButton } from '@/app/components/ui/icon-button';
 import { useKeepMounted } from '@/app/hooks/useKeepMounted';
 import { formatDateTime } from '@/app/lib/date';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 export const UserChatBubble = memo(
-  function UserChatBubble({ turn }: { turn: AeroConversationTurn }) {
+  function UserChatBubble({
+    turn,
+    forkMessageId,
+  }: {
+    turn: AeroConversationTurn;
+    forkMessageId: string;
+  }) {
     const [expanded, setExpanded] = useState(false);
     const [isOverflowing, setIsOverflowing] = useState(false);
 
@@ -134,51 +144,33 @@ export const UserChatBubble = memo(
           </div>
         </ChatMessage.Bubble>
 
-        <div className='mt-3 flex w-full justify-end gap-3 pr-3 pb-3'>
+        <div className='mt-3 flex w-full justify-end gap-2 pb-3'>
           <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
             <Icon data={Clock} size={12} className='opacity-80' />
             {formatDateTime(turn.createdAt)}
           </div>
-          <Tooltip delay={300}>
-            <Tooltip.Trigger>
-              <Icon
-                data={ArrowUturnCcwLeft}
-                size={16}
-                className='opacity-50 transition hover:opacity-80'
-              />
-            </Tooltip.Trigger>
+          <div>
+            <Tooltip delay={300}>
+              <IconButton>
+                <Icon data={ArrowUturnCcwLeft} />
+              </IconButton>
 
-            <Tooltip.Content placement='bottom' offset={8}>
-              <span>Revert from here</span>
-            </Tooltip.Content>
-          </Tooltip>
-          <Tooltip delay={300}>
-            <Tooltip.Trigger>
-              <Icon
-                data={CodeFork}
-                size={16}
-                className='opacity-50 transition hover:opacity-80'
-              />
-            </Tooltip.Trigger>
+              <Tooltip.Content placement='bottom' offset={8}>
+                <span>Revert from here</span>
+              </Tooltip.Content>
+            </Tooltip>
+            <MessageActionsFork messageId={forkMessageId} />
+            <Tooltip delay={300}>
+              <IconButton>
+                <Icon data={Pin} />
+              </IconButton>
 
-            <Tooltip.Content placement='bottom' offset={8}>
-              <span>Fork from here</span>
-            </Tooltip.Content>
-          </Tooltip>
-          <Tooltip delay={300}>
-            <Tooltip.Trigger>
-              <Icon
-                data={Pin}
-                size={16}
-                className='opacity-50 transition hover:opacity-80'
-              />
-            </Tooltip.Trigger>
-
-            <Tooltip.Content placement='bottom' offset={8}>
-              <span>Pin into context (survives compaction)</span>
-            </Tooltip.Content>
-          </Tooltip>
-          <MessageActionsCopy copyText={text} />
+              <Tooltip.Content placement='bottom' offset={8}>
+                <span>Pin into context (survives compaction)</span>
+              </Tooltip.Content>
+            </Tooltip>
+            <MessageActionsCopy copyText={text} />
+          </div>
         </div>
       </ChatMessage.User>
     );
