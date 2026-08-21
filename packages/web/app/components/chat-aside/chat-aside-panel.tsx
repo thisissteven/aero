@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable } from '@aero/ui';
 
+import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { collapsibleNav } from '@/app/components/chat-aside/chat-aside';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
 import { useChatPanelStore } from '@/app/stores/chat-panel-store';
@@ -101,6 +102,8 @@ export function ChatAsidePanel() {
 
           {activeNavItem === 'terminal' ? (
             <TerminalPanel />
+          ) : activeNavItem === 'browser' ? (
+            <BrowserPanel />
           ) : (
             <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
               Content body: {activeNavData?.label}

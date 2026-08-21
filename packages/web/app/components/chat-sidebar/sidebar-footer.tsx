@@ -57,7 +57,7 @@ export function SidebarFooter() {
         <Tooltip delay={0}>
           <IconButton
             onPress={() => openSettingsModal()}
-            slot='trigger'
+            slot='close'
             svgSize='sm'
           >
             <Icon data={Gear} />
@@ -75,7 +75,7 @@ export function SidebarFooter() {
                 children: <ShortcutsModal />,
               })
             }
-            slot='trigger'
+            slot='close'
             svgSize='sm'
           >
             <Icon data={CircleQuestion} />
@@ -93,7 +93,7 @@ export function SidebarFooter() {
                 children: <AboutModal />,
               })
             }
-            slot='trigger'
+            slot='close'
             svgSize='sm'
           >
             <Icon data={CircleInfo} />

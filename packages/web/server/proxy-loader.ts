@@ -1,5 +1,6 @@
 // packages/web/server/proxy-loader.ts
 import { execSync } from 'child_process';
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
 
 /**
  * Automatically configures localhost bypass and detects system proxies on Windows/macOS.
@@ -45,6 +46,11 @@ export function initProxyConfig() {
             `[Proxy Auto-Detect] Windows proxy enabled -> ${proxyUrl}`,
           );
         }
+      }
+
+      const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+      if (proxyUrl) {
+        setGlobalDispatcher(new ProxyAgent(proxyUrl));
       }
     } catch {
       // Ignore registry read errors
