@@ -56,6 +56,43 @@ export type AeroPartRequest =
 
 export type AeroPart = AeroPartRequest & { id: string };
 
+export interface AeroSessionContextDetails {
+  provider: string; // last used provider
+  model: string; // last used model
+  createdAt: number; // first message created at
+  context: {
+    used: number; // total used
+    usedPercentage: number; // total used / limit
+    limit: number; // limit of last used model (set 0 for now if unavailable)
+  };
+  messages: number; // total number of messages
+  user: number; // total number sent by role 'user'
+  assistant: number; // total number sent by role 'assistant'
+  cost: number; // all message costs summed up
+  lastAssistantMessage: {
+    input: number;
+    output: number;
+    reasoning: number;
+    cacheRead: number;
+    cacheWrite: number;
+    cacheHit: number; // cache read / (input + cache read) * 100
+  };
+  distribution: {
+    userPercentage: number; // percentage of messages sent by user (role: user)
+    assistantPercentage: number; // percentage of messages sent by assistant (type: reasoning, text)
+    toolCallPercentage: number; // percentanges of messages that is of type tool
+    otherPercentage: number; // others
+  };
+  rawMessages: {
+    role: ConversationRole;
+    text: string; // each message's part type joined by '-', to not include: 'step-start', 'step-finish'
+    createdAt: number;
+    input: number;
+    output: number;
+    rawContent: string; // the message json itself
+  }[];
+}
+
 export interface AeroMessage {
   id: string;
   sessionId: string;
@@ -188,6 +225,7 @@ export interface HarnessAdapter {
   listArchivedSessions(): Promise<AeroSessionSummary[]>;
   createSession(input: CreateSessionInput): Promise<AeroSessionSummary>;
   getSession(sessionId: string): Promise<AeroSessionSummary>;
+  getSessionContext(sessionId: string): Promise<AeroSessionContextDetails>;
   deleteSession(sessionId: string): Promise<boolean>;
   deleteBulkSessions(sessionIds: string[]): Promise<boolean>;
   listTocs(sessionId: string): Promise<AeroTocItem[]>;

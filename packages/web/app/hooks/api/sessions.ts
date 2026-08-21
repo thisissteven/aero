@@ -30,6 +30,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'messages'] as const,
   toc: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'toc'] as const,
+  context: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'context'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -193,6 +195,25 @@ export function useSessionMessages(
       if (!res.ok) throw new Error('Failed to fetch messages');
       return res.json();
     },
+    enabled: !!sessionId,
+  });
+}
+
+export function useSessionContext(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.context(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.context.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch session context');
+      return res.json();
+    },
+    placeholderData: keepPreviousData,
     enabled: !!sessionId,
   });
 }

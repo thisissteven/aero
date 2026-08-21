@@ -211,6 +211,22 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/context?harnessId=...
+  .get(
+    '/:id/context',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const context = await harness.getSessionContext(id);
+
+      return c.json(context);
+    },
+  )
+
   // GET /api/sessions/:id/toc?harnessId=...
   .get(
     '/:id/toc',

@@ -29,6 +29,23 @@ export function formatCompactRelativeTime(
   return withAgo ? 'Just now' : 'now';
 }
 
+export function formatDateTimeFull(value: string | number | Date): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Invalid date value');
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
 export function formatDateTime(value: string | number | Date): string {
   const date = new Date(value);
 

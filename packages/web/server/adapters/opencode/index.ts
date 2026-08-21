@@ -47,6 +47,7 @@ import {
   toAeroMessage,
   toAeroPart,
   toAeroSession,
+  toAeroSessionContextDetails,
   toAeroSessionExperimental,
   toAeroSessionV2,
   toAeroSessionV2Info,
@@ -654,6 +655,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       } catch {
         return false;
       }
+    },
+
+    async getSessionContext(sessionID) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.session.messages({ sessionID }),
+        ),
+      );
+
+      return toAeroSessionContextDetails(entries);
     },
 
     async forkSession(sessionID, messageID) {

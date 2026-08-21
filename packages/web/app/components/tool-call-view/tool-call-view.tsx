@@ -414,7 +414,7 @@ export function getShikiTheme(
   return entry[mode];
 }
 
-function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
+export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
   const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
   const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
 
