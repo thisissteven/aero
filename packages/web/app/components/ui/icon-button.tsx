@@ -2,14 +2,14 @@
 
 import type { ComponentPropsWithoutRef } from 'react';
 
-import { ButtonRoot } from '@aero/ui';
+import { ButtonRoot, cn } from '@aero/ui';
 
 export interface IconButtonProps extends Omit<
   ComponentPropsWithoutRef<typeof ButtonRoot>,
   'size'
 > {
   size?: 'xs' | 'sm' | 'md' | 'lg';
-  svgSize?: 'xs' | 'sm';
+  svgSize?: 'xs' | 'sm' | 'lg';
 }
 
 export const IconButton = ({
@@ -18,6 +18,7 @@ export const IconButton = ({
   size = 'xs',
   svgSize = 'xs',
   variant = 'ghost',
+  isIconOnly = true,
   ...props
 }: IconButtonProps) => {
   const isExtraSmall = size === 'xs';
@@ -25,20 +26,18 @@ export const IconButton = ({
   return (
     <ButtonRoot
       size={isExtraSmall ? 'sm' : size}
-      isIconOnly
-      className={[
+      isIconOnly={isIconOnly}
+      className={cn([
         isExtraSmall && [
           '!h-7.5 !w-7.5 !p-0',
           svgSize === 'xs' && '[&_svg]:!size-3.5',
           svgSize === 'sm' && '[&_svg]:!size-4.5',
+          svgSize === 'lg' && '[&_svg]:!size-5',
           'active:!scale-[0.98] data-[pressed=true]:!scale-[0.98]',
           'text-muted hover:text-foreground rounded-md',
         ],
         className,
-      ]
-        .flat()
-        .filter(Boolean)
-        .join(' ')}
+      ])}
       variant={variant}
       {...props}
     >

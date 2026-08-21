@@ -24,11 +24,7 @@ function RootLayout() {
     <ThemeProvider defaultColorTheme='aero' defaultTheme='system'>
       <QueryProvider>
         <I18nProvider translations={translations} defaultLanguage='en'>
-          <ToastProvider
-            placement='top end'
-            width={280}
-            className='xs:mx-2 sm:mx-3'
-          />
+          <ToastProvider placement='bottom end' width={280} />
           <GlobalModal />
           <SettingsModal />
           <KeyPressProvider />

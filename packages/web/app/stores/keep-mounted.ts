@@ -1,11 +1,11 @@
-import { create } from 'zustand';
+import { create, StateCreator } from 'zustand';
 
 interface KeepMountedState {
   ids: Record<string, boolean>;
   setKeep: (id: string, keep: boolean) => void;
 }
 
-export const useKeepMountedStore = create<KeepMountedState>((set) => ({
+export const keepMountedSlice: StateCreator<KeepMountedState> = (set) => ({
   ids: {},
   setKeep: (id, keep) =>
     set((s) => {
@@ -18,4 +18,10 @@ export const useKeepMountedStore = create<KeepMountedState>((set) => ({
       delete next[id];
       return { ids: next };
     }),
-}));
+});
+
+export const createKeepMountedStore = () =>
+  create<KeepMountedState>(keepMountedSlice);
+
+export const useKeepMountedStoreFeed = createKeepMountedStore();
+export const useKeepMountedStoreContext = createKeepMountedStore();

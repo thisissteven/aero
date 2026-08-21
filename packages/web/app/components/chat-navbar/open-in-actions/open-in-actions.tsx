@@ -27,7 +27,7 @@ interface DetectedApp {
   available: boolean;
 }
 
-export async function openApp(path: string, appId: string): Promise<boolean> {
+async function openApp(path: string, appId: string): Promise<boolean> {
   const res = await fetch('/api/system/open-app', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,7 @@ export function OpenInActions() {
 function OpenInActionsContent({ projectPath }: { projectPath: string }) {
   const { selectedAppId, setSelectedAppId } = useOpenInStore();
 
-  const handleSelect = (appId: string) => {
+  const handleSelect = async (appId: string) => {
     setSelectedAppId(appId);
     openApp(projectPath, appId);
   };
@@ -67,11 +67,11 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
   const selectedApp = apps.find((app) => app.id === selectedAppId);
 
   return (
-    <div className='bg-surface inline-flex items-center rounded-lg p-0.5'>
+    <div className='border-separator inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
       <IconButton
         aria-label='Open project'
-        onClick={() => openApp(projectPath, selectedAppId)}
+        onPress={async () => await openApp(projectPath, selectedAppId)}
       >
         <AppIcon app={selectedApp} fallbackId={selectedAppId} />
       </IconButton>
@@ -100,14 +100,14 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
                 <Dropdown.Item
                   key={app.id}
                   className='flex items-center justify-between'
-                  onAction={() => handleSelect(app.id)}
+                  onAction={async () => await handleSelect(app.id)}
                 >
                   <div className='flex items-center gap-2.5'>
                     <AppIcon app={app} fallbackId={app.id} />
                     <Label>{app.label}</Label>
                   </div>
                   {selectedAppId === app.id && (
-                    <Icon data={Check} className='text-accent' size={14} />
+                    <Icon data={Check} className='text-accent' size={16} />
                   )}
                 </Dropdown.Item>
               ))
@@ -122,7 +122,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
                   <Label>Finder</Label>
                 </div>
                 {selectedAppId === 'finder' && (
-                  <Icon data={Check} className='text-accent' size={14} />
+                  <Icon data={Check} className='text-accent' size={16} />
                 )}
               </Dropdown.Item>
             )}
@@ -145,7 +145,7 @@ function AppIcon({
       <img
         src={app.appIconUrl}
         alt={app.appName || app.label}
-        className='h-4 w-4 shrink-0 object-contain'
+        className='h-3.5 w-3.5 shrink-0 object-contain'
       />
     );
   }
@@ -172,12 +172,12 @@ function CopyPath({ path }: { path: string }) {
     <Dropdown.Item onPress={() => copy(path)} shouldCloseOnSelect={false}>
       <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
 
-      <div ref={containerRef} className='t-text-swap items-center gap-2.5'>
+      <div ref={containerRef} className='t-text-swap items-center gap-2.25'>
         <div className='shrink-0'>
           {copied ? (
-            <Icon size={14} data={Check} />
+            <Icon size={16} data={Check} />
           ) : (
-            <Icon size={14} data={Copy} />
+            <Icon size={16} data={Copy} />
           )}
         </div>
 

@@ -12,6 +12,7 @@ import {
   Skeleton,
 } from '@aero/ui';
 
+import { ContextUsagePreview } from '@/app/components/chat-navbar/context-usage-preview';
 import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
 import {
   ArchiveSession,
@@ -42,13 +43,16 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
       {isAsideExpanded && (
         <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
       )}
-      <Navbar.Header className='overflow-hidden'>
+      <Navbar.Header className='overflow-hidden pr-0'>
         <AppLayout.MenuToggle />
         <Sidebar.Trigger />
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
-        <OpenInActions />
+        <div className='flex items-center gap-2'>
+          <ContextUsagePreview />
+          <OpenInActions />
+        </div>
       </Navbar.Header>
     </Navbar>
   );

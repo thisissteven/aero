@@ -64,6 +64,7 @@ export interface AeroSessionContextDetails {
     used: number; // total used
     usedPercentage: number; // total used / limit
     limit: number; // limit of last used model (set 0 for now if unavailable)
+    outputLimit: number;
   };
   messages: number; // total number of messages
   user: number; // total number sent by role 'user'
@@ -84,6 +85,7 @@ export interface AeroSessionContextDetails {
     otherPercentage: number; // others
   };
   rawMessages: {
+    id: string;
     role: ConversationRole;
     text: string; // each message's part type joined by '-', to not include: 'step-start', 'step-finish'
     createdAt: number;

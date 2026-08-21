@@ -27,7 +27,7 @@ import {
 import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useKeepMounted } from '@/app/hooks/useKeepMounted';
+import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { toTitleCase } from '@/app/lib/file';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 import type { AeroPart } from '@/server/services/harness/types';
@@ -270,7 +270,7 @@ export const ToolCallView = memo(function ToolCallView({
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useKeepMounted(blockId, isExpanded);
+  useKeepMountedFeed(blockId, isExpanded);
 
   return (
     <Disclosure isExpanded={isExpanded} onExpandedChange={setIsExpanded}>

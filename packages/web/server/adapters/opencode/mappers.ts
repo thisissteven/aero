@@ -46,6 +46,7 @@ async function getProviderModelInfo(providerId: string, modelId: string) {
     model: foundModel?.name ?? 'Unknown',
     provider: foundProvider?.name ?? 'Unknown',
     limit: foundModel?.limit.context ?? 0,
+    outputLimit: foundModel?.limit.output ?? 0,
   };
 }
 
@@ -204,7 +205,7 @@ export async function toAeroSessionContextDetails(
       ? lastEntry.info.model.modelID
       : lastEntry.info.modelID;
 
-  const { provider, model, limit } = await getProviderModelInfo(
+  const { provider, model, limit, outputLimit } = await getProviderModelInfo(
     providerId,
     modelId,
   );
@@ -249,6 +250,7 @@ export async function toAeroSessionContextDetails(
     }
 
     return {
+      id: e.info.id,
       role: e.info.role,
       text,
       createdAt: e.info.time.created,
@@ -266,6 +268,7 @@ export async function toAeroSessionContextDetails(
       used,
       usedPercentage,
       limit,
+      outputLimit,
     },
     messages: entries.length,
     user: userCount,
@@ -289,7 +292,7 @@ function createEmptySessionDetails(): AeroSessionContextDetails {
     provider: '',
     model: '',
     createdAt: 0,
-    context: { used: 0, usedPercentage: 0, limit: 0 },
+    context: { used: 0, usedPercentage: 0, limit: 0, outputLimit: 0 },
     messages: 0,
     user: 0,
     assistant: 0,

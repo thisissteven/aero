@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
-import { useKeepMountedStore } from '@/app/stores/keep-mounted';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
 import { AssistantFooterView } from './assistant-footer-view';
 import { AssistantPartView } from './assistant-part-view';
@@ -19,7 +19,7 @@ export function ChatConversationView({
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (offset: number) => void;
 }) {
-  const keepIds = useKeepMountedStore((s) => s.ids);
+  const keepIds = useKeepMountedStoreFeed((s) => s.ids);
 
   const keepMounted = useMemo(() => {
     const idToIndex = new Map(flatItems.map((item, i) => [item.id, i]));

@@ -19,7 +19,7 @@ import {
 } from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
-import { useKeepMounted } from '@/app/hooks/useKeepMounted';
+import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 
 export const ReasoningBlock = memo(function ReasoningBlock({
@@ -41,7 +41,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   // Initialize state based on whether it starts as streaming
   const [isExpanded, setIsExpanded] = useState(isStreaming);
 
-  useKeepMounted(blockId, isExpanded);
+  useKeepMountedFeed(blockId, isExpanded);
 
   // Sync state with streaming status unless the user manually interacted
   useEffect(() => {
