@@ -115,11 +115,11 @@
     border-radius: min(16px, var(--radius-xl));
 
     [data-slot='dropdown-menu'] {
-      @apply gap-0.5 px-1 py-1.25;
+      @apply gap-0.5 p-1.25;
     }
 
     [data-slot='menu-item'] {
-      @apply min-h-6 gap-1.5 px-2 py-1 text-sm leading-tight;
+      @apply min-h-6 gap-1.5 rounded-lg px-2 py-1 text-sm leading-tight;
     }
   }
 

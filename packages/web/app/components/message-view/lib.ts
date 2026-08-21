@@ -99,6 +99,8 @@ export function buildFlatConversationItems(
   const groupFlatIndex: number[] = new Array(displayedGroups.length);
 
   displayedGroups.forEach((turn, turnIndex) => {
+    if (turn.parts.length === 0) return;
+
     groupFlatIndex[turnIndex] = items.length; // anchor: first flat item of this turn
 
     const nextTurn = displayedGroups[turnIndex + 1];

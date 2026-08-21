@@ -1,6 +1,6 @@
 // packages/web/server/proxy-loader.ts
 import { execSync } from 'child_process';
-import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici';
 
 /**
  * Automatically configures localhost bypass and detects system proxies on Windows/macOS.
@@ -8,14 +8,16 @@ import { ProxyAgent, setGlobalDispatcher } from 'undici';
 export function initProxyConfig() {
   // Always guarantee internal localhost calls bypass any proxy
   const currentNoProxy = process.env.NO_PROXY || process.env.no_proxy || '';
-  const localBypass = '127.0.0.1,localhost,::1';
+  const localBypass = '127.0.0.1,localhost,::1,0.0.0.0';
 
   process.env.NO_PROXY = currentNoProxy
     ? `${currentNoProxy},${localBypass}`
     : localBypass;
+  process.env.no_proxy = process.env.NO_PROXY; // Set lowercase variant for compatibility
 
-  // If HTTP/HTTPS proxies are already explicitly defined in environment, keep them
+  // If HTTP/HTTPS proxies are already explicitly defined in environment, use EnvHttpProxyAgent
   if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) {
+    setGlobalDispatcher(new EnvHttpProxyAgent());
     return;
   }
 
@@ -50,7 +52,8 @@ export function initProxyConfig() {
 
       const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
       if (proxyUrl) {
-        setGlobalDispatcher(new ProxyAgent(proxyUrl));
+        // EnvHttpProxyAgent automatically parses process.env.NO_PROXY / process.env.no_proxy
+        setGlobalDispatcher(new EnvHttpProxyAgent());
       }
     } catch {
       // Ignore registry read errors

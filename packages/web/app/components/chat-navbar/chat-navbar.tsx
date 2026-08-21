@@ -12,6 +12,7 @@ import {
   Skeleton,
 } from '@aero/ui';
 
+import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
 import {
   ArchiveSession,
   CopySessionId,
@@ -47,6 +48,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
+        <OpenInActions />
       </Navbar.Header>
     </Navbar>
   );

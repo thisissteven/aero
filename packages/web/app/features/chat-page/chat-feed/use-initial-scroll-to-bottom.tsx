@@ -12,7 +12,10 @@ export function useInitialScrollToBottom(
 
     let raf2: number;
     const raf1 = requestAnimationFrame(() => {
-      virtualizerRef.current?.scrollToIndex(totalItems - 1, { align: 'end' });
+      virtualizerRef.current?.scrollToIndex(totalItems - 1, {
+        align: 'end',
+        offset: 48,
+      });
 
       raf2 = requestAnimationFrame(() => {
         setIsReady(true);

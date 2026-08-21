@@ -7,6 +7,7 @@ import { initProxyConfig } from './proxy-loader';
 import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
 import sessions from './routes/sessions';
+import systemRoutes from './routes/system';
 import terminalRoutes from './routes/terminal';
 import workspaces from './routes/workspaces';
 
@@ -18,7 +19,8 @@ const app = new Hono()
   .route('/workspaces', workspaces)
   .route('/pool', poolRoutes)
   .route('/terminal', terminalRoutes)
-  .route('/preview', previewRoutes);
+  .route('/preview', previewRoutes)
+  .route('/system', systemRoutes);
 
 app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);
