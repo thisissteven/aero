@@ -10,31 +10,29 @@ export function useTocScrollTracker(
   onActiveGroupIndexChange: (index: number) => void,
 ) {
   const scrollRafRef = useRef<number | null>(null);
+  const isProgrammaticScrollRef = useRef(false);
+  const lastActiveIndexRef = useRef<number>(-1);
 
-  const userTocAnchors = useMemo(
-    () =>
-      groups.reduce<{ groupIndex: number; flatIndex: number }[]>(
-        (acc, group, index) => {
-          if (group.role === 'user') {
-            acc.push({ groupIndex: index, flatIndex: groupFlatIndex[index]! });
-          }
-          return acc;
-        },
-        [],
-      ),
-    [groups, groupFlatIndex],
-  );
+  const userTocAnchors = useMemo(() => {
+    const anchors: { groupIndex: number; flatIndex: number }[] = [];
+    for (let i = 0; i < groups.length; i++) {
+      if (groups[i].role === 'user' && groupFlatIndex[i] !== undefined) {
+        anchors.push({ groupIndex: i, flatIndex: groupFlatIndex[i] });
+      }
+    }
+    return anchors;
+  }, [groups, groupFlatIndex]);
 
   const resolveActiveIndex = useCallback(
     (flatIndex: number) => {
       if (userTocAnchors.length === 0) return 0;
       let lo = 0;
       let hi = userTocAnchors.length - 1;
-      let result = userTocAnchors[0]!.groupIndex;
+      let result = userTocAnchors[0].groupIndex;
 
       while (lo <= hi) {
         const mid = (lo + hi) >> 1;
-        const anchor = userTocAnchors[mid]!;
+        const anchor = userTocAnchors[mid];
         if (anchor.flatIndex <= flatIndex) {
           result = anchor.groupIndex;
           lo = mid + 1;
@@ -49,6 +47,8 @@ export function useTocScrollTracker(
 
   const handleScroll = useCallback(
     (offset: number) => {
+      // Ignore scroll tracking during deliberate TOC jump actions
+      if (isProgrammaticScrollRef.current) return;
       if (scrollRafRef.current !== null) return;
 
       scrollRafRef.current = requestAnimationFrame(() => {
@@ -58,12 +58,17 @@ export function useTocScrollTracker(
 
         const startIndex = handle.findItemIndex(offset + 60);
         if (startIndex != null && startIndex >= 0) {
-          onActiveGroupIndexChange(resolveActiveIndex(startIndex));
+          const nextActiveIndex = resolveActiveIndex(startIndex);
+          // Only trigger state update if the index actually changed
+          if (nextActiveIndex !== lastActiveIndexRef.current) {
+            lastActiveIndexRef.current = nextActiveIndex;
+            onActiveGroupIndexChange(nextActiveIndex);
+          }
         }
       });
     },
     [onActiveGroupIndexChange, resolveActiveIndex, virtualizerRef],
   );
 
-  return handleScroll;
+  return { handleScroll, isProgrammaticScrollRef };
 }

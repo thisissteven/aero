@@ -43,6 +43,13 @@
     outline-style: none;
     flex-direction: column;
     display: inline-flex;
+
+    max-height: min(40vh, 200px);
+
+    overflow-y: auto;
+
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
   }
 
   .floating-toc__trigger[data-placement='left'] {

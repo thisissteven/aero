@@ -52,6 +52,42 @@ const setRefs =
     }
   };
 
+/**
+ * Safely scrolls an element into view within its immediate scroll container
+ * without bubbling up and shifting page/window containers.
+ */
+function scrollIntoParentView(
+  element: HTMLElement | null,
+  behavior: ScrollBehavior = 'smooth',
+) {
+  if (!element) return;
+
+  // Find nearest scrollable parent element
+  let parent = element.parentElement;
+  while (parent) {
+    const { overflowY } = window.getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') break;
+    parent = parent.parentElement;
+  }
+
+  if (!parent) return;
+
+  const elemRect = element.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+
+  // Calculate target position centered inside parent
+  const targetTop =
+    parent.scrollTop +
+    (elemRect.top - parentRect.top) -
+    parent.clientHeight / 2 +
+    elemRect.height / 2;
+
+  parent.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior,
+  });
+}
+
 export interface FloatingTocRootProps {
   children: ReactNode;
   closeDelay?: number;
@@ -227,18 +263,13 @@ function FloatingTocBar({
   ...props
 }: FloatingTocBarProps): ReactElement {
   const innerRef = useRef<HTMLSpanElement | null>(null);
-  const hasMounted = useRef(false);
+
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return;
+    if (active) {
+      scrollIntoParentView(innerRef.current, 'smooth');
     }
-    if (active)
-      innerRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
   }, [active]);
+
   return (
     <span
       {...props}
@@ -271,6 +302,21 @@ function FloatingTocContent({
   ...props
 }: FloatingTocContentProps): ReactElement {
   const context = useFloatingToc();
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (context.isOpen && contentRef.current) {
+      requestAnimationFrame(() => {
+        const activeItem = contentRef.current?.querySelector<HTMLElement>(
+          '[data-slot="floating-toc-item"][data-active="true"]',
+        );
+        if (activeItem) {
+          scrollIntoParentView(activeItem, 'instant');
+        }
+      });
+    }
+  }, [context.isOpen]);
+
   return (
     <RacPopover
       {...props}
@@ -298,6 +344,7 @@ function FloatingTocContent({
         onPointerLeave?.(event);
       }}
       placement={placement ?? (context.placement === 'left' ? 'right' : 'left')}
+      ref={contentRef}
       triggerRef={context.triggerRef}
     />
   );
@@ -311,16 +358,27 @@ function FloatingTocItem({
   active,
   className,
   level,
+  ref,
   style,
   type = 'button',
   ...props
 }: FloatingTocItemProps): ReactElement {
+  const innerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Inside FloatingTocItem
+  useEffect(() => {
+    if (active) {
+      scrollIntoParentView(innerRef.current, 'smooth');
+    }
+  }, [active]);
+
   return (
     <button
       {...props}
       className={cn('floating-toc__item', className)}
       data-active={active || undefined}
       data-slot='floating-toc-item'
+      ref={setRefs(ref, innerRef)}
       style={
         level != null && level > 1
           ? ({ ...style, '--floating-toc-level': level } as CSSProperties)
@@ -330,7 +388,6 @@ function FloatingTocItem({
     />
   );
 }
-
 type FloatingTocComponent = typeof FloatingTocRoot & {
   Bar: typeof FloatingTocBar;
   Content: typeof FloatingTocContent;

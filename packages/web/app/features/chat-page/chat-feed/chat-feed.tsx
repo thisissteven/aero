@@ -1,6 +1,5 @@
 import React, {
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -51,11 +50,11 @@ export const ChatFeed = forwardRef<
     setConversationData(groups, revertMessageId);
   }, [groups, revertMessageId, setConversationData]);
 
-  const { subscribeScroll, notifyScroll } = useScrollSubscription(scrollRef);
+  const { subscribeScroll } = useScrollSubscription(scrollRef);
 
   const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
 
-  const handleTocScroll = useTocScrollTracker(
+  const { handleScroll, isProgrammaticScrollRef } = useTocScrollTracker(
     groups,
     groupFlatIndex,
     virtualizerRef,
@@ -75,24 +74,39 @@ export const ChatFeed = forwardRef<
       scrollRef,
       subscribeScroll,
       scrollToIndex: (groupIndex: number) => {
-        const flatIndex = groupFlatIndex[groupIndex];
-        if (flatIndex === undefined) return;
-        virtualizerRef.current?.scrollToIndex(flatIndex, {
+        const groupFlatIndexMap = useChatStore.getState().groupFlatIndex;
+        const targetFlatIndex = groupFlatIndexMap[groupIndex];
+        const handle = virtualizerRef.current;
+
+        if (targetFlatIndex === undefined || !handle) return;
+
+        // Disable scroll tracking feedback loop
+        isProgrammaticScrollRef.current = true;
+        onActiveGroupIndexChange(groupIndex);
+
+        const currentIndex =
+          handle.findItemIndex(scrollRef.current?.scrollTop || 0) ?? 0;
+        const indexDistance = Math.abs(targetFlatIndex - currentIndex);
+
+        // If jumping more than 15 items, smooth scroll is slow; jump directly
+        const isLongJump = indexDistance > 15;
+
+        handle.scrollToIndex(targetFlatIndex, {
           align: 'start',
-          smooth: true,
+          smooth: !isLongJump,
           offset: -40,
         });
+
+        // Re-enable scroll tracker after animation finishes
+        setTimeout(
+          () => {
+            isProgrammaticScrollRef.current = false;
+          },
+          isLongJump ? 50 : 350,
+        );
       },
     }),
-    [subscribeScroll, groupFlatIndex],
-  );
-
-  const handleScroll = useCallback(
-    (offset: number) => {
-      notifyScroll();
-      handleTocScroll(offset);
-    },
-    [notifyScroll, handleTocScroll],
+    [subscribeScroll, onActiveGroupIndexChange, isProgrammaticScrollRef],
   );
 
   return (
