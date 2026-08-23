@@ -4,6 +4,7 @@ import { cn } from '@aero/ui';
 
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatFeed } from '@/app/features/chat-page/chat-feed/chat-feed';
+import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
@@ -90,6 +91,8 @@ export function ChatPage({
               subscribeScroll={subscribeScroll}
             />
           </div>
+
+          <RevertedMessages />
 
           <ChatInput isDisabled={notFound} />
         </div>

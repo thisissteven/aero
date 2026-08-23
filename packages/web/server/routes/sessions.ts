@@ -17,7 +17,7 @@ import {
   withPagination,
 } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
-import type { AeroPartRequest } from '../services/harness/types';
+import type { AeroPartRequest, AeroTocItem } from '../services/harness/types';
 
 const harnessQuerySchema = z.object({
   harnessId: z.string().optional(),
@@ -237,11 +237,19 @@ const sessions = new Hono()
       const { harnessId } = c.req.valid('query');
 
       const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
       const items = await harness.listTocs(id);
 
-      if (items.length < 3) return c.json([]);
+      const tocs = [] as AeroTocItem[];
 
-      return c.json(items);
+      for (const item of items) {
+        if (session.revert?.messageID === item.id) break;
+        tocs.push(item);
+      }
+
+      if (tocs.length < 3) return c.json([]);
+
+      return c.json(tocs);
     },
   )
 

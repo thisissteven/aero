@@ -104,46 +104,51 @@ export function BaseTool({
       </Disclosure.Heading>
 
       <Disclosure.Content className='mt-2 pl-0'>
-        <DeferredView>
-          <div className='border-default ml-2 border-l pl-5'>
-            {error && (
-              <div>
-                <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
-                <Alert
-                  status='danger'
-                  className='bg-transparent p-0 pt-4 shadow-none'
-                >
-                  <Alert.Content>
-                    <Alert.Description className='text-danger'>
-                      {error}
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              </div>
-            )}
-            {hasContent && (
-              <CodeBlock className='bg-transparent'>
-                <CodeBlock.Header>
-                  <div
-                    className={cn(
-                      'text-muted min-w-0 font-mono text-xs break-all',
-                      isItalicHeader && 'italic',
-                    )}
+        <Disclosure.Body>
+          <DeferredView>
+            <div className='border-default ml-2 border-l pl-5'>
+              {error && (
+                <div>
+                  <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+                  <Alert
+                    status='danger'
+                    className='bg-transparent p-0 pt-4 shadow-none'
                   >
-                    {codeTitle}
-                  </div>
-                  <CodeBlock.CopyButton code={copyText} className='shrink-0' />
-                </CodeBlock.Header>
-                <CodeBlockContent
-                  code={code}
-                  language={language}
-                  scrollOverflow={code.includes('\n')}
-                  showLineNumbers={showLineNumbers}
-                />
-              </CodeBlock>
-            )}
-          </div>
-        </DeferredView>
+                    <Alert.Content>
+                      <Alert.Description className='text-danger'>
+                        {error}
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                </div>
+              )}
+              {hasContent && (
+                <CodeBlock className='bg-transparent'>
+                  <CodeBlock.Header>
+                    <div
+                      className={cn(
+                        'text-muted min-w-0 font-mono text-xs break-all',
+                        isItalicHeader && 'italic',
+                      )}
+                    >
+                      {codeTitle}
+                    </div>
+                    <CodeBlock.CopyButton
+                      code={copyText}
+                      className='shrink-0'
+                    />
+                  </CodeBlock.Header>
+                  <CodeBlockContent
+                    code={code}
+                    language={language}
+                    scrollOverflow={code.includes('\n')}
+                    showLineNumbers={showLineNumbers}
+                  />
+                </CodeBlock>
+              )}
+            </div>
+          </DeferredView>
+        </Disclosure.Body>
       </Disclosure.Content>
     </Disclosure>
   );

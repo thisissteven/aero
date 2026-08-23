@@ -43,7 +43,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
 
 export function MessageActionsFork({ messageId }: { messageId: string }) {
   const { sessionId } = Route.useParams();
-  const { mutateAsync } = useForkSession(undefined, sessionId);
+  const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
 
   const navigate = useNavigate();
 
@@ -51,7 +51,7 @@ export function MessageActionsFork({ messageId }: { messageId: string }) {
     <Tooltip delay={300}>
       <IconButton
         onPress={async () => {
-          toast.promise(() => mutateAsync(messageId), {
+          toast.promise(() => forkSession(messageId), {
             loading: 'Forking session',
             error: (err) => err.message,
             success(session) {

@@ -44,22 +44,24 @@ const StreamItem = memo(
                 {item.content.slice(0, 20) || 'Streaming Code...'}
               </Disclosure.Trigger>
               <Disclosure.Content className='max-w-lg'>
-                <div className='border-default ml-2 border-l pl-5'>
-                  <CodeBlock className='bg-transparent'>
-                    <CodeBlock.Header>
-                      <div>{item.content.slice(0, 12)}</div>
-                      <CodeBlock.CopyButton
+                <Disclosure.Body>
+                  <div className='border-default ml-2 border-l pl-5'>
+                    <CodeBlock className='bg-transparent'>
+                      <CodeBlock.Header>
+                        <div>{item.content.slice(0, 12)}</div>
+                        <CodeBlock.CopyButton
+                          code={innerText}
+                          className='shrink-0'
+                        />
+                      </CodeBlock.Header>
+                      <AdaptiveCodeBlockCode
                         code={innerText}
-                        className='shrink-0'
+                        scrollOverflow={item.content.includes('\n')}
+                        showLineNumbers
                       />
-                    </CodeBlock.Header>
-                    <AdaptiveCodeBlockCode
-                      code={innerText}
-                      scrollOverflow={item.content.includes('\n')}
-                      showLineNumbers
-                    />
-                  </CodeBlock>
-                </div>
+                    </CodeBlock>
+                  </div>
+                </Disclosure.Body>
               </Disclosure.Content>
             </Disclosure>
           );

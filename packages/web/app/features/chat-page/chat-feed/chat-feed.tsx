@@ -1,8 +1,8 @@
 import React, {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
 } from 'react';
 import { type VirtualizerHandle } from 'virtua';
@@ -10,8 +10,7 @@ import { type VirtualizerHandle } from 'virtua';
 import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
-import { buildFlatConversationItems } from '@/app/components/message-view/lib';
-import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
+import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
@@ -42,10 +41,15 @@ export const ChatFeed = forwardRef<
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const { flatItems, groupFlatIndex, revertedMessages } = useMemo(
-    () => buildFlatConversationItems(groups, false, revertMessageId),
-    [groups, revertMessageId],
+  const setConversationData = useChatStore(
+    (state) => state.setConversationData,
   );
+  const flatItems = useChatStore((state) => state.flatItems);
+  const groupFlatIndex = useChatStore((state) => state.groupFlatIndex);
+
+  useEffect(() => {
+    setConversationData(groups, revertMessageId);
+  }, [groups, revertMessageId, setConversationData]);
 
   const { subscribeScroll, notifyScroll } = useScrollSubscription(scrollRef);
 
@@ -114,9 +118,6 @@ export const ChatFeed = forwardRef<
           </div>
         </ScrollShadow>
       </div>
-      {revertedMessages.length > 0 && (
-        <RevertedMessages revertedMessages={revertedMessages} />
-      )}
     </>
   );
 });

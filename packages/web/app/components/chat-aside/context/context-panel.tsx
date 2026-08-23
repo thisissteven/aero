@@ -412,15 +412,17 @@ function MessageItem({
           </Disclosure.Trigger>
         </Disclosure.Heading>
         <Disclosure.Content>
-          <DeferredView>
-            <CodeBlock className='bg-transparent'>
-              <CodeBlockContent
-                code={msg.rawContent}
-                language='json'
-                scrollOverflow={true}
-              />
-            </CodeBlock>
-          </DeferredView>
+          <Disclosure.Body>
+            <DeferredView>
+              <CodeBlock className='bg-transparent'>
+                <CodeBlockContent
+                  code={msg.rawContent}
+                  language='json'
+                  scrollOverflow={true}
+                />
+              </CodeBlock>
+            </DeferredView>
+          </Disclosure.Body>
         </Disclosure.Content>
       </Disclosure>
     </div>

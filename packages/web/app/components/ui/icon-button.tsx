@@ -33,7 +33,7 @@ export const IconButton = ({
           svgSize === 'sm' && '[&_svg]:!size-4.5',
           svgSize === 'lg' && '[&_svg]:!size-5',
           'active:!scale-[0.98] data-[pressed=true]:!scale-[0.98]',
-          'text-muted hover:text-foreground rounded-md',
+          'text-muted hover:text-foreground active:text-foreground rounded-md',
         ],
         className,
       ])}
