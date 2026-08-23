@@ -57,7 +57,7 @@ export function ChatAsidePanel() {
       <Resizable.Panel
         handleRef={panelRef}
         id='aside-panel'
-        defaultSize={isExpanded ? '100%' : '320px'}
+        defaultSize={isExpanded ? '100%' : '360px'}
         minSize={isExpanded ? '100%' : '320px'}
         maxSize={isExpanded ? '100%' : '70%'}
         groupResizeBehavior='preserve-pixel-size'

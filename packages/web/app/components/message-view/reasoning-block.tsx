@@ -12,7 +12,6 @@ import {
   ScrollShadow,
 } from '@aero/ui';
 
-import { DeferredView } from '@/app/components/deferred-view';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 
@@ -106,17 +105,15 @@ export const ReasoningBlock = memo(function ReasoningBlock({
         >
           <ChainOfThought.Steps>
             <ChainOfThought.Step>
-              <DeferredView>
-                <AdaptiveMarkdown
-                  id={`${blockId}-reason`}
-                  isFile={isFile}
-                  onFileClick={onFileClick}
-                  scrollRef={scrollRef}
-                  isStreaming={isStreaming}
-                >
-                  {text}
-                </AdaptiveMarkdown>
-              </DeferredView>
+              <AdaptiveMarkdown
+                id={`${blockId}-reason`}
+                isFile={isFile}
+                onFileClick={onFileClick}
+                scrollRef={scrollRef}
+                isStreaming={isStreaming}
+              >
+                {text}
+              </AdaptiveMarkdown>
             </ChainOfThought.Step>
           </ChainOfThought.Steps>
         </ScrollShadow>

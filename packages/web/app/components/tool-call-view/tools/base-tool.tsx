@@ -1,5 +1,5 @@
 import { Icon } from '@gravity-ui/uikit';
-import { SVGProps, useState } from 'react';
+import { SVGProps } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
@@ -10,12 +10,11 @@ import {
   Disclosure,
 } from '@aero/ui';
 
-import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { useTheme } from '@/app/providers';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
 export function BaseTool({
   blockId,
@@ -48,12 +47,17 @@ export function BaseTool({
   showLineNumbers?: boolean;
   isItalicHeader?: boolean;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const hasContent = Boolean(copyText && code);
-  useKeepMountedFeed(blockId, isExpanded);
+
+  const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[blockId]));
+
+  const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
   return (
-    <Disclosure isExpanded={isExpanded} onExpandedChange={setIsExpanded}>
+    <Disclosure
+      isExpanded={isExpanded}
+      onExpandedChange={(nextExpanded) => setKeep(blockId, nextExpanded)}
+    >
       <Disclosure.Heading>
         <Disclosure.Trigger
           className={cn(
@@ -107,46 +111,44 @@ export function BaseTool({
       </Disclosure.Heading>
 
       <Disclosure.Content className='mt-2 pl-0'>
-        <DeferredView>
-          <div className='border-default ml-2 border-l pl-5'>
-            {error && (
-              <div>
-                <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
-                <Alert
-                  status='danger'
-                  className='bg-transparent p-0 pt-4 shadow-none'
+        <div className='border-default ml-2 border-l pl-5'>
+          {error && (
+            <div>
+              <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+              <Alert
+                status='danger'
+                className='bg-transparent p-0 pt-4 shadow-none'
+              >
+                <Alert.Content>
+                  <Alert.Description className='text-danger'>
+                    {error}
+                  </Alert.Description>
+                </Alert.Content>
+              </Alert>
+            </div>
+          )}
+          {hasContent && (
+            <CodeBlock className='bg-transparent'>
+              <CodeBlock.Header>
+                <div
+                  className={cn(
+                    'text-muted min-w-0 font-mono text-xs break-all',
+                    isItalicHeader && 'italic',
+                  )}
                 >
-                  <Alert.Content>
-                    <Alert.Description className='text-danger'>
-                      {error}
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              </div>
-            )}
-            {hasContent && (
-              <CodeBlock className='bg-transparent'>
-                <CodeBlock.Header>
-                  <div
-                    className={cn(
-                      'text-muted min-w-0 font-mono text-xs break-all',
-                      isItalicHeader && 'italic',
-                    )}
-                  >
-                    {codeTitle}
-                  </div>
-                  <CodeBlock.CopyButton code={copyText} className='shrink-0' />
-                </CodeBlock.Header>
-                <CodeBlockContent
-                  code={code}
-                  language={language}
-                  scrollOverflow={code.includes('\n')}
-                  showLineNumbers={showLineNumbers}
-                />
-              </CodeBlock>
-            )}
-          </div>
-        </DeferredView>
+                  {codeTitle}
+                </div>
+                <CodeBlock.CopyButton code={copyText} className='shrink-0' />
+              </CodeBlock.Header>
+              <CodeBlockContent
+                code={code}
+                language={language}
+                scrollOverflow={code.includes('\n')}
+                showLineNumbers={showLineNumbers}
+              />
+            </CodeBlock>
+          )}
+        </div>
       </Disclosure.Content>
     </Disclosure>
   );
@@ -165,7 +167,13 @@ export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
 
   const activeTheme = getShikiTheme(themeName, mode);
 
-  return <AdaptiveCodeBlockCode {...props} theme={activeTheme} />;
+  return (
+    <AdaptiveCodeBlockCode
+      {...props}
+      theme={activeTheme}
+      darkTheme={activeTheme}
+    />
+  );
 }
 
 const SHIKI_THEME_MAP: Record<string, { light: string; dark: string }> = {
@@ -180,11 +188,11 @@ const SHIKI_THEME_MAP: Record<string, { light: string; dark: string }> = {
   dracula: { light: 'dracula', dark: 'dracula' },
   monokai: { light: 'monokai', dark: 'monokai' },
   nord: { light: 'nord', dark: 'nord' },
-  vesper: { light: 'vesper', dark: 'vesper' },
+  vesper: { light: 'github-light', dark: 'vesper' },
   zenburn: { light: 'zenburn', dark: 'zenburn' },
-  nightowl: { light: 'night-owl', dark: 'night-owl' },
-  onedarkpro: { light: 'one-dark-pro', dark: 'one-dark-pro' },
-  tokyonight: { light: 'tokyo-night', dark: 'tokyo-night' },
+  nightowl: { light: 'github-light', dark: 'night-owl' },
+  onedarkpro: { light: 'github-light', dark: 'one-dark-pro' },
+  tokyonight: { light: 'github-light', dark: 'tokyo-night' },
 };
 
 function getShikiTheme(

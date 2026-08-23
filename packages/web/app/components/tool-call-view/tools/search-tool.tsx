@@ -23,6 +23,7 @@ export const SearchToolView = memo(
         language='log'
         preview={path ? `${pattern} in ${path}` : pattern}
         copyText={rawOutput}
+        showLineNumbers={false}
         isItalicHeader
       />
     );

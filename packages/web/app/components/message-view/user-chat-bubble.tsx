@@ -17,8 +17,8 @@ import {
   MessageActionsRevert,
 } from '@/app/components/message-view/message-actions';
 import { IconButton } from '@/app/components/ui/icon-button';
-import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { formatDateTime } from '@/app/lib/date';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 export const UserChatBubble = memo(
@@ -29,14 +29,11 @@ export const UserChatBubble = memo(
     turn: AeroConversationTurn;
     forkMessageId: string;
   }) {
-    const [expanded, setExpanded] = useState(false);
     const [isOverflowing, setIsOverflowing] = useState(false);
 
     const bubbleRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
     const shouldScrollOnCollapseRef = useRef(false);
-
-    useKeepMountedFeed(turn.id, expanded);
 
     const text = useMemo(
       () =>
@@ -73,15 +70,23 @@ export const UserChatBubble = memo(
       return () => observer.disconnect();
     }, [text]);
 
+    const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[turn.id]));
+
+    const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
+
     const handleToggle = () => {
-      if (expanded) {
+      if (isExpanded) {
         shouldScrollOnCollapseRef.current = true;
       }
-      setExpanded((prev) => !prev);
+      setKeep(turn.id, !isExpanded);
     };
 
     useLayoutEffect(() => {
-      if (!shouldScrollOnCollapseRef.current || expanded || !bubbleRef.current)
+      if (
+        !shouldScrollOnCollapseRef.current ||
+        isExpanded ||
+        !bubbleRef.current
+      )
         return;
 
       shouldScrollOnCollapseRef.current = false;
@@ -105,17 +110,17 @@ export const UserChatBubble = memo(
       } else {
         bubbleEl.scrollIntoView({ behavior: 'instant', block: 'start' });
       }
-    }, [expanded]);
+    }, [isExpanded]);
 
     return (
       <ChatMessage.User ref={bubbleRef} className='relative'>
         <ChatMessage.Bubble
           className={cn(
             'max-w-4/5',
-            isOverflowing && !expanded && 'cursor-pointer',
+            isOverflowing && !isExpanded && 'cursor-pointer',
           )}
           onClick={() => {
-            if (expanded) return;
+            if (isExpanded) return;
             handleToggle();
           }}
         >
@@ -124,7 +129,7 @@ export const UserChatBubble = memo(
               ref={textRef}
               className={cn(
                 'overflow-hidden font-sans break-words whitespace-pre-wrap',
-                !expanded && isOverflowing && 'line-clamp-2',
+                !isExpanded && isOverflowing && 'line-clamp-2',
               )}
             >
               {text}
@@ -139,7 +144,7 @@ export const UserChatBubble = memo(
                   handleToggle();
                 }}
               >
-                {expanded ? 'Show less' : 'Show more'}
+                {isExpanded ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>

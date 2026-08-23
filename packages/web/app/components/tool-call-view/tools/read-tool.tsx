@@ -23,6 +23,7 @@ export const ReadToolView = memo(
         preview={path}
         previewType='read-path'
         copyText={rawOutput}
+        showLineNumbers={false}
       />
     );
   },

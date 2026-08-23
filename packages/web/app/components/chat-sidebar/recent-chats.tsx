@@ -31,7 +31,7 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
       {Array.from({ length: 20 }, (_, i) => {
         return (
           <li key={i}>
-            <Skeleton className='h-[38px] w-full rounded-2xl' />
+            <Skeleton className='h-[38px] w-full rounded-xl' />
           </li>
         );
       })}

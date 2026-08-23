@@ -189,7 +189,7 @@ export function SettingsModal() {
                                 onClick={() => setActiveTab(item.id)}
                                 className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm ${
                                   isActive
-                                    ? 'bg-surface-secondary text-sureface-foreground font-medium'
+                                    ? 'bg-surface-secondary text-surface-foreground font-medium'
                                     : 'text-muted hover:bg-surface-secondary'
                                 }`}
                               >

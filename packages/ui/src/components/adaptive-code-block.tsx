@@ -24,7 +24,7 @@ export interface AdaptiveCodeBlockCodeProps extends CodeBlockCodeProps {
 export const AdaptiveCodeBlockCode = memo(function AdaptiveCodeBlockCode({
   code,
   scrollOverflow,
-  virtualizeLineThreshold = 300,
+  virtualizeLineThreshold = 10,
   ...props
 }: AdaptiveCodeBlockCodeProps): ReactElement {
   const lineCount = useMemo(
@@ -47,16 +47,10 @@ export const AdaptiveCodeBlockCode = memo(function AdaptiveCodeBlockCode({
         <VirtualizedCodeBlockCode
           code={code}
           scrollOverflow={scrollOverflow}
-          showLineNumbers
           {...props}
         />
       ) : (
-        <CodeBlockCode
-          code={code}
-          scrollOverflow={scrollOverflow}
-          showLineNumbers
-          {...props}
-        />
+        <CodeBlockCode code={code} scrollOverflow={scrollOverflow} {...props} />
       )}
     </Suspense>
   );

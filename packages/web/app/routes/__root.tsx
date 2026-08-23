@@ -12,6 +12,7 @@ import {
   ThemeProvider,
 } from '@/app/providers';
 import { KeyPressProvider } from '@/app/providers/key-press';
+import { PreloadProvider } from '@/app/providers/PreloadProvider';
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -28,6 +29,7 @@ function RootLayout() {
           <GlobalModal />
           <SettingsModal />
           <KeyPressProvider />
+          <PreloadProvider />
           <Outlet />
         </I18nProvider>
       </QueryProvider>

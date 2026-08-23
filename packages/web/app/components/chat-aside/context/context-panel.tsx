@@ -1,5 +1,5 @@
 import { useParams } from '@tanstack/react-router';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { VList } from 'virtua';
 
 import {
@@ -12,10 +12,8 @@ import {
   Typography,
 } from '@aero/ui';
 
-import { DeferredView } from '@/app/components/deferred-view';
 import { CodeBlockContent } from '@/app/components/tool-call-view/tools';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
-import { useKeepMountedContext } from '@/app/hooks/useKeepMounted';
 import { formatDateTimeFull } from '@/app/lib/date';
 import { useKeepMountedStoreContext } from '@/app/stores/keep-mounted';
 import { AeroSessionContextDetails } from '@/server/services/harness/types';
@@ -368,14 +366,15 @@ const MessageItem = memo(
   }: {
     msg: AeroSessionContextDetails['rawMessages'][number];
   }) {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    useKeepMountedContext(msg.id, isExpanded);
+    const isExpanded = useKeepMountedStoreContext((s) =>
+      Boolean(s.ids[msg.id]),
+    );
+    const setKeep = useKeepMountedStoreContext((s) => s.setKeep);
 
     return (
       <Disclosure
         isExpanded={isExpanded}
-        onExpandedChange={setIsExpanded}
+        onExpandedChange={() => setKeep(msg.id, !isExpanded)}
         className='pb-2'
       >
         <Disclosure.Heading>
@@ -417,15 +416,13 @@ const MessageItem = memo(
           </Disclosure.Trigger>
         </Disclosure.Heading>
         <Disclosure.Content>
-          <DeferredView>
-            <CodeBlock className='bg-transparent'>
-              <CodeBlockContent
-                code={msg.rawContent}
-                language='json'
-                scrollOverflow={true}
-              />
-            </CodeBlock>
-          </DeferredView>
+          <CodeBlock className='bg-transparent'>
+            <CodeBlockContent
+              code={msg.rawContent}
+              language='json'
+              scrollOverflow
+            />
+          </CodeBlock>
         </Disclosure.Content>
       </Disclosure>
     );

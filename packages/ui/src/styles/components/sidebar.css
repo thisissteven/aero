@@ -488,7 +488,7 @@
     min-width: calc(var(--spacing, 0.25rem) * 0);
     align-items: center;
     gap: calc(var(--spacing, 0.25rem) * 3);
-    border-radius: calc(var(--radius) * 2);
+    border-radius: calc(var(--radius) * 1.25);
     padding-block: calc(var(--spacing, 0.25rem) * 1.5);
     width: calc(100% - var(--sidebar-menu-item-offset));
     margin-inline-start: var(--sidebar-menu-item-offset);
