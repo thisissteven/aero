@@ -94,14 +94,51 @@ export type FlatConversationVirtualItem =
 export function buildFlatConversationItems(
   displayedGroups: AeroConversationTurn[],
   isStreaming: boolean,
-): { flatItems: FlatConversationVirtualItem[]; groupFlatIndex: number[] } {
+  revertMessageId?: string,
+): {
+  flatItems: FlatConversationVirtualItem[];
+  groupFlatIndex: number[];
+  revertedMessages: {
+    preview: string;
+    messageId: string;
+  }[];
+} {
   const items: FlatConversationVirtualItem[] = [];
   const groupFlatIndex: number[] = new Array(displayedGroups.length);
+  const revertedMessages: { preview: string; messageId: string }[] = [];
 
-  displayedGroups.forEach((turn, turnIndex) => {
-    if (turn.parts.length === 0) return;
+  let isReverted = false;
 
-    groupFlatIndex[turnIndex] = items.length; // anchor: first flat item of this turn
+  for (let turnIndex = 0; turnIndex < displayedGroups.length; turnIndex++) {
+    const turn = displayedGroups[turnIndex];
+
+    const isRevertTarget =
+      turn.id === revertMessageId ||
+      turn.parts.some((part) => part.id === revertMessageId);
+
+    if (revertMessageId && isRevertTarget) {
+      isReverted = true;
+    }
+
+    if (isReverted) {
+      if (turn.role === 'user') {
+        const preview = turn.parts
+          .filter((p) => p.type === 'text')
+          .map((p) => p.text.trim())
+          .filter(Boolean)
+          .join(' ');
+
+        revertedMessages.push({
+          preview,
+          messageId: turn.id,
+        });
+      }
+      continue;
+    }
+
+    if (turn.parts.length === 0) continue;
+
+    groupFlatIndex[turnIndex] = items.length;
 
     const nextTurn = displayedGroups[turnIndex + 1];
     const nextTurnId = nextTurn?.id;
@@ -162,7 +199,7 @@ export function buildFlatConversationItems(
         items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });
       }
     }
-  });
+  }
 
-  return { flatItems: items, groupFlatIndex };
+  return { flatItems: items, groupFlatIndex, revertedMessages };
 }

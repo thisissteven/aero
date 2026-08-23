@@ -19,5 +19,12 @@ function SessionPage() {
 
   const notFound = !session && !isSessionLoading;
 
-  return <ChatPage sessionId={sessionId} groups={turns} notFound={notFound} />;
+  return (
+    <ChatPage
+      sessionId={sessionId}
+      revertMessageId={session?.revert?.messageID}
+      groups={turns}
+      notFound={notFound}
+    />
+  );
 }

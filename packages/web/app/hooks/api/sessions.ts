@@ -287,6 +287,53 @@ export function useSessionMarkdown(harnessId?: string) {
   });
 }
 
+export function useRestoreAllMessages(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await $individualSession.restore.$post({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to restore messages');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
+    },
+  });
+}
+
+export function useRevertSession(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const res = await $individualSession.revert.$post({
+        param: { id: sessionId },
+        query: { harnessId },
+        json: {
+          messageId,
+        },
+      });
+      if (!res.ok) throw new Error('Failed to revert message');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
+    },
+  });
+}
+
 export function useForkSession(
   harnessId: string | undefined,
   sessionId: string,

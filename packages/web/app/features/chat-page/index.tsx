@@ -14,9 +14,15 @@ export interface ChatPageProps {
   sessionId: string;
   groups: AeroConversationTurn[];
   notFound: boolean;
+  revertMessageId?: string;
 }
 
-export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
+export function ChatPage({
+  sessionId,
+  groups,
+  notFound,
+  revertMessageId,
+}: ChatPageProps) {
   const [activeGroupIndex, setActiveGroupIndex] = useState(
     () => groups.length - 1,
   );
@@ -63,6 +69,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
           {/* <MockChatPage ref={feedRef} mockGroups={groups} /> */}
           <ChatFeed
             key={sessionId}
+            revertMessageId={revertMessageId}
             groups={groups}
             ref={feedRef}
             onActiveGroupIndexChange={setActiveGroupIndex}
@@ -71,7 +78,7 @@ export function ChatPage({ sessionId, groups, notFound }: ChatPageProps) {
       )}
 
       <div className='bg-background shrink-0 px-4 pb-4'>
-        <div className='relative mx-auto w-full max-w-[714px]'>
+        <div className='relative mx-auto w-full max-w-[720px]'>
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
             <ScrollToBottomButton
               key={sessionId}

@@ -11,6 +11,7 @@ import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { buildFlatConversationItems } from '@/app/components/message-view/lib';
+import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
@@ -27,19 +28,23 @@ export interface ChatFeedRef {
 export const ChatFeed = forwardRef<
   ChatFeedRef,
   {
+    revertMessageId?: string;
     groups: AeroConversationTurn[];
     onActiveGroupIndexChange: (index: number) => void;
   }
->(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
+>(function ChatFeed(
+  { revertMessageId, groups, onActiveGroupIndexChange },
+  ref,
+) {
   const virtualizerRef = useRef<VirtualizerHandle>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const { flatItems, groupFlatIndex } = useMemo(
-    () => buildFlatConversationItems(groups, false),
-    [groups],
+  const { flatItems, groupFlatIndex, revertedMessages } = useMemo(
+    () => buildFlatConversationItems(groups, false, revertMessageId),
+    [groups, revertMessageId],
   );
 
   const { subscribeScroll, notifyScroll } = useScrollSubscription(scrollRef);
@@ -87,26 +92,31 @@ export const ChatFeed = forwardRef<
   );
 
   return (
-    <div
-      className={cn(
-        'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-        isReady ? 'opacity-100' : 'pointer-events-none opacity-0',
-      )}
-      style={{ paddingLeft: `${scrollbarWidth}px` }}
-    >
-      <ScrollShadow
-        ref={scrollRef}
-        className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
+    <>
+      <div
+        className={cn(
+          'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
+          isReady ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        style={{ paddingLeft: `${scrollbarWidth}px` }}
       >
-        <div ref={contentRef} className='pb-4'>
-          <ChatConversationView
-            virtualizerRef={virtualizerRef}
-            scrollRef={scrollRef}
-            flatItems={flatItems}
-            onScroll={handleScroll}
-          />
-        </div>
-      </ScrollShadow>
-    </div>
+        <ScrollShadow
+          ref={scrollRef}
+          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
+        >
+          <div ref={contentRef} className='pb-4'>
+            <ChatConversationView
+              virtualizerRef={virtualizerRef}
+              scrollRef={scrollRef}
+              flatItems={flatItems}
+              onScroll={handleScroll}
+            />
+          </div>
+        </ScrollShadow>
+      </div>
+      {revertedMessages.length > 0 && (
+        <RevertedMessages revertedMessages={revertedMessages} />
+      )}
+    </>
   );
 });

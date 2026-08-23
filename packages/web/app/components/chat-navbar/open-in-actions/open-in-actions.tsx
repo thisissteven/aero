@@ -80,7 +80,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
       <Dropdown size='sm'>
         <Dropdown.Trigger>
           <IconButton aria-label='Open in options'>
-            <Icon data={ChevronDown} size={16} />
+            <Icon data={ChevronDown} />
           </IconButton>
         </Dropdown.Trigger>
 

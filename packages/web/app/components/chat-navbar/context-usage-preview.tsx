@@ -75,7 +75,6 @@ export function ContextUsagePreview() {
         onPress={() => toggleOpenRightPanel('context')}
         isIconOnly={false}
         svgSize='sm'
-        className='!h-8 !w-18'
       >
         <PercentageCircleIcon percentage={data.context.usedPercentage} />
         <span className='text-foreground/50'>

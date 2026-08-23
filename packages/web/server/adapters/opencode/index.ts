@@ -348,7 +348,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         .map(toAeroSessionExperimental);
     },
 
-    async revertMessage(sessionID, messageID) {
+    async revertSession(sessionID, messageID) {
       const session = unwrap(
         await withOpencodeClientV2((client) =>
           client.session.revert({
@@ -361,7 +361,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroSessionV2(session);
     },
 
-    async unrevertMessage(sessionID) {
+    async unrevertSession(sessionID) {
       const session = unwrap(
         await withOpencodeClientV2((client) =>
           client.session.unrevert({
@@ -547,7 +547,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             case 'tool':
               return null;
             case 'file':
-              return `*[File: ${part.path}]*`;
+              return `*[File: ${part.url}]*`;
             default:
               return null;
           }

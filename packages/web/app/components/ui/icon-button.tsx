@@ -29,7 +29,6 @@ export const IconButton = ({
       isIconOnly={isIconOnly}
       className={cn([
         isExtraSmall && [
-          '!h-7.5 !w-7.5 !p-0',
           svgSize === 'xs' && '[&_svg]:!size-3.5',
           svgSize === 'sm' && '[&_svg]:!size-4.5',
           svgSize === 'lg' && '[&_svg]:!size-5',

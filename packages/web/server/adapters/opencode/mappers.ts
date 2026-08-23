@@ -60,6 +60,7 @@ export function toAeroSession(s: ExtendedSessionV1): AeroSessionSummary {
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
+    revert: s.revert,
   };
 }
 
@@ -75,6 +76,7 @@ export function toAeroSessionExperimental(
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
+    revert: s.revert,
   };
 }
 
@@ -88,6 +90,7 @@ export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
+    revert: s.revert,
   };
 }
 
@@ -103,6 +106,7 @@ export function toAeroSessionV2Info(
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.location.directory),
     sharedUrl: s.metadata?.sharedUrl,
+    revert: s.revert,
   };
 }
 

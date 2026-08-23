@@ -1,4 +1,4 @@
-import { ArrowUturnCcwLeft, Clock, Pin } from '@gravity-ui/icons';
+import { Clock, Pin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import {
   memo,
@@ -14,6 +14,7 @@ import { ChatMessage, cn, Tooltip } from '@aero/ui';
 import {
   MessageActionsCopy,
   MessageActionsFork,
+  MessageActionsRevert,
 } from '@/app/components/message-view/message-actions';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
@@ -150,15 +151,7 @@ export const UserChatBubble = memo(
             {formatDateTime(turn.createdAt)}
           </div>
           <div>
-            <Tooltip delay={300}>
-              <IconButton>
-                <Icon data={ArrowUturnCcwLeft} />
-              </IconButton>
-
-              <Tooltip.Content placement='bottom' offset={8}>
-                <span>Revert from here</span>
-              </Tooltip.Content>
-            </Tooltip>
+            <MessageActionsRevert messageId={forkMessageId} />
             <MessageActionsFork messageId={forkMessageId} />
             <Tooltip delay={300}>
               <IconButton>

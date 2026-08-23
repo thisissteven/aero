@@ -2,18 +2,12 @@
 
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import {
-  memo,
-  ReactElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { memo, ReactElement, useEffect, useRef, useState } from 'react';
 
 import {
   AdaptiveMarkdown,
   ChainOfThought,
+  cn,
   DisclosureIndicator,
   ScrollShadow,
 } from '@aero/ui';
@@ -56,7 +50,27 @@ export const ReasoningBlock = memo(function ReasoningBlock({
     setIsExpanded(expanded);
   };
 
-  const preview = useMemo(() => stripMarkdown(text.slice(0, 150)), [text]);
+  const [preview, setPreview] = useState(() => stripMarkdown(text.slice(-150)));
+
+  const textRef = useRef(text);
+  textRef.current = text;
+
+  useEffect(() => {
+    const updatePreview = () => {
+      const sliced = textRef.current.slice(-150);
+      setPreview(stripMarkdown(sliced));
+    };
+
+    updatePreview();
+
+    if (!isStreaming) {
+      setPreview(textRef.current.slice(0, 150));
+      return;
+    }
+
+    const intervalId = setInterval(updatePreview, 1000);
+    return () => clearInterval(intervalId);
+  }, [isStreaming]);
 
   return (
     <ChainOfThought
@@ -85,7 +99,11 @@ export const ReasoningBlock = memo(function ReasoningBlock({
       </ChainOfThought.Trigger>
 
       <ChainOfThought.Content>
-        <ScrollShadow ref={scrollRef} className='max-h-[40vh]' offset={2}>
+        <ScrollShadow
+          ref={scrollRef}
+          className={cn(isStreaming ? 'max-h-20' : 'max-h-[40vh]')}
+          offset={2}
+        >
           <ChainOfThought.Steps>
             <ChainOfThought.Step>
               <DeferredView>

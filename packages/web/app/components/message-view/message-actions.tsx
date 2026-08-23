@@ -1,14 +1,45 @@
-import { Check, CodeFork, Copy, Volume } from '@gravity-ui/icons';
+import {
+  ArrowUturnCcwLeft,
+  Check,
+  CodeFork,
+  Copy,
+  Volume,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 
 import { cn, toast, Tooltip } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
-import { useForkSession } from '@/app/hooks/api/sessions';
+import { useForkSession, useRevertSession } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { Route } from '@/app/routes/_app/sessions/$sessionId';
 import { useSpeechStore } from '@/app/stores/speech';
+
+export function MessageActionsRevert({ messageId }: { messageId: string }) {
+  const { sessionId } = Route.useParams();
+  const { mutateAsync } = useRevertSession(undefined, sessionId);
+
+  return (
+    <Tooltip delay={300}>
+      <IconButton
+        onPress={async () => {
+          toast.promise(() => mutateAsync(messageId), {
+            loading: 'Reverting message',
+            error: (err) => err.message,
+            success: 'Message reverted successfully',
+          });
+        }}
+      >
+        <Icon data={ArrowUturnCcwLeft} />
+      </IconButton>
+
+      <Tooltip.Content placement='bottom' offset={8}>
+        <span>Revert from here</span>
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
 
 export function MessageActionsFork({ messageId }: { messageId: string }) {
   const { sessionId } = Route.useParams();

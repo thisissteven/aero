@@ -38,6 +38,9 @@ export interface AeroSessionSummary {
   workspace: string;
   createdAt: number;
   updatedAt: number;
+  revert?: {
+    messageID?: string;
+  };
 }
 
 // Keep this union intentionally small for MVP. Extend as adapters need to
@@ -294,11 +297,11 @@ export interface HarnessAdapter {
     sessionId: string,
     input: SendMessageInput,
   ): Promise<AeroMessage>;
-  revertMessage(
+  revertSession(
     sessionId: string,
     messageId: string,
   ): Promise<AeroSessionSummary>;
-  unrevertMessage(sessionId: string): Promise<AeroSessionSummary>;
+  unrevertSession(sessionId: string): Promise<AeroSessionSummary>;
 
   // Session Operations
   listSessions(
