@@ -145,6 +145,7 @@ export async function toAeroSessionContextDetails(
   let totalOtherParts = 0;
 
   let lastAssistantMsg: AssistantMessage | null = null;
+  let lastTokenTotal = 0;
 
   for (const entry of entries) {
     const { info, parts } = entry;
@@ -155,6 +156,10 @@ export async function toAeroSessionContextDetails(
       assistantCount++;
       totalCost += info.cost ?? 0;
       lastAssistantMsg = info;
+
+      if (info.tokens.total) {
+        lastTokenTotal = info.tokens.total;
+      }
     }
 
     for (const part of parts) {
@@ -222,7 +227,7 @@ export async function toAeroSessionContextDetails(
   const cacheHit =
     cacheHitDenominator > 0 ? (cacheRead / cacheHitDenominator) * 100 : 0;
 
-  const used = tokens?.total ?? input + output;
+  const used = lastTokenTotal ?? input + output;
   const usedPercentage = limit > 0 ? (used / limit) * 100 : 0;
 
   // Map rawMessages across all valid entries
@@ -316,45 +321,146 @@ function createEmptySessionDetails(): AeroSessionContextDetails {
 }
 
 export function toAeroPart(p: Part): AeroPart {
+  const base = {
+    id: p.id,
+    sessionID: p.sessionID,
+    messageID: p.messageID,
+  };
+
   switch (p.type) {
     case 'text':
-      return { id: p.id, type: 'text', text: p.text ?? '' };
-
-    case 'tool':
       return {
-        id: p.id,
-        type: 'tool',
-        toolName: p.tool,
-        status: p.state.status,
-        input: p.state.input,
-        // output/error only exist on the completed/error branches of the
-        // ToolState union — narrow explicitly rather than optional-chaining
-        // into fields that aren't there on every variant.
-        output: p.state.status === 'completed' ? p.state.output : undefined,
-        error: p.state.status === 'error' ? p.state.error : undefined,
-        duration:
-          p.state.status === 'completed'
-            ? Math.max(0.1, (p.state.time.end - p.state.time.start) / 1000)
-            : p.state.status === 'error'
-              ? Math.max(0.1, (p.state.time.end - p.state.time.start) / 1000)
-              : undefined,
+        ...base,
+        type: 'text',
+        text: p.text ?? '',
+        synthetic: p.synthetic,
+        ignored: p.ignored,
+        time: p.time,
+        metadata: p.metadata,
+      };
+
+    case 'subtask':
+      return {
+        ...base,
+        type: 'subtask',
+        prompt: p.prompt,
+        description: p.description,
+        agent: p.agent,
+        model: p.model,
+        command: p.command,
+      };
+
+    case 'reasoning':
+      return {
+        ...base,
+        type: 'reasoning',
+        text: p.text ?? '',
+        time: p.time,
+        metadata: p.metadata,
       };
 
     case 'file':
       return {
-        id: p.id,
+        ...base,
         type: 'file',
-        path: p.filename ?? p.url ?? '',
-        mimeType: p.mime,
+        mime: p.mime,
+        filename: p.filename,
+        url: p.url,
+        source: p.source,
       };
 
-    case 'reasoning':
-      return { id: p.id, type: 'reasoning', text: p.text ?? '' };
+    case 'tool': {
+      const state = p.state;
+
+      // Extract duration whenever time.start & time.end exist (completed/error)
+      let duration: number | undefined = undefined;
+      if ('time' in state && 'end' in state.time && state.time.end) {
+        duration = Math.max(0.1, (state.time.end - state.time.start) / 1000);
+      }
+
+      return {
+        ...base,
+        type: 'tool',
+        callID: p.callID,
+        toolName: p.tool,
+        status: state.status,
+        input: state.input,
+        output: state.status === 'completed' ? state.output : undefined,
+        error: state.status === 'error' ? state.error : undefined,
+        title: 'title' in state ? state.title : undefined,
+        attachments:
+          state.status === 'completed' ? state.attachments : undefined,
+        duration,
+        metadata:
+          p.metadata ?? ('metadata' in state ? state.metadata : undefined),
+      };
+    }
+
+    case 'step-start':
+      return {
+        ...base,
+        type: 'step-start',
+        snapshot: p.snapshot,
+      };
+
+    case 'step-finish':
+      return {
+        ...base,
+        type: 'step-finish',
+        reason: p.reason,
+        snapshot: p.snapshot,
+        cost: p.cost,
+        tokens: p.tokens,
+      };
+
+    case 'snapshot':
+      return {
+        ...base,
+        type: 'snapshot',
+        snapshot: p.snapshot,
+      };
+
+    case 'patch':
+      return {
+        ...base,
+        type: 'patch',
+        hash: p.hash,
+        files: p.files,
+      };
+
+    case 'agent':
+      return {
+        ...base,
+        type: 'agent',
+        name: p.name,
+        source: p.source,
+      };
+
+    case 'retry':
+      return {
+        ...base,
+        type: 'retry',
+        attempt: p.attempt,
+        error: p.error,
+        time: p.time,
+      };
+
+    case 'compaction':
+      return {
+        ...base,
+        type: 'compaction',
+        auto: p.auto,
+        overflow: p.overflow,
+        tail_start_id: p.tail_start_id,
+      };
 
     default:
-      // Unknown/unsupported part type from a newer opencode version —
-      // degrade gracefully instead of throwing mid-stream.
-      return { id: p.id, type: 'text', text: '' };
+      // Graceful fallback for unhandled or future part variants
+      return {
+        ...base,
+        type: 'text',
+        text: '',
+      };
   }
 }
 

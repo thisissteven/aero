@@ -8,11 +8,12 @@ import {
   Disclosure,
   Label,
   ProgressBar,
+  Skeleton,
   Typography,
 } from '@aero/ui';
 
 import { DeferredView } from '@/app/components/deferred-view';
-import { CodeBlockContent } from '@/app/components/tool-call-view/tool-call-view';
+import { CodeBlockContent } from '@/app/components/tool-call-view/tools';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
 import { useKeepMountedContext } from '@/app/hooks/useKeepMounted';
 import { formatDateTimeFull } from '@/app/lib/date';
@@ -41,6 +42,12 @@ export function ContextPanel() {
     strict: false,
   });
 
+  const { data: contextDetails, isLoading } = useSessionContext(
+    undefined,
+    sessionId,
+  );
+  const { data: session } = useSession(undefined, sessionId);
+
   if (!sessionId)
     return (
       <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
@@ -48,17 +55,48 @@ export function ContextPanel() {
       </div>
     );
 
-  return <ContextPanelContent sessionId={sessionId} />;
-}
-
-function ContextPanelContent({ sessionId }: { sessionId: string }) {
-  const { data } = useSessionContext(undefined, sessionId);
-  const { data: session } = useSession(undefined, sessionId);
-
-  if (!data) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className='relative h-full w-full scrollbar-thin overflow-y-auto'>
+        <div className='absolute inset-0 space-y-4 p-4'>
+          <div className='space-y-2'>
+            <Skeleton className='h-8 w-full' />
+            <Skeleton className='h-6 w-3/4' />
+          </div>
+          <Skeleton className='h-20' />
+          <div className='grid grid-cols-2 gap-2'>
+            <Skeleton className='h-20' />
+            <Skeleton className='h-20' />
+            <Skeleton className='h-20' />
+            <Skeleton className='h-20' />
+          </div>
+          <Skeleton className='h-40' />
+          <div className='space-y-2'>
+            <Skeleton className='h-4 w-full' />
+            <Skeleton className='h-4 w-3/4' />
+            <Skeleton className='h-4 w-3/4' />
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  if (!session || !contextDetails) return null;
+
+  return (
+    <ContextPanelContent contextDetails={contextDetails} session={session} />
+  );
+}
+
+type ContextPanelContentProps = {
+  contextDetails: NonNullable<ReturnType<typeof useSessionContext>['data']>;
+  session: NonNullable<ReturnType<typeof useSession>['data']>;
+};
+
+function ContextPanelContent({
+  contextDetails,
+  session,
+}: ContextPanelContentProps) {
   const {
     provider,
     model,
@@ -71,7 +109,7 @@ function ContextPanelContent({ sessionId }: { sessionId: string }) {
     lastAssistantMessage,
     distribution,
     rawMessages,
-  } = data;
+  } = contextDetails;
 
   const keepIds = useKeepMountedStoreContext((s) => s.ids);
 
@@ -82,13 +120,14 @@ function ContextPanelContent({ sessionId }: { sessionId: string }) {
       rawMessages.map((msg, i) => [msg.id, i + STATIC_HEADER_COUNT]),
     );
 
-    const out: number[] = [];
+    const out: number[] = rawMessages.length > 0 ? [0, 1, 2, 3, 4, 5] : [];
     for (const id in keepIds) {
       if (keepIds[id]) {
         const idx = idToIndex.get(id);
         if (idx !== undefined) out.push(idx);
       }
     }
+
     return out;
   }, [keepIds, rawMessages]);
 

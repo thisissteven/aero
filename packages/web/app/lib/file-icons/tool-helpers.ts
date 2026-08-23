@@ -1,3 +1,9 @@
+export function formatToolOutput(output: unknown): string {
+  if (typeof output === 'string') return output;
+  if (!output) return '';
+  return JSON.stringify(output, null, 2);
+}
+
 export interface ToolMetadata {
   displayName: string;
   icon?: string;

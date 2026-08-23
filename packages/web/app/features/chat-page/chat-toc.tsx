@@ -32,7 +32,7 @@ export const ChatTocSection = React.memo(function ChatTocSection({
   if (!tocItems.length) return null;
 
   return (
-    <div className='absolute top-1/2 right-6 z-40 translate-y-[calc(-50%-48px)]'>
+    <div className='absolute top-1/2 right-6 z-40 translate-y-[calc(-50%-42px)]'>
       <FloatingToc placement='right' triggerMode='hover'>
         <FloatingToc.Trigger aria-label='Table of contents'>
           {tocItems.map((tocItem, idx) => (

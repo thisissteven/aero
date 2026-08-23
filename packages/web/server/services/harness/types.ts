@@ -6,6 +6,9 @@
 // registry. That's what makes client.api.sessions.$get() work identically
 // no matter which harness is actually running underneath.
 
+import { ApiError, ToolState } from '@opencode-ai/sdk';
+import { FilePart, FilePartSource } from '@opencode-ai/sdk/v2';
+
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 export type ConversationRole = 'user' | 'assistant' | 'system';
 
@@ -41,20 +44,97 @@ export interface AeroSessionSummary {
 // express more (e.g. "diff" parts, "todo" parts) — every adapter's mapper
 // has to be updated to produce whichever variants it can support.
 export type AeroPartRequest =
-  | { type: 'text'; text: string }
+  | {
+      type: 'text';
+      text: string;
+      synthetic?: boolean;
+      ignored?: boolean;
+      time?: { start: number; end?: number };
+      metadata?: Record<string, unknown>;
+    }
+  | {
+      type: 'subtask';
+      prompt: string;
+      description: string;
+      agent: string;
+      model?: { providerID: string; modelID: string };
+      command?: string;
+    }
+  | {
+      type: 'reasoning';
+      text: string;
+      metadata?: Record<string, unknown>;
+      time?: { start: number; end?: number };
+    }
+  | {
+      type: 'file';
+      mime: string;
+      filename?: string;
+      url: string;
+      source?: FilePartSource;
+    }
   | {
       type: 'tool';
+      callID: string;
       toolName: string;
-      status: 'pending' | 'running' | 'completed' | 'error';
-      input?: unknown;
-      output?: unknown;
+      status: ToolState['status'];
+      input: Record<string, unknown>;
+      output?: string;
       error?: string;
+      title?: string;
       duration?: number;
+      attachments?: FilePart[];
+      metadata?: Record<string, unknown>;
     }
-  | { type: 'file'; path: string; mimeType?: string }
-  | { type: 'reasoning'; text: string };
+  | {
+      type: 'step-start';
+      snapshot?: string;
+    }
+  | {
+      type: 'step-finish';
+      reason: string;
+      snapshot?: string;
+      cost: number;
+      tokens: {
+        total?: number;
+        input: number;
+        output: number;
+        reasoning: number;
+        cache: { read: number; write: number };
+      };
+    }
+  | {
+      type: 'snapshot';
+      snapshot: string;
+    }
+  | {
+      type: 'patch';
+      hash: string;
+      files: string[];
+    }
+  | {
+      type: 'agent';
+      name: string;
+      source?: { value: string; start: number; end: number };
+    }
+  | {
+      type: 'retry';
+      attempt: number;
+      error: ApiError;
+      time: { created: number };
+    }
+  | {
+      type: 'compaction';
+      auto: boolean;
+      overflow?: boolean;
+      tail_start_id?: string;
+    };
 
-export type AeroPart = AeroPartRequest & { id: string };
+export type AeroPart = AeroPartRequest & {
+  id: string;
+  sessionID: string;
+  messageID: string;
+};
 
 export interface AeroSessionContextDetails {
   provider: string; // last used provider
