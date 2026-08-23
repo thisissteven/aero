@@ -78,11 +78,9 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <Dropdown.Trigger>
-          <IconButton aria-label='Open in options'>
-            <Icon data={ChevronDown} />
-          </IconButton>
-        </Dropdown.Trigger>
+        <IconButton aria-label='Open in options'>
+          <Icon data={ChevronDown} />
+        </IconButton>
 
         <Dropdown.Popover
           className='w-44 max-sm:min-w-44'

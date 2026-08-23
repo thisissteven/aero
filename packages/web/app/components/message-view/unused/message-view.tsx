@@ -14,7 +14,7 @@ export const MessageView = memo(function MessageView({
   const isUser = turn.role === 'user';
 
   if (isUser) {
-    return <UserChatBubble turn={turn} />;
+    return <UserChatBubble turn={turn} forkMessageId='' />;
   }
 
   return <AssistantChatBubble turn={turn} isStreaming={isStreaming} />;

@@ -8,6 +8,7 @@ import {
   createOpencodeServer as createServerV2,
 } from '@opencode-ai/sdk/v2';
 
+import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { findAvailablePort } from '@/server/helper';
 
 export type OpencodeServerV1 = Awaited<ReturnType<typeof createServerV1>>;
@@ -260,6 +261,16 @@ export class OpencodeServerPool<
     };
   }
 
+  public async getVersion(): Promise<{ version: string; port: number }> {
+    return this.execute(async (client, node) => {
+      const health = unwrap(await (client as OpencodeClientV2).global.health());
+      return {
+        version: health.version,
+        port: node.port,
+      };
+    });
+  }
+
   public async shutdown(): Promise<void> {
     await Promise.allSettled(
       this.nodes.map(async (n) => {
@@ -271,6 +282,7 @@ export class OpencodeServerPool<
       }),
     );
     this.nodes = [];
+    this.initPromise = null;
   }
 }
 

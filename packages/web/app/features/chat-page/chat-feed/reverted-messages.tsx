@@ -1,8 +1,9 @@
 import { ArrowUturnCcwRight, ChevronDown, CodeFork } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate, useParams } from '@tanstack/react-router';
+import { useState } from 'react';
 
-import { Disclosure, toast } from '@aero/ui';
+import { cn, Disclosure, toast } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -28,19 +29,28 @@ export function RevertedMessages() {
 
   const navigate = useNavigate();
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (revertedMessages.length === 0) return null;
 
   return (
     <div className='relative mx-auto w-full max-w-[720px]'>
       <div className='mx-5 mb-2 md:mx-3'>
-        <Disclosure className='border-separator bg-surface overflow-hidden rounded-xl border'>
+        <Disclosure
+          isExpanded={isExpanded}
+          onExpandedChange={setIsExpanded}
+          className='border-separator bg-surface overflow-hidden rounded-xl border'
+        >
           <Disclosure.Heading>
             <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2 text-sm transition-colors'>
               <div className='flex items-center justify-between gap-2'>
                 Reverted messages: {revertedMessages.length}
                 <Icon
                   data={ChevronDown}
-                  className='text-foreground/50 group-hover:text-foreground transition-colors'
+                  className={cn(
+                    'text-foreground/50 group-hover:text-foreground transition',
+                    isExpanded && 'rotate-180',
+                  )}
                 />
               </div>
             </Disclosure.Trigger>

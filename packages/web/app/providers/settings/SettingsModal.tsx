@@ -1,5 +1,4 @@
 import {
-  ArrowsRotateRight,
   Bell,
   Book,
   BookOpen,
@@ -30,6 +29,7 @@ import { Modal, SearchField } from '@aero/ui';
 
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
 import { GeneralView } from '@/app/providers/settings/general/general-view';
+import { ReloadOpencode } from '@/app/providers/settings/reload-opencode';
 
 import { SettingsTab, useSettingsModalStore } from './settings-store';
 
@@ -220,11 +220,8 @@ export function SettingsModal() {
                 </div>
 
                 {/* Sidebar Footer */}
-                <div className='border-separator border-t p-3'>
-                  <button className='text-muted hover:text-foreground hover:bg-surface-hover flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors'>
-                    <Icon data={ArrowsRotateRight} className='size-4' />
-                    <span>Reload OpenCode</span>
-                  </button>
+                <div className='border-separator border-t p-2'>
+                  <ReloadOpencode />
                 </div>
               </aside>
 

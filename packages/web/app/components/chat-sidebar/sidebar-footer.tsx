@@ -44,6 +44,7 @@ import {
 } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
+import { useOpencodeVersion } from '@/app/hooks/api/pool';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
@@ -110,6 +111,8 @@ export function SidebarFooter() {
 export function AboutModal() {
   const { resolvedTheme } = useTheme();
 
+  const { data } = useOpencodeVersion();
+
   return (
     <Modal.Dialog className='bg-surface text-foreground border-separator rounded-2xl border p-6 shadow-xl sm:max-w-[360px]'>
       <Modal.CloseTrigger />
@@ -129,18 +132,36 @@ export function AboutModal() {
         </div>
 
         {/* Heading & Version Badge */}
-        <div className='flex items-end gap-1'>
-          <Modal.Heading className='relative px-4'>
-            <Typography.Heading level={4}>Aero</Typography.Heading>
-            <Badge
-              color='accent'
-              size='sm'
-              placement='top-right'
-              className='-translate-y-1 px-0.5'
-            >
-              v1.0.0
-            </Badge>
-          </Modal.Heading>
+        <div className='flex items-center gap-3'>
+          <div className='flex items-end gap-1'>
+            <div className='relative px-4'>
+              <Typography.Heading level={4}>Aero</Typography.Heading>
+              <Badge
+                color='accent'
+                size='sm'
+                placement='top-right'
+                className='-translate-y-1 px-0.5'
+              >
+                v1.0.0
+              </Badge>
+            </div>
+          </div>
+
+          {data?.version && (
+            <div className='flex items-end gap-1'>
+              <div className='relative px-4'>
+                <Typography.Heading level={4}>Opencode</Typography.Heading>
+                <Badge
+                  color='default'
+                  size='sm'
+                  placement='top-right'
+                  className='-translate-y-1 px-0.5'
+                >
+                  {data.version}
+                </Badge>
+              </div>
+            </div>
+          )}
         </div>
       </Modal.Header>
 

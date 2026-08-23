@@ -96,28 +96,26 @@ export const ChatFeed = forwardRef<
   );
 
   return (
-    <>
-      <div
-        className={cn(
-          'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-          isReady ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-        style={{ paddingLeft: `${scrollbarWidth}px` }}
+    <div
+      className={cn(
+        'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
+        isReady ? 'opacity-100' : 'pointer-events-none opacity-0',
+      )}
+      style={{ paddingLeft: `${scrollbarWidth}px` }}
+    >
+      <ScrollShadow
+        ref={scrollRef}
+        className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
       >
-        <ScrollShadow
-          ref={scrollRef}
-          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
-        >
-          <div ref={contentRef} className='pb-4'>
-            <ChatConversationView
-              virtualizerRef={virtualizerRef}
-              scrollRef={scrollRef}
-              flatItems={flatItems}
-              onScroll={handleScroll}
-            />
-          </div>
-        </ScrollShadow>
-      </div>
-    </>
+        <div ref={contentRef} className='pb-4'>
+          <ChatConversationView
+            virtualizerRef={virtualizerRef}
+            scrollRef={scrollRef}
+            flatItems={flatItems}
+            onScroll={handleScroll}
+          />
+        </div>
+      </ScrollShadow>
+    </div>
   );
 });

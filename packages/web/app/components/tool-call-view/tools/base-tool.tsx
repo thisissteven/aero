@@ -14,6 +14,7 @@ import { DeferredView } from '@/app/components/deferred-view';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
+import { useTheme } from '@/app/providers';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 
 export function BaseTool({
@@ -94,7 +95,9 @@ export function BaseTool({
                   previewType === 'path' || previewType === 'read-path' ? (
                     <MiddleTruncatePath path={preview} />
                   ) : (
-                    preview
+                    <span className='inline-block min-w-0 truncate'>
+                      {preview}
+                    </span>
                   )
                 ) : null}
               </p>
@@ -104,51 +107,46 @@ export function BaseTool({
       </Disclosure.Heading>
 
       <Disclosure.Content className='mt-2 pl-0'>
-        <Disclosure.Body>
-          <DeferredView>
-            <div className='border-default ml-2 border-l pl-5'>
-              {error && (
-                <div>
-                  <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
-                  <Alert
-                    status='danger'
-                    className='bg-transparent p-0 pt-4 shadow-none'
+        <DeferredView>
+          <div className='border-default ml-2 border-l pl-5'>
+            {error && (
+              <div>
+                <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+                <Alert
+                  status='danger'
+                  className='bg-transparent p-0 pt-4 shadow-none'
+                >
+                  <Alert.Content>
+                    <Alert.Description className='text-danger'>
+                      {error}
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              </div>
+            )}
+            {hasContent && (
+              <CodeBlock className='bg-transparent'>
+                <CodeBlock.Header>
+                  <div
+                    className={cn(
+                      'text-muted min-w-0 font-mono text-xs break-all',
+                      isItalicHeader && 'italic',
+                    )}
                   >
-                    <Alert.Content>
-                      <Alert.Description className='text-danger'>
-                        {error}
-                      </Alert.Description>
-                    </Alert.Content>
-                  </Alert>
-                </div>
-              )}
-              {hasContent && (
-                <CodeBlock className='bg-transparent'>
-                  <CodeBlock.Header>
-                    <div
-                      className={cn(
-                        'text-muted min-w-0 font-mono text-xs break-all',
-                        isItalicHeader && 'italic',
-                      )}
-                    >
-                      {codeTitle}
-                    </div>
-                    <CodeBlock.CopyButton
-                      code={copyText}
-                      className='shrink-0'
-                    />
-                  </CodeBlock.Header>
-                  <CodeBlockContent
-                    code={code}
-                    language={language}
-                    scrollOverflow={code.includes('\n')}
-                    showLineNumbers={showLineNumbers}
-                  />
-                </CodeBlock>
-              )}
-            </div>
-          </DeferredView>
-        </Disclosure.Body>
+                    {codeTitle}
+                  </div>
+                  <CodeBlock.CopyButton code={copyText} className='shrink-0' />
+                </CodeBlock.Header>
+                <CodeBlockContent
+                  code={code}
+                  language={language}
+                  scrollOverflow={code.includes('\n')}
+                  showLineNumbers={showLineNumbers}
+                />
+              </CodeBlock>
+            )}
+          </div>
+        </DeferredView>
       </Disclosure.Content>
     </Disclosure>
   );
@@ -156,19 +154,18 @@ export function BaseTool({
 
 // Code theme context helper used across all tools
 export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
+  const { resolvedTheme } = useTheme();
+
   const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
   const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
 
-  const lightTheme = getShikiTheme(colorThemeLight, 'light');
-  const darkTheme = getShikiTheme(colorThemeDark, 'dark');
+  const isDark = resolvedTheme === 'dark';
+  const themeName = isDark ? colorThemeDark : colorThemeLight;
+  const mode = isDark ? 'dark' : 'light';
 
-  return (
-    <AdaptiveCodeBlockCode
-      {...props}
-      theme={lightTheme}
-      darkTheme={darkTheme}
-    />
-  );
+  const activeTheme = getShikiTheme(themeName, mode);
+
+  return <AdaptiveCodeBlockCode {...props} theme={activeTheme} />;
 }
 
 const SHIKI_THEME_MAP: Record<string, { light: string; dark: string }> = {

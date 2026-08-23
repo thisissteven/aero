@@ -1,5 +1,5 @@
 import { useParams } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { VList } from 'virtua';
 
 import {
@@ -132,25 +132,24 @@ function ContextPanelContent({
   }, [keepIds, rawMessages]);
 
   return (
-    <div className='bg-background text-foreground absolute inset-0 flex h-full w-full flex-col'>
-      <VList
-        keepMounted={keepMounted}
-        className='h-full w-full scrollbar-thin p-4 pb-2'
-        itemSize={56}
-      >
-        {/* Header: Title, Provider/Model, and Date */}
-        <div className='mb-4 flex flex-col gap-1'>
-          <Typography type='h6' weight='semibold' className='text-foreground'>
-            {session?.title}
-          </Typography>
-          <Typography type='body-sm' color='muted'>
-            {[provider, model].filter(Boolean).join(' / ')}
-            {createdAt ? ` · ${formatDateTimeFull(createdAt)}` : ''}
-          </Typography>
-        </div>
+    <VList
+      keepMounted={keepMounted}
+      className='h-full w-full scrollbar-thin p-4 pb-2'
+    >
+      {/* Header: Title, Provider/Model, and Date */}
+      <div className='flex flex-col gap-1 pb-4'>
+        <Typography type='h6' weight='semibold' className='text-foreground'>
+          {session?.title}
+        </Typography>
+        <Typography type='body-sm' color='muted'>
+          {[provider, model].filter(Boolean).join(' / ')}
+          {createdAt ? ` · ${formatDateTimeFull(createdAt)}` : ''}
+        </Typography>
+      </div>
 
-        {/* Context Usage Box */}
-        <div className='bg-surface mb-4 flex flex-col gap-2 rounded-xl p-3'>
+      {/* Context Usage Box */}
+      <div className='pb-4'>
+        <div className='bg-surface flex flex-col gap-2 rounded-xl p-3 pb-4'>
           <div className='flex items-center justify-between'>
             <Typography type='body-sm' color='muted'>
               Context
@@ -182,48 +181,50 @@ function ContextPanelContent({
             {context.usedPercentage.toFixed(1)}% used
           </Typography>
         </div>
+      </div>
 
-        {/* Stat Cards Grid (2x2) */}
-        <div className='mb-4 grid grid-cols-2 gap-2'>
-          <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
-            <Typography type='body-sm' color='muted'>
-              Messages
-            </Typography>
-            <Typography type='h6' weight='semibold'>
-              {messages}
-            </Typography>
-          </div>
-
-          <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
-            <Typography type='body-sm' color='muted'>
-              User
-            </Typography>
-            <Typography type='h6' weight='semibold'>
-              {user}
-            </Typography>
-          </div>
-
-          <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
-            <Typography type='body-sm' color='muted'>
-              Assistant
-            </Typography>
-            <Typography type='h6' weight='semibold'>
-              {assistant}
-            </Typography>
-          </div>
-
-          <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
-            <Typography type='body-sm' color='muted'>
-              Cost
-            </Typography>
-            <Typography type='h6' weight='semibold'>
-              {formatCost(cost)}
-            </Typography>
-          </div>
+      {/* Stat Cards Grid (2x2) */}
+      <div className='grid grid-cols-2 gap-2 pb-4'>
+        <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
+          <Typography type='body-sm' color='muted'>
+            Messages
+          </Typography>
+          <Typography type='h6' weight='semibold'>
+            {messages}
+          </Typography>
         </div>
 
-        {/* Last Assistant Message Section */}
-        <div className='bg-surface mb-4 flex flex-col gap-3 rounded-xl p-3'>
+        <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
+          <Typography type='body-sm' color='muted'>
+            User
+          </Typography>
+          <Typography type='h6' weight='semibold'>
+            {user}
+          </Typography>
+        </div>
+
+        <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
+          <Typography type='body-sm' color='muted'>
+            Assistant
+          </Typography>
+          <Typography type='h6' weight='semibold'>
+            {assistant}
+          </Typography>
+        </div>
+
+        <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
+          <Typography type='body-sm' color='muted'>
+            Cost
+          </Typography>
+          <Typography type='h6' weight='semibold'>
+            {formatCost(cost)}
+          </Typography>
+        </div>
+      </div>
+
+      {/* Last Assistant Message Section */}
+      <div className='pb-4'>
+        <div className='bg-surface flex flex-col gap-3 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
             Last Assistant Message
           </Typography>
@@ -284,95 +285,99 @@ function ContextPanelContent({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Distribution Bar */}
-        <div
-          className={cn(
-            'flex flex-col gap-2',
-            rawMessages.length === 0 ? '' : 'mb-4',
-          )}
-        >
-          <div className='bg-default flex h-1.5 w-full overflow-hidden rounded-full'>
-            <div
-              className='bg-emerald-500'
-              style={{ width: `${distribution.userPercentage}%` }}
-            />
-            <div
-              className='bg-accent'
-              style={{ width: `${distribution.assistantPercentage}%` }}
-            />
-            <div
-              className='bg-amber-500'
-              style={{ width: `${distribution.toolCallPercentage}%` }}
-            />
-            <div
-              className='bg-muted'
-              style={{ width: `${distribution.otherPercentage}%` }}
-            />
-          </div>
-
-          {/* Legend */}
-          <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
-            <div className='flex items-center gap-1.5'>
-              <span className='h-2 w-2 rounded-full bg-emerald-500' />
-              <Typography type='body-xs' color='muted'>
-                User {Math.round(distribution.userPercentage)}%
-              </Typography>
-            </div>
-
-            <div className='flex items-center gap-1.5'>
-              <span className='bg-accent h-2 w-2 rounded-full' />
-              <Typography type='body-xs' color='muted'>
-                Assistant {Math.round(distribution.assistantPercentage)}%
-              </Typography>
-            </div>
-
-            <div className='flex items-center gap-1.5'>
-              <span className='h-2 w-2 rounded-full bg-amber-500' />
-              <Typography type='body-xs' color='muted'>
-                Tool Calls {Math.round(distribution.toolCallPercentage)}%
-              </Typography>
-            </div>
-
-            <div className='flex items-center gap-1.5'>
-              <span className='bg-muted h-2 w-2 rounded-full' />
-              <Typography type='body-xs' color='muted'>
-                Other {Math.round(distribution.otherPercentage)}%
-              </Typography>
-            </div>
-          </div>
+      {/* Distribution Bar */}
+      <div
+        className={cn(
+          'flex flex-col gap-2',
+          rawMessages.length === 0 ? '' : 'pb-4',
+        )}
+      >
+        <div className='bg-default flex h-1.5 w-full overflow-hidden rounded-full'>
+          <div
+            className='bg-emerald-500'
+            style={{ width: `${distribution.userPercentage}%` }}
+          />
+          <div
+            className='bg-accent'
+            style={{ width: `${distribution.assistantPercentage}%` }}
+          />
+          <div
+            className='bg-amber-500'
+            style={{ width: `${distribution.toolCallPercentage}%` }}
+          />
+          <div
+            className='bg-muted'
+            style={{ width: `${distribution.otherPercentage}%` }}
+          />
         </div>
 
-        {/* Section Header for Raw Messages */}
-        {rawMessages.length > 0 && (
-          <div className='mb-3'>
-            <Typography type='body-sm' color='muted'>
-              Raw Messages
+        {/* Legend */}
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
+          <div className='flex items-center gap-1.5'>
+            <span className='h-2 w-2 rounded-full bg-emerald-500' />
+            <Typography type='body-xs' color='muted'>
+              User {Math.round(distribution.userPercentage)}%
             </Typography>
           </div>
-        )}
 
-        {/* Virtualized Message Items */}
-        {rawMessages.map((msg) => (
-          <MessageItem key={msg.id} msg={msg} />
-        ))}
-      </VList>
-    </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='bg-accent h-2 w-2 rounded-full' />
+            <Typography type='body-xs' color='muted'>
+              Assistant {Math.round(distribution.assistantPercentage)}%
+            </Typography>
+          </div>
+
+          <div className='flex items-center gap-1.5'>
+            <span className='h-2 w-2 rounded-full bg-amber-500' />
+            <Typography type='body-xs' color='muted'>
+              Tool Calls {Math.round(distribution.toolCallPercentage)}%
+            </Typography>
+          </div>
+
+          <div className='flex items-center gap-1.5'>
+            <span className='bg-muted h-2 w-2 rounded-full' />
+            <Typography type='body-xs' color='muted'>
+              Other {Math.round(distribution.otherPercentage)}%
+            </Typography>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Header for Raw Messages */}
+      {rawMessages.length > 0 && (
+        <div className='pb-3'>
+          <Typography type='body-sm' color='muted'>
+            Raw Messages
+          </Typography>
+        </div>
+      )}
+
+      {/* Virtualized Message Items */}
+      {rawMessages.map((msg) => (
+        <MessageItem key={msg.id} msg={msg} />
+      ))}
+    </VList>
   );
 }
 
-function MessageItem({
-  msg,
-}: {
-  msg: AeroSessionContextDetails['rawMessages'][number];
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
+const MessageItem = memo(
+  function MessageItem({
+    msg,
+  }: {
+    msg: AeroSessionContextDetails['rawMessages'][number];
+  }) {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-  useKeepMountedContext(msg.id, isExpanded);
+    useKeepMountedContext(msg.id, isExpanded);
 
-  return (
-    <div className='mb-2'>
-      <Disclosure isExpanded={isExpanded} onExpandedChange={setIsExpanded}>
+    return (
+      <Disclosure
+        isExpanded={isExpanded}
+        onExpandedChange={setIsExpanded}
+        className='pb-2'
+      >
         <Disclosure.Heading>
           <Disclosure.Trigger className='w-full'>
             <div className='bg-surface flex items-center justify-between gap-2 rounded-xl p-3'>
@@ -412,19 +417,18 @@ function MessageItem({
           </Disclosure.Trigger>
         </Disclosure.Heading>
         <Disclosure.Content>
-          <Disclosure.Body>
-            <DeferredView>
-              <CodeBlock className='bg-transparent'>
-                <CodeBlockContent
-                  code={msg.rawContent}
-                  language='json'
-                  scrollOverflow={true}
-                />
-              </CodeBlock>
-            </DeferredView>
-          </Disclosure.Body>
+          <DeferredView>
+            <CodeBlock className='bg-transparent'>
+              <CodeBlockContent
+                code={msg.rawContent}
+                language='json'
+                scrollOverflow={true}
+              />
+            </CodeBlock>
+          </DeferredView>
         </Disclosure.Content>
       </Disclosure>
-    </div>
-  );
-}
+    );
+  },
+  (prev, next) => prev.msg.id === next.msg.id,
+);
