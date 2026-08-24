@@ -101,6 +101,7 @@ export function groupMessages(messages: AeroMessage[]): AeroConversationTurn[] {
       role: message.role,
       parts: [...message.parts],
       createdAt: message.createdAt,
+      error: message.error,
     });
   }
 

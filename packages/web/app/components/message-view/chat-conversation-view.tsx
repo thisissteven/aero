@@ -51,6 +51,7 @@ export function ChatConversationView({
         if (item.type === 'spacer-footer') {
           return <div key={item.id} className='h-8 w-full shrink-0' />;
         }
+
         return (
           <div
             key={item.id}
@@ -69,6 +70,11 @@ export function ChatConversationView({
                 partIndex={item.partIndex}
                 isPartStreaming={item.isPartStreaming}
               />
+            )}
+            {item.type === 'assistant-error' && (
+              <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-2xl border px-4 py-2 text-sm'>
+                {item.message}
+              </div>
             )}
             {item.type === 'assistant-footer' && (
               <AssistantFooterView

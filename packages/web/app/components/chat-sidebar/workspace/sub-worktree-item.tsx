@@ -80,7 +80,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
           >
             <Sidebar.MenuItemContent>
               <Sidebar.MenuLabel className='text-xs'>
-                0 sessions found in this workspace.
+                0 sessions found in this worktree.
               </Sidebar.MenuLabel>
             </Sidebar.MenuItemContent>
           </Sidebar.MenuItem>

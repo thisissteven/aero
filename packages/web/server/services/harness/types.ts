@@ -184,11 +184,19 @@ export interface AeroTodo {
   priority: string;
 }
 
+export interface AeroAssistantError {
+  name?: string;
+  data?: {
+    message?: string;
+  };
+}
+
 export interface AeroMessage {
   id: string;
   sessionId: string;
   role: ConversationRole;
   parts: AeroPart[];
+  error?: AeroAssistantError;
   createdAt: number;
 }
 
@@ -202,6 +210,7 @@ export interface AeroConversationTurn {
   id: string;
   role: ConversationRole;
   parts: AeroPart[];
+  error?: AeroAssistantError;
   createdAt: number;
 }
 

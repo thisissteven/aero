@@ -1,15 +1,17 @@
-import { Comment, Gear } from '@gravity-ui/icons';
+import { CircleQuestion, Comment, Gear } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { cn, Command, ListLayout, Virtualizer } from '@aero/ui';
 
+import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { useGlobalModalStore } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
 
@@ -38,6 +40,10 @@ export function CommandPaletteList() {
   );
   const toggleIsOpen = useCommandPaletteStore((state) => state.toggleIsOpen);
   const openSettingsModal = useSettingsModalStore((state) => state.openModal);
+
+  const toggleOpenShortcutsModal = useGlobalModalStore(
+    (state) => state.toggleOpen,
+  );
 
   const sessionsQuery = useSessions({
     search: debouncedSearch || undefined,
@@ -97,6 +103,17 @@ export function CommandPaletteList() {
           icon: Gear,
           label: 'Settings',
           onAction: () => onSelect(openSettingsModal),
+        },
+        {
+          kind: 'action',
+          id: 'action-shortcuts',
+          textValue: 'Shortcuts',
+          icon: CircleQuestion,
+          label: 'Shortcuts',
+          onAction: () =>
+            onSelect(() =>
+              toggleOpenShortcutsModal({ children: <ShortcutsModal /> }),
+            ),
         },
       ];
 

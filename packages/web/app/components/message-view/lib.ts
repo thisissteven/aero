@@ -80,6 +80,11 @@ export type FlatConversationVirtualItem =
     }
   | {
       id: string;
+      type: 'assistant-error';
+      message: string;
+    }
+  | {
+      id: string;
       type: 'spacer-first-item';
     }
   | {
@@ -136,7 +141,7 @@ export function buildFlatConversationItems(
       continue;
     }
 
-    if (turn.parts.length === 0) continue;
+    if (turn.parts.length === 0 && !turn.error) continue;
 
     groupFlatIndex[turnIndex] = items.length;
 
@@ -156,7 +161,7 @@ export function buildFlatConversationItems(
     if (turn.role === 'user') {
       items.push({ id: turn.id, type: 'user', turn, forkMessageId: turn.id });
       items.push({ id: `${turn.id}-spacer`, type: 'spacer' });
-    } else {
+    } else if (turn.role === 'assistant') {
       const assistantTextResponse = turn.parts
         .filter((p) => p.type === 'text')
         .map((p) => p.text.trim())
@@ -187,13 +192,22 @@ export function buildFlatConversationItems(
         });
       });
 
+      if (turn.error?.data?.message) {
+        items.push({
+          id: `${turn.id}-assistant-error`,
+          type: 'assistant-error',
+          message: turn.error.data.message,
+        });
+      }
+
       if (hasFooter) {
         items.push({
           id: `${turn.id}-footer`,
           type: 'assistant-footer',
           turnId: turn.id,
           createdAt: formatDateTime(turn.createdAt),
-          assistantTextResponse,
+          assistantTextResponse:
+            assistantTextResponse || (turn.error?.data?.message ?? ''),
           nextTurnId,
         });
         items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });

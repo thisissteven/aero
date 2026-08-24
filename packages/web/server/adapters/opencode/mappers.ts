@@ -477,6 +477,15 @@ export function toAeroMessage(entry: {
     sessionId: entry.info.sessionID,
     role: entry.info.role,
     parts: (entry.parts ?? []).map(toAeroPart),
+    error:
+      entry.info.role === 'assistant'
+        ? {
+            data: {
+              message: entry.info.error?.data.message as string,
+            },
+            name: entry.info.error?.name as string,
+          }
+        : undefined,
     createdAt: entry.info.time?.created ?? Date.now(),
   };
 }
