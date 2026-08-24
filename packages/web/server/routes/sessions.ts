@@ -227,6 +227,37 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/todos?harnessId=...
+  .get(
+    '/:id/todos',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const todos = await harness.listTodos(id);
+
+      return c.json(todos);
+    },
+  )
+
+  .get(
+    '/:id/any',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const any = await harness.any(id);
+
+      return c.json(any);
+    },
+  )
+
   // GET /api/sessions/:id/toc?harnessId=...
   .get(
     '/:id/toc',

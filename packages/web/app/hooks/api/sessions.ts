@@ -32,6 +32,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'toc'] as const,
   context: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'context'] as const,
+  todos: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'todos'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -87,6 +89,25 @@ export function useSessionsArchived(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to fetch archived sessions');
       return res.json();
     },
+  });
+}
+
+export function useSessionTodos(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.todos(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.todos.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!sessionId,
+    placeholderData: keepPreviousData,
   });
 }
 

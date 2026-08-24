@@ -32,8 +32,16 @@ export type EditPart = ToolPartBase & {
     path?: string;
     filePath?: string;
     content?: string;
-    newText?: string;
-    oldText?: string;
+    newString?: string;
+    oldString?: string;
+  };
+  metadata?: {
+    filediff?: {
+      file?: string;
+      patch?: string;
+      additions?: number;
+      deletions?: number;
+    };
   };
 };
 

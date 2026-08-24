@@ -88,11 +88,36 @@ function getCachedProxyTarget(key: string): CachedProxyTarget | null {
 function normalizeBrowserUrl(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return 'about:blank';
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
-  const looksLikeHost =
-    /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(trimmed) ||
-    /^localhost(:\d+)?(\/.*)?$/.test(trimmed);
-  if (looksLikeHost) return `https://${trimmed}`;
+
+  // 1. Full URI schemes (e.g., https://, http://, file://)
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 2. Special browser/action schemes
+  if (/^(about|chrome|edge|javascript|mailto):/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 3. Local network development addresses -> default to HTTP
+  const isLocalHost = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/.*)?$/i.test(
+    trimmed,
+  );
+
+  if (isLocalHost) {
+    return `http://${trimmed}`;
+  }
+
+  // 4. Standard domains and public IPs -> default to HTTPS
+  const isIpv6 = /^\[[a-f0-9:]+\](:\d+)?(\/.*)?$/i.test(trimmed);
+  const isHostOrDomain =
+    /^([\w-]+(\.[\w-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?(\/.*)?$/i.test(trimmed);
+
+  if (isIpv6 || isHostOrDomain) {
+    return `https://${trimmed}`;
+  }
+
+  // 5. Default fallback to search engine
   return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
 }
 

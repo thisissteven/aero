@@ -178,6 +178,12 @@ export interface AeroSessionContextDetails {
   }[];
 }
 
+export interface AeroTodo {
+  content: string;
+  status: string;
+  priority: string;
+}
+
 export interface AeroMessage {
   id: string;
   sessionId: string;
@@ -289,7 +295,7 @@ export interface HarnessAdapter {
   initWorkspaces(): Promise<AeroWorkspaceSummary[]>;
   syncWorkspaces(): Promise<AeroWorkspaceSummary[]>;
 
-  // Messages Opereations
+  // Messages Operations
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
   sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
@@ -302,6 +308,9 @@ export interface HarnessAdapter {
     messageId: string,
   ): Promise<AeroSessionSummary>;
   unrevertSession(sessionId: string): Promise<AeroSessionSummary>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any(sessionId: string): Promise<any>;
 
   // Session Operations
   listSessions(
@@ -325,6 +334,7 @@ export interface HarnessAdapter {
     sessionId: string,
     messageId: string,
   ): Promise<AeroSessionSummary>;
+  listTodos(sessionId: string): Promise<AeroTodo[]>;
 
   abortSession(sessionId: string): Promise<boolean>;
 

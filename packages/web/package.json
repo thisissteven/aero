@@ -34,6 +34,7 @@
     "react-aria-components": "catalog:",
     "react-dom": "catalog:",
     "react-hook-form": "^7.84.0",
+    "simple-git": "^3.36.0",
     "streamdown": "^2.5.0",
     "undici": "^8.10.0",
     "use-sync-external-store": "^1.6.0",

@@ -55,14 +55,11 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
           <PromptInput.TextArea
             ref={textareaRef}
             className='min-h-12'
-            placeholder='Describe an app, workflow, or interface...'
+            placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
           />
         </PromptInput.Content>
         <PromptInput.Toolbar>
           <PromptInput.ToolbarStart className='items-end justify-start'>
-            <PromptInput.Action aria-label='Use voice'>
-              <Icon aria-hidden data={Microphone} />
-            </PromptInput.Action>
             <CollapsibleActions
               expandBehavior='horizontal'
               expandOrigin='trigger-right'
@@ -88,6 +85,9 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
             </CollapsibleActions>
           </PromptInput.ToolbarStart>
           <PromptInput.ToolbarEnd>
+            <PromptInput.Action aria-label='Use voice'>
+              <Icon aria-hidden data={Microphone} />
+            </PromptInput.Action>
             <PromptInput.Send />
           </PromptInput.ToolbarEnd>
         </PromptInput.Toolbar>

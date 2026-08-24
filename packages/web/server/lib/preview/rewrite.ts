@@ -219,6 +219,25 @@ export function isBlockedExternalHost(hostname: string): boolean {
   return false;
 }
 
+export interface CSPDirective {
+  name?: string;
+  tokens: string[];
+}
+
+// Typing for the map holding the directives
+export type DirectivesMap = Map<string, CSPDirective>;
+
+// Function parameter & global state types
+export type AllowInlineStyleFn = (directive: CSPDirective) => void;
+
+// Implementation with full explicit typing
+const allowInlineStyle: AllowInlineStyleFn = (d: CSPDirective): void => {
+  d.tokens = d.tokens.filter((t: string) => t.toLowerCase() !== "'none'");
+  if (!d.tokens.some((t: string) => t.toLowerCase() === "'unsafe-inline'")) {
+    d.tokens.push("'unsafe-inline'");
+  }
+};
+
 // --- CSP rewrite: carve out room for the bridge via a nonce instead of ---
 // --- deleting the target site's script restrictions wholesale ------------
 export function rewritePreviewCspHeader(
@@ -260,6 +279,30 @@ export function rewritePreviewCspHeader(
         name: 'script-src',
         tokens: ['script-src', ...base, nonceSource],
       });
+    }
+
+    // Map lookup types
+    const styleElem: CSPDirective | undefined = byName.get('style-src-elem');
+    const styleAttr: CSPDirective | undefined = byName.get('style-src-attr');
+    const styleSrc: CSPDirective | undefined = byName.get('style-src');
+
+    if (styleElem) allowInlineStyle(styleElem);
+    if (styleAttr) allowInlineStyle(styleAttr);
+    if (styleSrc) allowInlineStyle(styleSrc);
+
+    if (!styleElem && !styleAttr && !styleSrc && byName.has('default-src')) {
+      const defaultSrc = byName.get('default-src');
+
+      if (defaultSrc) {
+        const base: string[] = defaultSrc.tokens
+          .slice(1)
+          .filter((t: string) => t.toLowerCase() !== "'none'");
+
+        directives.push({
+          name: 'style-src',
+          tokens: ['style-src', ...base, "'unsafe-inline'"],
+        });
+      }
     }
   }
 

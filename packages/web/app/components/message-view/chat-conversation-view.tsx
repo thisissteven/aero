@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
 import { AssistantFooterView } from './assistant-footer-view';
 import { AssistantPartView } from './assistant-part-view';
@@ -17,10 +19,23 @@ export function ChatConversationView({
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (offset: number) => void;
 }) {
+  const keepIds = useKeepMountedStoreFeed((s) => s.ids);
+
+  const keepMounted = useMemo(() => {
+    const idToIndex = new Map(flatItems.map((item, i) => [item.id, i]));
+    const out: number[] = [];
+    for (const id in keepIds) {
+      const idx = idToIndex.get(id);
+      if (idx !== undefined) out.push(idx);
+    }
+    return out;
+  }, [keepIds, flatItems]);
+
   return (
     <Virtualizer<FlatConversationVirtualItem>
       ref={virtualizerRef}
       scrollRef={scrollRef}
+      keepMounted={keepMounted}
       data={flatItems}
       onScroll={onScroll}
       // set shift = true if loading older messages, shift = false if streaming

@@ -5,6 +5,8 @@ import { cn } from '@aero/ui';
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatFeed } from '@/app/features/chat-page/chat-feed/chat-feed';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
+import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
+import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
@@ -16,6 +18,7 @@ export interface ChatPageProps {
   groups: AeroConversationTurn[];
   notFound: boolean;
   revertMessageId?: string;
+  workspace?: string;
 }
 
 export function ChatPage({
@@ -23,6 +26,7 @@ export function ChatPage({
   groups,
   notFound,
   revertMessageId,
+  workspace,
 }: ChatPageProps) {
   const [activeGroupIndex, setActiveGroupIndex] = useState(
     () => groups.length - 1,
@@ -93,6 +97,11 @@ export function ChatPage({
           </div>
 
           <RevertedMessages />
+
+          <div className='flex items-center justify-between'>
+            <SessionDiff workspace={workspace} />
+            <SessionTodos />
+          </div>
 
           <ChatInput isDisabled={notFound} />
         </div>

@@ -2,6 +2,7 @@
 
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { AnimatePresence, motion } from 'motion/react';
 import { memo, ReactElement, useEffect, useRef, useState } from 'react';
 
 import {
@@ -12,6 +13,7 @@ import {
   ScrollShadow,
 } from '@aero/ui';
 
+import { DeferredView } from '@/app/components/deferred-view';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 
@@ -29,27 +31,12 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   isStreaming: boolean;
 }): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isDirtyRef = useRef(false);
 
-  // Initialize state based on whether it starts as streaming
-  const [isExpanded, setIsExpanded] = useState(isStreaming);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useKeepMountedFeed(blockId, isExpanded);
 
-  // Sync state with streaming status unless the user manually interacted
-  useEffect(() => {
-    if (!isDirtyRef.current) {
-      setIsExpanded(isStreaming);
-    }
-  }, [isStreaming]);
-
-  // Track manual user interactions
-  const handleExpandedChange = (expanded: boolean) => {
-    isDirtyRef.current = true;
-    setIsExpanded(expanded);
-  };
-
-  const [preview, setPreview] = useState(() => stripMarkdown(text.slice(-150)));
+  const [preview, setPreview] = useState('');
 
   const textRef = useRef(text);
   textRef.current = text;
@@ -57,7 +44,9 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   useEffect(() => {
     const updatePreview = () => {
       const sliced = textRef.current.slice(-150);
-      setPreview(stripMarkdown(sliced));
+      if (sliced.length >= 100) {
+        setPreview(stripMarkdown(sliced));
+      }
     };
 
     updatePreview();
@@ -71,12 +60,18 @@ export const ReasoningBlock = memo(function ReasoningBlock({
     return () => clearInterval(intervalId);
   }, [isStreaming]);
 
+  const hasStreamedRef = useRef(isStreaming);
+
+  if (isStreaming) {
+    hasStreamedRef.current = true;
+  }
+
   return (
     <ChainOfThought
       key={blockId}
       isStreaming={isStreaming}
       isExpanded={isExpanded}
-      onExpandedChange={handleExpandedChange}
+      onExpandedChange={setIsExpanded}
     >
       <ChainOfThought.Trigger
         icon={
@@ -92,7 +87,30 @@ export const ReasoningBlock = memo(function ReasoningBlock({
             />
           </div>
         }
-        preview={preview}
+        preview={
+          <div className='w-full min-w-0'>
+            <AnimatePresence mode='wait' initial={false}>
+              <motion.span
+                key={hasStreamedRef.current ? preview : 'static-initial'}
+                initial={
+                  hasStreamedRef.current
+                    ? { opacity: 0, y: 4, filter: 'blur(2px)' }
+                    : false
+                }
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={
+                  hasStreamedRef.current
+                    ? { opacity: 0, y: -4, filter: 'blur(2px)' }
+                    : undefined
+                }
+                transition={{ duration: 0.15, ease: 'easeInOut' }}
+                className='block w-4/5 truncate text-left md:w-full'
+              >
+                {preview}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+        }
       >
         <span className='text-foreground'>Thinking</span>
       </ChainOfThought.Trigger>
@@ -105,15 +123,17 @@ export const ReasoningBlock = memo(function ReasoningBlock({
         >
           <ChainOfThought.Steps>
             <ChainOfThought.Step>
-              <AdaptiveMarkdown
-                id={`${blockId}-reason`}
-                isFile={isFile}
-                onFileClick={onFileClick}
-                scrollRef={scrollRef}
-                isStreaming={isStreaming}
-              >
-                {text}
-              </AdaptiveMarkdown>
+              <DeferredView>
+                <AdaptiveMarkdown
+                  id={`${blockId}-reason`}
+                  isFile={isFile}
+                  onFileClick={onFileClick}
+                  scrollRef={scrollRef}
+                  isStreaming={isStreaming}
+                >
+                  {text}
+                </AdaptiveMarkdown>
+              </DeferredView>
             </ChainOfThought.Step>
           </ChainOfThought.Steps>
         </ScrollShadow>

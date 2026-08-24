@@ -73,7 +73,7 @@ export interface ChainOfThoughtTriggerProps extends Omit<
 > {
   children: ReactNode;
   icon: ReactNode;
-  preview: string;
+  preview: ReactNode;
 }
 
 export function ChainOfThoughtTrigger({
@@ -96,12 +96,16 @@ export function ChainOfThoughtTrigger({
         slot='trigger'
         {...props}
       >
-        <div className='flex min-w-0 flex-1 items-center gap-2'>
+        <div className='flex w-full min-w-0 items-center justify-start gap-2'>
           {icon}
-          {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
-          <p className='max-w-4/5 min-w-[200px] flex-1 truncate text-left transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
+
+          <div className='shrink-0'>
+            {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
+          </div>
+
+          <div className='flex min-w-0 flex-1 justify-start transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
             {preview}
-          </p>
+          </div>
         </div>
       </Button>
     </Disclosure.Heading>

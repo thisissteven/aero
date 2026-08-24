@@ -31,6 +31,7 @@ export function BaseTool({
   duration,
   showLineNumbers = true,
   isItalicHeader = false,
+  diff,
 }: {
   blockId: string;
   status: string;
@@ -46,6 +47,10 @@ export function BaseTool({
   duration?: number;
   showLineNumbers?: boolean;
   isItalicHeader?: boolean;
+  diff?: {
+    additions: number;
+    deletions: number;
+  };
 }) {
   const hasContent = Boolean(copyText && code);
 
@@ -94,17 +99,32 @@ export function BaseTool({
                 <span className='text-muted/70'>{duration}s</span>
               ) : null}
 
-              <p className='text-muted/70 min-w-0 flex-1 transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+              <p className='text-muted/70 min-w-0 flex-1 text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
                 {preview ? (
                   previewType === 'path' || previewType === 'read-path' ? (
                     <MiddleTruncatePath path={preview} />
                   ) : (
-                    <span className='inline-block min-w-0 truncate'>
+                    <span className='inline-block w-full truncate align-middle'>
                       {preview}
                     </span>
                   )
                 ) : null}
               </p>
+
+              {diff && (
+                <>
+                  {diff.additions > 0 && (
+                    <span className='text-success transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                      +{diff.additions}
+                    </span>
+                  )}
+                  {diff.deletions > 0 && (
+                    <span className='text-danger transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                      -{diff.deletions}
+                    </span>
+                  )}
+                </>
+              )}
             </span>
           </div>
         </Disclosure.Trigger>

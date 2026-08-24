@@ -4,23 +4,25 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 import { initProxyConfig } from './proxy-loader';
+import gitRoutes from './routes/git';
 import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
-import sessions from './routes/sessions';
+import sessionRoutes from './routes/sessions';
 import systemRoutes from './routes/system';
 import terminalRoutes from './routes/terminal';
-import workspaces from './routes/workspaces';
+import workspaceRoutes from './routes/workspaces';
 
 initProxyConfig();
 
 const app = new Hono()
   .basePath('/api')
-  .route('/sessions', sessions)
-  .route('/workspaces', workspaces)
+  .route('/sessions', sessionRoutes)
+  .route('/workspaces', workspaceRoutes)
   .route('/pool', poolRoutes)
   .route('/terminal', terminalRoutes)
   .route('/preview', previewRoutes)
-  .route('/system', systemRoutes);
+  .route('/system', systemRoutes)
+  .route('/git', gitRoutes);
 
 app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);

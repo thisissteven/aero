@@ -7,15 +7,21 @@ import { normalizePath } from '@/server/shared';
 export function MiddleTruncatePath({
   path,
   className,
+  fileClassName,
 }: {
   path: string;
   className?: string;
+  fileClassName?: string;
 }) {
   const normalized = useMemo(() => normalizePath(path), [path]);
   const lastSlashIndex = normalized.lastIndexOf('/');
 
   if (lastSlashIndex === -1) {
-    return <span className={cn('truncate', className)}>{normalized}</span>;
+    return (
+      <span className={cn('truncate', className, fileClassName)}>
+        {normalized}
+      </span>
+    );
   }
 
   const dir = normalized.slice(0, lastSlashIndex);
@@ -27,8 +33,12 @@ export function MiddleTruncatePath({
     >
       <span className='shrink truncate'>{dir}</span>
       <span className='shrink-0'>
-        <span>{file[0]}</span>
-        <span className='text-foreground/80'>{file.slice(1, file.length)}</span>
+        <span className={cn('text-foreground/80', fileClassName)}>
+          {file[0]}
+        </span>
+        <span className={cn('text-foreground/80', fileClassName)}>
+          {file.slice(1, file.length)}
+        </span>
       </span>
     </span>
   );

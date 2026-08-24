@@ -10,7 +10,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export function useMockStreamFeed(
   fullGroups: AeroConversationTurn[],
   enabled = true,
-  speed = 5, // 1 = 1x (normal), 2 = 2x faster, 5 = 5x faster, 0.5 = 0.5x (slower)
+  speed = 1, // 1 = 1x (normal), 2 = 2x faster, 5 = 5x faster, 0.5 = 0.5x (slower)
 ) {
   const [displayedGroups, setDisplayedGroups] = useState<
     AeroConversationTurn[]

@@ -1,5 +1,6 @@
 // assistant-part-view.tsx
-import { memo } from 'react';
+import { motion } from 'motion/react';
+import { memo, ReactNode, useRef } from 'react';
 
 import { ChatMessage, Markdown } from '@aero/ui';
 
@@ -50,7 +51,10 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <div className='relative min-h-[1.5rem]'>
+              <StreamAnimation
+                isStreaming={isPartStreaming}
+                className='relative min-h-[1.5rem]'
+              >
                 <Markdown
                   id={blockId}
                   isFile={handleIsWorktreeFile}
@@ -58,7 +62,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                 >
                   {part.text}
                 </Markdown>
-              </div>
+              </StreamAnimation>
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -72,7 +76,10 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <div className='relative min-h-[2.5rem]'>
+              <StreamAnimation
+                isStreaming={isPartStreaming}
+                className='relative min-h-[2.5rem]'
+              >
                 <ReasoningBlock
                   blockId={blockId}
                   isFile={handleIsWorktreeFile}
@@ -80,7 +87,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   text={part.text}
                   isStreaming={isPartStreaming}
                 />
-              </div>
+              </StreamAnimation>
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -92,7 +99,9 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <ToolCallView part={part} blockId={blockId} />
+              <StreamAnimation isStreaming={isPartStreaming}>
+                <ToolCallView part={part} blockId={blockId} />
+              </StreamAnimation>
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -102,3 +111,29 @@ export const AssistantPartView = memo(function AssistantPartView({
       return null;
   }
 });
+
+interface StreamAnimationProps {
+  children: ReactNode;
+  isStreaming: boolean;
+  className?: string;
+}
+
+export function StreamAnimation({
+  children,
+  isStreaming,
+  className,
+}: StreamAnimationProps) {
+  // Lock the initial streaming state on mount so transition targets never change mid-flight
+  const shouldAnimateOnMount = useRef(isStreaming);
+
+  return (
+    <motion.div
+      initial={shouldAnimateOnMount.current ? { opacity: 0, y: 6 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}

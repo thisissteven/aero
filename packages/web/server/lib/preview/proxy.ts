@@ -90,7 +90,13 @@ export async function proxyRequest(
       return;
     }
 
-    if (lower === 'content-encoding' || lower === 'content-length') {
+    if (
+      lower === 'content-encoding' ||
+      lower === 'content-length' ||
+      lower === 'transfer-encoding' ||
+      lower === 'connection' ||
+      lower === 'keep-alive'
+    ) {
       return;
     }
 
@@ -145,8 +151,9 @@ function rewriteSetCookiePath(
   // Simple path rewrite: replace Path=/ with Path=/api/preview/p/{id}/
   // and Path=/foo with Path=/api/preview/p/{id}/foo
   return setCookieValue
-    .replace(/;\s*Path=\/([^;]*)/i, (_match, path) =>
-      `; Path=${proxyPath}/${path}`.replace(/\/+/g, '/').replace(/:\//, '://'),
+    .replace(/;\s*Domain=[^;]*/i, '')
+    .replace(/;\s*Path=\/([^;]*)/i, (_m, path) =>
+      `; Path=${proxyPath}/${path}`.replace(/\/+/g, '/'),
     )
     .replace(/;\s*Path=\/\s*(;|$)/i, `; Path=${proxyPath}$1`);
 }

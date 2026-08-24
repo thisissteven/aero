@@ -22,6 +22,7 @@ function SessionPage() {
   return (
     <ChatPage
       sessionId={sessionId}
+      workspace={session?.workspace}
       revertMessageId={session?.revert?.messageID}
       groups={turns}
       notFound={notFound}

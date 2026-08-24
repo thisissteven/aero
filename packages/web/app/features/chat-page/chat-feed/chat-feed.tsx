@@ -51,10 +51,10 @@ export const ChatFeed = forwardRef<
   }, [groups, revertMessageId, setConversationData]);
 
   const { subscribeScroll } = useScrollSubscription(scrollRef);
-
   const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
 
-  const { handleScroll, isProgrammaticScrollRef } = useTocScrollTracker(
+  // useTocScrollTracker now directly manages scroll events cleanly
+  const { handleScroll } = useTocScrollTracker(
     groups,
     groupFlatIndex,
     virtualizerRef,
@@ -74,39 +74,24 @@ export const ChatFeed = forwardRef<
       scrollRef,
       subscribeScroll,
       scrollToIndex: (groupIndex: number) => {
-        const groupFlatIndexMap = useChatStore.getState().groupFlatIndex;
-        const targetFlatIndex = groupFlatIndexMap[groupIndex];
+        const targetFlatIndex =
+          useChatStore.getState().groupFlatIndex[groupIndex];
         const handle = virtualizerRef.current;
 
         if (targetFlatIndex === undefined || !handle) return;
 
-        // Disable scroll tracking feedback loop
-        isProgrammaticScrollRef.current = true;
+        // 1. Immediately update active group in TOC UI
         onActiveGroupIndexChange(groupIndex);
 
-        const currentIndex =
-          handle.findItemIndex(scrollRef.current?.scrollTop || 0) ?? 0;
-        const indexDistance = Math.abs(targetFlatIndex - currentIndex);
-
-        // If jumping more than 15 items, smooth scroll is slow; jump directly
-        const isLongJump = indexDistance > 15;
-
+        // 2. Perform smooth scroll directly without timing hacks
         handle.scrollToIndex(targetFlatIndex, {
           align: 'start',
-          smooth: !isLongJump,
+          smooth: false,
           offset: -40,
         });
-
-        // Re-enable scroll tracker after animation finishes
-        setTimeout(
-          () => {
-            isProgrammaticScrollRef.current = false;
-          },
-          isLongJump ? 50 : 350,
-        );
       },
     }),
-    [subscribeScroll, onActiveGroupIndexChange, isProgrammaticScrollRef],
+    [subscribeScroll, onActiveGroupIndexChange],
   );
 
   return (
