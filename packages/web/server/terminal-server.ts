@@ -11,6 +11,8 @@
  * server already has `Bun.serve({ websocket })`.
  */
 
+// server/terminal-server.ts
+
 import { serve } from 'bun';
 import { Hono } from 'hono';
 import { websocket } from 'hono/bun';

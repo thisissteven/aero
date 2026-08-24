@@ -1,162 +1,358 @@
-// lib/terminal/pty-session.ts
-
-import pty from '@lydell/node-pty';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// server/lib/terminal/pty-session.ts
+import { ChildProcess, spawn } from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 
-const DEFAULT_COLS = 80;
-const DEFAULT_ROWS = 24;
-const MAX_BUFFER_SIZE = 1_000_000;
+const require = createRequire(import.meta.url);
 
-function resolveShell(): { shell: string; args: string[] } {
-  if (process.platform === 'win32') {
-    return { shell: process.env.COMSPEC || 'cmd.exe', args: [] };
-  }
-  return { shell: process.env.SHELL || '/bin/bash', args: ['-l'] };
-}
-
-export type PtyProcess = ReturnType<typeof pty.spawn>;
-
-export function createPtySession(
-  cols = DEFAULT_COLS,
-  rows = DEFAULT_ROWS,
-): PtyProcess {
-  const { shell, args } = resolveShell();
-  return pty.spawn(shell, args, {
-    name: 'xterm-256color',
-    cols,
-    rows,
-    cwd: os.homedir(),
-    env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
-  });
-}
-
-interface WsLikeSocket {
+export interface WsLikeSocket {
   readyState: number;
-  OPEN: number;
-  send(data: string): void;
-  close(): void;
-  on(
-    event: 'message',
-    cb: (data: { toString(enc: 'utf8'): string }) => void,
-  ): void;
-  on(event: 'close', cb: () => void): void;
-  on(event: 'error', cb: () => void): void;
+  bufferedAmount?: number;
+  send(data: string | Uint8Array): void;
+  close(code?: number, reason?: string): void;
+  on?(event: 'message', listener: (data: any) => void): void;
+  on?(event: 'close', listener: () => void): void;
+  on?(event: 'error', listener: (err: any) => void): void;
+}
+
+interface ProcessWrapper {
+  onData(cb: (data: string) => void): void;
+  onExit(cb: () => void): void;
+  write(data: string): void;
+  resize(cols: number, rows: number): void;
+  kill(): void;
+  pause?(): void;
+  resume?(): void;
 }
 
 interface Session {
-  pty: PtyProcess;
-  buffer: string;
+  pty: ProcessWrapper;
+  buffer: string[];
+  totalBufferLength: number;
   sockets: Set<WsLikeSocket>;
 }
 
-const activeSessions = new Map<string, Session>();
+const sessions = new Map<string, Session>();
+const isBun =
+  typeof process !== 'undefined' &&
+  'versions' in process &&
+  'bun' in process.versions;
+const isWindows = process.platform === 'win32';
 
-export function attachPtyToSocket(
-  ws: WsLikeSocket,
-  sessionId: string,
-  cols?: number,
-  rows?: number,
-  reset = false,
-) {
-  let session = activeSessions.get(sessionId);
+// Capped backpressure limit (1MB max WS backpressure buffer)
+const MAX_WS_BUFFERED_AMOUNT = 1024 * 1024;
+// Limit history buffer to avoid RAM bloat on giant terminal spams
+const MAX_HISTORY_CHUNKS = 1000;
 
-  if (reset || !session) {
-    if (session) {
-      const oldPty = session.pty;
-      // Remove reference so onExit suppresses exit messages for the old process
-      activeSessions.delete(sessionId);
+function createPtyProcess(cols: number, rows: number): ProcessWrapper {
+  let cwd = os.homedir();
+  try {
+    if (!fs.existsSync(cwd)) cwd = process.cwd();
+  } catch {
+    cwd = process.cwd();
+  }
 
-      try {
-        oldPty.kill();
-      } catch {
-        /* ignore */
-      }
+  if (isBun && isWindows) {
+    const workerScript = `
+      import readline from 'node:readline';
+
+      (async () => {
+        const ptyModule = await import('@lydell/node-pty');
+        const pty = ptyModule.default || ptyModule;
+
+        const shell = process.env.COMSPEC || 'cmd.exe';
+        const ptyProcess = pty.spawn(shell, [], {
+          name: 'xterm-256color',
+          cols: ${cols},
+          rows: ${rows},
+          cwd: ${JSON.stringify(cwd)},
+          env: process.env,
+        });
+
+        ptyProcess.onData((data) => {
+          const b64 = Buffer.from(data, 'utf-8').toString('base64');
+          // Write chunk direct to stdout; handle non-blocking flow
+          process.stdout.write('D:' + b64 + '\\n');
+        });
+
+        ptyProcess.onExit(() => {
+          process.stdout.write('X:\\n');
+          process.exit(0);
+        });
+
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+          terminal: false,
+        });
+
+        rl.on('line', (line) => {
+          if (!line) return;
+          const cmd = line[0];
+          const payload = line.slice(2);
+
+          if (cmd === 'I') {
+            const input = Buffer.from(payload, 'base64').toString('utf-8');
+            ptyProcess.write(input);
+          } else if (cmd === 'R') {
+            const [c, r] = payload.split(',').map(Number);
+            if (c > 0 && r > 0) ptyProcess.resize(c, r);
+          }
+        });
+      })();
+    `;
+
+    const worker: ChildProcess = spawn('node', ['-e', workerScript], {
+      stdio: ['pipe', 'pipe', 'inherit'],
+      env: process.env,
+    });
+
+    worker.unref();
+
+    let onDataCb: (data: string) => void = () => {};
+    let onExitCb: () => void = () => {};
+
+    let buffer = '';
+
+    // Explicitly set high watermark on worker stdout to avoid pipe lockup
+    if (worker.stdout) {
+      (worker.stdout as any).setDefaultEncoding?.('utf-8');
     }
 
-    // Instantly wipe terminal screen on client using ANSI reset escape code
-    if (ws.readyState === ws.OPEN) {
-      ws.send('\x1bc');
-    }
+    worker.stdout?.on('data', (chunk: Buffer | string) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
 
-    const ptyProcess = createPtySession(cols, rows);
+      for (const line of lines) {
+        if (!line) continue;
+        const cmd = line[0];
+        const payload = line.slice(2);
 
-    session = {
-      pty: ptyProcess,
-      buffer: '',
-      sockets: new Set<WsLikeSocket>(),
-    };
-
-    activeSessions.set(sessionId, session);
-
-    ptyProcess.onData((data) => {
-      const currentSession = activeSessions.get(sessionId);
-      if (!currentSession || currentSession.pty !== ptyProcess) return;
-
-      currentSession.buffer += data;
-      if (currentSession.buffer.length > MAX_BUFFER_SIZE) {
-        currentSession.buffer = currentSession.buffer.slice(
-          currentSession.buffer.length - MAX_BUFFER_SIZE,
-        );
-      }
-
-      for (const socket of currentSession.sockets) {
-        if (socket.readyState === socket.OPEN) {
-          socket.send(data);
+        if (cmd === 'D') {
+          try {
+            const raw = Buffer.from(payload, 'base64').toString('utf-8');
+            onDataCb(raw);
+          } catch {
+            //
+          }
+        } else if (cmd === 'X') {
+          onExitCb();
         }
       }
     });
 
-    ptyProcess.onExit(({ exitCode }) => {
-      const currentSession = activeSessions.get(sessionId);
+    worker.on('exit', () => onExitCb());
 
-      // Only handle exit if this process is STILL the active process (not an old process being reset)
-      if (currentSession && currentSession.pty === ptyProcess) {
-        for (const socket of currentSession.sockets) {
-          if (socket.readyState === socket.OPEN) {
-            socket.send(
-              `\r\n\x1b[33mShell exited (code: ${exitCode})\x1b[0m\r\n`,
-            );
-            socket.close();
+    return {
+      onData(cb) {
+        onDataCb = cb;
+      },
+      onExit(cb) {
+        onExitCb = cb;
+      },
+      write(data) {
+        if (worker.stdin?.writable) {
+          const b64 = Buffer.from(data, 'utf-8').toString('base64');
+          worker.stdin.write(`I:${b64}\n`);
+        }
+      },
+      resize(c, r) {
+        if (worker.stdin?.writable) {
+          worker.stdin.write(`R:${c},${r}\n`);
+        }
+      },
+      pause() {
+        worker.stdout?.pause();
+      },
+      resume() {
+        worker.stdout?.resume();
+      },
+      kill() {
+        try {
+          worker.kill();
+        } catch {
+          //
+        }
+      },
+    };
+  }
+
+  // Non-Windows / Native Node
+  const pty = require('@lydell/node-pty');
+  const shell =
+    process.platform === 'win32'
+      ? process.env.COMSPEC || 'cmd.exe'
+      : process.env.SHELL || '/bin/bash';
+
+  const ptyProc = pty.spawn(shell, [], {
+    name: 'xterm-256color',
+    cols,
+    rows,
+    cwd,
+    env: process.env,
+  });
+
+  return {
+    onData(cb) {
+      ptyProc.onData(cb);
+    },
+    onExit(cb) {
+      ptyProc.onExit(cb);
+    },
+    write(data) {
+      ptyProc.write(data);
+    },
+    resize(c, r) {
+      ptyProc.resize(c, r);
+    },
+    pause() {
+      try {
+        ptyProc.pause?.();
+      } catch {
+        //
+      }
+    },
+    resume() {
+      try {
+        ptyProc.resume?.();
+      } catch {
+        //
+      }
+    },
+    kill() {
+      ptyProc.kill();
+    },
+  };
+}
+
+export function attachPtyToSocket(
+  ws: WsLikeSocket,
+  sessionId: string,
+  cols = 80,
+  rows = 24,
+  reset = false,
+) {
+  let session = sessions.get(sessionId);
+
+  if (reset && session) {
+    try {
+      session.pty.kill();
+    } catch {
+      //
+    }
+    sessions.delete(sessionId);
+    session = undefined;
+  }
+
+  if (!session) {
+    const ptyProc = createPtyProcess(cols, rows);
+    session = {
+      pty: ptyProc,
+      buffer: [],
+      totalBufferLength: 0,
+      sockets: new Set(),
+    };
+    sessions.set(sessionId, session);
+
+    ptyProc.onData((data) => {
+      if (!session) return;
+
+      // Store scrollback in bounded array
+      session.buffer.push(data);
+      session.totalBufferLength += data.length;
+
+      if (session.buffer.length > MAX_HISTORY_CHUNKS) {
+        const removed = session.buffer.shift();
+        if (removed) session.totalBufferLength -= removed.length;
+      }
+
+      // Check socket backpressure before broadcasting
+      let maxSocketBuffer = 0;
+      for (const client of session.sockets) {
+        if (client.readyState === 1) {
+          const buffered = client.bufferedAmount || 0;
+          if (buffered > maxSocketBuffer) maxSocketBuffer = buffered;
+
+          // Dropping/holding frame write if client socket is congested
+          if (buffered < MAX_WS_BUFFERED_AMOUNT) {
+            try {
+              client.send(data);
+            } catch {
+              //
+            }
           }
         }
-        activeSessions.delete(sessionId);
       }
+
+      // Backpressure throttle: If sockets are severely backed up, pause stream reading
+      if (maxSocketBuffer > MAX_WS_BUFFERED_AMOUNT) {
+        session.pty.pause?.();
+        setTimeout(() => session?.pty.resume?.(), 50);
+      }
+    });
+
+    ptyProc.onExit(() => {
+      if (!session) return;
+      for (const client of session.sockets) {
+        if (client.readyState === 1) {
+          try {
+            client.send('\r\n\x1b[33mShell exited\x1b[0m\r\n');
+            client.close();
+          } catch {
+            //
+          }
+        }
+      }
+      sessions.delete(sessionId);
     });
   }
 
   session.sockets.add(ws);
 
-  // Replay output history on reconnect (only if not reset)
-  if (!reset && session.buffer && ws.readyState === ws.OPEN) {
-    ws.send(session.buffer);
+  // Send initial history on connect without crashing frame size limit
+  if (session.buffer.length > 0 && ws.readyState === 1) {
+    try {
+      // Chunk output replay to prevent WebSocket single-frame max payload crash
+      const fullHistory = session.buffer.join('');
+      const chunkSize = 16384; // 16KB frames
+      for (let i = 0; i < fullHistory.length; i += chunkSize) {
+        ws.send(fullHistory.slice(i, i + chunkSize));
+      }
+    } catch {
+      //
+    }
+  }
+}
+
+export function handleBunSocketMessage(
+  sessionId: string,
+  message: string | Buffer,
+) {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+
+  const text = message.toString();
+  if (text.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.type === 'resize') {
+        session.pty.resize(parsed.cols, parsed.rows);
+        return;
+      }
+    } catch {
+      //
+    }
   }
 
-  ws.on('message', (data) => {
-    const currentSession = activeSessions.get(sessionId);
-    if (!currentSession) return;
+  session.pty.write(text);
+}
 
-    const message = data.toString('utf8');
-    if (message.startsWith('{')) {
-      try {
-        const msg = JSON.parse(message);
-        if (msg.type === 'resize' && msg.cols > 0 && msg.rows > 0) {
-          return currentSession.pty.resize(msg.cols, msg.rows);
-        }
-      } catch {
-        /* raw input */
-      }
-    }
-    currentSession.pty.write(message);
-  });
-
-  ws.on('close', () => {
-    const currentSession = activeSessions.get(sessionId);
-    if (currentSession) {
-      currentSession.sockets.delete(ws);
-    }
-  });
-
-  ws.on('error', () => {});
-
-  return session.pty;
+export function handleBunSocketClose(ws: WsLikeSocket, sessionId: string) {
+  const session = sessions.get(sessionId);
+  if (session) {
+    session.sockets.delete(ws);
+  }
 }

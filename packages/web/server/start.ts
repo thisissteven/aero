@@ -1,77 +1,146 @@
-import { serve } from 'bun';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// server/start.ts
+import { serve, type ServerWebSocket } from 'bun';
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 
 import api from './index';
 import { validateWebSocketRequest } from './lib/terminal/auth';
 import { AUTH_CONFIG } from './lib/terminal/config';
-import { createPtySession, type PtyProcess } from './lib/terminal/pty-session';
+import {
+  attachPtyToSocket,
+  handleBunSocketClose,
+  handleBunSocketMessage,
+  type WsLikeSocket,
+} from './lib/terminal/pty-session';
+
+// Prevent ERR_SOCKET_CLOSED or async node-pty pipe errors from crashing Bun process
+process.on('uncaughtException', (err: any) => {
+  if (
+    err?.code === 'ERR_SOCKET_CLOSED' ||
+    err?.message?.includes('Socket is closed')
+  ) {
+    console.warn('[Server] Caught async PTY socket close event:', err.message);
+    return;
+  }
+  console.error('[Server] Uncaught Exception:', err);
+});
 
 const app = new Hono();
 
 app.route('/', api);
-
 app.use('/*', serveStatic({ root: './dist' }));
 app.get('*', serveStatic({ path: './dist/index.html' }));
 
-type TerminalSocketData = { cols: number; rows: number; pty?: PtyProcess };
+type TerminalSocketData = {
+  sessionId: string;
+  cols: number;
+  rows: number;
+  reset: boolean;
+};
 
-serve<TerminalSocketData>({
-  port: 3000,
-  fetch(req, server) {
-    const url = new URL(req.url);
+function adaptBunSocket(ws: ServerWebSocket<TerminalSocketData>): WsLikeSocket {
+  return {
+    readyState: ws.readyState,
+    send(data) {
+      ws.send(data);
+    },
+    close(code, reason) {
+      ws.close(code, reason);
+    },
+  };
+}
 
-    if (url.pathname === '/ws/terminal') {
-      const decision = validateWebSocketRequest(AUTH_CONFIG, {
-        host: req.headers.get('host') ?? undefined,
-        origin: req.headers.get('origin') ?? undefined,
-        token: url.searchParams.get('token'),
+async function listenWithRetry(basePort: number, maxAttempts = 10) {
+  let currentPort = basePort;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const serverInstance = serve<TerminalSocketData>({
+        port: currentPort,
+        reusePort: true,
+        fetch(req, server) {
+          const url = new URL(req.url);
+
+          if (
+            url.pathname === '/ws/terminal' ||
+            url.pathname === '/api/terminal/ws'
+          ) {
+            const decision = validateWebSocketRequest(AUTH_CONFIG, {
+              host: req.headers.get('host') ?? undefined,
+              origin: req.headers.get('origin') ?? undefined,
+              token: url.searchParams.get('token'),
+            });
+
+            if (!decision.ok) {
+              return new Response(decision.reason, { status: decision.status });
+            }
+
+            const sessionId = url.searchParams.get('sessionId') || 'default';
+            const reset = url.searchParams.get('reset') === 'true';
+            const cols = Number.parseInt(
+              url.searchParams.get('cols') || '80',
+              10,
+            );
+            const rows = Number.parseInt(
+              url.searchParams.get('rows') || '24',
+              10,
+            );
+
+            const upgraded = server.upgrade(req, {
+              data: { sessionId, cols, rows, reset },
+            });
+
+            return upgraded
+              ? undefined
+              : new Response('Upgrade failed', { status: 400 });
+          }
+
+          return app.fetch(req, server);
+        },
+        websocket: {
+          open(ws) {
+            const { sessionId, cols, rows, reset } = ws.data;
+            const socketAdapter = adaptBunSocket(ws);
+            attachPtyToSocket(socketAdapter, sessionId, cols, rows, reset);
+          },
+          message(ws, message) {
+            handleBunSocketMessage(ws.data.sessionId, message.toString());
+          },
+          close(ws) {
+            const socketAdapter = adaptBunSocket(ws);
+            handleBunSocketClose(socketAdapter, ws.data.sessionId);
+          },
+        },
       });
-      if (!decision.ok) {
-        return new Response(decision.reason, { status: decision.status });
+
+      return serverInstance;
+    } catch (err: any) {
+      if (err?.code === 'EADDRINUSE') {
+        console.warn(
+          `[start] Port ${currentPort} in use/locked by OS, trying port ${currentPort + 1}...`,
+        );
+        currentPort++;
+      } else {
+        throw err;
       }
-
-      const cols = Number.parseInt(url.searchParams.get('cols') || '80', 10);
-      const rows = Number.parseInt(url.searchParams.get('rows') || '24', 10);
-      const upgraded = server.upgrade(req, {
-        data: { cols, rows },
-      });
-      return upgraded
-        ? undefined
-        : new Response('Upgrade failed', { status: 400 });
     }
+  }
+  throw new Error(
+    `Could not find an available port starting from ${basePort}.`,
+  );
+}
 
-    return app.fetch(req, server);
-  },
-  websocket: {
-    open(ws) {
-      const pty = createPtySession(ws.data.cols, ws.data.rows);
-      ws.data.pty = pty;
-      pty.onData((data) => ws.send(data));
-      pty.onExit(({ exitCode }) => {
-        ws.send(`\r\n\x1b[33mShell exited (code: ${exitCode})\x1b[0m\r\n`);
-        ws.close();
-      });
-    },
-    message(ws, message) {
-      const pty = ws.data.pty;
-      if (!pty) return;
-      const text = message.toString();
-      if (text.startsWith('{')) {
-        try {
-          const msg = JSON.parse(text);
-          if (msg.type === 'resize') return pty.resize(msg.cols, msg.rows);
-        } catch {
-          /* raw input */
-        }
-      }
-      pty.write(text);
-    },
-    close(ws) {
-      ws.data.pty?.kill();
-    },
-  },
-});
+const DESIRED_PORT = Number(process.env.PORT) || 3000;
+const server = await listenWithRetry(DESIRED_PORT);
 
-// eslint-disable-next-line no-console
-console.log('http://localhost:3000');
+console.log(`Server listening on http://localhost:${server.port}`);
+
+const shutdown = () => {
+  console.log('\nShutting down server...');
+  server.stop(true);
+  process.exit(0);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

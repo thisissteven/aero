@@ -1,3 +1,5 @@
+// server/routes/terminal.ts
+
 import { Hono } from 'hono';
 
 import { validateTokenRequest } from '../lib/terminal/auth';
