@@ -170,7 +170,9 @@ export function buildFlatConversationItems(
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      const hasFooter = !isTurnStreaming;
+      const hasFooter =
+        !isTurnStreaming &&
+        (turn.parts.length > 0 || turn.error?.data?.message);
 
       turn.parts.forEach((part, partIndex) => {
         const isLastPartInTurn = partIndex === turn.parts.length - 1;
@@ -192,11 +194,20 @@ export function buildFlatConversationItems(
         });
       });
 
-      if (turn.error?.data?.message) {
+      const errorMessage = (() => {
+        switch (turn.error?.name) {
+          case 'MessageAbortedError':
+            return 'This turn was aborted by the user.';
+          default:
+            return turn.error?.data?.message;
+        }
+      })();
+
+      if (errorMessage) {
         items.push({
           id: `${turn.id}-assistant-error`,
           type: 'assistant-error',
-          message: turn.error.data.message,
+          message: errorMessage,
         });
       }
 
@@ -206,8 +217,7 @@ export function buildFlatConversationItems(
           type: 'assistant-footer',
           turnId: turn.id,
           createdAt: formatDateTime(turn.createdAt),
-          assistantTextResponse:
-            assistantTextResponse || (turn.error?.data?.message ?? ''),
+          assistantTextResponse: assistantTextResponse || (errorMessage ?? ''),
           nextTurnId,
         });
         items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });

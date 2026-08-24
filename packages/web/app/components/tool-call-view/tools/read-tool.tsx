@@ -3,12 +3,17 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { ReadPart } from '@/app/components/tool-call-view/tools/tool-types';
-import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
+import {
+  formatReadToolOutput,
+  getLanguageFromExtension,
+} from '@/app/lib/file-icons/tool-helpers';
 
 export const ReadToolView = memo(
   ({ part, blockId }: { part: ReadPart; blockId: string }) => {
     const path = part.input.path || part.input.filePath || '';
-    const rawOutput = formatToolOutput(part.output);
+    const output = formatReadToolOutput(part.output);
+
+    const language = getLanguageFromExtension(path);
 
     return (
       <BaseTool
@@ -17,13 +22,13 @@ export const ReadToolView = memo(
         error={part.error}
         icon={FileText}
         title='Read File'
-        codeTitle='Read File'
-        code={rawOutput}
-        language='json'
+        codeTitle={path}
+        code={output}
+        language={language ?? 'text'}
         preview={path}
         previewType='read-path'
-        copyText={rawOutput}
-        showLineNumbers={false}
+        copyText={output}
+        showLineNumbers
       />
     );
   },

@@ -82,7 +82,7 @@ export type SkillPart = ToolPartBase & {
 
 export type WebFetchPart = ToolPartBase & {
   toolName: 'fetch' | 'curl' | 'wget' | 'webfetch';
-  input: { url?: string };
+  input: { url?: string; format?: string };
 };
 
 export type WebSearchPart = ToolPartBase & {
@@ -98,14 +98,48 @@ export type WebSearchPart = ToolPartBase & {
   input: { query?: string };
 };
 
+export type QuestionOption = {
+  label: string;
+  description?: string;
+};
+
+export type QuestionItem = {
+  question: string;
+  header?: string;
+  options?: QuestionOption[];
+};
+
 export type QuestionPart = ToolPartBase & {
   toolName: 'question';
-  input: { question?: string };
+  input: {
+    questions?: QuestionItem[];
+  };
+  metadata?: {
+    answers?: string[][];
+    truncated?: boolean;
+    [key: string]: unknown;
+  };
+};
+
+export type TodoStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TodoPriority = 'low' | 'medium' | 'high';
+
+export type TodoItem = {
+  content: string;
+  status: TodoStatus;
+  priority?: TodoPriority;
 };
 
 export type TodoWritePart = ToolPartBase & {
   toolName: 'todowrite' | 'todoread';
-  input: { todos?: unknown[] };
+  input: {
+    todos?: TodoItem[];
+  };
+  metadata?: {
+    todos?: TodoItem[];
+    truncated?: boolean;
+    [key: string]: unknown;
+  };
 };
 
 export type GenericToolPart = ToolPartBase;

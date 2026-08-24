@@ -1,5 +1,5 @@
 import { Icon } from '@gravity-ui/uikit';
-import { SVGProps } from 'react';
+import { ReactNode, SVGProps } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
@@ -32,18 +32,19 @@ export function BaseTool({
   showLineNumbers = true,
   isItalicHeader = false,
   diff,
+  children,
 }: {
   blockId: string;
   status: string;
   error?: string;
   icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
   title: string;
-  preview?: string;
+  preview?: ReactNode;
   previewType?: 'text' | 'path' | 'read-path';
-  codeTitle: string;
-  code: string;
-  language: string;
-  copyText: string;
+  codeTitle?: string;
+  code?: string;
+  language?: string;
+  copyText?: string;
   duration?: number;
   showLineNumbers?: boolean;
   isItalicHeader?: boolean;
@@ -51,11 +52,12 @@ export function BaseTool({
     additions: number;
     deletions: number;
   };
+  children?: ReactNode;
 }) {
-  const hasContent = Boolean(copyText && code);
+  const hasCodeContent = Boolean(copyText && code);
+  const hasContent = hasCodeContent || Boolean(children);
 
   const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[blockId]));
-
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
   return (
@@ -91,7 +93,7 @@ export function BaseTool({
                 {title}
               </span>
 
-              {previewType === 'read-path' && preview && (
+              {previewType === 'read-path' && typeof preview === 'string' && (
                 <FileTypeIcon filePath={preview} />
               )}
 
@@ -99,17 +101,20 @@ export function BaseTool({
                 <span className='text-muted/70'>{duration}s</span>
               ) : null}
 
-              <p className='text-muted/70 min-w-0 flex-1 text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+              <div className='text-muted/70 min-w-0 flex-1 text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
                 {preview ? (
-                  previewType === 'path' || previewType === 'read-path' ? (
+                  (previewType === 'path' || previewType === 'read-path') &&
+                  typeof preview === 'string' ? (
                     <MiddleTruncatePath path={preview} />
-                  ) : (
+                  ) : typeof preview === 'string' ? (
                     <span className='inline-block w-full truncate align-middle'>
                       {preview}
                     </span>
+                  ) : (
+                    preview
                   )
                 ) : null}
-              </p>
+              </div>
 
               {diff && (
                 <>
@@ -134,7 +139,9 @@ export function BaseTool({
         <div className='border-default ml-2 border-l pl-5'>
           {error && (
             <div>
-              <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+              {typeof preview === 'string' && (
+                <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+              )}
               <Alert
                 status='danger'
                 className='bg-transparent p-0 pt-4 shadow-none'
@@ -147,7 +154,12 @@ export function BaseTool({
               </Alert>
             </div>
           )}
-          {hasContent && (
+
+          {/* Renders custom ReactNode components directly */}
+          {children}
+
+          {/* Fallback to CodeBlock when code prop is passed */}
+          {hasCodeContent && !children && (
             <CodeBlock className='bg-transparent'>
               <CodeBlock.Header>
                 <div
@@ -158,12 +170,14 @@ export function BaseTool({
                 >
                   {codeTitle}
                 </div>
-                <CodeBlock.CopyButton code={copyText} className='shrink-0' />
+                {copyText && (
+                  <CodeBlock.CopyButton code={copyText} className='shrink-0' />
+                )}
               </CodeBlock.Header>
               <CodeBlockContent
-                code={code}
-                language={language}
-                scrollOverflow={code.includes('\n')}
+                code={code!}
+                language={language || 'text'}
+                scrollOverflow={code!.includes('\n')}
                 showLineNumbers={showLineNumbers}
               />
             </CodeBlock>
@@ -173,7 +187,6 @@ export function BaseTool({
     </Disclosure>
   );
 }
-
 // Code theme context helper used across all tools
 export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
   const { resolvedTheme } = useTheme();

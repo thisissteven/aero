@@ -8,6 +8,7 @@ import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 export const WebFetchToolView = memo(
   ({ part, blockId }: { part: WebFetchPart; blockId: string }) => {
     const url = part.input.url || '';
+    const format = part.input.format || 'text';
     const rawOutput = formatToolOutput(part.output);
 
     return (
@@ -17,9 +18,9 @@ export const WebFetchToolView = memo(
         error={part.error}
         icon={Globe}
         title='Web Fetch'
-        codeTitle='Web Fetch'
+        codeTitle={url}
         code={rawOutput}
-        language='markdown'
+        language={format}
         preview={url}
         copyText={rawOutput}
       />

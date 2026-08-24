@@ -4,6 +4,23 @@ export function formatToolOutput(output: unknown): string {
   return JSON.stringify(output, null, 2);
 }
 
+export function formatReadToolOutput(output: unknown): string {
+  if (typeof output !== 'string') {
+    return String(output ?? '');
+  }
+
+  return (
+    output
+      // 1. Remove XML tags (<path>, <type>, <content>)
+      .replace(/<path>[\s\S]*?<\/path>\s*/gi, '')
+      .replace(/<type>[\s\S]*?<\/type>\s*/gi, '')
+      .replace(/<\/?content>\s*/gi, '')
+      // 2. Strip leading line numbers (e.g., "1: ", "365: ") at the start of lines
+      .replace(/^\d+:\s?/gm, '')
+      .trim()
+  );
+}
+
 export interface ToolMetadata {
   displayName: string;
   icon?: string;
