@@ -9,14 +9,13 @@ import {
   Virtualizer,
 } from '@aero/ui';
 
-import { WorkspacesToggleEditModeButton } from '@/app/components/chat-sidebar/workspace-actions';
-import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace-item';
+import { WorkspacesToggleEditModeButton } from '@/app/components/chat-sidebar/workspace/workspace-actions';
+import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 interface WorkspacesProps {
-  pathname: string;
   idPrefix?: string;
   workspacesQuery: ReturnType<typeof useWorkspaces>;
   rowHeight?: number;
@@ -39,7 +38,6 @@ function WorkspacesLoader({ enabled }: { enabled: boolean }) {
 }
 
 export const Workspaces = memo(function Workspaces({
-  pathname,
   workspacesQuery,
   rowHeight = 38,
 }: WorkspacesProps) {
@@ -72,13 +70,11 @@ export const Workspaces = memo(function Workspaces({
               aria-label='Recent workspaces'
               items={workspaces}
               selectionMode='single'
-              dependencies={[pathname]}
             >
               {(workspace) => (
                 <ChatSidebarWorkspaceItem
                   key={workspace.id}
                   idPrefix='workspaces'
-                  pathname={pathname}
                   workspace={workspace}
                 />
               )}

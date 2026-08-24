@@ -10,12 +10,12 @@ import { memo, useState, useTransition } from 'react';
 
 import { Kbd, Sidebar } from '@aero/ui';
 
-import { RecentChats } from '@/app/components/chat-sidebar/recent-chats';
+import { RecentChats } from '@/app/components/chat-sidebar/session/recent-sessions';
 import {
   useRecentsSidebarStore,
   useWorkspacesSidebarStore,
 } from '@/app/components/chat-sidebar/sidebar-store';
-import { Workspaces } from '@/app/components/chat-sidebar/workspaces';
+import { Workspaces } from '@/app/components/chat-sidebar/workspace/workspaces';
 import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
 import { useSessions } from '@/app/hooks/api/sessions';
@@ -38,7 +38,7 @@ export const SidebarContents = memo(function SidebarContents({
 }: SidebarContentsProps) {
   const [, startTransition] = useTransition();
 
-  const { href, pathname } = useLocation();
+  const { href } = useLocation();
   const navigate = useNavigate();
 
   const handleNavigate = (to: string) => {
@@ -147,12 +147,8 @@ export const SidebarContents = memo(function SidebarContents({
 
       <TransitionInOut
         current={isWorkspacesOpen ? 'second' : 'first'}
-        first={
-          <RecentChats pathname={pathname} sessionsQuery={sessionsQuery} />
-        }
-        second={
-          <Workspaces pathname={pathname} workspacesQuery={workspacesQuery} />
-        }
+        first={<RecentChats sessionsQuery={sessionsQuery} />}
+        second={<Workspaces workspacesQuery={workspacesQuery} />}
       />
 
       <SidebarFooter />

@@ -9,17 +9,10 @@ import {
   ArchiveBulkSessionsConfirmationModal,
   DeleteBulkSessionsConfirmationModal,
   getCheckboxVariant,
-} from '@/app/components/chat-sidebar/session-actions';
+} from '@/app/components/chat-sidebar/session/session-actions';
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
-import {
-  dedupeById,
-  dedupeWorktreesByDirectory,
-} from '@/app/components/chat-sidebar/workspace-item';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
-import {
-  workspaceKeys,
-  WorkspacesPageResponse,
-} from '@/app/hooks/api/workspaces';
+import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 
 export function WorkspacesToggleEditModeButton() {
@@ -114,50 +107,17 @@ export function SelectWorkspaceSession({ sessionId }: { sessionId: string }) {
   );
 
   const getOrderedIds = (): string[] => {
+    // 1. Pass only the root key prefix to match ALL variations fuzzily
+    // (e.g., ['sessions', 'default', ...])
     const queries = queryClient.getQueriesData<
-      InfiniteData<WorkspacesPageResponse>
+      InfiniteData<SessionsPageResponse>
     >({
-      queryKey: [...workspaceKeys.merged(), undefined],
-      exact: true,
+      queryKey: [...sessionKeys.merged(), undefined, 'directory'],
     });
 
-    const activeQuery = queries[queries.length - 1];
-    const data = activeQuery?.[1];
-
-    if (!data?.pages) return [];
-
-    return data.pages.flatMap((page) =>
-      page.items.flatMap((workspace) => {
-        // 1. Deduplicate worktrees and sessions
-        const cleanWorktrees = dedupeWorktreesByDirectory(
-          workspace.worktrees,
-        ).map((worktree) => ({
-          ...worktree,
-          sessions: dedupeById(worktree.sessions),
-        }));
-
-        // 2. Separate root from other worktrees
-        const rootWorktree = cleanWorktrees.find(
-          (worktree) => worktree.directory === workspace.directory,
-        );
-
-        const otherWorktrees = rootWorktree
-          ? cleanWorktrees.filter(
-              (worktree) => worktree.directory !== rootWorktree.directory,
-            )
-          : cleanWorktrees;
-
-        // 3. Reorder: root comes first, followed by remaining worktrees
-        const orderedWorktrees = [
-          ...(rootWorktree ? [rootWorktree] : []),
-          ...otherWorktrees,
-        ];
-
-        // 4. Map to session IDs
-        return orderedWorktrees.flatMap((worktree) =>
-          worktree.sessions.map((session) => session.id),
-        );
-      }),
+    return queries.flatMap(
+      ([, data]) =>
+        data?.pages?.flatMap((page) => page.items.map((item) => item.id)) ?? [],
     );
   };
 

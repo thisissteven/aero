@@ -12,6 +12,7 @@ import {
   ThemeProvider,
 } from '@/app/providers';
 import { KeyPressProvider } from '@/app/providers/key-press';
+import { PathnameHandler } from '@/app/providers/PathnameHandler';
 import { PreloadProvider } from '@/app/providers/PreloadProvider';
 
 export const Route = createRootRoute({
@@ -30,6 +31,7 @@ function RootLayout() {
           <SettingsModal />
           <KeyPressProvider />
           <PreloadProvider />
+          <PathnameHandler />
           <Outlet />
         </I18nProvider>
       </QueryProvider>

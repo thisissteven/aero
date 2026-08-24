@@ -39,7 +39,9 @@ export function CommandPaletteList() {
   const toggleIsOpen = useCommandPaletteStore((state) => state.toggleIsOpen);
   const openSettingsModal = useSettingsModalStore((state) => state.openModal);
 
-  const sessionsQuery = useSessions(debouncedSearch || undefined);
+  const sessionsQuery = useSessions({
+    search: debouncedSearch || undefined,
+  });
   const { isPlaceholderData } = sessionsQuery;
 
   const view = useMemo(

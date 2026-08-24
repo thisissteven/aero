@@ -9,14 +9,13 @@ import {
   Virtualizer,
 } from '@aero/ui';
 
-import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session-actions';
-import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session-item';
+import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
+import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
 interface RecentChatsProps {
-  pathname: string;
   idPrefix?: string;
   sessionsQuery: ReturnType<typeof useSessions>;
   /** Fixed row height for virtualizer calculations */
@@ -40,7 +39,6 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
 }
 
 export const RecentChats = memo(function Recents({
-  pathname,
   sessionsQuery,
   rowHeight = 38,
 }: RecentChatsProps) {
@@ -73,13 +71,11 @@ export const RecentChats = memo(function Recents({
               aria-label='Recent sessions'
               items={sessions}
               selectionMode='single'
-              dependencies={[pathname]}
             >
               {(session) => (
                 <ChatSidebarSessionItem
                   key={session.id}
                   idPrefix='recents'
-                  pathname={pathname}
                   session={session}
                   from='recents'
                 />

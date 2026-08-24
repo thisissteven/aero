@@ -65,7 +65,7 @@ export const CLAUDE_STORE_PATH = normalizePath(
 
 export const PAGINATION_LIMIT = 10;
 export const GET_ALL_LIMIT = 1000000000;
-export const WORKSPACE_VISIBLE_SESSIONS_LIMIT = 5;
+export const WORKSPACE_VISIBLE_SESSIONS_LIMIT = 3;
 
 export const withPagination = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>,
@@ -74,6 +74,7 @@ export const withPagination = <T extends z.ZodRawShape>(
     cursor: z.string().optional(),
     limit: z.coerce.number().min(1).max(GET_ALL_LIMIT).optional(),
     search: z.string().optional(),
+    directory: z.string().optional(),
   });
 
 export type OpenCodePaginated<T> = {

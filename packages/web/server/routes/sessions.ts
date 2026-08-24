@@ -62,13 +62,14 @@ const sessions = new Hono()
     '/merged',
     zValidator('query', withPagination(z.object())),
     async (c) => {
-      const { cursor, limit, search } = c.req.valid('query');
+      const { cursor, limit, search, directory } = c.req.valid('query');
       const adapters = await getAllAdapters();
 
       const result = await listSessionsAcrossAdapters(adapters, {
         cursor,
         limit,
         search,
+        directory,
       });
 
       return c.json(result);

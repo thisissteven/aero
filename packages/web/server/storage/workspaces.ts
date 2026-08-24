@@ -28,14 +28,19 @@ async function readAll(): Promise<AeroWorkspace[]> {
     const raw = await readFile(WORKSPACES_PATH, 'utf-8');
     const data: AeroWorkspace[] = JSON.parse(raw);
 
-    return data.map((ws) => ({
-      ...ws,
-      directory: normalizePath(ws.directory),
-      worktrees: (ws.worktrees || []).map((wt) => ({
-        ...wt,
-        directory: normalizePath(wt.directory),
-      })),
-    }));
+    return (
+      data
+        .map((ws) => ({
+          ...ws,
+          directory: normalizePath(ws.directory),
+          worktrees: (ws.worktrees || []).map((wt) => ({
+            ...wt,
+            directory: normalizePath(wt.directory),
+          })),
+        }))
+        // exclude standalone sessions
+        .filter((item) => !item.directory.includes('.aero/workspaces'))
+    );
   } catch {
     return [];
   }

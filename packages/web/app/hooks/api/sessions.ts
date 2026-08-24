@@ -15,7 +15,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
-import { HarnessId } from '@/server/services/harness/types';
+import { AeroSessionSummary, HarnessId } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $individualSession = honoClient.api.sessions[':id'];
@@ -46,25 +46,36 @@ export type SessionsPageResponse = InferResponseType<
   200
 >;
 
-export function useSessions(search?: string) {
+interface UseSessionsOptions {
+  directory?: string;
+  search?: string;
+  limit?: number;
+  initialSessions?: AeroSessionSummary[];
+}
+
+export function useSessions({
+  directory,
+  search,
+  initialSessions,
+  limit,
+}: UseSessionsOptions = {}) {
   return useInfiniteQuery({
-    queryKey: [...sessionKeys.merged(), search],
-
+    queryKey: [
+      ...sessionKeys.merged(),
+      search,
+      ...(directory ? ['directory', directory] : []),
+    ],
     initialPageParam: undefined as string | undefined,
-
     placeholderData: keepPreviousData,
-
     queryFn: async ({ pageParam }) => {
-      const [res] = await Promise.all([
-        $sessions.merged.$get({
-          query: {
-            cursor: pageParam,
-            limit: PAGINATION_LIMIT.toString(),
-            search: search || undefined,
-          },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      const res = await $sessions.merged.$get({
+        query: {
+          cursor: pageParam,
+          limit: limit?.toString() || PAGINATION_LIMIT.toString(),
+          search,
+          directory,
+        },
+      });
 
       if (!res.ok) {
         throw new Error('Failed to fetch sessions');
@@ -72,8 +83,19 @@ export function useSessions(search?: string) {
 
       return res.json();
     },
-
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    // Hydrate the first page using initial 5 sessions from server
+    initialData: initialSessions?.length
+      ? {
+          pages: [
+            {
+              items: initialSessions,
+              nextCursor: undefined, // Will fetch actual next cursor on fetchNextPage
+            },
+          ],
+          pageParams: [undefined],
+        }
+      : undefined,
   });
 }
 

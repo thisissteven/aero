@@ -21,7 +21,7 @@ import {
   ExportMarkdown,
   RenameSession,
   ShareUnshareSession,
-} from '@/app/components/chat-sidebar/session-actions';
+} from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
@@ -148,6 +148,8 @@ function SessionsNavbarContent() {
     );
   }
 
+  const isStandaloneSession = session.workspace.includes('.aero/workspaces');
+
   return (
     <div className='flex min-w-0 items-start gap-2 pr-2 transition'>
       <div className='flex min-w-0 flex-col'>
@@ -155,9 +157,14 @@ function SessionsNavbarContent() {
 
         <div className='text-muted flex min-w-0 items-center gap-1 overflow-hidden text-xs'>
           <span className='shrink-0'>
-            {formatCompactRelativeTime(session.updatedAt, true)} at{' '}
+            {formatCompactRelativeTime(session.updatedAt, true)}
+            {!isStandaloneSession && ` at `}
           </span>
-          <span className='truncate font-bold'>{session.workspace}</span>
+          {isStandaloneSession ? (
+            <span>(Standalone session)</span>
+          ) : (
+            <span className='truncate font-bold'>{session.workspace}</span>
+          )}
         </div>
       </div>
       <div>
