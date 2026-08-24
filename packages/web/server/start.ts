@@ -37,6 +37,7 @@ type TerminalSocketData = {
   cols: number;
   rows: number;
   reset: boolean;
+  cwd?: string;
 };
 
 function adaptBunSocket(ws: ServerWebSocket<TerminalSocketData>): WsLikeSocket {
@@ -86,9 +87,10 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
               url.searchParams.get('rows') || '24',
               10,
             );
+            const cwd = url.searchParams.get('cwd') || undefined;
 
             const upgraded = server.upgrade(req, {
-              data: { sessionId, cols, rows, reset },
+              data: { sessionId, cols, rows, reset, cwd },
             });
 
             return upgraded
@@ -100,9 +102,9 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
         },
         websocket: {
           open(ws) {
-            const { sessionId, cols, rows, reset } = ws.data;
+            const { sessionId, cols, rows, reset, cwd } = ws.data;
             const socketAdapter = adaptBunSocket(ws);
-            attachPtyToSocket(socketAdapter, sessionId, cols, rows, reset);
+            attachPtyToSocket(socketAdapter, sessionId, cols, rows, reset, cwd);
           },
           message(ws, message) {
             handleBunSocketMessage(ws.data.sessionId, message.toString());

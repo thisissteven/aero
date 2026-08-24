@@ -72,6 +72,7 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
               ref={getRefCallback(session.id)}
               sessionId={session.id}
               active={session.id === activeSessionId}
+              cwd={session.cwd}
             />
           ))
         )}

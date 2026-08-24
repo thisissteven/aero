@@ -46,10 +46,17 @@ const MAX_WS_BUFFERED_AMOUNT = 1024 * 1024;
 // Limit history buffer to avoid RAM bloat on giant terminal spams
 const MAX_HISTORY_CHUNKS = 1000;
 
-function createPtyProcess(cols: number, rows: number): ProcessWrapper {
-  let cwd = os.homedir();
+function createPtyProcess(
+  cols: number,
+  rows: number,
+  initialCwd?: string,
+): ProcessWrapper {
+  let cwd = initialCwd || os.homedir();
+
   try {
-    if (!fs.existsSync(cwd)) cwd = process.cwd();
+    if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
+      cwd = os.homedir();
+    }
   } catch {
     cwd = process.cwd();
   }
@@ -234,6 +241,7 @@ export function attachPtyToSocket(
   cols = 80,
   rows = 24,
   reset = false,
+  cwd?: string,
 ) {
   let session = sessions.get(sessionId);
 
@@ -248,7 +256,7 @@ export function attachPtyToSocket(
   }
 
   if (!session) {
-    const ptyProc = createPtyProcess(cols, rows);
+    const ptyProc = createPtyProcess(cols, rows, cwd);
     session = {
       pty: ptyProc,
       buffer: [],

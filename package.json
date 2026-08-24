@@ -44,7 +44,7 @@
     "storybook:preview": "turbo run preview --filter=@aero/storybook",
     "web:dev": "turbo run dev --filter=@aero/web",
     "web:build": "turbo run build --filter=@aero/web",
-    "web:preview": "turbo run preview --filter=@aero/web",
+    "web:start": "turbo run start --filter=@aero/web",
     "tree": "node ./scripts/tree.js"
   },
   "devDependencies": {

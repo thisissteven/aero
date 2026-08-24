@@ -1,7 +1,9 @@
 import { Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useParams } from '@tanstack/react-router';
 
 import { IconButton } from '@/app/components/ui/icon-button';
+import { useSession } from '@/app/hooks/api/sessions';
 
 import { SessionStatusDot } from './session-status-dot';
 import {
@@ -14,6 +16,9 @@ export function TerminalTabs() {
   const sessions = useTerminalSessions();
   const activeSessionId = useActiveSessionId();
   const { addSession, removeSession, setActiveSession } = useTerminalActions();
+
+  const { sessionId } = useParams({ strict: false });
+  const { data: session } = useSession(undefined, sessionId);
 
   return (
     <div className='bg-background flex items-center gap-1 px-1 py-1'>
@@ -48,7 +53,7 @@ export function TerminalTabs() {
           );
         })}
       </div>
-      <IconButton onPress={() => addSession()}>
+      <IconButton onPress={() => addSession(session?.workspace)}>
         <Icon data={Plus} />
       </IconButton>
     </div>

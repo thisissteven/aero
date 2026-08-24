@@ -3,7 +3,7 @@ import { WebSocketServer } from 'ws';
 
 import { validateWebSocketRequest } from '../lib/terminal/auth';
 import { AUTH_CONFIG } from '../lib/terminal/config';
-import { attachPtyToSocket } from '../lib/terminal/pty-session';
+import { attachPtyToSocket } from '../lib/terminal/pty-session.dev';
 
 export function terminalDevPlugin(): Plugin {
   return {
@@ -46,8 +46,9 @@ export function terminalDevPlugin(): Plugin {
             url.searchParams.get('rows') || '24',
             10,
           );
+          const cwd = url.searchParams.get('cwd') || undefined;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          attachPtyToSocket(ws as any, sessionId, cols, rows, reset);
+          attachPtyToSocket(ws as any, sessionId, cols, rows, reset, cwd);
         });
       });
     },

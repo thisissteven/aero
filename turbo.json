@@ -9,6 +9,10 @@
       "dependsOn": ["build"],
       "persistent": true
     },
+    "start": {
+      "dependsOn": ["build"],
+      "persistent": true
+    },
     "dev": {
       "cache": false,
       "persistent": true

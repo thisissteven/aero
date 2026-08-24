@@ -4,6 +4,7 @@ export interface TerminalSession {
   id: string;
   title: string;
   createdAt: number;
+  cwd?: string;
 }
 
 export type TerminalConnectionStatus =
@@ -16,20 +17,22 @@ interface TerminalStoreState {
 }
 
 interface TerminalStoreActions {
-  addSession: () => string;
+  addSession: (initialCwd?: string) => string;
   removeSession: (id: string) => void;
   setActiveSession: (id: string) => void;
   renameSession: (id: string, title: string) => void;
   setSessionStatus: (id: string, status: TerminalConnectionStatus) => void;
+  initializeInitialSessionCwd: (cwd: string) => void;
 }
 
 type TerminalStore = TerminalStoreState & { actions: TerminalStoreActions };
 
-function createSession(index: number): TerminalSession {
+function createSession(index: number, cwd?: string): TerminalSession {
   return {
     id: crypto.randomUUID(),
     title: `Terminal ${index}`,
     createdAt: Date.now(),
+    cwd,
   };
 }
 
@@ -41,8 +44,8 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
   statusById: {},
 
   actions: {
-    addSession: () => {
-      const session = createSession(get().sessions.length + 1);
+    addSession: (initialCwd) => {
+      const session = createSession(get().sessions.length + 1, initialCwd);
       set((state) => ({
         sessions: [...state.sessions, session],
         activeSessionId: session.id,
@@ -81,6 +84,17 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
 
     setSessionStatus: (id, status) => {
       set((state) => ({ statusById: { ...state.statusById, [id]: status } }));
+    },
+
+    // Sets cwd on the initial tab if it was created before workspace was available
+    initializeInitialSessionCwd: (cwd) => {
+      set((state) => {
+        const [first, ...rest] = state.sessions;
+        if (first && !first.cwd) {
+          return { sessions: [{ ...first, cwd }, ...rest] };
+        }
+        return state;
+      });
     },
   },
 }));

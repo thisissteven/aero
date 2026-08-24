@@ -27,6 +27,7 @@ export interface TerminalInstanceHandle {
 interface TerminalInstanceProps {
   sessionId: string;
   active: boolean;
+  cwd?: string;
 }
 
 let ghosttyPromise: Promise<Ghostty> | null = null;
@@ -44,7 +45,7 @@ function loadGhostty(): Promise<Ghostty> {
 export const TerminalInstance = forwardRef<
   TerminalInstanceHandle,
   TerminalInstanceProps
->(function TerminalInstance({ sessionId, active }, ref) {
+>(function TerminalInstance({ sessionId, active, cwd }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<GhosttyTerminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -150,6 +151,10 @@ export const TerminalInstance = forwardRef<
           reset: isReset ? 'true' : 'false',
         });
 
+        if (cwd) {
+          params.set('cwd', cwd);
+        }
+
         const ws = new WebSocket(
           `${protocol}//${location.host}/ws/terminal?${params}`,
         );
@@ -198,7 +203,7 @@ export const TerminalInstance = forwardRef<
         }, 2000);
       }
     },
-    [sessionId, setSessionStatus],
+    [sessionId, cwd, setSessionStatus],
   );
 
   useEffect(() => {
