@@ -44,12 +44,12 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
       )}
       <Navbar.Header className='overflow-hidden pr-0'>
-        <AppLayout.MenuToggle />
+        <AppLayout.MenuToggle className='shrink-0' />
         <Sidebar.Trigger />
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2 max-md:hidden'>
           <ContextUsagePreview />
           <OpenInActions />
         </div>
@@ -151,7 +151,7 @@ function SessionsNavbarContent() {
   const isStandaloneSession = session.workspace.includes('.aero/workspaces');
 
   return (
-    <div className='flex min-w-0 items-start gap-2 pr-2 transition'>
+    <div className='flex min-w-0 items-start gap-2 transition'>
       <div className='flex min-w-0 flex-col'>
         <SessionTitle sessionId={session.id} sessionTitle={session.title} />
 

@@ -8,7 +8,7 @@ import {
   LayoutHeaderCursor,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { honoClient } from '@/app/lib';
 
@@ -37,10 +37,12 @@ interface PreviewElementMetadata {
 interface PreviewBridgeMessage {
   source: string;
   version: number;
-  type: 'ready' | 'hover' | 'select' | 'navigate-preview';
+  type: 'ready' | 'hover' | 'select' | 'navigate-preview' | 'history-state';
   url?: string;
   title?: string;
   target?: unknown;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
 }
 
 function isPreviewElementMetadata(
@@ -51,7 +53,11 @@ function isPreviewElementMetadata(
     typeof value === 'object' &&
     typeof (value as any).tag === 'string' &&
     typeof (value as any).selector === 'string' &&
-    !!(value as any).bounds
+    !!(value as any).bounds &&
+    typeof (value as any).bounds.x === 'number' &&
+    typeof (value as any).bounds.y === 'number' &&
+    typeof (value as any).bounds.width === 'number' &&
+    typeof (value as any).bounds.height === 'number'
   );
 }
 
@@ -155,17 +161,35 @@ export function BrowserPane({
   const {
     setDraftUrl,
     navigate,
-    goToHistory,
+    syncNavigation,
     reload,
     setLoading,
     setProxyState,
     setInspecting,
     setHoverTarget,
     updateTab,
+    setIframeHistoryState,
   } = useBrowserActions();
 
-  const parentOriginRef = useRef(window.location.origin);
+  /*
+   * This is intentionally LOCAL state.
+   *
+   * currentUrl changes during CSR navigation, but that must
+   * NOT change iframeSrc or reload the iframe.
+   */
+  const [iframeSrc, setIframeSrc] = useState('');
 
+  /*
+   * Used to distinguish an intentional full iframe
+   * navigation from a CSR URL update.
+   */
+  const iframeNavigationRef = useRef(false);
+
+  /*
+   * Create/reuse preview target.
+   *
+   * ONLY loadedUrl participates here.
+   */
   useEffect(() => {
     if (!tab?.loadedUrl) {
       setProxyState(tabId, {
@@ -227,7 +251,7 @@ export function BrowserPane({
           expiresAt: number;
         };
 
-        const cacheEntry = {
+        const cacheEntry: CachedProxyTarget = {
           previewOrigin: body.previewOrigin,
           expiresAt: body.expiresAt,
         };
@@ -255,23 +279,51 @@ export function BrowserPane({
     };
   }, [tabId, tab?.loadedUrl, setLoading, setProxyState]);
 
-  const iframeSrc =
-    tab?.proxyState.status === 'ready'
-      ? (() => {
-          try {
-            const parsed = new URL(tab.loadedUrl);
+  /*
+   * IMPORTANT:
+   *
+   * This effect does NOT depend on currentUrl.
+   *
+   * It runs when:
+   * - the preview target changes
+   * - the preview origin changes
+   * - reloadNonce changes
+   *
+   * Therefore CSR navigation cannot recreate the iframe.
+   */
+  useEffect(() => {
+    if (!tab || tab.proxyState.status !== 'ready') {
+      return;
+    }
 
-            const base = tab.proxyState.previewOrigin.replace(/\/+$/, '');
+    const url = tab.currentUrl || tab.loadedUrl;
 
-            return (
-              `${base}${parsed.pathname || '/'}` +
-              `${parsed.search}${parsed.hash}`
-            );
-          } catch {
-            return '';
-          }
-        })()
-      : '';
+    if (!url) {
+      setIframeSrc('');
+      return;
+    }
+
+    try {
+      const parsed = new URL(url);
+
+      const previewOrigin = tab.proxyState.previewOrigin.replace(/\/+$/, '');
+
+      const nextSrc = `${previewOrigin}${
+        parsed.pathname || '/'
+      }${parsed.search}${parsed.hash}`;
+
+      iframeNavigationRef.current = true;
+
+      setIframeSrc(nextSrc);
+    } catch {
+      setIframeSrc('');
+    }
+  }, [
+    tab?.loadedUrl,
+    tab?.proxyState.status,
+    tab?.proxyState.status === 'ready' ? tab.proxyState.previewOrigin : '',
+    tab?.reloadNonce,
+  ]);
 
   const isProxied = tab?.proxyState.status === 'ready';
 
@@ -284,13 +336,13 @@ export function BrowserPane({
       try {
         const frame = new URL(frameUrl);
 
-        const previewHost = new URL(tab.proxyState.previewOrigin).hostname;
-
-        if (frame.hostname !== previewHost) {
-          return '';
-        }
+        const preview = new URL(tab.proxyState.previewOrigin);
 
         const upstream = new URL(tab.loadedUrl);
+
+        if (frame.origin !== preview.origin) {
+          return '';
+        }
 
         return new URL(
           `${frame.pathname}${frame.search}${frame.hash}`,
@@ -303,6 +355,28 @@ export function BrowserPane({
     [tab?.loadedUrl, tab?.proxyState],
   );
 
+  const goBackInFrame = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        source: 'aero-preview-parent',
+        version: 1,
+        type: 'history-back',
+      },
+      '*',
+    );
+  }, []);
+
+  const goForwardInFrame = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        source: 'aero-preview-parent',
+        version: 1,
+        type: 'history-forward',
+      },
+      '*',
+    );
+  }, []);
+
   const postInspectMode = useCallback((enabled: boolean) => {
     iframeRef.current?.contentWindow?.postMessage(
       {
@@ -311,7 +385,7 @@ export function BrowserPane({
         type: 'set-inspect-mode',
         enabled,
       },
-      parentOriginRef.current,
+      '*',
     );
   }, []);
 
@@ -332,6 +406,10 @@ export function BrowserPane({
   }, [tabId, setHoverTarget, postInspectMode]);
 
   useEffect(() => {
+    if (!tab?.isInspecting) {
+      return;
+    }
+
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') {
         return;
@@ -340,19 +418,24 @@ export function BrowserPane({
       event.preventDefault();
 
       setInspecting(tabId, false);
-
       cancelInspect();
     };
 
-    if (tab?.isInspecting) {
-      window.addEventListener('keydown', handler, true);
-    }
+    window.addEventListener('keydown', handler, true);
 
     return () => window.removeEventListener('keydown', handler, true);
   }, [tab?.isInspecting, tabId, setInspecting, cancelInspect]);
 
   useEffect(() => {
     return () => {
+      /*
+       * Only transient inspector state gets cleared.
+       *
+       * DO NOT clear:
+       * - currentUrl
+       * - history
+       * - loadedUrl
+       */
       setInspecting(tabId, false);
       setHoverTarget(tabId, null);
     };
@@ -374,28 +457,44 @@ export function BrowserPane({
         return;
       }
 
-      if (data.type === 'ready') {
-        const nextUrl =
-          typeof data.url === 'string'
-            ? getCurrentUrlFromFrameUrl(data.url)
-            : '';
+      if (data.type === 'history-state') {
+        setIframeHistoryState(tabId, {
+          canGoBack: data.canGoBack === true,
+          canGoForward: data.canGoForward === true,
+        });
 
-        if (nextUrl && nextUrl !== tab?.url) {
-          navigate(tabId, nextUrl, {
-            inFrame: true,
-          });
+        return;
+      }
+
+      if (data.type === 'ready' || data.type === 'navigate-preview') {
+        const frameUrl = typeof data.url === 'string' ? data.url : '';
+
+        const nextUrl = getCurrentUrlFromFrameUrl(frameUrl);
+
+        if (nextUrl && nextUrl !== tab?.currentUrl) {
+          /*
+           * CSR navigation:
+           * update Zustand only.
+           *
+           * iframeSrc remains untouched.
+           */
+          syncNavigation(tabId, nextUrl);
         }
 
-        if (data.title) {
+        if (typeof data.title === 'string' && data.title) {
           updateTab(tabId, {
             title: data.title,
           });
         }
 
-        setLoading(tabId, false);
+        if (data.type === 'ready') {
+          setLoading(tabId, false);
 
-        if (tab?.isInspecting) {
-          postInspectMode(true);
+          /*
+           * The document finished loading, so subsequent
+           * URL changes are no longer the initial iframe load.
+           */
+          iframeNavigationRef.current = false;
         }
 
         return;
@@ -412,11 +511,8 @@ export function BrowserPane({
 
       if (data.type === 'select' && isPreviewElementMetadata(data.target)) {
         setHoverTarget(tabId, null);
-
         setInspecting(tabId, false);
-
         postInspectMode(false);
-
         attachContext(data.target);
       }
     };
@@ -426,10 +522,10 @@ export function BrowserPane({
     return () => window.removeEventListener('message', handler);
   }, [
     tabId,
-    tab?.url,
-    tab?.isInspecting,
+    tab?.currentUrl,
     getCurrentUrlFromFrameUrl,
-    navigate,
+    syncNavigation,
+    setIframeHistoryState,
     updateTab,
     setLoading,
     setHoverTarget,
@@ -455,7 +551,7 @@ export function BrowserPane({
   };
 
   const handleReload = () => {
-    if (!tab?.url) {
+    if (!tab?.currentUrl) {
       return;
     }
 
@@ -470,7 +566,16 @@ export function BrowserPane({
 
     const normalized = normalizeBrowserUrl(tab.draftUrl);
 
-    navigate(tabId, normalized === 'about:blank' ? '' : normalized);
+    const nextUrl = normalized === 'about:blank' ? '' : normalized;
+
+    /*
+     * This is a genuine top-level navigation.
+     *
+     * navigate() changes loadedUrl, which causes the
+     * iframeSrc effect above to intentionally recreate
+     * the iframe.
+     */
+    navigate(tabId, nextUrl);
   };
 
   if (!tab) {
@@ -486,23 +591,23 @@ export function BrowserPane({
       }}
     >
       <div className='border-border flex items-center gap-1 border-b px-2 py-1'>
-        <IconBtn
-          disabled={tab.historyIndex <= 0}
-          onClick={() => goToHistory(tabId, tab.historyIndex - 1)}
-        >
+        <IconBtn disabled={!tab.canGoBack} onClick={goBackInFrame} title='Back'>
           <Icon data={ArrowLeft} size={14} />
         </IconBtn>
 
         <IconBtn
-          disabled={
-            tab.historyIndex < 0 || tab.historyIndex >= tab.history.length - 1
-          }
-          onClick={() => goToHistory(tabId, tab.historyIndex + 1)}
+          disabled={!tab.canGoForward}
+          onClick={goForwardInFrame}
+          title='Forward'
         >
           <Icon data={ArrowRight} size={14} />
         </IconBtn>
 
-        <IconBtn disabled={!tab.url} onClick={handleReload}>
+        <IconBtn
+          disabled={!tab.currentUrl}
+          onClick={handleReload}
+          title='Reload'
+        >
           <Icon data={ArrowsRotateRight} size={14} />
         </IconBtn>
 
@@ -523,15 +628,21 @@ export function BrowserPane({
 
         <IconBtn
           active={tab.isInspecting}
-          disabled={!tab.url || !isProxied}
+          disabled={!tab.currentUrl || !isProxied}
           onClick={handleInspect}
+          title={
+            isProxied ? 'Select an element' : 'Unavailable for un-proxied pages'
+          }
         >
           <Icon data={LayoutHeaderCursor} size={14} />
         </IconBtn>
 
         <IconBtn
-          disabled={!tab.url}
-          onClick={() => tab.url && window.open(tab.url, '_blank')}
+          disabled={!tab.currentUrl}
+          onClick={() =>
+            tab.currentUrl && window.open(tab.currentUrl, '_blank')
+          }
+          title='Open externally'
         >
           <Icon data={ArrowUpRightFromSquare} size={14} />
         </IconBtn>
@@ -541,7 +652,6 @@ export function BrowserPane({
         {iframeSrc ? (
           <div className='absolute inset-0'>
             <iframe
-              key={`${tabId}:${tab.reloadNonce}`}
               ref={iframeRef}
               src={iframeSrc}
               title='Browser preview'
@@ -549,6 +659,23 @@ export function BrowserPane({
               allow='clipboard-read; clipboard-write; fullscreen'
               onLoad={() => setLoading(tabId, false)}
             />
+
+            {tab.isInspecting && tab.hoverTarget && (
+              <div
+                className='border-accent bg-accent/15 pointer-events-none absolute rounded-sm border-2'
+                style={{
+                  left: tab.hoverTarget.bounds.x,
+                  top: tab.hoverTarget.bounds.y,
+                  width: tab.hoverTarget.bounds.width,
+                  height: tab.hoverTarget.bounds.height,
+                }}
+              >
+                <div className='bg-default absolute -top-6 left-0 max-w-64 truncate rounded px-2 py-0.5 text-xs shadow'>
+                  {tab.hoverTarget.tag}
+                  {tab.hoverTarget.text ? ` · ${tab.hoverTarget.text}` : ''}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className='text-muted flex h-full items-center justify-center text-sm'>

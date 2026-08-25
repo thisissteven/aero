@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { randomBytes } from 'node:crypto';
 
+import { buildBridgeScript } from './bridge-script';
 import { rewritePreviewCspHeader } from './rewrite';
 import type { PreviewTarget } from './store';
 
@@ -96,7 +97,9 @@ function rewriteHtml(
   targetOrigin: string,
   previewOrigin: string,
 ): string {
-  return html.replace(
+  let result = html;
+
+  result = result.replace(
     /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
     (_match, attribute, quote, value) => {
       const trimmed = String(value).trim();
@@ -114,6 +117,18 @@ function rewriteHtml(
       return `${attribute}=${quote}${rewritten}${quote}`;
     },
   );
+
+  /*
+   * Remove Vite's late injected client loader.
+   * The preview should not try to load
+   * /@vite/client from the parent Vite server.
+   */
+  result = result.replace(
+    /<script\b[^>]*>\s*import\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi,
+    '',
+  );
+
+  return result;
 }
 
 function rewriteCss(
@@ -135,106 +150,27 @@ function rewriteCss(
   );
 }
 
-function injectBridge(html: string, nonce: string): string {
-  const script = `
-<script nonce="${nonce}">
-(() => {
-  if (window.__aeroPreviewBridgeInstalled) {
-    return;
-  }
-
-  window.__aeroPreviewBridgeInstalled = true;
-
-  const parentOrigin = (() => {
-    try {
-      return document.referrer
-        ? new URL(document.referrer).origin
-        : '';
-    } catch {
-      return '';
-    }
-  })();
-
-  const post = (payload) => {
-    if (
-      !parentOrigin ||
-      !window.parent
-    ) {
-      return;
-    }
-
-    try {
-      window.parent.postMessage(
-        {
-          source: 'aero-preview-bridge',
-          version: 1,
-          ...payload,
-        },
-        parentOrigin,
-      );
-    } catch {}
-  };
-
-  window.addEventListener(
-    'message',
-    (event) => {
-      if (
-        event.source !==
-        window.parent
-      ) {
-        return;
-      }
-
-      const data = event.data;
-
-      if (
-        !data ||
-        data.source !==
-          'aero-preview-parent' ||
-        data.version !== 1
-      ) {
-        return;
-      }
-
-      if (
-        data.type ===
-        'set-inspect-mode'
-      ) {
-        document.documentElement.style.cursor =
-          data.enabled
-            ? 'crosshair'
-            : '';
-      }
-    },
-  );
-
-  post({
-    type: 'ready',
-    url: window.location.href,
-    title: document.title || '',
-  });
-
-  window.addEventListener(
-    'DOMContentLoaded',
-    () => {
-      post({
-        type: 'ready',
-        url: window.location.href,
-        title:
-          document.title || '',
-      });
-    },
-  );
-})();
-</script>`;
+function injectBridge(
+  html: string,
+  targetOrigin: string,
+  previewOrigin: string,
+  nonce: string,
+): string {
+  const bridge = buildBridgeScript(targetOrigin, nonce, previewOrigin);
 
   const head = html.match(/<head\b[^>]*>/i);
 
   if (head) {
-    return html.replace(head[0], `${head[0]}${script}`);
+    return html.replace(head[0], `${head[0]}${bridge}`);
   }
 
-  return `${script}${html}`;
+  const body = html.match(/<body\b[^>]*>/i);
+
+  if (body) {
+    return html.replace(body[0], `${bridge}${body[0]}`);
+  }
+
+  return bridge + html;
 }
 
 export async function proxyRequest(
@@ -244,13 +180,6 @@ export async function proxyRequest(
 ): Promise<Response> {
   const requestUrl = new URL(c.req.url);
 
-  /*
-   * The browser is now using:
-   *
-   *   <id>.preview.localhost:5173
-   *
-   * as its actual origin.
-   */
   const previewOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
 
   const upstream = buildUpstreamUrl(target, restPath, c.req.url);
@@ -270,6 +199,14 @@ export async function proxyRequest(
       redirect: 'manual',
       signal: AbortSignal.timeout(30_000),
     });
+
+    console.info('[PREVIEW RESPONSE]', {
+      request: c.req.url,
+      upstream: upstream.toString(),
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      location: response.headers.get('location'),
+    });
   } catch (error) {
     console.error('[PREVIEW ERROR]', upstream.toString(), error);
 
@@ -286,8 +223,8 @@ export async function proxyRequest(
   const headers = copyResponseHeaders(response.headers);
 
   /*
-   * Keep same-origin redirects on the
-   * preview hostname.
+   * Same-origin redirects stay on
+   * the preview hostname.
    */
   if (response.status >= 300 && response.status < 400) {
     const location = response.headers.get('location');
@@ -339,15 +276,16 @@ export async function proxyRequest(
   const body = await response.text();
 
   headers.delete('content-length');
+
   headers.delete('content-encoding');
 
   if (isHtml) {
     const nonce = randomBytes(16).toString('base64');
 
-    const csp = response.headers.get('content-security-policy');
+    const originalCsp = response.headers.get('content-security-policy');
 
-    if (csp) {
-      const rewrittenCsp = rewritePreviewCspHeader(csp, nonce);
+    if (originalCsp) {
+      const rewrittenCsp = rewritePreviewCspHeader(originalCsp, nonce);
 
       if (rewrittenCsp) {
         headers.set('content-security-policy', rewrittenCsp);
@@ -356,7 +294,7 @@ export async function proxyRequest(
 
     let rewritten = rewriteHtml(body, target.origin, previewOrigin);
 
-    rewritten = injectBridge(rewritten, nonce);
+    rewritten = injectBridge(rewritten, target.origin, previewOrigin, nonce);
 
     headers.set('cache-control', 'no-store');
 
@@ -376,13 +314,14 @@ export async function proxyRequest(
   }
 
   /*
-   * JavaScript is intentionally NOT rewritten.
+   * JavaScript is deliberately passed through unchanged.
    *
-   * Relative imports resolve against:
+   * Because the document origin is:
    *
    *   <id>.preview.localhost:5173
    *
-   * and therefore remain inside the preview.
+   * browser-relative imports resolve against the
+   * preview origin automatically.
    */
   return new Response(body, {
     status: response.status,

@@ -1,5 +1,3 @@
-// browser-store.ts
-
 import { create } from 'zustand';
 
 export interface PreviewElementMetadata {
@@ -34,26 +32,40 @@ export interface BrowserTab {
   title: string;
 
   /**
-   * URL currently represented by the browser tab.
+   * Current URL shown in the browser pane.
    */
   url: string;
 
   /**
-   * Value currently typed into the address bar.
+   * Address bar value.
    */
   draftUrl: string;
 
   /**
-   * URL originally loaded into the iframe.
+   * Base URL used to create the current preview target.
    *
-   * This intentionally differs from `url`: an SPA can
-   * navigate internally without causing the iframe itself
-   * to be recreated.
+   * This changes only when the user enters a new base URL.
    */
   loadedUrl: string;
 
+  /**
+   * Exact current URL inside the preview.
+   *
+   * This changes during CSR navigation.
+   */
+  currentUrl: string;
+
+  /**
+   * Persistent browser-tab history.
+   */
   history: string[];
   historyIndex: number;
+
+  /**
+   * Actual iframe history state reported by the bridge.
+   */
+  canGoBack: boolean;
+  canGoForward: boolean;
 
   reloadNonce: number;
   isLoading: boolean;
@@ -78,8 +90,35 @@ interface BrowserStoreActions {
 
   setDraftUrl: (id: string, value: string) => void;
 
+  /**
+   * User entered a new URL in the address bar.
+   */
   navigate: (id: string, url: string, options?: NavigateOptions) => void;
 
+  /**
+   * The iframe navigated itself.
+   *
+   * This updates the address bar/history but DOES NOT
+   * change loadedUrl.
+   */
+  syncNavigation: (id: string, url: string) => void;
+
+  /**
+   * Actual iframe Back/Forward state.
+   */
+  setIframeHistoryState: (
+    id: string,
+    state: {
+      canGoBack: boolean;
+      canGoForward: boolean;
+    },
+  ) => void;
+
+  /**
+   * Only used when explicitly restoring parent history.
+   *
+   * BrowserPane Back/Forward should normally use the iframe.
+   */
   goToHistory: (id: string, index: number) => void;
 
   reload: (id: string) => void;
@@ -92,10 +131,7 @@ interface BrowserStoreActions {
 
   setHoverTarget: (id: string, value: PreviewElementMetadata | null) => void;
 
-  updateTab: (
-    id: string,
-    patch: Partial<Pick<BrowserTab, 'title' | 'url'>>,
-  ) => void;
+  updateTab: (id: string, patch: Partial<Pick<BrowserTab, 'title'>>) => void;
 }
 
 type BrowserStore = {
@@ -111,10 +147,15 @@ function createTab(url = ''): BrowserTab {
 
     url,
     draftUrl: url,
+
     loadedUrl: url,
+    currentUrl: url,
 
     history: url ? [url] : [],
     historyIndex: url ? 0 : -1,
+
+    canGoBack: false,
+    canGoForward: false,
 
     reloadNonce: 0,
     isLoading: false,
@@ -190,78 +231,34 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
             return tab;
           }
 
-          const nextUrl = url;
-
-          const nextDraft = nextUrl;
-
           /*
-           * Internal iframe navigation:
-           *
-           * The remote app has already navigated itself.
-           * Do NOT change loadedUrl, otherwise React would
-           * recreate the iframe.
+           * This is only for callers explicitly reporting
+           * an iframe navigation.
            */
           if (options?.inFrame) {
-            if (!nextUrl) {
-              return {
-                ...tab,
-                url: '',
-                draftUrl: '',
-                isLoading: false,
-                hoverTarget: null,
-                isInspecting: false,
-              };
-            }
-
-            if (options.replaceHistory) {
-              return {
-                ...tab,
-                url: nextUrl,
-                draftUrl: nextUrl,
-                isLoading: false,
-              };
-            }
-
-            const kept =
-              tab.historyIndex >= 0
-                ? tab.history.slice(0, tab.historyIndex + 1)
-                : [];
-
-            if (kept[kept.length - 1] === nextUrl) {
-              return {
-                ...tab,
-                url: nextUrl,
-                draftUrl: nextUrl,
-                historyIndex: kept.length - 1,
-                isLoading: false,
-              };
-            }
-
-            const history = [...kept, nextUrl];
-
             return {
               ...tab,
-              url: nextUrl,
-              draftUrl: nextUrl,
-              history,
-              historyIndex: history.length - 1,
+              url,
+              draftUrl: url,
+              currentUrl: url,
               isLoading: false,
             };
           }
 
           /*
-           * New top-level browser navigation:
-           *
-           * This is what should replace the iframe.
+           * Empty navigation.
            */
-          if (!nextUrl) {
+          if (!url) {
             return {
               ...tab,
               url: '',
               draftUrl: '',
               loadedUrl: '',
+              currentUrl: '',
               history: [],
               historyIndex: -1,
+              canGoBack: false,
+              canGoForward: false,
               isLoading: false,
               proxyState: {
                 status: 'idle',
@@ -271,12 +268,26 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
             };
           }
 
+          /*
+           * Replace current history entry.
+           */
           if (options?.replaceHistory) {
+            const history = tab.history.length > 0 ? [...tab.history] : [url];
+
+            const nextIndex = tab.historyIndex >= 0 ? tab.historyIndex : 0;
+
+            history[nextIndex] = url;
+
             return {
               ...tab,
-              url: nextUrl,
-              draftUrl: nextUrl,
-              loadedUrl: nextUrl,
+              url,
+              draftUrl: url,
+              loadedUrl: url,
+              currentUrl: url,
+              history,
+              historyIndex: nextIndex,
+              canGoBack: nextIndex > 0,
+              canGoForward: nextIndex < history.length - 1,
               isLoading: true,
               proxyState: {
                 status: 'idle',
@@ -286,18 +297,30 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
             };
           }
 
+          /*
+           * Normal top-level navigation.
+           *
+           * Preserve the existing browser-tab history,
+           * but discard its forward branch.
+           */
           const kept =
             tab.historyIndex >= 0
               ? tab.history.slice(0, tab.historyIndex + 1)
               : [];
 
-          if (kept[kept.length - 1] === nextUrl) {
+          if (kept[kept.length - 1] === url) {
+            const index = kept.length - 1;
+
             return {
               ...tab,
-              url: nextUrl,
-              draftUrl: nextUrl,
-              loadedUrl: nextUrl,
-              historyIndex: kept.length - 1,
+              url,
+              draftUrl: url,
+              loadedUrl: url,
+              currentUrl: url,
+              history: kept,
+              historyIndex: index,
+              canGoBack: index > 0,
+              canGoForward: false,
               isLoading: true,
               proxyState: {
                 status: 'idle',
@@ -307,15 +330,19 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
             };
           }
 
-          const history = [...kept, nextUrl];
+          const history = [...kept, url];
+          const nextIndex = history.length - 1;
 
           return {
             ...tab,
-            url: nextUrl,
-            draftUrl: nextUrl,
-            loadedUrl: nextUrl,
+            url,
+            draftUrl: url,
+            loadedUrl: url,
+            currentUrl: url,
             history,
-            historyIndex: history.length - 1,
+            historyIndex: nextIndex,
+            canGoBack: nextIndex > 0,
+            canGoForward: false,
             isLoading: true,
             proxyState: {
               status: 'idle',
@@ -326,6 +353,80 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
         }),
       })),
 
+    /*
+     * CSR navigation inside the existing iframe.
+     *
+     * IMPORTANT:
+     * loadedUrl never changes here.
+     */
+    syncNavigation: (id, url) =>
+      set((state) => ({
+        tabs: state.tabs.map((tab) => {
+          if (tab.id !== id) {
+            return tab;
+          }
+
+          const existingIndex = tab.history.indexOf(url);
+
+          /*
+           * Existing history entry:
+           * usually Back/Forward.
+           */
+          if (existingIndex >= 0) {
+            return {
+              ...tab,
+              url,
+              draftUrl: url,
+              currentUrl: url,
+              historyIndex: existingIndex,
+              isLoading: false,
+            };
+          }
+
+          /*
+           * New SPA navigation.
+           */
+          const kept =
+            tab.historyIndex >= 0
+              ? tab.history.slice(0, tab.historyIndex + 1)
+              : [];
+
+          const history = [...kept, url];
+          const index = history.length - 1;
+
+          return {
+            ...tab,
+            url,
+            draftUrl: url,
+            currentUrl: url,
+            history,
+            historyIndex: index,
+            canGoBack: index > 0,
+            canGoForward: false,
+            isLoading: false,
+          };
+        }),
+      })),
+
+    setIframeHistoryState: (id, historyState) =>
+      set((state) => ({
+        tabs: state.tabs.map((tab) =>
+          tab.id === id
+            ? {
+                ...tab,
+                canGoBack: historyState.canGoBack,
+                canGoForward: historyState.canGoForward,
+              }
+            : tab,
+        ),
+      })),
+
+    /*
+     * Explicit parent-side history restoration.
+     *
+     * This intentionally updates loadedUrl because this is
+     * a full preview reload, not an iframe CSR navigation.
+     */
     goToHistory: (id, index) =>
       set((state) => ({
         tabs: state.tabs.map((tab) => {
@@ -344,7 +445,10 @@ export const useBrowserStore = create<BrowserStore>()((set) => ({
             url: nextUrl,
             draftUrl: nextUrl,
             loadedUrl: nextUrl,
+            currentUrl: nextUrl,
             historyIndex: index,
+            canGoBack: index > 0,
+            canGoForward: index < tab.history.length - 1,
             isLoading: true,
             proxyState: {
               status: 'idle',

@@ -1,72 +1,521 @@
 export function buildBridgeScript(
   targetOrigin: string,
   bridgeNonce: string,
-  proxyBasePath: string,
+  _previewBasePath: string,
 ): string {
-  const origin = JSON.stringify(targetOrigin);
-  const proxyBase = JSON.stringify(proxyBasePath.replace(/\/+$/, ''));
+  const serializedTargetOrigin = JSON.stringify(targetOrigin);
 
   const script = `
 (() => {
-  if (window.__aeroPreviewBridgeInstalled) return;
+  if (window.__aeroPreviewBridgeInstalled) {
+    return;
+  }
+
   window.__aeroPreviewBridgeInstalled = true;
 
-  const TARGET_ORIGIN = ${origin};
-  const PROXY_BASE = ${proxyBase};
+  const SOURCE = 'aero-preview-bridge';
+  const VERSION = 1;
+  const TARGET_ORIGIN = ${serializedTargetOrigin};
 
-  const isPreviewPath = (pathname) =>
-    pathname === PROXY_BASE ||
-    pathname.startsWith(PROXY_BASE + '/');
+  let inspectMode = false;
+  let lastHoverKey = '';
 
-  const proxyPath = (pathname) => {
+  const post = (payload) => {
+    try {
+      window.parent?.postMessage(
+        {
+          source: SOURCE,
+          version: VERSION,
+          ...payload,
+        },
+        '*',
+      );
+    } catch {}
+  };
+
+  const clip = (value, max = 500) => {
+    const text = String(value ?? '')
+      .replace(/\\s+/g, ' ')
+      .trim();
+
+    return text.length > max
+      ? text.slice(0, max) + '...'
+      : text;
+  };
+
+  const selectorPart = (element) => {
+    const tag = element.tagName.toLowerCase();
+
     if (
-      typeof pathname !== 'string' ||
-      !pathname.startsWith('/') ||
-      pathname.startsWith('//')
+      element.id &&
+      /^[A-Za-z][\\w:.-]*$/.test(element.id)
     ) {
-      return pathname;
+      return (
+        tag +
+        '#' +
+        CSS.escape(element.id)
+      );
     }
 
-    return isPreviewPath(pathname)
-      ? pathname
-      : PROXY_BASE + pathname;
+    const testId =
+      element.getAttribute('data-testid') ||
+      element.getAttribute('data-test') ||
+      element.getAttribute('data-cy');
+
+    if (testId) {
+      return (
+        tag +
+        '[data-testid="' +
+        CSS.escape(testId) +
+        '"]'
+      );
+    }
+
+    const classes =
+      Array.from(element.classList || [])
+        .slice(0, 3)
+        .map(
+          (entry) =>
+            '.' + CSS.escape(entry),
+        )
+        .join('');
+
+    return tag + classes;
   };
+
+  const buildSelector = (element) => {
+    const parts = [];
+    let current = element;
+
+    while (
+      current &&
+      current.nodeType === Node.ELEMENT_NODE &&
+      current !== document.documentElement
+    ) {
+      let part =
+        selectorPart(current);
+
+      const parent =
+        current.parentElement;
+
+      if (parent) {
+        const siblings =
+          Array.from(parent.children).filter(
+            (child) =>
+              child.tagName ===
+              current.tagName,
+          );
+
+        if (
+          siblings.length > 1 &&
+          !part.includes('#') &&
+          !part.includes(
+            '[data-testid=',
+          )
+        ) {
+          part +=
+            ':nth-of-type(' +
+            (siblings.indexOf(current) + 1) +
+            ')';
+        }
+      }
+
+      parts.unshift(part);
+
+      if (part.includes('#')) {
+        break;
+      }
+
+      current = parent;
+    }
+
+    return parts.join(' > ');
+  };
+
+  const metadataForElement = (
+    element,
+  ) => {
+    if (
+      !element ||
+      element.nodeType !==
+        Node.ELEMENT_NODE
+    ) {
+      return null;
+    }
+
+    const rect =
+      element.getBoundingClientRect();
+
+    const style =
+      window.getComputedStyle(
+        element,
+      );
+
+    const attributes = {};
+
+    for (
+      const name of [
+        'id',
+        'class',
+        'role',
+        'aria-label',
+        'href',
+        'src',
+        'data-testid',
+        'data-test',
+        'data-cy',
+      ]
+    ) {
+      const value =
+        element.getAttribute(name);
+
+      if (value) {
+        attributes[name] =
+          clip(value, 300);
+      }
+    }
+
+    const ancestry = [];
+    let current = element;
+
+    while (
+      current &&
+      current.nodeType ===
+        Node.ELEMENT_NODE &&
+      ancestry.length < 6
+    ) {
+      ancestry.unshift({
+        tag:
+          current.tagName.toLowerCase(),
+        id:
+          current.id || undefined,
+        className:
+          clip(
+            current.className || '',
+            200,
+          ) || undefined,
+        selectorPart:
+          selectorPart(current),
+      });
+
+      current =
+        current.parentElement;
+    }
+
+    return {
+      frame: 'top',
+      tag:
+        element.tagName.toLowerCase(),
+      id:
+        element.id || undefined,
+      classes:
+        Array.from(
+          element.classList || [],
+        ),
+      text: clip(
+        element.innerText ||
+          element.textContent ||
+          '',
+      ),
+      selector:
+        buildSelector(element),
+      path:
+        ancestry
+          .map((entry) => entry.tag)
+          .join(' > '),
+      bounds: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      },
+      center: {
+        x:
+          rect.x +
+          rect.width / 2,
+        y:
+          rect.y +
+          rect.height / 2,
+      },
+      attributes,
+      computedStyle: {
+        display: style.display,
+        position: style.position,
+        color: style.color,
+        backgroundColor:
+          style.backgroundColor,
+        fontFamily:
+          style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight:
+          style.fontWeight,
+        lineHeight:
+          style.lineHeight,
+        zIndex: style.zIndex,
+      },
+      ancestry,
+    };
+  };
+
+  const hoverKeyForTarget = (
+    target,
+  ) => {
+    if (!target) {
+      return '';
+    }
+
+    const bounds =
+      target.bounds || {};
+
+    return [
+      target.selector,
+      Math.round(bounds.x || 0),
+      Math.round(bounds.y || 0),
+      Math.round(bounds.width || 0),
+      Math.round(bounds.height || 0),
+    ].join('|');
+  };
+
+  const sendHover = (
+    event,
+  ) => {
+    if (!inspectMode) {
+      return;
+    }
+
+    const element =
+      document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+
+    const target =
+      metadataForElement(
+        element,
+      );
+
+    const key =
+      hoverKeyForTarget(target);
+
+    if (key === lastHoverKey) {
+      return;
+    }
+
+    lastHoverKey = key;
+
+    post({
+      type: 'hover',
+      target,
+      pointer: {
+        x: event.clientX,
+        y: event.clientY,
+      },
+      ts: Date.now(),
+    });
+  };
+
+  const setInspectMode = (
+    enabled,
+  ) => {
+    inspectMode =
+      enabled === true;
+
+    lastHoverKey = '';
+
+    document.documentElement.style.cursor =
+      inspectMode
+        ? 'crosshair'
+        : '';
+
+    if (!inspectMode) {
+      post({
+        type: 'hover',
+        target: null,
+        pointer: {
+          x: 0,
+          y: 0,
+        },
+        ts: Date.now(),
+      });
+    }
+  };
+
+  /*
+   * ------------------------------------------------------------
+   * History
+   * ------------------------------------------------------------
+   */
+
+  const historyEntries = [
+    window.location.href,
+  ];
+
+  let historyIndex = 0;
+
+  const notifyNavigation = () => {
+    post({
+      type: 'navigate-preview',
+      url: window.location.href,
+      title: document.title || '',
+    });
+
+    post({
+      type: 'history-state',
+      url: window.location.href,
+      canGoBack:
+        historyIndex > 0,
+      canGoForward:
+        historyIndex <
+        historyEntries.length - 1,
+    });
+  };
+
+  if (window.history) {
+    const nativePushState =
+      window.history.pushState.bind(
+        window.history,
+      );
+
+    const nativeReplaceState =
+      window.history.replaceState.bind(
+        window.history,
+      );
+
+    window.history.pushState =
+      function (
+        state,
+        unused,
+        url,
+      ) {
+        const result =
+          nativePushState(
+            state,
+            unused,
+            url,
+          );
+
+        historyEntries.splice(
+          historyIndex + 1,
+        );
+
+        historyEntries.push(
+          window.location.href,
+        );
+
+        historyIndex =
+          historyEntries.length - 1;
+
+        queueMicrotask(
+          notifyNavigation,
+        );
+
+        return result;
+      };
+
+    window.history.replaceState =
+      function (
+        state,
+        unused,
+        url,
+      ) {
+        const result =
+          nativeReplaceState(
+            state,
+            unused,
+            url,
+          );
+
+        historyEntries[
+          historyIndex
+        ] = window.location.href;
+
+        queueMicrotask(
+          notifyNavigation,
+        );
+
+        return result;
+      };
+
+    window.addEventListener(
+      'popstate',
+      () => {
+        const current =
+          window.location.href;
+
+        const existingIndex =
+          historyEntries.indexOf(
+            current,
+          );
+
+        if (
+          existingIndex >= 0
+        ) {
+          historyIndex =
+            existingIndex;
+        }
+
+        queueMicrotask(
+          notifyNavigation,
+        );
+      },
+    );
+
+    window.addEventListener(
+      'hashchange',
+      () => {
+        historyEntries[
+          historyIndex
+        ] = window.location.href;
+
+        queueMicrotask(
+          notifyNavigation,
+        );
+      },
+    );
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * fetch / XHR / EventSource
+   * ------------------------------------------------------------
+   */
 
   const proxyUrl = (value) => {
     if (
       typeof value !== 'string' ||
       !value ||
       value.startsWith('#') ||
-      /^(?:data|blob|javascript|mailto|tel|about):/i.test(value)
+      /^(?:data|blob|javascript|mailto|tel|about):/i.test(
+        value,
+      )
     ) {
       return value;
-    }
-
-    if (
-      value === PROXY_BASE ||
-      value.startsWith(PROXY_BASE + '/')
-    ) {
-      return value;
-    }
-
-    if (
-      value.startsWith('/') &&
-      !value.startsWith('//')
-    ) {
-      return proxyPath(value);
     }
 
     try {
-      const parsed = new URL(
-        value,
-        window.location.href,
-      );
+      const parsed =
+        new URL(
+          value,
+          window.location.href,
+        );
 
       if (
-        parsed.origin === TARGET_ORIGIN
+        parsed.origin ===
+        TARGET_ORIGIN
       ) {
+        const preview =
+          new URL(
+            window.location.href,
+          );
+
+        parsed.protocol =
+          preview.protocol;
+
+        parsed.host =
+          preview.host;
+
         return (
-          proxyPath(parsed.pathname) +
+          parsed.pathname +
           parsed.search +
           parsed.hash
         );
@@ -76,54 +525,70 @@ export function buildBridgeScript(
     return value;
   };
 
-  /*
-   * Keep the target application's router seeing its
-   * real pathname instead of /api/preview/p/:id.
-   */
-  try {
-    const current = new URL(window.location.href);
+  if (
+    typeof window.fetch ===
+    'function'
+  ) {
+    const nativeFetch =
+      window.fetch.bind(window);
 
-    if (isPreviewPath(current.pathname)) {
-      const pathname =
-        current.pathname.slice(PROXY_BASE.length) || '/';
-
-      window.history.replaceState(
-        window.history.state,
-        '',
-        pathname + current.search + current.hash,
-      );
-    }
-  } catch {}
-
-  if (typeof window.fetch === 'function') {
-    const nativeFetch = window.fetch.bind(window);
-
-    window.fetch = function(input, init) {
-      if (typeof input === 'string') {
-        return nativeFetch(proxyUrl(input), init);
-      }
-
-      if (input instanceof Request) {
-        const next = proxyUrl(input.url);
-
-        if (next !== input.url) {
+    window.fetch =
+      function (
+        input,
+        init,
+      ) {
+        if (
+          typeof input ===
+          'string'
+        ) {
           return nativeFetch(
-            new Request(next, input),
+            proxyUrl(input),
             init,
           );
         }
-      }
 
-      return nativeFetch(input, init);
-    };
+        if (
+          input instanceof
+          Request
+        ) {
+          const next =
+            proxyUrl(
+              input.url,
+            );
+
+          if (
+            next !== input.url
+          ) {
+            return nativeFetch(
+              new Request(
+                next,
+                input,
+              ),
+              init,
+            );
+          }
+        }
+
+        return nativeFetch(
+          input,
+          init,
+        );
+      };
   }
 
-  if (window.XMLHttpRequest?.prototype) {
+  if (
+    window.XMLHttpRequest?.prototype
+  ) {
     const nativeOpen =
-      window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest
+        .prototype.open;
 
     window.XMLHttpRequest.prototype.open =
-      function(method, url, ...rest) {
+      function (
+        method,
+        url,
+        ...rest
+      ) {
         return nativeOpen.call(
           this,
           method,
@@ -135,175 +600,279 @@ export function buildBridgeScript(
       };
   }
 
-  if (typeof window.EventSource === 'function') {
-    const NativeEventSource = window.EventSource;
+  if (
+    typeof window.EventSource ===
+    'function'
+  ) {
+    const NativeEventSource =
+      window.EventSource;
 
-    const AeroEventSource = function(url, options) {
-      return new NativeEventSource(
-        proxyUrl(String(url)),
+    const PreviewEventSource =
+      function (
+        url,
         options,
-      );
-    };
+      ) {
+        return new NativeEventSource(
+          proxyUrl(String(url)),
+          options,
+        );
+      };
 
-    AeroEventSource.prototype =
+    PreviewEventSource.prototype =
       NativeEventSource.prototype;
 
     Object.setPrototypeOf(
-      AeroEventSource,
+      PreviewEventSource,
       NativeEventSource,
     );
 
-    window.EventSource = AeroEventSource;
+    window.EventSource =
+      PreviewEventSource;
   }
 
-  if (typeof window.WebSocket === 'function') {
-    const NativeWebSocket = window.WebSocket;
+  /*
+   * ------------------------------------------------------------
+   * WebSocket
+   * ------------------------------------------------------------
+   */
 
-    const AeroWebSocket = function(url, protocols) {
-      try {
-        const parsed = new URL(
-          String(url),
-          window.location.href,
-        );
+  if (
+    typeof window.WebSocket ===
+    'function'
+  ) {
+    const NativeWebSocket =
+      window.WebSocket;
 
-        if (parsed.origin === TARGET_ORIGIN) {
-          parsed.pathname = proxyPath(
-            parsed.pathname,
-          );
+    const PreviewWebSocket =
+      function (
+        url,
+        protocols,
+      ) {
+        try {
+          const parsed =
+            new URL(
+              String(url),
+              window.location.href,
+            );
 
-          parsed.protocol =
-            parsed.protocol === 'https:'
-              ? 'wss:'
-              : 'ws:';
-
-          return protocols === undefined
-            ? new NativeWebSocket(parsed.toString())
-            : new NativeWebSocket(
-                parsed.toString(),
-                protocols,
+          if (
+            parsed.origin ===
+            TARGET_ORIGIN
+          ) {
+            const preview =
+              new URL(
+                window.location.href,
               );
-        }
-      } catch {}
 
-      return protocols === undefined
-        ? new NativeWebSocket(url)
-        : new NativeWebSocket(url, protocols);
-    };
+            parsed.hostname =
+              preview.hostname;
 
-    AeroWebSocket.prototype =
+            parsed.port =
+              preview.port;
+
+            parsed.protocol =
+              parsed.protocol ===
+              'https:'
+                ? 'wss:'
+                : 'ws:';
+
+            return protocols ===
+              undefined
+              ? new NativeWebSocket(
+                  parsed.toString(),
+                )
+              : new NativeWebSocket(
+                  parsed.toString(),
+                  protocols,
+                );
+          }
+        } catch {}
+
+        return protocols ===
+          undefined
+          ? new NativeWebSocket(
+              url,
+            )
+          : new NativeWebSocket(
+              url,
+              protocols,
+            );
+      };
+
+    PreviewWebSocket.prototype =
       NativeWebSocket.prototype;
 
     Object.setPrototypeOf(
-      AeroWebSocket,
+      PreviewWebSocket,
       NativeWebSocket,
     );
 
-    window.WebSocket = AeroWebSocket;
+    window.WebSocket =
+      PreviewWebSocket;
   }
 
-  const rewriteNavigation = (value) => {
-    if (
-      typeof value !== 'string' ||
-      !value
-    ) {
-      return value;
-    }
+  /*
+   * ------------------------------------------------------------
+   * Agentation
+   * ------------------------------------------------------------
+   */
 
-    try {
-      const parsed = new URL(
-        value,
-        window.location.href,
-      );
+  window.addEventListener(
+    'mousemove',
+    sendHover,
+    true,
+  );
 
-      if (parsed.origin === TARGET_ORIGIN) {
-        return (
-          proxyPath(parsed.pathname) +
-          parsed.search +
-          parsed.hash
-        );
+  window.addEventListener(
+    'mouseleave',
+    () => {
+      if (!inspectMode) {
+        return;
       }
 
-      return value;
-    } catch {
-      return value;
-    }
-  };
+      lastHoverKey = '';
 
-  if (window.history) {
-    const pushState =
-      window.history.pushState.bind(
-        window.history,
-      );
+      post({
+        type: 'hover',
+        target: null,
+        pointer: {
+          x: 0,
+          y: 0,
+        },
+        ts: Date.now(),
+      });
+    },
+    true,
+  );
 
-    const replaceState =
-      window.history.replaceState.bind(
-        window.history,
-      );
+  window.addEventListener(
+    'click',
+    (event) => {
+      if (!inspectMode) {
+        return;
+      }
 
-    window.history.pushState =
-      function(state, unused, url) {
-        return pushState(
-          state,
-          unused,
-          url == null
-            ? url
-            : rewriteNavigation(String(url)),
+      event.preventDefault();
+      event.stopPropagation();
+
+      const element =
+        document.elementFromPoint(
+          event.clientX,
+          event.clientY,
         );
-      };
 
-    window.history.replaceState =
-      function(state, unused, url) {
-        return replaceState(
-          state,
-          unused,
-          url == null
-            ? url
-            : rewriteNavigation(String(url)),
+      const target =
+        metadataForElement(
+          element,
         );
-      };
-  }
 
-  const parentOrigin = (() => {
-    try {
-      return document.referrer
-        ? new URL(document.referrer).origin
-        : '';
-    } catch {
-      return '';
-    }
-  })();
+      if (target) {
+        post({
+          type: 'select',
+          target,
+          pointer: {
+            x: event.clientX,
+            y: event.clientY,
+          },
+          ts: Date.now(),
+        });
+      }
+    },
+    true,
+  );
 
-  if (parentOrigin) {
-    window.addEventListener('message', (event) => {
+  /*
+   * ------------------------------------------------------------
+   * Parent communication
+   * ------------------------------------------------------------
+   */
+
+  window.addEventListener(
+    'message',
+    (event) => {
       if (
-        event.source !== window.parent ||
-        !event.data ||
-        event.data.source !== 'aero-preview-parent' ||
-        event.data.version !== 1
+        event.source !==
+        window.parent
       ) {
         return;
       }
 
-      if (event.data.type === 'set-inspect-mode') {
-        document.documentElement.style.cursor =
-          event.data.enabled
-            ? 'crosshair'
-            : '';
+      const data =
+        event.data;
+
+      if (
+        !data ||
+        data.source !==
+          'aero-preview-parent' ||
+        data.version !== VERSION
+      ) {
+        return;
       }
+
+      if (
+        data.type ===
+        'set-inspect-mode'
+      ) {
+        setInspectMode(
+          data.enabled === true,
+        );
+
+        return;
+      }
+
+      if (
+        data.type ===
+        'history-back'
+      ) {
+        window.history.back();
+        return;
+      }
+
+      if (
+        data.type ===
+        'history-forward'
+      ) {
+        window.history.forward();
+        return;
+      }
+    },
+  );
+
+  /*
+   * ------------------------------------------------------------
+   * Initial ready event
+   * ------------------------------------------------------------
+   */
+
+  const postReady = () => {
+    post({
+      type: 'ready',
+      url: window.location.href,
+      title: document.title || '',
     });
 
-    try {
-      window.parent.postMessage(
-        {
-          source: 'aero-preview-bridge',
-          version: 1,
-          type: 'ready',
-          url: window.location.href,
-          title: document.title || '',
-        },
-        parentOrigin,
-      );
-    } catch {}
+    post({
+      type: 'history-state',
+      url: window.location.href,
+      canGoBack:
+        historyIndex > 0,
+      canGoForward:
+        historyIndex <
+        historyEntries.length - 1,
+    });
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      postReady,
+      { once: true },
+    );
+  } else {
+    postReady();
   }
 })();
 `;
