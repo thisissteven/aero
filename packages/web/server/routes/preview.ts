@@ -1,88 +1,152 @@
-import { Hono } from 'hono';
+import { Context, Hono } from 'hono';
 
 import { proxyRequest } from '../lib/preview/proxy';
 import { isBlockedExternalHost } from '../lib/preview/rewrite';
 import { createPreviewTarget, getPreviewTarget } from '../lib/preview/store';
-import { validateTokenRequest } from '../lib/terminal/auth';
-import { AUTH_CONFIG } from '../lib/terminal/config';
 
-function parseCookies(header: string | undefined): Map<string, string> {
-  const out = new Map<string, string>();
-  if (!header) return out;
-  for (const part of header.split(';')) {
-    const idx = part.indexOf('=');
-    if (idx <= 0) continue;
-    out.set(part.slice(0, idx).trim(), part.slice(idx + 1).trim());
-  }
-  return out;
+function extractProxyIdFromHost(hostname: string): string | null {
+  const match = hostname.match(/^([a-f0-9]{32})\.preview\.localhost$/i);
+
+  return match?.[1] ?? null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleProxy(c: any) {
-  const proxyId = c.req.param('proxyId');
-  const target = getPreviewTarget(proxyId);
-  if (!target) return c.text('Not Found', 404);
+function extractPreviewPath(pathname: string, proxyId: string): string {
+  const prefix = `/api/preview/p/${proxyId}`;
 
-  const cookies = parseCookies(c.req.header('cookie'));
-  const token =
-    c.req.query('oc_preview_token') || cookies.get('aero_preview_token') || '';
-  if (!token || token !== target.token) return c.text('Forbidden', 403);
+  if (pathname === prefix || pathname === `${prefix}/`) {
+    return '/';
+  }
 
-  return proxyRequest(c, target, c.req.param('*') ?? '');
+  if (pathname.startsWith(`${prefix}/`)) {
+    return pathname.slice(prefix.length) || '/';
+  }
+
+  return '/';
+}
+
+async function handleProxy(c: Context): Promise<Response> {
+  const id = String(c.req.param('proxyId') ?? '');
+
+  const target = getPreviewTarget(id);
+
+  if (!target) {
+    return c.json(
+      {
+        error: 'Preview target not found or expired',
+      },
+      404,
+    );
+  }
+
+  const requestUrl = new URL(c.req.url);
+
+  const restPath = extractPreviewPath(requestUrl.pathname, id);
+
+  console.info('[PREVIEW ROUTE]', {
+    method: c.req.method,
+    host: requestUrl.host,
+    pathname: requestUrl.pathname,
+    id,
+    restPath,
+    targetOrigin: target.origin,
+  });
+
+  return proxyRequest(c, target, restPath);
 }
 
 const preview = new Hono()
+
   .post('/targets', async (c) => {
-    const decision = validateTokenRequest(AUTH_CONFIG, {
-      host: c.req.header('host'),
-      origin: c.req.header('origin'),
-    });
-    if (!decision.ok)
-      return c.text(decision.reason, decision.status as 400 | 403);
-
     const body = await c.req.json().catch(() => null);
-    const raw = typeof body?.url === 'string' ? body.url : null;
-    if (!raw) return c.json({ error: 'url is required' }, 400);
 
-    let target: URL;
-    try {
-      target = new URL(raw);
-    } catch {
-      return c.json({ error: 'invalid url' }, 400);
-    }
-    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-      return c.json({ error: 'unsupported protocol' }, 400);
-    }
+    const raw = typeof body?.url === 'string' ? body.url.trim() : '';
 
-    // Allow localhost but still block other private addresses
-    const isLocalhost =
-      target.hostname === 'localhost' ||
-      target.hostname.endsWith('.localhost') ||
-      target.hostname.endsWith('.local');
-
-    if (!isLocalhost && isBlockedExternalHost(target.hostname)) {
+    if (!raw) {
       return c.json(
-        { error: 'refusing to proxy private or reserved addresses' },
+        {
+          error: 'url is required',
+        },
         400,
       );
     }
 
-    const entry = createPreviewTarget(target.toString());
-    const cookiePath = `/api/preview/p/${entry.id}`;
-    const maxAge = Math.round((entry.expiresAt - Date.now()) / 1000);
-    c.header(
-      'Set-Cookie',
-      `aero_preview_token=${entry.token}; Path=${cookiePath}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax`,
-    );
+    let url: URL;
+
+    try {
+      url = new URL(raw);
+    } catch {
+      return c.json(
+        {
+          error: 'invalid url',
+        },
+        400,
+      );
+    }
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return c.json(
+        {
+          error: 'unsupported protocol',
+        },
+        400,
+      );
+    }
+
+    const hostname = url.hostname.toLowerCase();
+
+    const isLoopback =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '[::1]' ||
+      hostname === '0.0.0.0' ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local');
+
+    if (!isLoopback && isBlockedExternalHost(hostname)) {
+      return c.json(
+        {
+          error: 'refusing to proxy private or reserved address',
+        },
+        400,
+      );
+    }
+
+    const target = createPreviewTarget(url.origin);
+
+    const requestUrl = new URL(c.req.url);
+
+    const protocol = requestUrl.protocol === 'https:' ? 'https' : 'http';
+
+    const host = requestUrl.host;
+
+    const previewHost = `${target.id}.preview.localhost`;
+
+    const port = host.includes(':') ? `:${host.split(':').pop()}` : '';
+
+    const previewOrigin = `${protocol}://${previewHost}${port}`;
+
     c.header('Cache-Control', 'no-store');
+
+    console.info('[PREVIEW TARGET]', {
+      requested: raw,
+      origin: target.origin,
+      id: target.id,
+      previewOrigin,
+    });
+
     return c.json({
-      proxyBasePath: cookiePath,
-      previewToken: entry.token,
-      expiresAt: entry.expiresAt,
+      id: target.id,
+      previewOrigin,
+      expiresAt: target.expiresAt,
     });
   })
+
   .all('/p/:proxyId', handleProxy)
   .all('/p/:proxyId/*', handleProxy);
 
 export default preview;
+
 export type PreviewRoutes = typeof preview;
+
+export { extractProxyIdFromHost };

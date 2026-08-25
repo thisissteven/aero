@@ -13,6 +13,8 @@ export function PathnameHandler() {
 
     if (sessionId) {
       setActiveSessionId(sessionId);
+    } else {
+      setActiveSessionId('');
     }
   }, [location.pathname]);
 

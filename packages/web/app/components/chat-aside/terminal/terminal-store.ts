@@ -36,11 +36,9 @@ function createSession(index: number, cwd?: string): TerminalSession {
   };
 }
 
-const initialSession = createSession(1);
-
 export const useTerminalStore = create<TerminalStore>()((set, get) => ({
-  sessions: [initialSession],
-  activeSessionId: initialSession.id,
+  sessions: [],
+  activeSessionId: null,
   statusById: {},
 
   actions: {

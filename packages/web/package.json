@@ -24,6 +24,7 @@
     "@opencode-ai/sdk": "^1.18.11",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.18",
+    "cheerio": "^1.2.0",
     "get-system-proxy": "^1.0.0",
     "ghostty-web": "^0.4.0",
     "hono": "^4.12.32",

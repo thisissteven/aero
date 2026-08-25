@@ -1,37 +1,64 @@
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'node:crypto';
 
-interface PreviewTarget {
+const DEFAULT_TTL_MS = 30 * 60 * 1000;
+
+export interface PreviewTarget {
   id: string;
-  url: string;
-  token: string;
+  origin: string;
+  createdAt: number;
   expiresAt: number;
 }
 
 const targets = new Map<string, PreviewTarget>();
-const TTL_MS = 10 * 60 * 1000;
 
-export function createPreviewTarget(url: string): PreviewTarget {
-  const entry: PreviewTarget = {
-    id: randomBytes(12).toString('base64url'),
-    token: randomBytes(24).toString('base64url'),
-    url,
-    expiresAt: Date.now() + TTL_MS,
+function sweepExpired(): void {
+  const now = Date.now();
+
+  for (const [id, target] of targets) {
+    if (target.expiresAt <= now) {
+      targets.delete(id);
+    }
+  }
+}
+
+export function createPreviewTarget(
+  origin: string,
+  ttlMs = DEFAULT_TTL_MS,
+): PreviewTarget {
+  sweepExpired();
+
+  const now = Date.now();
+  const id = randomBytes(16).toString('hex');
+
+  const target: PreviewTarget = {
+    id,
+    origin: origin.replace(/\/+$/, ''),
+    createdAt: now,
+    expiresAt: now + Math.max(15_000, Math.trunc(ttlMs)),
   };
-  targets.set(entry.id, entry);
-  return entry;
+
+  targets.set(id, target);
+
+  return target;
 }
 
 export function getPreviewTarget(id: string): PreviewTarget | null {
-  const entry = targets.get(id);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
+  sweepExpired();
+
+  const target = targets.get(id);
+
+  if (!target) {
+    return null;
+  }
+
+  if (target.expiresAt <= Date.now()) {
     targets.delete(id);
     return null;
   }
-  return entry;
+
+  return target;
 }
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, e] of targets) if (now > e.expiresAt) targets.delete(id);
-}, 60_000);
+export function deletePreviewTarget(id: string): void {
+  targets.delete(id);
+}

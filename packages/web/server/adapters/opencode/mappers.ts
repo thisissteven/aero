@@ -11,10 +11,15 @@
 // @opencode-ai/sdk version and adjust field access here if anything drifted.
 
 import type {
+  Agent,
   AssistantMessage,
+  Command,
   Message,
   Part,
+  Provider,
   TextPart,
+  ToolListItem,
+  Worktree,
 } from '@opencode-ai/sdk/v2';
 
 import { withOpencodeClientV1 } from '@/server/adapters/opencode/client';
@@ -28,10 +33,16 @@ import type {
 } from '@/server/types/opencode-sdk';
 
 import type {
+  AeroAgent,
+  AeroCommand,
   AeroMessage,
   AeroPart,
+  AeroProvider,
   AeroSessionContextDetails,
   AeroSessionSummary,
+  AeroSkill,
+  AeroTool,
+  AeroWorktreeItem,
 } from '../../services/harness/types';
 
 async function getProviderModelInfo(providerId: string, modelId: string) {
@@ -487,5 +498,66 @@ export function toAeroMessage(entry: {
           }
         : undefined,
     createdAt: entry.info.time?.created ?? Date.now(),
+  };
+}
+
+/**
+ * Maps raw Agent data or API responses to AeroAgent.
+ */
+export function toAeroAgent(entry: Agent): AeroAgent {
+  return { ...entry };
+}
+
+/**
+ * Maps raw Skill / MCP / App entry objects to AeroSkill.
+ * Handles both ToolListItem inputs and custom skill payload structures.
+ */
+export function toAeroSkill(entry: {
+  name: string;
+  description?: string | undefined;
+  location: string;
+  content: string;
+}): AeroSkill {
+  return {
+    name: entry.name ?? 'Unnamed Skill',
+    description: entry.description,
+    location: entry.location,
+    content: entry.content,
+  };
+}
+
+/**
+ * Maps raw Command configuration objects to AeroCommand.
+ */
+export function toAeroCommand(entry: Command): AeroCommand {
+  return { ...entry };
+}
+
+/**
+ * Maps raw Tool objects to AeroTool.
+ */
+export function toAeroTool(entry: ToolListItem): AeroTool {
+  return {
+    id: entry.id,
+    description: entry.description,
+    parameters: entry.parameters,
+  };
+}
+
+/**
+ * Maps raw Provider entries to AeroProvider.
+ */
+export function toAeroProvider(entry: Provider): AeroProvider {
+  return { ...entry };
+}
+
+/**
+ * Maps raw worktree API entries or strings into AeroWorktree format.
+ */
+export function toAeroWorktreeItem(entry: Worktree): AeroWorktreeItem {
+  return {
+    directory: entry.directory,
+    name: entry.name || entry.directory.split('/').pop(),
+    branch: entry.branch,
   };
 }

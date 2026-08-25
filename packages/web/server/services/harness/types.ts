@@ -7,7 +7,15 @@
 // no matter which harness is actually running underneath.
 
 import { ApiError, ToolState } from '@opencode-ai/sdk';
-import { FilePart, FilePartSource } from '@opencode-ai/sdk/v2';
+import {
+  Agent,
+  Command,
+  Config,
+  FilePart,
+  FilePartSource,
+  Provider,
+  ToolListItem,
+} from '@opencode-ai/sdk/v2';
 
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 export type ConversationRole = 'user' | 'assistant' | 'system';
@@ -277,6 +285,34 @@ export interface StreamEventsOptions {
   signal?: AbortSignal;
 }
 
+// Config domain
+export type AeroConfig = Config;
+
+// Provider domain
+export type AeroProvider = Provider;
+
+// Agent & Capability domains
+export type AeroAgent = Agent;
+export type AeroCommand = Command;
+
+// Worktree domain
+export interface AeroWorktreeItem {
+  directory: string;
+  name?: string;
+  branch?: string;
+  isCurrent?: boolean;
+}
+
+// Skill domain (e.g. MCP / Tool / Custom Extension Capabilities)
+export interface AeroSkill {
+  name: string;
+  description?: string | undefined;
+  location: string;
+  content: string;
+}
+
+export type AeroTool = ToolListItem;
+
 export interface HarnessAdapter {
   readonly id: HarnessId;
 
@@ -349,6 +385,29 @@ export interface HarnessAdapter {
 
   /** Live event stream, already normalized to AeroEvent. */
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
+
+  // Agents & App Capabilities
+  listAgents(directory?: string): Promise<AeroAgent[]>;
+  listSkills(directory?: string): Promise<AeroSkill[]>;
+  listCommands(directory?: string): Promise<AeroCommand[]>;
+  listTools(
+    provider: string,
+    model: string,
+    directory?: string,
+  ): Promise<AeroTool[]>;
+
+  // Worktree Operations
+  listWorktreeNames(directory?: string): Promise<string[]>;
+  createWorktree(directory: string, name: string): Promise<AeroWorktreeItem>;
+  removeWorktreeItem(directory: string): Promise<boolean>;
+
+  // Providers & Auth Operations
+  listProviders(directory?: string): Promise<AeroProvider[]>;
+  listConfiguredProviders(directory?: string): Promise<AeroProvider[]>;
+  setApiKey(provider: string, apiKey: string): Promise<boolean>;
+
+  // Config Operations
+  getConfig(directory?: string): Promise<AeroConfig>;
 }
 
 export interface BasePaginationParams {

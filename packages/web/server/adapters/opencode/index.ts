@@ -44,13 +44,19 @@ import {
 } from '@/server/storage/workspaces';
 
 import {
+  toAeroAgent,
+  toAeroCommand,
   toAeroMessage,
   toAeroPart,
+  toAeroProvider,
   toAeroSession,
   toAeroSessionContextDetails,
   toAeroSessionExperimental,
   toAeroSessionV2,
   toAeroSessionV2Info,
+  toAeroSkill,
+  toAeroTool,
+  toAeroWorktreeItem,
 } from './mappers';
 import { unwrap } from './unwrap';
 
@@ -483,6 +489,132 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       } catch {
         return false;
       }
+    },
+
+    async listAgents(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.app.agents({ directory }),
+        ),
+      );
+
+      return entries.map(toAeroAgent);
+    },
+
+    async listSkills(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.app.skills({ directory }),
+        ),
+      );
+
+      return entries.map(toAeroSkill);
+    },
+
+    async listCommands(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.command.list({ directory }),
+        ),
+      );
+
+      return entries.map(toAeroCommand);
+    },
+
+    async listConfiguredProviders(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.config.providers({ directory }),
+        ),
+      );
+
+      return entries.providers.map(toAeroProvider);
+    },
+
+    async listWorktreeNames(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.worktree.list({ directory }),
+        ),
+      );
+
+      return entries;
+    },
+
+    async createWorktree(directory, name) {
+      const entry = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.worktree.create({
+            directory,
+            worktreeCreateInput: {
+              name: name,
+            },
+          }),
+        ),
+      );
+
+      return toAeroWorktreeItem(entry);
+    },
+
+    async removeWorktreeItem(directory) {
+      const ok = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.worktree.remove({
+            directory,
+            worktreeRemoveInput: {
+              directory,
+            },
+          }),
+        ),
+      );
+
+      return ok;
+    },
+
+    async setApiKey(provider, apiKey) {
+      const ok = unwrap(
+        await withOpencodeClientV1((client) =>
+          client.auth.set({
+            path: { id: provider },
+            body: {
+              type: 'api',
+              key: apiKey,
+            },
+          }),
+        ),
+      );
+
+      return ok;
+    },
+
+    async listTools(provider, model, directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.tool.list({ directory, model, provider }),
+        ),
+      );
+
+      return entries.map(toAeroTool);
+    },
+
+    async listProviders(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.provider.list({ directory }),
+        ),
+      );
+
+      return entries.all.map(toAeroProvider);
+    },
+
+    async getConfig(directory) {
+      const entry = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.config.get({ directory }),
+        ),
+      );
+
+      return entry;
     },
 
     async listMessages(sessionID) {

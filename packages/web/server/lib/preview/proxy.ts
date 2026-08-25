@@ -1,159 +1,392 @@
-import { randomBytes } from 'crypto';
 import type { Context } from 'hono';
+import { randomBytes } from 'node:crypto';
 
-import { buildBridgeScript } from './bridge-script';
-import {
-  detectRewriteKind,
-  rewritePreviewBody,
-  rewritePreviewCspHeader,
-} from './rewrite';
+import { rewritePreviewCspHeader } from './rewrite';
+import type { PreviewTarget } from './store';
 
-function filterRequestHeaders(headers: Headers, targetOrigin: string) {
-  const out = new Headers();
-  headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    // Keep referer but rewrite it to the target origin so sites don't block us
-    if (lower === 'referer') {
-      out.set('Referer', targetOrigin);
-      return;
-    }
-    if (['host', 'origin', 'connection'].includes(lower)) {
-      return;
-    }
-    // Keep cookies — many sites need them for redirects, consent, auth
-    out.set(key, value);
+function buildUpstreamUrl(
+  target: PreviewTarget,
+  restPath: string,
+  requestUrl: string,
+): URL {
+  const upstream = new URL(restPath || '/', `${target.origin}/`);
+
+  const request = new URL(requestUrl);
+
+  request.searchParams.forEach((value, key) => {
+    upstream.searchParams.set(key, value);
   });
-  return out;
+
+  return upstream;
+}
+
+function filterRequestHeaders(request: Headers): Headers {
+  const result = new Headers();
+
+  request.forEach((value, key) => {
+    const lower = key.toLowerCase();
+
+    if (
+      lower === 'host' ||
+      lower === 'origin' ||
+      lower === 'connection' ||
+      lower === 'content-length' ||
+      lower === 'transfer-encoding' ||
+      lower === 'referer' ||
+      lower === 'cookie' ||
+      lower === 'authorization'
+    ) {
+      return;
+    }
+
+    result.set(key, value);
+  });
+
+  result.set('accept-encoding', 'identity');
+
+  return result;
+}
+
+function copyResponseHeaders(source: Headers): Headers {
+  const result = new Headers();
+
+  source.forEach((value, key) => {
+    const lower = key.toLowerCase();
+
+    if (
+      lower === 'content-length' ||
+      lower === 'content-encoding' ||
+      lower === 'transfer-encoding' ||
+      lower === 'connection' ||
+      lower === 'keep-alive' ||
+      lower === 'x-frame-options' ||
+      lower === 'content-security-policy' ||
+      lower === 'content-security-policy-report-only'
+    ) {
+      return;
+    }
+
+    result.set(key, value);
+  });
+
+  return result;
+}
+
+function rewriteAbsoluteTargetUrl(
+  value: string,
+  targetOrigin: string,
+  previewOrigin: string,
+): string {
+  try {
+    const parsed = new URL(value);
+    const target = new URL(targetOrigin);
+
+    if (parsed.origin !== target.origin) {
+      return value;
+    }
+
+    return previewOrigin + parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return value;
+  }
+}
+
+function rewriteHtml(
+  html: string,
+  targetOrigin: string,
+  previewOrigin: string,
+): string {
+  return html.replace(
+    /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
+    (_match, attribute, quote, value) => {
+      const trimmed = String(value).trim();
+
+      if (!/^https?:\/\//i.test(trimmed)) {
+        return `${attribute}=${quote}${value}${quote}`;
+      }
+
+      const rewritten = rewriteAbsoluteTargetUrl(
+        trimmed,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `${attribute}=${quote}${rewritten}${quote}`;
+    },
+  );
+}
+
+function rewriteCss(
+  css: string,
+  targetOrigin: string,
+  previewOrigin: string,
+): string {
+  return css.replace(
+    /url\(\s*(['"]?)(.*?)\1\s*\)/gi,
+    (_match, quote, value) => {
+      const rewritten = rewriteAbsoluteTargetUrl(
+        String(value).trim(),
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `url(${quote || ''}${rewritten}${quote || ''})`;
+    },
+  );
+}
+
+function injectBridge(html: string, nonce: string): string {
+  const script = `
+<script nonce="${nonce}">
+(() => {
+  if (window.__aeroPreviewBridgeInstalled) {
+    return;
+  }
+
+  window.__aeroPreviewBridgeInstalled = true;
+
+  const parentOrigin = (() => {
+    try {
+      return document.referrer
+        ? new URL(document.referrer).origin
+        : '';
+    } catch {
+      return '';
+    }
+  })();
+
+  const post = (payload) => {
+    if (
+      !parentOrigin ||
+      !window.parent
+    ) {
+      return;
+    }
+
+    try {
+      window.parent.postMessage(
+        {
+          source: 'aero-preview-bridge',
+          version: 1,
+          ...payload,
+        },
+        parentOrigin,
+      );
+    } catch {}
+  };
+
+  window.addEventListener(
+    'message',
+    (event) => {
+      if (
+        event.source !==
+        window.parent
+      ) {
+        return;
+      }
+
+      const data = event.data;
+
+      if (
+        !data ||
+        data.source !==
+          'aero-preview-parent' ||
+        data.version !== 1
+      ) {
+        return;
+      }
+
+      if (
+        data.type ===
+        'set-inspect-mode'
+      ) {
+        document.documentElement.style.cursor =
+          data.enabled
+            ? 'crosshair'
+            : '';
+      }
+    },
+  );
+
+  post({
+    type: 'ready',
+    url: window.location.href,
+    title: document.title || '',
+  });
+
+  window.addEventListener(
+    'DOMContentLoaded',
+    () => {
+      post({
+        type: 'ready',
+        url: window.location.href,
+        title:
+          document.title || '',
+      });
+    },
+  );
+})();
+</script>`;
+
+  const head = html.match(/<head\b[^>]*>/i);
+
+  if (head) {
+    return html.replace(head[0], `${head[0]}${script}`);
+  }
+
+  return `${script}${html}`;
 }
 
 export async function proxyRequest(
   c: Context,
-  target: { id: string; url: string; token: string },
+  target: PreviewTarget,
   restPath: string,
-) {
-  const targetUrl = new URL(target.url);
-  const upstreamUrl = new URL(`/${restPath}`, targetUrl.origin);
-  const search = new URL(c.req.url).search;
-  if (search) upstreamUrl.search = search;
-  upstreamUrl.searchParams.delete('oc_preview_token');
-  upstreamUrl.searchParams.delete('ocPreview');
+): Promise<Response> {
+  const requestUrl = new URL(c.req.url);
 
-  let upstreamRes: Response;
+  /*
+   * The browser is now using:
+   *
+   *   <id>.preview.localhost:5173
+   *
+   * as its actual origin.
+   */
+  const previewOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+
+  const upstream = buildUpstreamUrl(target, restPath, c.req.url);
+
+  console.info('[PREVIEW]', c.req.method, '→', upstream.toString());
+
+  let response: Response;
+
   try {
-    const hasBody = !['GET', 'HEAD'].includes(c.req.method);
-    upstreamRes = await fetch(upstreamUrl, {
+    response = await fetch(upstream, {
       method: c.req.method,
-      headers: filterRequestHeaders(c.req.raw.headers, targetUrl.origin),
-      body: hasBody ? c.req.raw.body : undefined,
-      ...(hasBody ? { duplex: 'half' } : {}),
+      headers: filterRequestHeaders(c.req.raw.headers),
+      body:
+        c.req.method === 'GET' || c.req.method === 'HEAD'
+          ? undefined
+          : c.req.raw.body,
       redirect: 'manual',
-      signal: AbortSignal.timeout(15_000),
-    } as RequestInit);
+      signal: AbortSignal.timeout(30_000),
+    });
   } catch (error) {
-    const reason = error instanceof Error ? error.message : 'unreachable';
-    return new Response(
-      `<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;padding:2rem;color:#888">
-        Couldn't reach ${targetUrl.hostname} — ${reason}</body>`,
-      { status: 502, headers: { 'content-type': 'text/html' } },
+    console.error('[PREVIEW ERROR]', upstream.toString(), error);
+
+    return c.json(
+      {
+        error: 'Preview upstream request failed',
+        target: upstream.toString(),
+        reason: error instanceof Error ? error.message : String(error),
+      },
+      502,
     );
   }
 
-  if (upstreamRes.status >= 300 && upstreamRes.status < 400) {
-    const location = upstreamRes.headers.get('location');
+  const headers = copyResponseHeaders(response.headers);
+
+  /*
+   * Keep same-origin redirects on the
+   * preview hostname.
+   */
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get('location');
+
     if (location) {
-      const resolved = new URL(location, upstreamUrl);
-      const proxied =
-        resolved.origin === targetUrl.origin
-          ? `/api/preview/p/${target.id}${resolved.pathname}${resolved.search}${resolved.hash}`
-          : resolved.toString();
-      return c.redirect(
-        proxied,
-        upstreamRes.status as 301 | 302 | 303 | 307 | 308,
-      );
-    }
-  }
+      try {
+        const resolved = new URL(location, target.origin);
 
-  const bridgeNonce = randomBytes(16).toString('base64');
-
-  const headers = new Headers();
-  upstreamRes.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-
-    if (lower === 'x-frame-options') return;
-
-    if (
-      lower === 'content-security-policy' ||
-      lower === 'content-security-policy-report-only'
-    ) {
-      const rewritten = rewritePreviewCspHeader(value, bridgeNonce);
-      if (rewritten) headers.set(key, rewritten);
-      return;
+        if (resolved.origin === new URL(target.origin).origin) {
+          headers.set(
+            'location',
+            resolved.pathname + resolved.search + resolved.hash,
+          );
+        } else {
+          headers.set('location', resolved.toString());
+        }
+      } catch {
+        headers.set('location', location);
+      }
     }
 
-    if (
-      lower === 'content-encoding' ||
-      lower === 'content-length' ||
-      lower === 'transfer-encoding' ||
-      lower === 'connection' ||
-      lower === 'keep-alive'
-    ) {
-      return;
-    }
-
-    // Forward Set-Cookie but rewrite the Path so it works through the proxy
-    if (lower === 'set-cookie') {
-      const rewritten = rewriteSetCookiePath(
-        value,
-        `/api/preview/p/${target.id}`,
-      );
-      headers.append(key, rewritten);
-      return;
-    }
-
-    headers.set(key, value);
-  });
-
-  const contentType = upstreamRes.headers.get('content-type') ?? '';
-  const kind = detectRewriteKind(contentType);
-
-  if (!kind) {
-    return new Response(upstreamRes.body, {
-      status: upstreamRes.status,
+    return new Response(null, {
+      status: response.status,
+      statusText: response.statusText,
       headers,
     });
   }
 
-  const proxyBase = `/api/preview/p/${target.id}`;
-  const bodyText = await upstreamRes.text();
-  let rewritten = rewritePreviewBody({
-    bodyText,
-    proxyBasePath: proxyBase,
-    targetOrigin: targetUrl.origin,
-    kind,
-    previewToken: target.token,
-  });
+  const contentType = response.headers.get('content-type') ?? '';
 
-  if (kind === 'html') {
-    const bridgeTag = buildBridgeScript(targetUrl.origin, bridgeNonce);
+  const lower = contentType.toLowerCase();
 
-    rewritten = rewritten.includes('</head>')
-      ? rewritten.replace('</head>', `${bridgeTag}</head>`)
-      : `${bridgeTag}${rewritten}`;
+  const isHtml =
+    lower.includes('text/html') || lower.includes('application/xhtml+xml');
+
+  const isCss = lower.includes('text/css');
+
+  const isJavaScript =
+    lower.includes('javascript') || lower.includes('ecmascript');
+
+  if (!isHtml && !isCss && !isJavaScript) {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   }
 
-  return new Response(rewritten, { status: upstreamRes.status, headers });
-}
+  const body = await response.text();
 
-function rewriteSetCookiePath(
-  setCookieValue: string,
-  proxyPath: string,
-): string {
-  // Simple path rewrite: replace Path=/ with Path=/api/preview/p/{id}/
-  // and Path=/foo with Path=/api/preview/p/{id}/foo
-  return setCookieValue
-    .replace(/;\s*Domain=[^;]*/i, '')
-    .replace(/;\s*Path=\/([^;]*)/i, (_m, path) =>
-      `; Path=${proxyPath}/${path}`.replace(/\/+/g, '/'),
-    )
-    .replace(/;\s*Path=\/\s*(;|$)/i, `; Path=${proxyPath}$1`);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+
+  if (isHtml) {
+    const nonce = randomBytes(16).toString('base64');
+
+    const csp = response.headers.get('content-security-policy');
+
+    if (csp) {
+      const rewrittenCsp = rewritePreviewCspHeader(csp, nonce);
+
+      if (rewrittenCsp) {
+        headers.set('content-security-policy', rewrittenCsp);
+      }
+    }
+
+    let rewritten = rewriteHtml(body, target.origin, previewOrigin);
+
+    rewritten = injectBridge(rewritten, nonce);
+
+    headers.set('cache-control', 'no-store');
+
+    return new Response(rewritten, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  if (isCss) {
+    return new Response(rewriteCss(body, target.origin, previewOrigin), {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  /*
+   * JavaScript is intentionally NOT rewritten.
+   *
+   * Relative imports resolve against:
+   *
+   *   <id>.preview.localhost:5173
+   *
+   * and therefore remain inside the preview.
+   */
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
