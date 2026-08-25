@@ -24,7 +24,7 @@ export function SessionTodos() {
 
   if (tasksCompleted) {
     return (
-      <div className='mx-2 mb-2 ml-auto flex max-w-sm items-center justify-end gap-1 text-sm'>
+      <div className='mx-2 mb-2 ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
           All tasks completed
         </span>
@@ -35,8 +35,8 @@ export function SessionTodos() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 ml-auto flex max-w-sm items-center justify-end gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none'>
-        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
+      <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 ml-auto flex shrink-0 items-center justify-end gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm'>
+        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle @max-md:hidden'>
           {inProgress.length > 0
             ? inProgress[0].content
             : todos[todos.length - 1].content}
@@ -58,14 +58,18 @@ export function SessionTodos() {
           )}
         />
       </Popover.Trigger>
-      <Popover.Content placement='top right' className='max-w-sm rounded-xl'>
+      <Popover.Content
+        placement='top right'
+        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
+        crossOffset={8}
+      >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>
             Tasks {todos.length - remaining}/{todos.length}
           </Popover.Heading>
 
           <div className='pl-1'>
-            <ol className='max-h-[240px] scrollbar-thin space-y-1 overflow-y-auto pr-2 pb-3 pl-3'>
+            <ol className='max-h-[240px] scrollbar-thin space-y-1 overflow-y-auto pr-3 pb-3 pl-3'>
               {todos.map((todo, index) => {
                 return (
                   <li

@@ -98,7 +98,7 @@ export function ChatPage({
 
           <RevertedMessages />
 
-          <div className='flex items-center justify-between'>
+          <div className='@container flex items-center justify-between'>
             <SessionDiff workspace={workspace} />
             <SessionTodos />
           </div>

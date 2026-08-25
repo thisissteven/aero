@@ -45,7 +45,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
       )}
       <Navbar.Header className='overflow-hidden pr-0'>
         <AppLayout.MenuToggle className='shrink-0' />
-        <Sidebar.Trigger />
+        <Sidebar.Trigger className='shrink-0' />
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />

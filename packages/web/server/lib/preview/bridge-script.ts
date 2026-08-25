@@ -33,8 +33,101 @@ export function buildBridgeScript(
     } catch {}
   };
 
-  const clip = (value, max = 500) => {
-    const text = String(value ?? '')
+  /*
+   * ------------------------------------------------------------
+   * URL helpers
+   * ------------------------------------------------------------
+   */
+
+  const getPreviewOrigin = () => {
+    try {
+      return new URL(
+        window.location.href,
+      ).origin;
+    } catch {
+      return '';
+    }
+  };
+
+  const isSameOrigin = (
+    a,
+    b,
+  ) => {
+    try {
+      return (
+        new URL(a).origin ===
+        new URL(b).origin
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const isTargetOrigin = (value) => {
+    try {
+      return (
+        new URL(value, window.location.href)
+          .origin === TARGET_ORIGIN
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  /*
+   * Convert a target-origin URL into a URL on the
+   * current preview origin.
+   *
+   * Example:
+   *
+   * http://localhost:3000/sessions/foo
+   *
+   * becomes:
+   *
+   * http://abc.preview.localhost:5173/sessions/foo
+   */
+  const toPreviewUrl = (value) => {
+    try {
+      const parsed = new URL(
+        value,
+        window.location.href,
+      );
+
+      if (!isTargetOrigin(parsed)) {
+        return parsed.toString();
+      }
+
+      const previewOrigin =
+        getPreviewOrigin();
+
+      if (!previewOrigin) {
+        return parsed.toString();
+      }
+
+      return (
+        previewOrigin +
+        parsed.pathname +
+        parsed.search +
+        parsed.hash
+      );
+    } catch {
+      return value;
+    }
+  };
+
+  /*
+   * ------------------------------------------------------------
+   * Agentation metadata
+   * ------------------------------------------------------------
+   */
+
+  const clip = (
+    value,
+    max = 500,
+  ) => {
+    const text = String(
+      value ?? '',
+    )
       .replace(/\\s+/g, ' ')
       .trim();
 
@@ -43,12 +136,17 @@ export function buildBridgeScript(
       : text;
   };
 
-  const selectorPart = (element) => {
-    const tag = element.tagName.toLowerCase();
+  const selectorPart = (
+    element,
+  ) => {
+    const tag =
+      element.tagName.toLowerCase();
 
     if (
       element.id &&
-      /^[A-Za-z][\\w:.-]*$/.test(element.id)
+      /^[A-Za-z][\\w:.-]*$/.test(
+        element.id,
+      )
     ) {
       return (
         tag +
@@ -58,9 +156,15 @@ export function buildBridgeScript(
     }
 
     const testId =
-      element.getAttribute('data-testid') ||
-      element.getAttribute('data-test') ||
-      element.getAttribute('data-cy');
+      element.getAttribute(
+        'data-testid',
+      ) ||
+      element.getAttribute(
+        'data-test',
+      ) ||
+      element.getAttribute(
+        'data-cy',
+      );
 
     if (testId) {
       return (
@@ -72,25 +176,32 @@ export function buildBridgeScript(
     }
 
     const classes =
-      Array.from(element.classList || [])
+      Array.from(
+        element.classList || [],
+      )
         .slice(0, 3)
         .map(
           (entry) =>
-            '.' + CSS.escape(entry),
+            '.' +
+            CSS.escape(entry),
         )
         .join('');
 
     return tag + classes;
   };
 
-  const buildSelector = (element) => {
+  const buildSelector = (
+    element,
+  ) => {
     const parts = [];
     let current = element;
 
     while (
       current &&
-      current.nodeType === Node.ELEMENT_NODE &&
-      current !== document.documentElement
+      current.nodeType ===
+        Node.ELEMENT_NODE &&
+      current !==
+        document.documentElement
     ) {
       let part =
         selectorPart(current);
@@ -100,7 +211,9 @@ export function buildBridgeScript(
 
       if (parent) {
         const siblings =
-          Array.from(parent.children).filter(
+          Array.from(
+            parent.children,
+          ).filter(
             (child) =>
               child.tagName ===
               current.tagName,
@@ -115,7 +228,10 @@ export function buildBridgeScript(
         ) {
           part +=
             ':nth-of-type(' +
-            (siblings.indexOf(current) + 1) +
+            (siblings.indexOf(
+              current,
+            ) +
+              1) +
             ')';
         }
       }
@@ -167,7 +283,9 @@ export function buildBridgeScript(
       ]
     ) {
       const value =
-        element.getAttribute(name);
+        element.getAttribute(
+          name,
+        );
 
       if (value) {
         attributes[name] =
@@ -219,10 +337,11 @@ export function buildBridgeScript(
       ),
       selector:
         buildSelector(element),
-      path:
-        ancestry
-          .map((entry) => entry.tag)
-          .join(' > '),
+      path: ancestry
+        .map(
+          (entry) => entry.tag,
+        )
+        .join(' > '),
       bounds: {
         x: rect.x,
         y: rect.y,
@@ -246,12 +365,14 @@ export function buildBridgeScript(
           style.backgroundColor,
         fontFamily:
           style.fontFamily,
-        fontSize: style.fontSize,
+        fontSize:
+          style.fontSize,
         fontWeight:
           style.fontWeight,
         lineHeight:
           style.lineHeight,
-        zIndex: style.zIndex,
+        zIndex:
+          style.zIndex,
       },
       ancestry,
     };
@@ -269,10 +390,18 @@ export function buildBridgeScript(
 
     return [
       target.selector,
-      Math.round(bounds.x || 0),
-      Math.round(bounds.y || 0),
-      Math.round(bounds.width || 0),
-      Math.round(bounds.height || 0),
+      Math.round(
+        bounds.x || 0,
+      ),
+      Math.round(
+        bounds.y || 0,
+      ),
+      Math.round(
+        bounds.width || 0,
+      ),
+      Math.round(
+        bounds.height || 0,
+      ),
     ].join('|');
   };
 
@@ -297,7 +426,9 @@ export function buildBridgeScript(
     const key =
       hoverKeyForTarget(target);
 
-    if (key === lastHoverKey) {
+    if (
+      key === lastHoverKey
+    ) {
       return;
     }
 
@@ -342,7 +473,7 @@ export function buildBridgeScript(
 
   /*
    * ------------------------------------------------------------
-   * History
+   * History synchronization
    * ------------------------------------------------------------
    */
 
@@ -356,7 +487,8 @@ export function buildBridgeScript(
     post({
       type: 'navigate-preview',
       url: window.location.href,
-      title: document.title || '',
+      title:
+        document.title || '',
     });
 
     post({
@@ -387,11 +519,24 @@ export function buildBridgeScript(
         unused,
         url,
       ) {
+        /*
+         * If the application's router gives us
+         * an absolute target-origin URL, convert it
+         * to the preview origin before letting the
+         * browser process it.
+         */
+        const nextUrl =
+          url == null
+            ? url
+            : toPreviewUrl(
+                String(url),
+              );
+
         const result =
           nativePushState(
             state,
             unused,
-            url,
+            nextUrl,
           );
 
         historyEntries.splice(
@@ -418,11 +563,18 @@ export function buildBridgeScript(
         unused,
         url,
       ) {
+        const nextUrl =
+          url == null
+            ? url
+            : toPreviewUrl(
+                String(url),
+              );
+
         const result =
           nativeReplaceState(
             state,
             unused,
-            url,
+            nextUrl,
           );
 
         historyEntries[
@@ -452,6 +604,18 @@ export function buildBridgeScript(
         ) {
           historyIndex =
             existingIndex;
+        } else {
+          /*
+           * Browser performed a real history
+           * navigation that our mirror did not
+           * previously observe.
+           */
+          historyEntries.push(
+            current,
+          );
+
+          historyIndex =
+            historyEntries.length - 1;
         }
 
         queueMicrotask(
@@ -476,15 +640,137 @@ export function buildBridgeScript(
 
   /*
    * ------------------------------------------------------------
+   * Normal link navigation
+   * ------------------------------------------------------------
+   *
+   * This is the important missing part.
+   *
+   * History.pushState() only catches SPA routers.
+   * A plain <a href="http://localhost:5173/foo">
+   * performs a real browser navigation.
+   *
+   * Convert same-target-origin links to the
+   * preview origin before the browser follows them.
+   */
+
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target =
+        event.target;
+
+      if (
+        !target ||
+        typeof target.closest !==
+          'function'
+      ) {
+        return;
+      }
+
+      const anchor =
+        target.closest(
+          'a[href]',
+        );
+
+      if (!anchor) {
+        return;
+      }
+
+      if (
+        anchor.target &&
+        anchor.target !==
+          '_self'
+      ) {
+        return;
+      }
+
+      const rawHref =
+        anchor.getAttribute(
+          'href',
+        );
+
+      if (
+        !rawHref ||
+        rawHref.startsWith(
+          '#',
+        ) ||
+        /^(?:javascript|mailto|tel|blob|data):/i.test(
+          rawHref,
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const resolved =
+          new URL(
+            anchor.href,
+            window.location.href,
+          );
+
+        if (
+          resolved.origin !==
+          TARGET_ORIGIN
+        ) {
+          return;
+        }
+
+        const previewUrl =
+          toPreviewUrl(
+            resolved.toString(),
+          );
+
+        if (
+          previewUrl ===
+          window.location.href
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+
+        /*
+         * Setting location to the preview-origin
+         * URL means the iframe remains on the
+         * preview hostname.
+         *
+         * The proxy then serves the target path.
+         */
+        window.location.assign(
+          previewUrl,
+        );
+      } catch {}
+    },
+    true,
+  );
+
+  /*
+   * ------------------------------------------------------------
    * fetch / XHR / EventSource
    * ------------------------------------------------------------
    */
 
-  const proxyUrl = (value) => {
+  const proxyUrl = (
+    value,
+  ) => {
     if (
-      typeof value !== 'string' ||
+      typeof value !==
+        'string' ||
       !value ||
-      value.startsWith('#') ||
+      value.startsWith(
+        '#',
+      ) ||
       /^(?:data|blob|javascript|mailto|tel|about):/i.test(
         value,
       )
@@ -503,18 +789,11 @@ export function buildBridgeScript(
         parsed.origin ===
         TARGET_ORIGIN
       ) {
-        const preview =
-          new URL(
-            window.location.href,
-          );
-
-        parsed.protocol =
-          preview.protocol;
-
-        parsed.host =
-          preview.host;
+        const previewOrigin =
+          getPreviewOrigin();
 
         return (
+          previewOrigin +
           parsed.pathname +
           parsed.search +
           parsed.hash
@@ -530,7 +809,9 @@ export function buildBridgeScript(
     'function'
   ) {
     const nativeFetch =
-      window.fetch.bind(window);
+      window.fetch.bind(
+        window,
+      );
 
     window.fetch =
       function (
@@ -557,7 +838,8 @@ export function buildBridgeScript(
             );
 
           if (
-            next !== input.url
+            next !==
+            input.url
           ) {
             return nativeFetch(
               new Request(
@@ -592,7 +874,8 @@ export function buildBridgeScript(
         return nativeOpen.call(
           this,
           method,
-          typeof url === 'string'
+          typeof url ===
+            'string'
             ? proxyUrl(url)
             : url,
           ...rest,
@@ -613,7 +896,9 @@ export function buildBridgeScript(
         options,
       ) {
         return new NativeEventSource(
-          proxyUrl(String(url)),
+          proxyUrl(
+            String(url),
+          ),
           options,
         );
       };
@@ -761,15 +1046,15 @@ export function buildBridgeScript(
           event.clientY,
         );
 
-      const target =
+      const metadata =
         metadataForElement(
           element,
         );
 
-      if (target) {
+      if (metadata) {
         post({
           type: 'select',
-          target,
+          target: metadata,
           pointer: {
             x: event.clientX,
             y: event.clientY,
@@ -840,7 +1125,7 @@ export function buildBridgeScript(
 
   /*
    * ------------------------------------------------------------
-   * Initial ready event
+   * Initial ready
    * ------------------------------------------------------------
    */
 
@@ -848,7 +1133,8 @@ export function buildBridgeScript(
     post({
       type: 'ready',
       url: window.location.href,
-      title: document.title || '',
+      title:
+        document.title || '',
     });
 
     post({

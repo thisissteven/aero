@@ -29,8 +29,8 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
       <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 flex items-center justify-start gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none'>
-        <Icon data={PencilToLine} size={12} className='text-warning' />
-        <span>
+        <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
+        <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed in workspace
         </span>
 
@@ -51,14 +51,18 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
         />
       </Popover.Trigger>
 
-      <Popover.Content placement='top left' className='max-w-sm rounded-xl'>
+      <Popover.Content
+        placement='top left'
+        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
+        crossOffset={-8}
+      >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>
             Changed files {fileCount}
           </Popover.Heading>
 
-          <div className='pl-1'>
-            <ol className='max-h-[240px] scrollbar-thin space-y-2 overflow-y-auto pr-2 pb-3 pl-2'>
+          <div className='max-h-[240px] scrollbar-thin overflow-y-auto pl-1'>
+            <ol className='space-y-2 pr-3 pb-3 pl-2'>
               {diffData.summary.map((file) => {
                 const parts = file.path.split('/');
                 const fileName = parts.pop();

@@ -10,13 +10,12 @@ function buildUpstreamUrl(
   restPath: string,
   requestUrl: string,
 ): URL {
-  const upstream = new URL(restPath || '/', `${target.origin}/`);
-
   const request = new URL(requestUrl);
 
-  request.searchParams.forEach((value, key) => {
-    upstream.searchParams.set(key, value);
-  });
+  const upstream = new URL(restPath || '/', `${target.origin}/`);
+
+  // Preserve the raw query string exactly.
+  upstream.search = request.search;
 
   return upstream;
 }
@@ -73,23 +72,58 @@ function copyResponseHeaders(source: Headers): Headers {
   return result;
 }
 
-function rewriteAbsoluteTargetUrl(
+function rewritePreviewResourceUrl(
   value: string,
   targetOrigin: string,
   previewOrigin: string,
 ): string {
-  try {
-    const parsed = new URL(value);
-    const target = new URL(targetOrigin);
+  const trimmed = value.trim();
 
-    if (parsed.origin !== target.origin) {
-      return value;
-    }
-
-    return previewOrigin + parsed.pathname + parsed.search + parsed.hash;
-  } catch {
+  if (!trimmed) {
     return value;
   }
+
+  // IMPORTANT:
+  // SVG <use href="#foo"> and other fragment-only references
+  // must remain same-document references.
+  if (trimmed.startsWith('#')) {
+    return value;
+  }
+
+  if (/^(?:data|blob|javascript|mailto|tel|about):/i.test(trimmed)) {
+    return value;
+  }
+
+  /*
+   * Root-relative URL:
+   *
+   *   /assets/foo.js
+   *
+   * stays on the preview origin:
+   *
+   *   http://abc.preview.localhost:5173/assets/foo.js
+   */
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return previewOrigin + trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed, targetOrigin + '/');
+
+    const target = new URL(targetOrigin);
+
+    /*
+     * Absolute URL belonging to the upstream
+     * target becomes a preview-origin URL.
+     */
+    if (parsed.origin === target.origin) {
+      return previewOrigin + parsed.pathname + parsed.search + parsed.hash;
+    }
+  } catch {
+    //
+  }
+
+  return value;
 }
 
 function rewriteHtml(
@@ -99,17 +133,16 @@ function rewriteHtml(
 ): string {
   let result = html;
 
+  /*
+   * HTML resource attributes.
+   *
+   * Keep fragment references untouched.
+   */
   result = result.replace(
     /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
     (_match, attribute, quote, value) => {
-      const trimmed = String(value).trim();
-
-      if (!/^https?:\/\//i.test(trimmed)) {
-        return `${attribute}=${quote}${value}${quote}`;
-      }
-
-      const rewritten = rewriteAbsoluteTargetUrl(
-        trimmed,
+      const rewritten = rewritePreviewResourceUrl(
+        String(value),
         targetOrigin,
         previewOrigin,
       );
@@ -119,9 +152,80 @@ function rewriteHtml(
   );
 
   /*
-   * Remove Vite's late injected client loader.
-   * The preview should not try to load
-   * /@vite/client from the parent Vite server.
+   * srcset
+   */
+  result = result.replace(
+    /\bsrcset=(['"])([^'"]*)\1/gi,
+    (_match, quote, value) => {
+      const rewritten = String(value)
+        .split(',')
+        .map((part) => {
+          const trimmed = part.trim();
+
+          if (!trimmed) {
+            return trimmed;
+          }
+
+          const segments = trimmed.split(/\s+/);
+
+          const url = segments.shift() ?? '';
+
+          const nextUrl = rewritePreviewResourceUrl(
+            url,
+            targetOrigin,
+            previewOrigin,
+          );
+
+          return [nextUrl, ...segments].join(' ');
+        })
+        .join(', ');
+
+      return `srcset=${quote}${rewritten}${quote}`;
+    },
+  );
+
+  /*
+   * Inline module scripts.
+   *
+   * OpenChamber does this because a module may contain:
+   *
+   *   import "/assets/foo.js"
+   *
+   * which otherwise bypasses HTML rewriting.
+   */
+  result = result.replace(
+    /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
+    (match, attrs, scriptBody) => {
+      const typeMatch = String(attrs).match(
+        /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
+      );
+
+      const type = String(
+        typeMatch?.[1] ?? typeMatch?.[2] ?? typeMatch?.[3] ?? '',
+      )
+        .trim()
+        .toLowerCase();
+
+      if (type !== 'module' || /\bsrc\s*=/i.test(attrs)) {
+        return match;
+      }
+
+      const rewritten = rewriteJavaScript(
+        scriptBody,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      if (rewritten === scriptBody) {
+        return match;
+      }
+
+      return `<script${attrs}>${rewritten}</script>`;
+    },
+  );
+
+  /*
+   * Remove Vite's late-injected loader.
    */
   result = result.replace(
     /<script\b[^>]*>\s*import\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi,
@@ -136,11 +240,13 @@ function rewriteCss(
   targetOrigin: string,
   previewOrigin: string,
 ): string {
-  return css.replace(
+  let result = css;
+
+  result = result.replace(
     /url\(\s*(['"]?)(.*?)\1\s*\)/gi,
     (_match, quote, value) => {
-      const rewritten = rewriteAbsoluteTargetUrl(
-        String(value).trim(),
+      const rewritten = rewritePreviewResourceUrl(
+        String(value),
         targetOrigin,
         previewOrigin,
       );
@@ -148,6 +254,84 @@ function rewriteCss(
       return `url(${quote || ''}${rewritten}${quote || ''})`;
     },
   );
+
+  /*
+   * This was missing from your implementation.
+   *
+   * @import "/assets/foo.css"
+   */
+  result = result.replace(
+    /@import\s+(['"])\/(?!\/)([^'"]*)\1/gi,
+    (_match, quote, path) => {
+      const rewritten = rewritePreviewResourceUrl(
+        `/${path}`,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `@import ${quote}${rewritten}${quote}`;
+    },
+  );
+
+  return result;
+}
+
+function rewriteJavaScript(
+  javascript: string,
+  targetOrigin: string,
+  previewOrigin: string,
+): string {
+  let result = javascript;
+
+  /*
+   * import "/foo.js"
+   */
+  result = result.replace(
+    /\bimport\s+(['"])\/(?!\/)([^'"]*)\1/g,
+    (_match, quote, path) => {
+      const rewritten = rewritePreviewResourceUrl(
+        `/${path}`,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `import ${quote}${rewritten}${quote}`;
+    },
+  );
+
+  /*
+   * import("./foo.js")
+   */
+  result = result.replace(
+    /\bimport\(\s*(['"])\/(?!\/)([^'"]*)\1\s*\)/g,
+    (_match, quote, path) => {
+      const rewritten = rewritePreviewResourceUrl(
+        `/${path}`,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `import(${quote}${rewritten}${quote})`;
+    },
+  );
+
+  /*
+   * from "/foo.js"
+   */
+  result = result.replace(
+    /\bfrom\s+(['"])\/(?!\/)([^'"]*)\1/g,
+    (_match, quote, path) => {
+      const rewritten = rewritePreviewResourceUrl(
+        `/${path}`,
+        targetOrigin,
+        previewOrigin,
+      );
+
+      return `from ${quote}${rewritten}${quote}`;
+    },
+  );
+
+  return result;
 }
 
 function injectBridge(
@@ -292,9 +476,7 @@ export async function proxyRequest(
       }
     }
 
-    let rewritten = rewriteHtml(body, target.origin, previewOrigin);
-
-    rewritten = injectBridge(rewritten, target.origin, previewOrigin, nonce);
+    const rewritten = injectBridge(body, target.origin, previewOrigin, nonce);
 
     headers.set('cache-control', 'no-store');
 
@@ -323,7 +505,13 @@ export async function proxyRequest(
    * browser-relative imports resolve against the
    * preview origin automatically.
    */
-  return new Response(body, {
+  const rewrittenJavaScript = rewriteJavaScript(
+    body,
+    target.origin,
+    previewOrigin,
+  );
+
+  return new Response(rewrittenJavaScript, {
     status: response.status,
     statusText: response.statusText,
     headers,

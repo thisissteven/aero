@@ -35,7 +35,7 @@ export function RevertedMessages() {
 
   return (
     <div className='relative mx-auto w-full max-w-[720px]'>
-      <div className='mx-5 mb-2 md:mx-3'>
+      <div className='mx-1 mb-2 md:mx-3 md:mx-5'>
         <Disclosure
           isExpanded={isExpanded}
           onExpandedChange={setIsExpanded}
@@ -56,7 +56,7 @@ export function RevertedMessages() {
             </Disclosure.Trigger>
           </Disclosure.Heading>
           <Disclosure.Content>
-            <div className='max-h-[20vh] scrollbar-thin space-y-2 overflow-y-auto py-2 pr-2 pl-3'>
+            <div className='max-h-[min(20vh,100px)] scrollbar-thin space-y-2 overflow-y-auto py-2 pr-2 pl-3'>
               {revertedMessages.map((message, index) => {
                 return (
                   <div
