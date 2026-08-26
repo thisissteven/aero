@@ -420,35 +420,39 @@ export function useSendMessage(
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to send message');
+
+      if (!res.ok) {
+        throw new Error('Failed to send message');
+      }
+
       return res.json();
     },
 
     onMutate: async (input) => {
       const queryKey = sessionKeys.messages(harnessId, sessionId);
 
-      // 1. Cancel ongoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({
+        queryKey,
+      });
 
-      // 2. Snapshot previous value for rollback on failure
       const previousTurns =
-        queryClient.getQueryData<AeroConversationTurn[]>(queryKey) || [];
+        queryClient.getQueryData<AeroConversationTurn[]>(queryKey) ?? [];
 
-      // 3. Create optimistic user turn
-      const tempTurnId = `temp-turn-${Date.now()}`;
+      const createdAt = Date.now();
+      const tempTurnId = `temp-turn-${createdAt}`;
+
       const optimisticTurn: AeroConversationTurn = {
         id: tempTurnId,
         role: 'user',
-        createdAt: Date.now(),
+        createdAt,
         parts: input.parts.map((part, index) => ({
           ...part,
-          id: `temp-part-${index}-${Date.now()}`,
+          id: `temp-part-${createdAt}-${index}`,
           sessionID: sessionId,
           messageID: tempTurnId,
         })) as AeroPart[],
       };
 
-      // 4. Optimistically update TanStack Query cache
       queryClient.setQueryData<AeroConversationTurn[]>(queryKey, [
         ...previousTurns,
         optimisticTurn,
@@ -457,21 +461,15 @@ export function useSendMessage(
       return { previousTurns };
     },
 
-    onError: (_err, _variables, context) => {
-      // Rollback to previous state on failure
-      if (context?.previousTurns) {
-        queryClient.setQueryData(
-          sessionKeys.messages(harnessId, sessionId),
-          context.previousTurns,
-        );
+    onError: (_error, _variables, context) => {
+      if (!context) {
+        return;
       }
-    },
 
-    onSettled: () => {
-      // Invalidate to sync server state once request settles
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.messages(harnessId, sessionId),
-      });
+      queryClient.setQueryData(
+        sessionKeys.messages(harnessId, sessionId),
+        context.previousTurns,
+      );
     },
   });
 }

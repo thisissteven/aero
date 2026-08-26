@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { ChatPage } from '@/app/features/chat-page';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -21,20 +21,32 @@ function SessionPage() {
   const { data: turns = [] } = useSessionMessages(undefined, sessionId);
 
   const notFound = !session && !isSessionLoading;
-  const setConversationData = useChatStore((s) => s.setConversationData);
+
+  const setConversationData = useChatStore(
+    (state) => state.setConversationData,
+  );
 
   useEffect(() => {
     setConversationData(turns, session?.revert?.messageID);
   }, [turns, session?.revert?.messageID, setConversationData]);
 
+  const onStreamEvent = useCallback(
+    (
+      event: Parameters<
+        ReturnType<typeof useChatStore.getState>['handleStreamEvent']
+      >[0],
+    ) => {
+      useChatStore
+        .getState()
+        .handleStreamEvent(event, session?.revert?.messageID);
+    },
+    [session?.revert?.messageID],
+  );
+
   useSessionStream({
     sessionId,
     harnessId: undefined,
-    onEvent: (event) => {
-      useChatStore
-        .getState()
-        .handleStreamEvent(event, turns, session?.revert?.messageID);
-    },
+    onEvent: onStreamEvent,
   });
 
   return (

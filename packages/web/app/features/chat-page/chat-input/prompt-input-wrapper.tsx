@@ -3,6 +3,7 @@ import { ReactNode, useState } from 'react';
 
 import { PromptInput, toast } from '@aero/ui';
 
+import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useCreateSession, useSendMessage } from '@/app/hooks/api/sessions';
 
@@ -73,12 +74,11 @@ export function ActiveSessionPromptInputWrapper({
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
-  const { mutateAsync: sendMessage, isPending } = useSendMessage(
-    undefined,
-    sessionId,
-  );
+  const { mutateAsync: sendMessage } = useSendMessage(undefined, sessionId);
 
-  const handleSubmit = (text: string) =>
+  const isStreaming = useChatStore((state) => state.isStreaming);
+
+  const handleSubmit = (text: string) => {
     sendMessage(
       {
         parts: [
@@ -97,9 +97,10 @@ export function ActiveSessionPromptInputWrapper({
         onError: () => toast.danger('Failed to send message'),
       },
     );
+  };
 
   const isInputDisabled =
-    isDisabled || isPending || !selectedModel?.providerId || !selectedModel?.id;
+    isDisabled || !selectedModel?.providerId || !selectedModel?.id;
 
   return (
     <PromptInput
@@ -108,6 +109,8 @@ export function ActiveSessionPromptInputWrapper({
       onValueChange={setValue}
       onSubmit={() => handleSubmit(value)}
       isDisabled={isInputDisabled}
+      isPending={isStreaming}
+      allowSubmitWhileRunning={false}
     >
       {children}
     </PromptInput>

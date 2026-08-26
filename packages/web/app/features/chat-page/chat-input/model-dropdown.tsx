@@ -490,7 +490,7 @@ export function ModelDropdown() {
           <span className='truncate font-medium'>{model.name}</span>
 
           {formattedLimit && (
-            <span className='text-muted ml-auto shrink-0 text-xs font-normal'>
+            <span className='text-muted shrink-0 text-xs font-normal'>
               {formattedLimit}
             </span>
           )}

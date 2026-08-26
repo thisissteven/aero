@@ -1,19 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { sessionKeys } from '@/app/hooks/api/sessions';
-
-export interface StreamEvent {
-  type: string;
-  properties: Record<string, unknown>;
-  [key: string]: unknown;
-}
+import type { AeroEvent } from '@/server/services/harness/types';
 
 interface UseSessionStreamOptions {
   harnessId?: string;
   sessionId: string;
   enabled?: boolean;
-  onEvent?: (event: StreamEvent) => void;
+  onEvent?: (event: AeroEvent) => void;
   onComplete?: () => void;
   onError?: (error: Error) => void;
 }
@@ -28,74 +23,90 @@ export function useSessionStream({
 }: UseSessionStreamOptions) {
   const queryClient = useQueryClient();
 
+  const onEventRef = useRef(onEvent);
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+
   useEffect(() => {
-    if (!sessionId || !enabled) return;
+    onEventRef.current = onEvent;
+  }, [onEvent]);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    if (!sessionId || !enabled) {
+      return;
+    }
 
     const queryParams = new URLSearchParams();
-    if (harnessId) queryParams.set('harnessId', harnessId);
 
-    const streamUrl = `/api/sessions/${sessionId}/stream?${queryParams.toString()}`;
+    if (harnessId) {
+      queryParams.set('harnessId', harnessId);
+    }
+
+    const suffix = queryParams.toString();
+
+    const streamUrl = suffix
+      ? `/api/sessions/${sessionId}/stream?${suffix}`
+      : `/api/sessions/${sessionId}/stream`;
+
     const eventSource = new EventSource(streamUrl);
 
-    const handleMessage = (e: MessageEvent) => {
+    const handleEvent = (e: MessageEvent) => {
       try {
-        const parsedEvent: StreamEvent = JSON.parse(e.data);
-        onEvent?.(parsedEvent);
+        const event = JSON.parse(e.data) as AeroEvent;
 
-        // Auto-refresh messages and TOC when turn finishes
-        if (
-          parsedEvent.type === 'turn-complete' ||
-          parsedEvent.type === 'finish'
-        ) {
+        onEventRef.current?.(event);
+
+        if (event.type === 'session.idle') {
           queryClient.invalidateQueries({
             queryKey: sessionKeys.messages(harnessId, sessionId),
           });
+
           queryClient.invalidateQueries({
             queryKey: sessionKeys.toc(harnessId, sessionId),
           });
+
           queryClient.invalidateQueries({
             queryKey: sessionKeys.todos(harnessId, sessionId),
           });
-          onComplete?.();
-          eventSource.close();
+
+          onCompleteRef.current?.();
+
+          // DO NOT close the EventSource here.
+          // This stream is session-scoped and should stay alive.
         }
-      } catch (err) {
-        console.error('Failed to parse SSE event:', err);
+      } catch (error) {
+        console.error('Failed to parse SSE event:', error);
       }
     };
 
-    eventSource.onmessage = handleMessage;
+    eventSource.onmessage = handleEvent;
 
-    // Listen to custom SSE event names emitted by streamSSE
     const knownEvents = [
       'message.updated',
       'message.part.updated',
-      'message.part.removed',
-      'session.status',
+      'session.updated',
       'session.idle',
       'session.error',
-      'todo.updated',
     ];
-    knownEvents.forEach((type) => {
-      eventSource.addEventListener(type, handleMessage);
-    });
 
-    eventSource.onerror = (err) => {
-      console.error('SSE Stream Connection Error:', err);
-      onError?.(new Error('Stream disconnected'));
-      eventSource.close();
+    for (const type of knownEvents) {
+      eventSource.addEventListener(type, handleEvent);
+    }
+
+    eventSource.onerror = () => {
+      onErrorRef.current?.(new Error('Stream disconnected'));
     };
 
     return () => {
       eventSource.close();
     };
-  }, [
-    sessionId,
-    harnessId,
-    enabled,
-    queryClient,
-    onEvent,
-    onComplete,
-    onError,
-  ]);
+  }, [sessionId, harnessId, enabled, queryClient]);
 }

@@ -27,31 +27,77 @@ export function areTurnsEqual(
   prev: { turn: AeroConversationTurn },
   next: { turn: AeroConversationTurn },
 ): boolean {
-  if (prev.turn.id !== next.turn.id) return false;
-  if (prev.turn.parts.length !== next.turn.parts.length) return false;
+  const prevTurn = prev.turn;
+  const nextTurn = next.turn;
 
-  const prevLast = prev.turn.parts[prev.turn.parts.length - 1];
-  const nextLast = next.turn.parts[next.turn.parts.length - 1];
+  if (prevTurn.id !== nextTurn.id) return false;
+  if (prevTurn.role !== nextTurn.role) return false;
 
-  if (!prevLast && !nextLast) return true;
-  if (!prevLast || !nextLast) return false;
-  if (prevLast.type !== nextLast.type) return false;
-
-  // Compare type-specific streaming fields
   if (
-    (nextLast.type === 'text' || nextLast.type === 'reasoning') &&
-    (prevLast.type === 'text' || prevLast.type === 'reasoning')
+    prevTurn.error?.name !== nextTurn.error?.name ||
+    prevTurn.error?.data?.message !== nextTurn.error?.data?.message
   ) {
-    return prevLast.text === nextLast.text;
+    return false;
   }
 
-  if (nextLast.type === 'tool' && prevLast.type === 'tool') {
-    return (
-      prevLast.status === nextLast.status && prevLast.output === nextLast.output
-    );
+  if (prevTurn.parts.length !== nextTurn.parts.length) {
+    return false;
+  }
+
+  for (let index = 0; index < prevTurn.parts.length; index++) {
+    const prevPart = prevTurn.parts[index];
+    const nextPart = nextTurn.parts[index];
+
+    if (!arePartsEqual(prevPart, nextPart)) {
+      return false;
+    }
   }
 
   return true;
+}
+
+function arePartsEqual(prev: AeroPart, next: AeroPart): boolean {
+  if (prev.id !== next.id) return false;
+  if (prev.type !== next.type) return false;
+
+  switch (next.type) {
+    case 'text':
+    case 'reasoning':
+      return prev.type === next.type && prev.text === next.text;
+
+    case 'tool':
+      return (
+        prev.type === 'tool' &&
+        prev.callID === next.callID &&
+        prev.toolName === next.toolName &&
+        prev.status === next.status &&
+        prev.title === next.title &&
+        prev.output === next.output &&
+        prev.error === next.error &&
+        prev.duration === next.duration &&
+        JSON.stringify(prev.input) === JSON.stringify(next.input)
+      );
+
+    case 'file':
+      return (
+        prev.type === 'file' &&
+        prev.mime === next.mime &&
+        prev.filename === next.filename &&
+        prev.url === next.url
+      );
+
+    case 'subtask':
+      return (
+        prev.type === 'subtask' &&
+        prev.prompt === next.prompt &&
+        prev.description === next.description &&
+        prev.agent === next.agent &&
+        prev.command === next.command
+      );
+
+    default:
+      return JSON.stringify(prev) === JSON.stringify(next);
+  }
 }
 
 export type FlatConversationVirtualItem =

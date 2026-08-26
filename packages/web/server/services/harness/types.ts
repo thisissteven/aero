@@ -230,17 +230,46 @@ export interface AeroMarkdownExport {
 // Events an adapter can emit over its live stream. Route layer relays these
 // verbatim as SSE payloads, so the shape here IS the wire contract with the
 // frontend @aero/ui chat components.
+export type AeroSessionStatus =
+  | { type: 'idle' }
+  | { type: 'busy' }
+  | {
+      type: 'retry';
+      attempt: number;
+      message: string;
+      next: number;
+    };
+
 export type AeroEvent =
-  | { type: 'message.updated'; sessionId: string; message: AeroMessage }
+  | {
+      type: 'message.updated';
+      sessionId: string;
+      message: AeroMessage;
+    }
   | {
       type: 'message.part.updated';
       sessionId: string;
       messageId: string;
       part: AeroPart;
     }
-  | { type: 'session.updated'; session: AeroSessionSummary }
-  | { type: 'session.idle'; sessionId: string }
-  | { type: 'session.error'; sessionId?: string; error: string };
+  | {
+      type: 'session.updated';
+      session: AeroSessionSummary;
+    }
+  | {
+      type: 'session.status';
+      sessionId: string;
+      status: AeroSessionStatus;
+    }
+  | {
+      type: 'session.idle';
+      sessionId: string;
+    }
+  | {
+      type: 'session.error';
+      sessionId?: string;
+      error: string;
+    };
 
 export interface CreateSessionInput {
   title?: string;
@@ -349,7 +378,7 @@ export interface HarnessAdapter {
   // Messages Operations
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
-  sendMessage(sessionId: string, input: SendMessageInput): Promise<void>;
+  sendMessage(sessionId: string, input: SendMessageInput): Promise<boolean>;
   sendMessageSync(
     sessionId: string,
     input: SendMessageInput,

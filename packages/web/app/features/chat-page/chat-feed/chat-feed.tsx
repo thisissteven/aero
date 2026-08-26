@@ -61,6 +61,8 @@ export const ChatFeed = forwardRef<
     onActiveGroupIndexChange,
   );
 
+  const isStreaming = useChatStore((state) => state.isStreaming);
+
   useAutoScroll({
     scrollRef,
     contentRef,
@@ -114,6 +116,14 @@ export const ChatFeed = forwardRef<
             onScroll={handleScroll}
           />
         </div>
+
+        {isStreaming && (
+          <div className='mx-auto w-full px-3 md:max-w-[720px]'>
+            <div className='text-muted-foreground px-1 py-2 text-sm'>
+              Model is synthesizing...
+            </div>
+          </div>
+        )}
       </ScrollShadow>
     </div>
   );
