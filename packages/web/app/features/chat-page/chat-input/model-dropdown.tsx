@@ -497,7 +497,7 @@ export function ModelDropdown() {
         </div>
 
         <div className='flex shrink-0 items-center gap-1.5'>
-          {isSelected && <Icon data={Check} className='text-accent size-3.5' />}
+          {isSelected && <Icon data={Check} className='size-3.5' />}
 
           <button
             type='button'
@@ -536,7 +536,10 @@ export function ModelDropdown() {
         <div ref={popoverMenuRef} className='relative flex items-start'>
           <div className='bg-overlay text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border'>
             <div className='border-separator border-b p-1'>
-              <IconButton isIconOnly={false} className='w-full justify-start'>
+              <IconButton
+                isIconOnly={false}
+                className='w-full justify-start gap-3 px-2'
+              >
                 <Icon data={Plus} className='size-3.5' />
 
                 <span>Add new provider</span>
@@ -549,7 +552,7 @@ export function ModelDropdown() {
                 className='rounded-none border-none bg-transparent shadow-none'
               >
                 <Command.InputGroup className='border-separator border-b'>
-                  <Command.InputGroup.Prefix>
+                  <Command.InputGroup.Prefix className='pl-3'>
                     <Icon data={Magnifier} className='size-3.5' />
                   </Command.InputGroup.Prefix>
 
@@ -557,7 +560,7 @@ export function ModelDropdown() {
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder='Search models or providers'
-                    className='py-2.5 text-sm'
+                    className='py-2.5 pr-3 text-sm'
                   />
                 </Command.InputGroup>
 
@@ -569,6 +572,7 @@ export function ModelDropdown() {
                   <Command.List className='max-h-72 scroll-py-1 overflow-y-auto p-1 text-xs'>
                     {favoriteModels.length > 0 && (
                       <Command.Group
+                        headingClassName='px-2.5'
                         heading={
                           <button
                             type='button'
@@ -604,11 +608,12 @@ export function ModelDropdown() {
                       return (
                         <Command.Group
                           key={provider.id}
+                          headingClassName='px-2.5'
                           heading={
                             <button
                               type='button'
                               onClick={() => toggleGroupCollapse(provider.id)}
-                              className='text-muted hover:bg-surface flex w-full items-center justify-between rounded py-1.5 text-sm font-semibold tracking-wider uppercase'
+                              className='text-muted hover:bg-surface flex w-full items-center justify-between rounded text-sm font-semibold tracking-wider uppercase'
                             >
                               <span>{provider.name}</span>
 

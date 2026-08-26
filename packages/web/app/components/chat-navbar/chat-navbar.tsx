@@ -81,7 +81,7 @@ function NavbarContentPlaceholder({ h1, span }: { h1: string; span: string }) {
 function NewNavbarContent() {
   return (
     <NavbarContentPlaceholder
-      h1='New Chat'
+      h1='New Session'
       span='Start a brand new conversation'
     />
   );
@@ -143,7 +143,7 @@ function SessionsNavbarContent() {
     return (
       <NavbarContentPlaceholder
         h1='Session not found'
-        span='Head to new chat page to create a new session'
+        span='Head to new session page to create a new session'
       />
     );
   }

@@ -1,8 +1,9 @@
 import { useLocation } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { PromptInput } from '@aero/ui';
 
+import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
@@ -13,8 +14,6 @@ import { SendButton } from './send-button';
 import { VoiceInputButton } from './voice-input-button';
 
 export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
-  const [value, setValue] = useState('');
-
   const isMobile = useWindowSize((size) => size.width < 768);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -39,26 +38,8 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
     }
   }, [pathname, isMobile]);
 
-  function send() {
-    const text = value.trim();
-
-    if (!text) {
-      return;
-    }
-
-    console.log('Sending message:', text);
-
-    setValue('');
-  }
-
   return (
-    <PromptInput
-      className='w-full max-w-[780px]'
-      value={value}
-      onValueChange={setValue}
-      onSubmit={send}
-      isDisabled={isDisabled}
-    >
+    <ActiveSessionPromptInputWrapper isDisabled={isDisabled}>
       <PromptInput.Shell className='shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea
@@ -84,6 +65,6 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
           </PromptInput.ToolbarEnd>
         </PromptInput.Toolbar>
       </PromptInput.Shell>
-    </PromptInput>
+    </ActiveSessionPromptInputWrapper>
   );
 }

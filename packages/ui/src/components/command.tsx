@@ -350,11 +350,13 @@ export interface CommandGroupProps<
   T extends object = object,
 > extends ComponentPropsWithRef<typeof MenuSection<T>> {
   heading?: ReactNode;
+  headingClassName?: string;
 }
 export function CommandGroup<T extends object = object>({
   children,
   className,
   heading,
+  headingClassName,
   ...props
 }: CommandGroupProps<T>): ReactElement {
   return (
@@ -370,7 +372,7 @@ export function CommandGroup<T extends object = object>({
     >
       {heading ? (
         <Header
-          className='command__group-heading'
+          className={cn('command__group-heading', headingClassName)}
           data-slot='command-group-heading'
         >
           {heading}

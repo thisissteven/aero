@@ -867,6 +867,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
                 modelID: input.model.modelId,
               }
             : undefined,
+          system: input.system,
+          agent: input.agent,
         }),
       ).then(unwrap);
     },

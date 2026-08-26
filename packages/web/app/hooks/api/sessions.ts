@@ -15,7 +15,12 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
-import { AeroSessionSummary, HarnessId } from '@/server/services/harness/types';
+import {
+  AeroConversationTurn,
+  AeroPart,
+  AeroSessionSummary,
+  HarnessId,
+} from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $individualSession = honoClient.api.sessions[':id'];
@@ -407,6 +412,7 @@ export function useSendMessage(
   sessionId: string,
 ) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (input: SendMessageInput) => {
       const res = await $individualSession.message.$post({
@@ -417,7 +423,52 @@ export function useSendMessage(
       if (!res.ok) throw new Error('Failed to send message');
       return res.json();
     },
-    onSuccess: () => {
+
+    onMutate: async (input) => {
+      const queryKey = sessionKeys.messages(harnessId, sessionId);
+
+      // 1. Cancel ongoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey });
+
+      // 2. Snapshot previous value for rollback on failure
+      const previousTurns =
+        queryClient.getQueryData<AeroConversationTurn[]>(queryKey) || [];
+
+      // 3. Create optimistic user turn
+      const tempTurnId = `temp-turn-${Date.now()}`;
+      const optimisticTurn: AeroConversationTurn = {
+        id: tempTurnId,
+        role: 'user',
+        createdAt: Date.now(),
+        parts: input.parts.map((part, index) => ({
+          ...part,
+          id: `temp-part-${index}-${Date.now()}`,
+          sessionID: sessionId,
+          messageID: tempTurnId,
+        })) as AeroPart[],
+      };
+
+      // 4. Optimistically update TanStack Query cache
+      queryClient.setQueryData<AeroConversationTurn[]>(queryKey, [
+        ...previousTurns,
+        optimisticTurn,
+      ]);
+
+      return { previousTurns };
+    },
+
+    onError: (_err, _variables, context) => {
+      // Rollback to previous state on failure
+      if (context?.previousTurns) {
+        queryClient.setQueryData(
+          sessionKeys.messages(harnessId, sessionId),
+          context.previousTurns,
+        );
+      }
+    },
+
+    onSettled: () => {
+      // Invalidate to sync server state once request settles
       queryClient.invalidateQueries({
         queryKey: sessionKeys.messages(harnessId, sessionId),
       });

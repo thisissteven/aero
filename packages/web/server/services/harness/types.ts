@@ -256,6 +256,8 @@ export interface RenameSessionInput {
 export interface SendMessageInput {
   parts: AeroPartRequest[];
   model?: { providerId: string; modelId: string };
+  system?: string;
+  agent?: string;
 }
 
 export interface CreateWorkspaceInput {

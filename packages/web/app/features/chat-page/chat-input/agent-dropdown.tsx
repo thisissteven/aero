@@ -107,10 +107,7 @@ export function AgentDropdown() {
                       </div>
 
                       {selectedAgent?.name === agent.name && (
-                        <Icon
-                          data={Check}
-                          className='text-accent size-4 shrink-0'
-                        />
+                        <Icon data={Check} className='size-4 shrink-0' />
                       )}
                     </Command.Item>
                   ))}

@@ -204,7 +204,7 @@ export function CommandPaletteList() {
                   textValue={typedItem.title}
                   isDisabled
                   className={cn(
-                    'text-muted pointer-events-none mx-2 flex h-[24px] items-end px-2 text-xs font-medium select-none aria-selected:bg-transparent',
+                    'pointer-events-none mx-2 flex h-[24px] items-end px-2 text-xs font-medium select-none aria-selected:bg-transparent',
                     typedItem.isFirst ? 'h-[24px]' : 'h-[32px]',
                   )}
                 >

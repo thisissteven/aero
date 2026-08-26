@@ -54,6 +54,8 @@ const createSessionInputSchema = z.object({
       modelId: z.string(),
     })
     .optional(),
+  system: z.string().optional(),
+  agent: z.string().optional(),
 });
 
 const sessions = new Hono()
@@ -145,6 +147,8 @@ const sessions = new Hono()
       await harness.sendMessage(session.id, {
         parts: body.parts,
         model: body.model,
+        system: body.system,
+        agent: body.agent,
       });
 
       await waitForMessagePersistence(harness, session.id);
@@ -497,6 +501,8 @@ const sessions = new Hono()
             modelId: z.string(),
           })
           .optional(),
+        system: z.string().optional(),
+        agent: z.string().optional(),
       }),
     ),
     async (c) => {

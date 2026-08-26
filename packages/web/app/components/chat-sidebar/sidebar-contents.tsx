@@ -69,13 +69,13 @@ export const SidebarContents = memo(function SidebarContents({
                   href='/new'
                   id={`${idPrefix}-new`}
                   isCurrent={href === '/new'}
-                  textValue='New Chat'
+                  textValue='New Session'
                   onPress={() => handleNavigate('/new')}
                 >
                   <Sidebar.MenuIcon>
                     <Comment className='size-4' />
                   </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>New Chat</Sidebar.MenuLabel>
+                  <Sidebar.MenuLabel>New Session</Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
 
                 <Sidebar.MenuItem textValue='Search' onPress={onSearch}>
