@@ -1,3 +1,8 @@
+export function capitalizeFirstLetter(str: string) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 export const handleDownloadMarkdown = (content: string, filename: string) => {
   // 1. Create a Blob with the markdown content
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });

@@ -418,7 +418,7 @@ export function PromptInputSend({
       data-slot='prompt-input-send'
       data-status={current}
       isDisabled={disabled}
-      size={state.layout === 'stacked' ? 'md' : 'sm'}
+      size='sm'
       onPress={(event) => {
         if (canStop) {
           stop?.();
@@ -458,7 +458,7 @@ export function PromptInputAction({
         isDisabled ||
         (state.lockInputOnRun && running(state.status))
       }
-      size={state.layout === 'stacked' ? 'md' : 'sm'}
+      size='sm'
       variant={variant}
     >
       {children}

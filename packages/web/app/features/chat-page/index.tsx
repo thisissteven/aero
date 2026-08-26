@@ -7,7 +7,7 @@ import { ChatFeed } from '@/app/features/chat-page/chat-feed/chat-feed';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
-import { ChatInput } from '@/app/features/chat-page/chat-input';
+import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { VirtualizedChatFeedRef } from '@/app/features/chat-page/virtualized-chat-feed';
@@ -82,7 +82,7 @@ export function ChatPage({
         </>
       )}
 
-      <div className='bg-background shrink-0 px-4 pb-4'>
+      <div className='bg-background shrink-0 px-4 pb-2 md:pb-4'>
         <div className='relative mx-auto w-full max-w-[720px]'>
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
             <ScrollToBottomButton

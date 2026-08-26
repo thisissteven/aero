@@ -42,14 +42,14 @@ async function handleProxy(c: Context): Promise<Response> {
 
   const restPath = extractPreviewPath(requestUrl.pathname, id);
 
-  console.info('[PREVIEW ROUTE]', {
-    method: c.req.method,
-    host: requestUrl.host,
-    pathname: requestUrl.pathname,
-    id,
-    restPath,
-    targetOrigin: target.origin,
-  });
+  // console.info('[PREVIEW ROUTE]', {
+  //   method: c.req.method,
+  //   host: requestUrl.host,
+  //   pathname: requestUrl.pathname,
+  //   id,
+  //   restPath,
+  //   targetOrigin: target.origin,
+  // });
 
   return proxyRequest(c, target, restPath);
 }
@@ -128,12 +128,12 @@ const preview = new Hono()
 
     c.header('Cache-Control', 'no-store');
 
-    console.info('[PREVIEW TARGET]', {
-      requested: raw,
-      origin: target.origin,
-      id: target.id,
-      previewOrigin,
-    });
+    // console.info('[PREVIEW TARGET]', {
+    //   requested: raw,
+    //   origin: target.origin,
+    //   id: target.id,
+    //   previewOrigin,
+    // });
 
     return c.json({
       id: target.id,

@@ -34,6 +34,7 @@ import type {
 
 import type {
   AeroAgent,
+  AeroAgentCompact,
   AeroCommand,
   AeroMessage,
   AeroPart,
@@ -506,6 +507,15 @@ export function toAeroMessage(entry: {
  */
 export function toAeroAgent(entry: Agent): AeroAgent {
   return { ...entry };
+}
+
+export function toAeroAgentCompact(entry: Agent): AeroAgentCompact {
+  return {
+    name: entry.name,
+    mode: entry.mode,
+    description: entry.description,
+    native: entry.native,
+  };
 }
 
 /**

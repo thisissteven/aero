@@ -20,7 +20,7 @@ export function CommandPaletteFooter() {
           <Kbd>
             <Kbd.Abbr keyValue='enter' />
           </Kbd>
-          <span>Open chat</span>
+          <span>Open session</span>
         </div>
       </div>
     </Command.Footer>

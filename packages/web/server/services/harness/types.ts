@@ -293,6 +293,10 @@ export type AeroProvider = Provider;
 
 // Agent & Capability domains
 export type AeroAgent = Agent;
+export type AeroAgentCompact = Pick<
+  Agent,
+  'name' | 'description' | 'mode' | 'native'
+>;
 export type AeroCommand = Command;
 
 // Worktree domain
@@ -388,6 +392,7 @@ export interface HarnessAdapter {
 
   // Agents & App Capabilities
   listAgents(directory?: string): Promise<AeroAgent[]>;
+  listAgentsCompact(directory?: string): Promise<AeroAgentCompact[]>;
   listSkills(directory?: string): Promise<AeroSkill[]>;
   listCommands(directory?: string): Promise<AeroCommand[]>;
   listTools(

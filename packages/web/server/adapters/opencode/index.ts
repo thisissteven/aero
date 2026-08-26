@@ -45,6 +45,7 @@ import {
 
 import {
   toAeroAgent,
+  toAeroAgentCompact,
   toAeroCommand,
   toAeroMessage,
   toAeroPart,
@@ -499,6 +500,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       return entries.map(toAeroAgent);
+    },
+
+    async listAgentsCompact(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.app.agents({ directory }),
+        ),
+      );
+
+      return entries.filter((agent) => !agent.hidden).map(toAeroAgentCompact);
     },
 
     async listSkills(directory) {

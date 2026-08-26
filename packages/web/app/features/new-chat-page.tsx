@@ -93,7 +93,7 @@ export function NewChatPage() {
             <PromptInput.Content>
               <PromptInput.TextArea
                 ref={textareaRef}
-                className='min-h-12'
+                className='min-h-18'
                 placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
               />
             </PromptInput.Content>
@@ -102,8 +102,8 @@ export function NewChatPage() {
                 <CollapsibleActions
                   expandBehavior='horizontal'
                   expandOrigin='trigger-right'
-                  gap={isMobile ? 48 : 44}
-                  distance={isMobile ? 48 : 44}
+                  gap={isMobile ? 44 : 40}
+                  distance={isMobile ? 44 : 40}
                 >
                   <CollapsibleActions.Trigger>
                     <PromptInput.Action aria-label='Add context'>

@@ -368,7 +368,7 @@ export async function proxyRequest(
 
   const upstream = buildUpstreamUrl(target, restPath, c.req.url);
 
-  console.info('[PREVIEW]', c.req.method, '→', upstream.toString());
+  // console.info('[PREVIEW]', c.req.method, '→', upstream.toString());
 
   let response: Response;
 
@@ -384,15 +384,15 @@ export async function proxyRequest(
       signal: AbortSignal.timeout(30_000),
     });
 
-    console.info('[PREVIEW RESPONSE]', {
-      request: c.req.url,
-      upstream: upstream.toString(),
-      status: response.status,
-      contentType: response.headers.get('content-type'),
-      location: response.headers.get('location'),
-    });
+    // console.info('[PREVIEW RESPONSE]', {
+    //   request: c.req.url,
+    //   upstream: upstream.toString(),
+    //   status: response.status,
+    //   contentType: response.headers.get('content-type'),
+    //   location: response.headers.get('location'),
+    // });
   } catch (error) {
-    console.error('[PREVIEW ERROR]', upstream.toString(), error);
+    // console.error('[PREVIEW ERROR]', upstream.toString(), error);
 
     return c.json(
       {
