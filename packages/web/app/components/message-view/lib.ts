@@ -142,6 +142,7 @@ export type FlatConversationVirtualItem =
       type: 'spacer-footer';
     };
 
+// buildFlatConversationItems.ts
 export function buildFlatConversationItems(
   displayedGroups: AeroConversationTurn[],
   isStreaming: boolean,
@@ -156,9 +157,13 @@ export function buildFlatConversationItems(
 } {
   const items: FlatConversationVirtualItem[] = [];
   const groupFlatIndex: number[] = new Array(displayedGroups.length);
-  const revertedMessages: { preview: string; messageId: string }[] = [];
+  const revertedMessages: {
+    preview: string;
+    messageId: string;
+  }[] = [];
 
   let isReverted = false;
+  let hasRenderedTurn = false;
 
   for (let turnIndex = 0; turnIndex < displayedGroups.length; turnIndex++) {
     const turn = displayedGroups[turnIndex];
@@ -184,30 +189,66 @@ export function buildFlatConversationItems(
           messageId: turn.id,
         });
       }
+
       continue;
     }
 
-    if (turn.parts.length === 0 && !turn.error) continue;
+    if (turn.parts.length === 0 && !turn.error) {
+      continue;
+    }
 
     groupFlatIndex[turnIndex] = items.length;
 
     const nextTurn = displayedGroups[turnIndex + 1];
     const nextTurnId = nextTurn?.id;
 
+    /**
+     * Only the actual last turn is considered streaming.
+     *
+     * Older assistant turns must remain completed so their footers
+     * continue to render while a newer assistant turn is streaming.
+     */
     const isLastTurn = turnIndex === displayedGroups.length - 1;
+
     const isTurnStreaming = isStreaming && isLastTurn;
 
-    if (turnIndex === 0) {
+    if (!hasRenderedTurn) {
       items.push({
         id: `${turn.id}-spacer-first-item`,
         type: 'spacer-first-item',
       });
+
+      hasRenderedTurn = true;
+    } else {
+      /**
+       * Spacing belongs BETWEEN turns.
+       *
+       * This is what gives:
+       *
+       *   assistant
+       *   [space]
+       *   user
+       *
+       * instead of putting the spacer after the user.
+       */
+      items.push({
+        id: `${turn.id}-spacer-before`,
+        type: 'spacer',
+      });
     }
 
     if (turn.role === 'user') {
-      items.push({ id: turn.id, type: 'user', turn, forkMessageId: turn.id });
-      items.push({ id: `${turn.id}-spacer`, type: 'spacer' });
-    } else if (turn.role === 'assistant') {
+      items.push({
+        id: turn.id,
+        type: 'user',
+        turn,
+        forkMessageId: turn.id,
+      });
+
+      continue;
+    }
+
+    if (turn.role === 'assistant') {
       const assistantTextResponse = turn.parts
         .filter((p) => p.type === 'text')
         .map((p) => p.text.trim())
@@ -216,18 +257,38 @@ export function buildFlatConversationItems(
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
+      /**
+       * IMPORTANT:
+       *
+       * Do not check `!isStreaming` here.
+       *
+       * If the current last assistant finishes, the next
+       * `session.idle` event rebuilds with isStreaming=false and
+       * this footer appears.
+       *
+       * If a newer turn is streaming, older assistant turns still
+       * need their footer.
+       */
       const hasFooter =
         !isTurnStreaming &&
-        (turn.parts.length > 0 || turn.error?.data?.message);
+        (turn.parts.length > 0 || !!turn.error?.data?.message);
 
       turn.parts.forEach((part, partIndex) => {
         const isLastPartInTurn = partIndex === turn.parts.length - 1;
+
         const isPartStreaming = isTurnStreaming && isLastPartInTurn;
 
-        if (part.type === 'text' && !part.text?.trim() && !isPartStreaming)
+        if (part.type === 'text' && !part.text?.trim() && !isPartStreaming) {
           return;
-        if (part.type === 'reasoning' && !part.text?.trim() && !isPartStreaming)
+        }
+
+        if (
+          part.type === 'reasoning' &&
+          !part.text?.trim() &&
+          !isPartStreaming
+        ) {
           return;
+        }
 
         items.push({
           id: `${turn.id}-part-${partIndex}`,
@@ -266,10 +327,18 @@ export function buildFlatConversationItems(
           assistantTextResponse: assistantTextResponse || (errorMessage ?? ''),
           nextTurnId,
         });
-        items.push({ id: `${turn.id}-spacer-footer`, type: 'spacer-footer' });
+
+        items.push({
+          id: `${turn.id}-spacer-footer`,
+          type: 'spacer-footer',
+        });
       }
     }
   }
 
-  return { flatItems: items, groupFlatIndex, revertedMessages };
+  return {
+    flatItems: items,
+    groupFlatIndex,
+    revertedMessages,
+  };
 }

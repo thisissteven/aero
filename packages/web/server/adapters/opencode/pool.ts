@@ -41,6 +41,35 @@ export interface PoolStats {
   }>;
 }
 
+function isLikelyDaemonFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  // Config / validation / application errors are request-scoped.
+  if (
+    message.includes('configinvaliderror') ||
+    message.includes('invalid config') ||
+    message.includes('config invalid') ||
+    message.includes('validation error')
+  ) {
+    return false;
+  }
+
+  // Only obvious transport/process failures trigger recovery.
+  return (
+    message.includes('econnrefused') ||
+    message.includes('econnreset') ||
+    message.includes('socket hang up') ||
+    message.includes('connection reset') ||
+    message.includes('connection closed') ||
+    message.includes('fetch failed') ||
+    message.includes('network error')
+  );
+}
+
 export class OpencodeServerPool<
   TClient,
   TServer extends { url: string; close?: () => void },
@@ -123,6 +152,24 @@ export class OpencodeServerPool<
       isHealthy: true,
       isRecovering: false,
     };
+  }
+
+  public async getStreamingNode(): Promise<PoolNode<TClient, TServer>> {
+    await this.init();
+
+    const healthyNodes = this.nodes
+      .filter((node) => node.isHealthy)
+      .sort((a, b) => a.activeRequests - b.activeRequests);
+
+    const node = healthyNodes[0];
+
+    if (!node) {
+      throw new Error(
+        `[OpenCode Pool ${this.versionLabel}] No healthy server nodes available for streaming.`,
+      );
+    }
+
+    return node;
   }
 
   private async waitForServerReady(
@@ -211,24 +258,20 @@ export class OpencodeServerPool<
     fn: (client: TClient, node: PoolNode<TClient, TServer>) => Promise<T>,
   ): Promise<T> {
     const node = await this.getNode();
+
     try {
       return await fn(node.client, node);
     } catch (err) {
-      // Verify if error was caused by actual daemon crash vs API application error
-      let isDaemonAlive = false;
-      try {
-        await this.healthCheckFn(node.client);
-        isDaemonAlive = true;
-      } catch {
-        isDaemonAlive = false;
-      }
+      /**
+       * Request-scoped errors must never restart the daemon.
+       *
+       * Only transport/process-level failures are allowed
+       * to mark the node unhealthy and trigger recovery.
+       */
+      if (isLikelyDaemonFailure(err)) {
+        node.isHealthy = false;
 
-      if (!isDaemonAlive) {
-        console.error(
-          `[OpenCode Pool ${this.versionLabel}] Daemon crashed on port ${node.port}:`,
-          err,
-        );
-        this.recoverNode(node);
+        void this.recoverNode(node);
       }
 
       throw err;

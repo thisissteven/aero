@@ -332,11 +332,6 @@ export interface PaginatedResponse<T> {
   nextCursor?: string;
 }
 
-export interface StreamEventsOptions {
-  sessionId?: string;
-  signal?: AbortSignal;
-}
-
 export type AeroConfig = Config;
 export type AeroProvider = Provider;
 export type AeroAgent = Agent;
@@ -363,6 +358,12 @@ export interface AeroSkill {
 }
 
 export type AeroTool = ToolListItem;
+
+export interface StreamEventsOptions {
+  sessionId?: string;
+  signal?: AbortSignal;
+  onConnected?: () => void;
+}
 
 export interface HarnessAdapter {
   readonly id: HarnessId;

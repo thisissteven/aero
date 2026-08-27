@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { ChatPage } from '@/app/features/chat-page';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -25,7 +25,7 @@ function SessionPage() {
   const { data: queriedTurns = [], isLoading: isMessagesLoading } =
     useSessionMessages(undefined, sessionId);
 
-  const turns = useChatStore((state) => state.turns);
+  const setActiveSession = useChatStore((state) => state.setActiveSession);
 
   const setConversationData = useChatStore(
     (state) => state.setConversationData,
@@ -33,19 +33,32 @@ function SessionPage() {
 
   const setStatus = useChatStore((state) => state.setStatus);
 
-  const reset = useChatStore((state) => state.reset);
+  const turns = useChatStore((state) => state.turns);
 
+  /**
+   * This replaces the old reset().
+   *
+   * We are changing the active view, NOT destroying
+   * the session's runtime.
+   */
   useEffect(() => {
-    reset();
-  }, [sessionId, reset]);
+    setActiveSession(sessionId, session?.revert?.messageID);
+  }, [sessionId, session?.revert?.messageID, setActiveSession]);
 
+  /**
+   * Hydrate persisted messages once.
+   *
+   * The global store prevents this from overwriting
+   * a live session that already has streamed data.
+   */
   useEffect(() => {
     if (isMessagesLoading) {
       return;
     }
 
-    setConversationData(queriedTurns, session?.revert?.messageID);
+    setConversationData(sessionId, queriedTurns, session?.revert?.messageID);
   }, [
+    sessionId,
     isMessagesLoading,
     queriedTurns,
     session?.revert?.messageID,
@@ -60,29 +73,21 @@ function SessionPage() {
   useEffect(() => {
     const status = sessionStatus?.[sessionId];
 
-    if (status) {
-      setStatus(status);
+    if (!status) {
+      return;
     }
+
+    setStatus(sessionId, status, 'query');
   }, [sessionStatus, sessionId, setStatus]);
 
-  const onStreamEvent = useCallback(
-    (
-      event: Parameters<
-        ReturnType<typeof useChatStore.getState>['handleStreamEvent']
-      >[0],
-    ) => {
-      useChatStore
-        .getState()
-        .handleStreamEvent(event, session?.revert?.messageID);
-    },
-    [session?.revert?.messageID],
-  );
-
+  /**
+   * The stream is now application-scoped.
+   *
+   * enabled/loading state must NOT control its lifetime.
+   */
   useSessionStream({
     sessionId,
     harnessId: undefined,
-    enabled: !isSessionLoading && !isMessagesLoading,
-    onEvent: onStreamEvent,
   });
 
   const notFound = !session && !isSessionLoading;
@@ -91,7 +96,6 @@ function SessionPage() {
     <ChatPage
       sessionId={sessionId}
       workspace={session?.workspace}
-      revertMessageId={session?.revert?.messageID}
       groups={turns}
       notFound={notFound}
     />

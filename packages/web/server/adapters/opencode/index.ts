@@ -4,7 +4,7 @@ import type { Event } from '@opencode-ai/sdk/v2';
 import pLimit from 'p-limit';
 
 import {
-  getOpencodeClientV2,
+  getOpencodeStreamingClientV2,
   withOpencodeClientV1,
   withOpencodeClientV2,
 } from '@/server/adapters/opencode/client';
@@ -27,7 +27,6 @@ import type {
   CreateWorkspaceInput,
   HarnessAdapter,
   ListSessionsParams,
-  StreamEventsOptions,
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
 import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
@@ -934,19 +933,34 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async abortSession(sessionID) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.abort({ sessionID }),
-        ),
-      );
+      await withOpencodeClientV2(async (client) => {
+        const session = unwrap(
+          await client.session.get({
+            sessionID,
+          }),
+        );
+
+        await client.session.abort({
+          sessionID,
+        });
+
+        await client.instance.dispose({
+          directory: session.directory,
+        });
+      });
+
+      return true;
     },
 
-    async *streamEvents(
-      options: StreamEventsOptions = {},
-    ): AsyncIterable<AeroEvent> {
-      const { sessionId, signal } = options;
+    async *streamEvents(options = {}): AsyncIterable<AeroEvent> {
+      const { sessionId, signal, onConnected } = options;
 
-      const { node, release } = await getOpencodeClientV2();
+      const { node } = await getOpencodeStreamingClientV2();
+
+      console.log('[OPENCODE STREAM START]', {
+        node: node.port,
+        sessionId,
+      });
 
       const controller = new AbortController();
 
@@ -954,16 +968,12 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         controller.abort();
       };
 
-      signal?.addEventListener('abort', abortFromCaller, {
-        once: true,
-      });
+      signal?.addEventListener('abort', abortFromCaller, { once: true });
 
       let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
       try {
         const url = new URL('/global/event', node.server.url);
-
-        console.log('[OPENCODE STREAM] connecting', url.toString());
 
         const response = await fetch(url, {
           headers: {
@@ -985,6 +995,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         }
 
         reader = response.body.getReader();
+
+        onConnected?.();
 
         const decoder = new TextDecoder();
         let buffer = '';
@@ -1020,8 +1032,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
             const payload = envelope.payload;
 
-            // OpenCode also emits internal sync envelopes.
-            // We only want the actual event payloads.
             if (payload.type === 'sync') {
               separatorIndex = buffer.indexOf('\n\n');
               continue;
@@ -1065,8 +1075,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         } catch {
           // Ignore cancellation errors.
         }
-
-        release();
       }
     },
   };

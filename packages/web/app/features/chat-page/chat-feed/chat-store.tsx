@@ -7,6 +7,7 @@ import {
 import type {
   AeroConversationTurn,
   AeroEvent,
+  AeroMessage,
   AeroPart,
   AeroSessionStatus,
 } from '@/server/services/harness/types';
@@ -16,7 +17,7 @@ interface PendingDelta {
   delta: string;
 }
 
-interface ChatStore {
+interface SessionRuntime {
   turns: AeroConversationTurn[];
   flatItems: FlatConversationVirtualItem[];
   groupFlatIndex: number[];
@@ -29,34 +30,55 @@ interface ChatStore {
   isStreaming: boolean;
   streamStartedAt: number | null;
 
-  setStatus: (status: AeroSessionStatus) => void;
+  hasLiveStatus: boolean;
+  hasHydrated: boolean;
+
+  messageTurnIds: Record<string, string>;
+}
+
+interface ChatStore {
+  activeSessionId: string | null;
+
+  sessions: Record<string, SessionRuntime>;
+
+  runningSessions: string[];
+
+  turns: AeroConversationTurn[];
+  flatItems: FlatConversationVirtualItem[];
+  groupFlatIndex: number[];
+  revertedMessages: {
+    preview: string;
+    messageId: string;
+  }[];
+
+  status: AeroSessionStatus;
+  isStreaming: boolean;
+  streamStartedAt: number | null;
+
+  setActiveSession: (sessionId: string, revertMessageId?: string) => void;
 
   setConversationData: (
+    sessionId: string,
     turns: AeroConversationTurn[],
     revertMessageId?: string,
   ) => void;
 
-  handleStreamEvent: (event: AeroEvent, revertMessageId?: string) => void;
+  setStatus: (
+    sessionId: string,
+    status: AeroSessionStatus,
+    source?: 'query' | 'stream',
+  ) => void;
 
-  reset: () => void;
+  handleStreamEvent: (
+    sessionId: string,
+    event: AeroEvent,
+    revertMessageId?: string,
+  ) => void;
+
+  resetSession: (sessionId: string) => void;
 }
 
-function buildState(
-  turns: AeroConversationTurn[],
-  isStreaming: boolean,
-  revertMessageId?: string,
-) {
-  const { flatItems, groupFlatIndex, revertedMessages } =
-    buildFlatConversationItems(turns, isStreaming, revertMessageId);
-
-  return {
-    turns,
-    flatItems,
-    groupFlatIndex,
-    revertedMessages,
-    isStreaming,
-  };
-}
+const IDLE: AeroSessionStatus = { type: 'idle' };
 
 function getLastUserMessageTime(turns: AeroConversationTurn[]) {
   for (let i = turns.length - 1; i >= 0; i--) {
@@ -80,209 +102,584 @@ function getStreamStartTime(
   return current ?? getLastUserMessageTime(turns) ?? Date.now();
 }
 
-function isSameOptimisticUserMessage(
-  optimistic: AeroConversationTurn,
-  incoming: AeroConversationTurn,
-) {
-  if (
-    optimistic.role !== 'user' ||
-    incoming.role !== 'user' ||
-    !optimistic.id.startsWith('temp-turn-')
-  ) {
-    return false;
+function buildMessageTurnIds(
+  turns: AeroConversationTurn[],
+): Record<string, string> {
+  const map: Record<string, string> = {};
+
+  for (const turn of turns) {
+    map[turn.id] = turn.id;
+
+    for (const part of turn.parts) {
+      if (part.messageID) {
+        map[part.messageID] = turn.id;
+      }
+    }
   }
 
-  const optimisticText = optimistic.parts
-    .filter((part) => part.type === 'text')
-    .map((part) => part.text)
-    .join('');
-
-  const incomingText = incoming.parts
-    .filter((part) => part.type === 'text')
-    .map((part) => part.text)
-    .join('');
-
-  return optimisticText.length > 0 && optimisticText === incomingText;
+  return map;
 }
 
-function upsertPart(
+function buildRuntime(
   turns: AeroConversationTurn[],
-  messageId: string,
-  part: AeroPart,
-): AeroConversationTurn[] {
-  const turnIndex = turns.findIndex((turn) => turn.id === messageId);
+  isStreaming: boolean,
+  revertMessageId?: string,
+): Pick<
+  SessionRuntime,
+  'turns' | 'flatItems' | 'groupFlatIndex' | 'revertedMessages' | 'isStreaming'
+> {
+  const { flatItems, groupFlatIndex, revertedMessages } =
+    buildFlatConversationItems(turns, isStreaming, revertMessageId);
 
-  if (turnIndex === -1) {
-    return [
-      ...turns,
-      {
-        id: messageId,
-        role: 'assistant',
-        parts: [part],
-        createdAt: Date.now(),
-      },
-    ];
+  return {
+    turns,
+    flatItems,
+    groupFlatIndex,
+    revertedMessages,
+    isStreaming,
+  };
+}
+
+function createEmptyRuntime(): SessionRuntime {
+  return {
+    ...buildRuntime([], false),
+
+    status: IDLE,
+    streamStartedAt: null,
+
+    hasLiveStatus: false,
+    hasHydrated: false,
+
+    messageTurnIds: {},
+  };
+}
+
+function getRuntime(
+  sessions: Record<string, SessionRuntime>,
+  sessionId: string,
+) {
+  return sessions[sessionId] ?? createEmptyRuntime();
+}
+
+function projectActiveSession(
+  sessions: Record<string, SessionRuntime>,
+  activeSessionId: string | null,
+) {
+  if (!activeSessionId) {
+    return {
+      turns: [],
+      flatItems: [],
+      groupFlatIndex: [],
+      revertedMessages: [],
+      status: IDLE,
+      isStreaming: false,
+      streamStartedAt: null,
+    };
   }
 
-  const turn = turns[turnIndex];
+  const runtime = getRuntime(sessions, activeSessionId);
 
-  const partIndex = turn.parts.findIndex(
-    (currentPart) => currentPart.id === part.id,
+  return {
+    turns: runtime.turns,
+    flatItems: runtime.flatItems,
+    groupFlatIndex: runtime.groupFlatIndex,
+    revertedMessages: runtime.revertedMessages,
+    status: runtime.status,
+    isStreaming: runtime.isStreaming,
+    streamStartedAt: runtime.streamStartedAt,
+  };
+}
+
+function findTurnIndexByMessageId(runtime: SessionRuntime, messageId: string) {
+  const mappedTurnId = runtime.messageTurnIds[messageId];
+
+  if (mappedTurnId) {
+    const mappedIndex = runtime.turns.findIndex(
+      (turn) => turn.id === mappedTurnId,
+    );
+
+    if (mappedIndex !== -1) {
+      return mappedIndex;
+    }
+  }
+
+  return runtime.turns.findIndex(
+    (turn) =>
+      turn.id === messageId ||
+      turn.parts.some((part) => part.messageID === messageId),
+  );
+}
+
+function replaceMessageParts(
+  turn: AeroConversationTurn,
+  messageId: string,
+  incomingParts: AeroPart[],
+) {
+  const incomingIds = new Set(incomingParts.map((part) => part.id));
+
+  const nextParts = turn.parts.filter(
+    (part) => part.messageID !== messageId || incomingIds.has(part.id),
   );
 
-  const parts =
-    partIndex === -1
-      ? [...turn.parts, part]
-      : turn.parts.map((currentPart, index) =>
-          index === partIndex ? part : currentPart,
-        );
+  for (const incomingPart of incomingParts) {
+    const index = nextParts.findIndex((part) => part.id === incomingPart.id);
 
-  return turns.map((currentTurn, index) =>
-    index === turnIndex
-      ? {
-          ...currentTurn,
-          parts,
-        }
-      : currentTurn,
-  );
+    if (index === -1) {
+      nextParts.push(incomingPart);
+    } else {
+      nextParts[index] = incomingPart;
+    }
+  }
+
+  return nextParts;
+}
+
+function appendIncomingMessage(
+  runtime: SessionRuntime,
+  incoming: AeroMessage,
+): SessionRuntime {
+  const existingTurnId = runtime.messageTurnIds[incoming.id];
+
+  if (existingTurnId) {
+    const turnIndex = runtime.turns.findIndex(
+      (turn) => turn.id === existingTurnId,
+    );
+
+    if (turnIndex !== -1) {
+      const nextTurns = runtime.turns.map((turn, index) =>
+        index !== turnIndex
+          ? turn
+          : {
+              ...turn,
+              parts:
+                incoming.parts.length > 0
+                  ? replaceMessageParts(turn, incoming.id, incoming.parts)
+                  : turn.parts,
+              createdAt:
+                turn.id === incoming.id ? incoming.createdAt : turn.createdAt,
+              error: incoming.error?.data?.message
+                ? incoming.error
+                : turn.error,
+            },
+      );
+
+      return {
+        ...runtime,
+        ...buildRuntime(nextTurns, runtime.isStreaming),
+      };
+    }
+  }
+
+  const previous = runtime.turns.at(-1);
+
+  if (previous?.role === incoming.role) {
+    const nextTurns = [
+      ...runtime.turns.slice(0, -1),
+      {
+        ...previous,
+        parts: [...previous.parts, ...incoming.parts],
+        error: incoming.error?.data?.message ? incoming.error : previous.error,
+      },
+    ];
+
+    return {
+      ...runtime,
+      ...buildRuntime(nextTurns, runtime.isStreaming),
+      messageTurnIds: {
+        ...runtime.messageTurnIds,
+        [incoming.id]: previous.id,
+      },
+    };
+  }
+
+  const nextTurn: AeroConversationTurn = {
+    id: incoming.id,
+    role: incoming.role,
+    parts: [...incoming.parts],
+    createdAt: incoming.createdAt,
+    error: incoming.error?.data?.message ? incoming.error : undefined,
+  };
+
+  return {
+    ...runtime,
+    ...buildRuntime([...runtime.turns, nextTurn], runtime.isStreaming),
+    messageTurnIds: {
+      ...runtime.messageTurnIds,
+      [incoming.id]: incoming.id,
+    },
+  };
 }
 
 export const useChatStore = create<ChatStore>((set) => {
   const pendingDeltas = new Map<string, PendingDelta[]>();
 
+  const pendingPartUpdates = new Map<string, AeroPart[]>();
+
   return {
+    activeSessionId: null,
+
+    sessions: {},
+
+    runningSessions: [],
+
     turns: [],
     flatItems: [],
     groupFlatIndex: [],
     revertedMessages: [],
 
-    status: { type: 'idle' },
+    status: IDLE,
     isStreaming: false,
     streamStartedAt: null,
 
-    setStatus: (status) => {
+    setActiveSession: (sessionId, revertMessageId) => {
       set((state) => {
-        const isStreaming = status.type !== 'idle';
+        const sessions = {
+          ...state.sessions,
+        };
+
+        const runtime = getRuntime(sessions, sessionId);
+
+        sessions[sessionId] = {
+          ...runtime,
+          ...buildRuntime(runtime.turns, runtime.isStreaming, revertMessageId),
+        };
 
         return {
-          status,
-          isStreaming,
-          streamStartedAt: getStreamStartTime(
-            state.turns,
-            status,
-            state.streamStartedAt,
-          ),
+          activeSessionId: sessionId,
+          ...projectActiveSession(sessions, sessionId),
+          sessions,
         };
       });
     },
 
-    setConversationData: (turns, revertMessageId) => {
+    setConversationData: (sessionId, turns, revertMessageId) => {
       set((state) => {
-        const isStreaming = state.status.type !== 'idle';
+        const current = getRuntime(state.sessions, sessionId);
 
-        return {
-          ...buildState(turns, isStreaming, revertMessageId),
-          status: state.status,
+        if (current.hasHydrated) {
+          return state;
+        }
 
-          // Important:
-          // when restoring a busy session after navigation/refresh,
-          // derive the timer from the latest persisted user message.
+        const isStreaming = current.status.type !== 'idle';
+
+        const runtime: SessionRuntime = {
+          ...current,
+
+          ...buildRuntime(turns, isStreaming, revertMessageId),
+
+          status: current.status,
+          isStreaming,
+
           streamStartedAt: getStreamStartTime(
             turns,
-            state.status,
-            state.streamStartedAt,
+            current.status,
+            current.streamStartedAt,
           ),
+
+          hasHydrated: true,
+
+          messageTurnIds: buildMessageTurnIds(turns),
+        };
+
+        const sessions = {
+          ...state.sessions,
+          [sessionId]: runtime,
+        };
+
+        const runningSessions = isStreaming
+          ? state.runningSessions.includes(sessionId)
+            ? state.runningSessions
+            : [...state.runningSessions, sessionId]
+          : state.runningSessions.filter((id) => id !== sessionId);
+
+        return {
+          sessions,
+          runningSessions,
+          ...projectActiveSession(sessions, state.activeSessionId),
         };
       });
     },
 
-    handleStreamEvent: (event, revertMessageId) => {
+    setStatus: (sessionId, status, source = 'stream') => {
       set((state) => {
+        const current = getRuntime(state.sessions, sessionId);
+
+        if (source === 'query' && current.hasLiveStatus) {
+          return state;
+        }
+
+        const isStreaming = status.type !== 'idle';
+
+        const runtime: SessionRuntime = {
+          ...current,
+          status,
+          isStreaming,
+
+          hasLiveStatus: source === 'stream' ? true : current.hasLiveStatus,
+
+          streamStartedAt: getStreamStartTime(
+            current.turns,
+            status,
+            current.streamStartedAt,
+          ),
+        };
+
+        const sessions = {
+          ...state.sessions,
+          [sessionId]: runtime,
+        };
+
+        const runningSessions = isStreaming
+          ? state.runningSessions.includes(sessionId)
+            ? state.runningSessions
+            : [...state.runningSessions, sessionId]
+          : state.runningSessions.filter((id) => id !== sessionId);
+
+        return {
+          sessions,
+          runningSessions,
+          ...projectActiveSession(sessions, state.activeSessionId),
+        };
+      });
+    },
+
+    handleStreamEvent: (sessionId, event, revertMessageId) => {
+      set((state) => {
+        const current = getRuntime(state.sessions, sessionId);
+
         switch (event.type) {
           case 'session.status': {
             const isStreaming = event.status.type !== 'idle';
 
-            return {
-              ...buildState(state.turns, isStreaming, revertMessageId),
+            const runtime: SessionRuntime = {
+              ...current,
+
               status: event.status,
+              isStreaming,
+
+              hasLiveStatus: true,
+
               streamStartedAt: getStreamStartTime(
-                state.turns,
+                current.turns,
                 event.status,
-                state.streamStartedAt,
+                current.streamStartedAt,
               ),
+            };
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
+            const runningSessions = isStreaming
+              ? state.runningSessions.includes(sessionId)
+                ? state.runningSessions
+                : [...state.runningSessions, sessionId]
+              : state.runningSessions.filter((id) => id !== sessionId);
+
+            return {
+              sessions,
+              runningSessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'message.updated': {
-            const incoming = event.message;
+            let runtime = appendIncomingMessage(current, event.message);
 
-            const existingIndex = state.turns.findIndex(
-              (turn) => turn.id === incoming.id,
-            );
+            const pendingKey = `${sessionId}:${event.message.id}`;
 
-            const nextTurns =
-              existingIndex === -1
-                ? [
-                    ...state.turns,
-                    {
-                      id: incoming.id,
-                      role: incoming.role,
-                      parts: incoming.parts,
-                      error: incoming.error,
-                      createdAt: incoming.createdAt,
-                    },
-                  ]
-                : state.turns.map((turn, index) =>
-                    index === existingIndex
-                      ? {
-                          ...turn,
-                          role: incoming.role,
-                          createdAt: incoming.createdAt,
-                          error: incoming.error,
-                          parts:
-                            incoming.parts.length > 0
-                              ? incoming.parts
-                              : turn.parts,
-                        }
-                      : turn,
+            const pendingParts = pendingPartUpdates.get(pendingKey);
+
+            if (pendingParts?.length) {
+              pendingPartUpdates.delete(pendingKey);
+
+              for (const part of pendingParts) {
+                const turnIndex = findTurnIndexByMessageId(
+                  runtime,
+                  event.message.id,
+                );
+
+                if (turnIndex === -1) {
+                  continue;
+                }
+
+                const nextTurns = runtime.turns.map((turn, index) => {
+                  if (index !== turnIndex) {
+                    return turn;
+                  }
+
+                  const partIndex = turn.parts.findIndex(
+                    (currentPart) => currentPart.id === part.id,
                   );
 
+                  if (partIndex === -1) {
+                    return {
+                      ...turn,
+                      parts: [...turn.parts, part],
+                    };
+                  }
+
+                  return {
+                    ...turn,
+                    parts: turn.parts.map((currentPart, index) =>
+                      index === partIndex ? part : currentPart,
+                    ),
+                  };
+                });
+
+                runtime = {
+                  ...runtime,
+                  ...buildRuntime(
+                    nextTurns,
+                    runtime.isStreaming,
+                    revertMessageId,
+                  ),
+                };
+              }
+            } else {
+              runtime = {
+                ...runtime,
+                ...buildRuntime(
+                  runtime.turns,
+                  runtime.isStreaming,
+                  revertMessageId,
+                ),
+              };
+            }
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
             return {
-              ...buildState(nextTurns, state.isStreaming, revertMessageId),
-              status: state.status,
-              streamStartedAt: state.streamStartedAt,
+              sessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'message.part.updated': {
-            pendingDeltas.delete(event.part.id);
+            const key = `${sessionId}:${event.part.id}`;
 
-            const nextTurns = upsertPart(
-              state.turns,
+            const pending = pendingDeltas.get(key) ?? [];
+
+            pendingDeltas.delete(key);
+
+            let part = event.part;
+
+            if (part.type === 'text' || part.type === 'reasoning') {
+              const textDelta = pending
+                .filter((delta) => delta.field === 'text')
+                .map((delta) => delta.delta)
+                .join('');
+
+              if (textDelta) {
+                part = {
+                  ...part,
+                  text: part.text + textDelta,
+                };
+              }
+            }
+
+            const turnIndex = findTurnIndexByMessageId(
+              current,
               event.messageId,
-              event.part,
             );
 
+            if (turnIndex === -1) {
+              const pendingMessageKey = `${sessionId}:${event.messageId}`;
+
+              const pendingMessageParts =
+                pendingPartUpdates.get(pendingMessageKey) ?? [];
+
+              pendingPartUpdates.set(pendingMessageKey, [
+                ...pendingMessageParts,
+                part,
+              ]);
+
+              return state;
+            }
+
+            const nextTurns = current.turns.map((turn, index) => {
+              if (index !== turnIndex) {
+                return turn;
+              }
+
+              const partIndex = turn.parts.findIndex(
+                (currentPart) => currentPart.id === part.id,
+              );
+
+              if (partIndex === -1) {
+                return {
+                  ...turn,
+                  parts: [...turn.parts, part],
+                };
+              }
+
+              return {
+                ...turn,
+                parts: turn.parts.map((currentPart, index) =>
+                  index === partIndex ? part : currentPart,
+                ),
+              };
+            });
+
+            const runtime: SessionRuntime = {
+              ...current,
+
+              ...buildRuntime(nextTurns, current.isStreaming, revertMessageId),
+
+              streamStartedAt:
+                current.streamStartedAt ??
+                getStreamStartTime(nextTurns, current.status, null),
+            };
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
             return {
-              ...buildState(nextTurns, state.isStreaming, revertMessageId),
-              status: state.status,
-              streamStartedAt: state.streamStartedAt,
+              sessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'message.part.delta': {
-            const turn = state.turns.find(
-              (currentTurn) => currentTurn.id === event.messageId,
+            const turnIndex = findTurnIndexByMessageId(
+              current,
+              event.messageId,
             );
 
-            const part = turn?.parts.find(
+            if (turnIndex === -1) {
+              const key = `${sessionId}:${event.partId}`;
+
+              const pending = pendingDeltas.get(key) ?? [];
+
+              pendingDeltas.set(key, [
+                ...pending,
+                {
+                  field: event.field,
+                  delta: event.delta,
+                },
+              ]);
+
+              return state;
+            }
+
+            const turn = current.turns[turnIndex];
+
+            const part = turn.parts.find(
               (currentPart) => currentPart.id === event.partId,
             );
 
-            if (!turn || !part) {
-              const pending = pendingDeltas.get(event.partId) ?? [];
+            if (!part) {
+              const key = `${sessionId}:${event.partId}`;
 
-              pendingDeltas.set(event.partId, [
+              const pending = pendingDeltas.get(key) ?? [];
+
+              pendingDeltas.set(key, [
                 ...pending,
                 {
                   field: event.field,
@@ -305,12 +702,12 @@ export const useChatStore = create<ChatStore>((set) => {
               text: part.text + event.delta,
             };
 
-            const nextTurns = state.turns.map((currentTurn) =>
-              currentTurn.id !== event.messageId
-                ? currentTurn
+            const nextTurns = current.turns.map((turn, index) =>
+              index !== turnIndex
+                ? turn
                 : {
-                    ...currentTurn,
-                    parts: currentTurn.parts.map((currentPart) =>
+                    ...turn,
+                    parts: turn.parts.map((currentPart) =>
                       currentPart.id === event.partId
                         ? updatedPart
                         : currentPart,
@@ -318,20 +715,41 @@ export const useChatStore = create<ChatStore>((set) => {
                   },
             );
 
-            return {
-              ...buildState(nextTurns, state.isStreaming, revertMessageId),
-              status: state.status,
+            const runtime: SessionRuntime = {
+              ...current,
+
+              ...buildRuntime(nextTurns, current.isStreaming, revertMessageId),
+
               streamStartedAt:
-                state.streamStartedAt ??
-                getStreamStartTime(nextTurns, state.status, null),
+                current.streamStartedAt ??
+                getStreamStartTime(nextTurns, current.status, null),
+            };
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
+            return {
+              sessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'message.part.removed': {
-            pendingDeltas.delete(event.partId);
+            pendingDeltas.delete(`${sessionId}:${event.partId}`);
 
-            const nextTurns = state.turns.map((turn) =>
-              turn.id !== event.messageId
+            const turnIndex = findTurnIndexByMessageId(
+              current,
+              event.messageId,
+            );
+
+            if (turnIndex === -1) {
+              return state;
+            }
+
+            const nextTurns = current.turns.map((turn, index) =>
+              index !== turnIndex
                 ? turn
                 : {
                     ...turn,
@@ -341,58 +759,102 @@ export const useChatStore = create<ChatStore>((set) => {
                   },
             );
 
+            const runtime: SessionRuntime = {
+              ...current,
+
+              ...buildRuntime(nextTurns, current.isStreaming, revertMessageId),
+            };
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
             return {
-              ...buildState(nextTurns, state.isStreaming, revertMessageId),
-              status: state.status,
-              streamStartedAt: state.streamStartedAt,
+              sessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'message.removed': {
-            const nextTurns = state.turns.filter(
-              (turn) => turn.id !== event.messageId,
+            const turnIndex = findTurnIndexByMessageId(
+              current,
+              event.messageId,
             );
 
+            pendingPartUpdates.delete(`${sessionId}:${event.messageId}`);
+
+            if (turnIndex === -1) {
+              return state;
+            }
+
+            const turn = current.turns[turnIndex];
+
+            const nextParts = turn.parts.filter(
+              (part) => part.messageID !== event.messageId,
+            );
+
+            const nextTurns =
+              nextParts.length > 0
+                ? current.turns.map((currentTurn, index) =>
+                    index !== turnIndex
+                      ? currentTurn
+                      : {
+                          ...currentTurn,
+                          parts: nextParts,
+                        },
+                  )
+                : current.turns.filter((_, index) => index !== turnIndex);
+
+            const nextMessageTurnIds = {
+              ...current.messageTurnIds,
+            };
+
+            delete nextMessageTurnIds[event.messageId];
+
+            const runtime: SessionRuntime = {
+              ...current,
+
+              ...buildRuntime(nextTurns, current.isStreaming, revertMessageId),
+
+              messageTurnIds: nextMessageTurnIds,
+            };
+
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
+
             return {
-              ...buildState(nextTurns, state.isStreaming, revertMessageId),
-              status: state.status,
-              streamStartedAt: state.streamStartedAt,
+              sessions,
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
           case 'session.idle': {
-            return {
-              ...buildState(state.turns, false, revertMessageId),
-              status: { type: 'idle' },
+            const runtime: SessionRuntime = {
+              ...current,
+
+              status: IDLE,
               streamStartedAt: null,
+
+              hasLiveStatus: true,
+
+              ...buildRuntime(current.turns, false, revertMessageId),
+              isStreaming: false,
             };
-          }
 
-          case 'session.error': {
-            const lastAssistant = [...state.turns]
-              .reverse()
-              .find((turn) => turn.role === 'assistant');
-
-            const nextTurns = lastAssistant
-              ? state.turns.map((turn) =>
-                  turn.id === lastAssistant.id
-                    ? {
-                        ...turn,
-                        error: {
-                          name: 'SessionError',
-                          data: {
-                            message: event.error,
-                          },
-                        },
-                      }
-                    : turn,
-                )
-              : state.turns;
+            const sessions = {
+              ...state.sessions,
+              [sessionId]: runtime,
+            };
 
             return {
-              ...buildState(nextTurns, false, revertMessageId),
-              status: { type: 'idle' },
-              streamStartedAt: null,
+              sessions,
+              runningSessions: state.runningSessions.filter(
+                (id) => id !== sessionId,
+              ),
+              ...projectActiveSession(sessions, state.activeSessionId),
             };
           }
 
@@ -402,17 +864,32 @@ export const useChatStore = create<ChatStore>((set) => {
       });
     },
 
-    reset: () => {
-      pendingDeltas.clear();
+    resetSession: (sessionId) => {
+      pendingDeltas.forEach((_value, key) => {
+        if (key.startsWith(`${sessionId}:`)) {
+          pendingDeltas.delete(key);
+        }
+      });
 
-      set({
-        turns: [],
-        flatItems: [],
-        groupFlatIndex: [],
-        revertedMessages: [],
-        status: { type: 'idle' },
-        isStreaming: false,
-        streamStartedAt: null,
+      pendingPartUpdates.forEach((_value, key) => {
+        if (key.startsWith(`${sessionId}:`)) {
+          pendingPartUpdates.delete(key);
+        }
+      });
+
+      set((state) => {
+        const sessions = {
+          ...state.sessions,
+          [sessionId]: createEmptyRuntime(),
+        };
+
+        return {
+          sessions,
+          runningSessions: state.runningSessions.filter(
+            (id) => id !== sessionId,
+          ),
+          ...projectActiveSession(sessions, state.activeSessionId),
+        };
       });
     },
   };

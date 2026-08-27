@@ -44,7 +44,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   useEffect(() => {
     const updatePreview = () => {
       const sliced = textRef.current.slice(-150);
-      if (sliced.length >= 100) {
+      if (sliced.length >= 50) {
         setPreview(stripMarkdown(sliced));
       }
     };

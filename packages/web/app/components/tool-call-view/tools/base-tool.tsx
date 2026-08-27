@@ -101,7 +101,7 @@ export function BaseTool({
                 <span className='text-muted/70'>{duration}s</span>
               ) : null}
 
-              <div className='text-muted/70 min-w-0 flex-1 text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+              <div className='text-muted/70 flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
                 {preview ? (
                   (previewType === 'path' || previewType === 'read-path') &&
                   typeof preview === 'string' ? (

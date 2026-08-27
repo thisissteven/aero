@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
+import { getSessionEventHub } from '@/server/services/sessions/session-event-hub';
 import {
   listArchivedSessionsAcrossAdapters,
   listSessionsAcrossAdapters,
@@ -541,6 +542,12 @@ const sessions = new Hono()
       const { id } = c.req.valid('param');
       const { harnessId } = c.req.valid('query');
 
+      console.log('[ABORT REQUEST]', {
+        sessionId: id,
+        harnessId,
+        time: Date.now(),
+      });
+
       const harness = await getActiveAdapter(harnessId);
       const ok = await harness.abortSession(id);
       return c.json({ ok });
@@ -554,26 +561,58 @@ const sessions = new Hono()
     zValidator('query', harnessQuerySchema),
     async (c) => {
       const { id: sessionId } = c.req.valid('param');
+
       const { harnessId } = c.req.valid('query');
 
-      const harness = await getActiveAdapter(harnessId);
+      const hub = getSessionEventHub(harnessId, () =>
+        getActiveAdapter(harnessId),
+      );
 
       return streamSSE(c, async (stream) => {
         const controller = new AbortController();
-        stream.onAbort(() => controller.abort());
+
+        stream.onAbort(() => {
+          console.log('[ABORT REQUEST di streamSSE stream.onAbort]', {
+            harnessId,
+            time: Date.now(),
+          });
+          controller.abort();
+        });
+
+        const events = hub.subscribe(sessionId);
+        const iterator = events[Symbol.asyncIterator]();
 
         try {
-          for await (const event of harness.streamEvents({
-            sessionId,
-            signal: controller.signal,
-          })) {
+          await hub.waitUntilReady();
+
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          await stream.writeSSE({
+            event: 'ready',
+            data: '',
+          });
+
+          while (!controller.signal.aborted) {
+            const result = await iterator.next();
+
+            if (result.done) {
+              break;
+            }
+
             await stream.writeSSE({
-              event: event.type,
-              data: JSON.stringify(event),
+              event: result.value.type,
+              data: JSON.stringify(result.value),
             });
           }
-        } catch (err) {
-          if (!controller.signal.aborted) throw err;
+        } finally {
+          console.log('[ABORT REQUEST di streamSSE finally]', {
+            harnessId,
+            time: Date.now(),
+          });
+          controller.abort();
+          await iterator.return?.();
         }
       });
     },

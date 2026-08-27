@@ -56,11 +56,8 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
 
           <PromptInput.ToolbarEnd>
             <ModelDropdown />
-
             <AgentDropdown />
-
             <VoiceInputButton />
-
             <SendButton />
           </PromptInput.ToolbarEnd>
         </PromptInput.Toolbar>

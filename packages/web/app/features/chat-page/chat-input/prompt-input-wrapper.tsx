@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 
 import { PromptInput, toast } from '@aero/ui';
 
@@ -10,6 +10,7 @@ import {
   useCreateSession,
   useSendMessage,
 } from '@/app/hooks/api/sessions';
+import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
   children,
@@ -54,7 +55,7 @@ export function NewSessionPromptInputWrapper({
       {
         onSuccess: () =>
           navigate({
-            to: `/plugins/${session.id}`,
+            to: `/sessions/${session.id}`,
           }),
       },
     );
@@ -78,13 +79,15 @@ export function NewSessionPromptInputWrapper({
   );
 }
 
+interface ActiveSessionPromptInputWrapperProps {
+  children: ReactNode;
+  isDisabled: boolean;
+}
+
 export function ActiveSessionPromptInputWrapper({
   children,
   isDisabled,
-}: {
-  children: ReactNode;
-  isDisabled: boolean;
-}) {
+}: ActiveSessionPromptInputWrapperProps) {
   const [value, setValue] = useState('');
 
   const { sessionId } = useParams({
@@ -95,24 +98,40 @@ export function ActiveSessionPromptInputWrapper({
 
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
-  const isStreaming = useChatStore((state) => state.isStreaming);
+  const status = useChatStore((state) =>
+    sessionId
+      ? (state.sessions[sessionId]?.status ?? {
+          type: 'idle',
+        })
+      : { type: 'idle' },
+  );
 
-  const setStatus = useChatStore((state) => state.setStatus);
+  const isPending = status.type !== 'idle';
 
   const { mutate: sendMessage } = useSendMessage(undefined);
 
   const { mutate: abortSession } = useAbortSession(undefined);
 
-  const handleSend = () => {
+  const handleSend = useCallback(async () => {
     const text = value.trim();
 
     if (
       !text ||
-      isStreaming ||
+      isPending ||
       !sessionId ||
       !selectedModel?.providerId ||
-      !selectedModel?.id
+      !selectedModel.id
     ) {
+      return;
+    }
+
+    try {
+      await sessionStreamManager.ensure({
+        sessionId,
+        harnessId: undefined,
+      });
+    } catch {
+      toast.danger('Failed to connect to session stream');
       return;
     }
 
@@ -140,32 +159,31 @@ export function ActiveSessionPromptInputWrapper({
         },
       },
     );
-  };
+  }, [value, isPending, sessionId, selectedModel, selectedAgent, sendMessage]);
 
-  const handleAbort = () => {
-    if (!sessionId || !isStreaming) {
+  const [isAborting, setIsAborting] = useState(false);
+
+  const handleAbort = useCallback(() => {
+    if (!sessionId || !isPending || isAborting) {
       return;
     }
 
+    setIsAborting(true);
+
     abortSession(sessionId, {
       onSuccess: () => {
-        /**
-         * Don't wait for another SSE event to unlock
-         * the input. The server accepted the abort.
-         *
-         * The eventual session.status/session.idle event
-         * will keep the store synchronized.
-         */
-        setStatus({ type: 'idle' });
+        setIsAborting(false);
       },
       onError: () => {
+        setIsAborting(false);
+
         toast.danger('Failed to stop session');
       },
     });
-  };
+  }, [sessionId, isPending, isAborting, abortSession]);
 
   const inputDisabled =
-    isDisabled || !selectedModel?.providerId || !selectedModel?.id;
+    isDisabled || !sessionId || !selectedModel?.providerId || !selectedModel.id;
 
   return (
     <PromptInput
@@ -175,9 +193,8 @@ export function ActiveSessionPromptInputWrapper({
       onSubmit={handleSend}
       onStop={handleAbort}
       isDisabled={inputDisabled}
-      isPending={isStreaming}
-      allowSubmitWhileRunning={false}
-      lockInputOnRun
+      status={isAborting ? 'submitted' : undefined}
+      isPending={isPending}
     >
       {children}
     </PromptInput>

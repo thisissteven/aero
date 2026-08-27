@@ -291,36 +291,47 @@ export function PromptInputTextArea({
 }: PromptInputTextAreaProps): ReactElement {
   const state = usePrompt();
   const { expanded, layout, maxHeight, setExpanded } = state;
+
   const resize = useCallback(
     (element: HTMLTextAreaElement | null) => {
       if (!element || disableAutosize) return;
+
       const value = element.value;
+
       if (layout !== 'stacked') {
         const hasAttachments = Boolean(
           element
             .closest('[data-slot="prompt-input-shell"]')
             ?.querySelector('[data-slot="prompt-input-attachments"] > *'),
         );
+
         const hasValue = value.length > 0;
+
         const shouldExpand =
           hasAttachments || (hasValue && shouldExpandTextarea(element));
+
         if (shouldExpand && !expanded) {
           setExpanded(true);
           return;
         }
+
         if (!hasValue && !hasAttachments && expanded) {
           setExpanded(false);
           return;
         }
+
         if (!expanded && !hasAttachments) {
           element.style.height = `${Math.max(
             TEXTAREA_MIN_HEIGHT,
             lineHeight(element) + verticalPadding(element),
           )}px`;
+
           return;
         }
       }
+
       element.style.height = 'auto';
+
       element.style.height =
         typeof maxHeight === 'number'
           ? `${Math.min(element.scrollHeight, maxHeight)}px`
@@ -328,18 +339,24 @@ export function PromptInputTextArea({
     },
     [disableAutosize, expanded, layout, maxHeight, setExpanded],
   );
+
   useLayoutEffect(
     () => resize(state.textareaRef.current),
     [resize, state.textareaRef, state.value],
   );
+
   const keydown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (!running(state.status) || state.allowSubmitWhileRunning)
+
+      if (!running(state.status) || state.allowSubmitWhileRunning) {
         state.onSubmit?.();
+      }
     }
+
     onKeyDown?.(event);
   };
+
   return (
     <TextArea
       ref={state.textareaRef}
@@ -347,9 +364,7 @@ export function PromptInputTextArea({
       aria-label={props['aria-label'] ?? 'Message input'}
       className={cls(TEXTAREA_CLASS, className)}
       data-slot='prompt-input-textarea'
-      disabled={
-        state.disabled || (state.lockInputOnRun && running(state.status))
-      }
+      disabled={state.disabled}
       placeholder={props.placeholder ?? 'What do you want to know?'}
       rows={1}
       value={state.value}

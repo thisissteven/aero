@@ -265,6 +265,10 @@ export function useSessionMessages(
       return res.json();
     },
     enabled: !!sessionId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

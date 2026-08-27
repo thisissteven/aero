@@ -21,14 +21,10 @@ export interface ChatFeedRef {
 export const ChatFeed = forwardRef<
   ChatFeedRef,
   {
-    revertMessageId?: string;
     groups: AeroConversationTurn[];
     onActiveGroupIndexChange: (index: number) => void;
   }
->(function ChatFeed(
-  { revertMessageId, groups, onActiveGroupIndexChange },
-  ref,
-) {
+>(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
   const virtualizerRef = useRef<VirtualizerHandle>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);

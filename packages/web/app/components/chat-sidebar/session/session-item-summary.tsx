@@ -1,8 +1,9 @@
 import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
-import { cn, Dropdown, Separator, Sidebar } from '@aero/ui';
+import { cn, Dropdown, Separator, Sidebar, Spinner } from '@aero/ui';
 
 import {
   ArchiveSession,
@@ -13,6 +14,7 @@ import {
   RenameSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
+import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { formatCompactRelativeTime } from '@/app/lib';
 import {
   useRecentsSessionRenameStore,
@@ -44,6 +46,10 @@ export function SessionItemSummary({
   const recentsState = useRecentsSessionRenameStore((state) => state.state);
   const workspacesState = useWorkspacesSessionRenameStore(
     (state) => state.state,
+  );
+
+  const isRunning = useChatStore(
+    useShallow((state) => state.runningSessions.includes(session.id)),
   );
 
   const isRenaming =
@@ -78,15 +84,17 @@ export function SessionItemSummary({
           </Sidebar.MenuChip>
         ) : null}
 
-        {session.updatedAt ? (
-          <Sidebar.MenuChip
-            className={cn('hide-on-hover', dropdownOpen && 'hidden')}
-          >
+        <Sidebar.MenuChip
+          className={cn('hide-on-hover', dropdownOpen && 'hidden')}
+        >
+          {isRunning ? (
+            <Spinner size='sm' />
+          ) : (
             <span className='text-muted text-[10px] leading-none'>
               {formatCompactRelativeTime(session.updatedAt)}
             </span>
-          </Sidebar.MenuChip>
-        ) : null}
+          )}
+        </Sidebar.MenuChip>
 
         <Sidebar.MenuActions className='ml-auto'>
           <ArchiveSessionIconButton
