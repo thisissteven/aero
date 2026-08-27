@@ -1,9 +1,4 @@
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
 import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
@@ -14,7 +9,7 @@ import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
-import { AeroConversationTurn } from '@/server/services/harness/types';
+import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatFeedRef {
   scrollToIndex: (index: number) => void;
@@ -40,20 +35,16 @@ export const ChatFeed = forwardRef<
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const setConversationData = useChatStore(
-    (state) => state.setConversationData,
-  );
   const flatItems = useChatStore((state) => state.flatItems);
+
   const groupFlatIndex = useChatStore((state) => state.groupFlatIndex);
 
-  useEffect(() => {
-    setConversationData(groups, revertMessageId);
-  }, [groups, revertMessageId, setConversationData]);
+  const isStreaming = useChatStore((state) => state.isStreaming);
 
   const { subscribeScroll } = useScrollSubscription(scrollRef);
+
   const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
 
-  // useTocScrollTracker now directly manages scroll events cleanly
   const { handleScroll } = useTocScrollTracker(
     groups,
     groupFlatIndex,
@@ -61,12 +52,10 @@ export const ChatFeed = forwardRef<
     onActiveGroupIndexChange,
   );
 
-  const isStreaming = useChatStore((state) => state.isStreaming);
-
   useAutoScroll({
     scrollRef,
     contentRef,
-    isStreaming: false,
+    isStreaming,
   });
 
   useImperativeHandle(
@@ -78,14 +67,15 @@ export const ChatFeed = forwardRef<
       scrollToIndex: (groupIndex: number) => {
         const targetFlatIndex =
           useChatStore.getState().groupFlatIndex[groupIndex];
+
         const handle = virtualizerRef.current;
 
-        if (targetFlatIndex === undefined || !handle) return;
+        if (targetFlatIndex === undefined || !handle) {
+          return;
+        }
 
-        // 1. Immediately update active group in TOC UI
         onActiveGroupIndexChange(groupIndex);
 
-        // 2. Perform smooth scroll directly without timing hacks
         handle.scrollToIndex(targetFlatIndex, {
           align: 'start',
           smooth: false,
@@ -102,7 +92,9 @@ export const ChatFeed = forwardRef<
         'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
         isReady ? 'opacity-100' : 'pointer-events-none opacity-0',
       )}
-      style={{ paddingLeft: `${scrollbarWidth}px` }}
+      style={{
+        paddingLeft: `${scrollbarWidth}px`,
+      }}
     >
       <ScrollShadow
         ref={scrollRef}
@@ -116,14 +108,6 @@ export const ChatFeed = forwardRef<
             onScroll={handleScroll}
           />
         </div>
-
-        {isStreaming && (
-          <div className='mx-auto w-full px-3 md:max-w-[720px]'>
-            <div className='text-muted-foreground px-1 py-2 text-sm'>
-              Model is synthesizing...
-            </div>
-          </div>
-        )}
       </ScrollShadow>
     </div>
   );

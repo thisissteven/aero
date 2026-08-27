@@ -15,12 +15,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
-import {
-  AeroConversationTurn,
-  AeroPart,
-  AeroSessionSummary,
-  HarnessId,
-} from '@/server/services/harness/types';
+import { AeroSessionSummary, HarnessId } from '@/server/services/harness/types';
 
 const $sessions = honoClient.api.sessions;
 const $individualSession = honoClient.api.sessions[':id'];
@@ -31,6 +26,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', 'all-archived'] as const,
   detail: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'detail'] as const,
+  status: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'status'] as const,
   messages: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'messages'] as const,
   toc: (harnessId: string | undefined, sessionId: string) =>
@@ -135,6 +132,30 @@ export function useSessionTodos(
     },
     enabled: !!sessionId,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useSessionStatus(
+  harnessId: string | undefined,
+  directory: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.status(harnessId, directory),
+    queryFn: async () => {
+      const res = await $sessions.status.$get({
+        query: {
+          directory,
+          harnessId,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to load session status');
+      }
+
+      return res.json();
+    },
+    enabled: !!directory,
   });
 }
 
@@ -407,17 +428,20 @@ export function useForkSession(
   });
 }
 
-export function useSendMessage(
-  harnessId: string | undefined,
-  sessionId: string,
-) {
-  const queryClient = useQueryClient();
-
+export function useSendMessage(harnessId: string | undefined) {
   return useMutation({
-    mutationFn: async (input: SendMessageInput) => {
+    mutationFn: async (
+      input: SendMessageInput & {
+        sessionId: string;
+      },
+    ) => {
       const res = await $individualSession.message.$post({
-        param: { id: sessionId },
-        query: { harnessId },
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
         json: input,
       });
 
@@ -427,68 +451,26 @@ export function useSendMessage(
 
       return res.json();
     },
-
-    onMutate: async (input) => {
-      const queryKey = sessionKeys.messages(harnessId, sessionId);
-
-      await queryClient.cancelQueries({
-        queryKey,
-      });
-
-      const previousTurns =
-        queryClient.getQueryData<AeroConversationTurn[]>(queryKey) ?? [];
-
-      const createdAt = Date.now();
-      const tempTurnId = `temp-turn-${createdAt}`;
-
-      const optimisticTurn: AeroConversationTurn = {
-        id: tempTurnId,
-        role: 'user',
-        createdAt,
-        parts: input.parts.map((part, index) => ({
-          ...part,
-          id: `temp-part-${createdAt}-${index}`,
-          sessionID: sessionId,
-          messageID: tempTurnId,
-        })) as AeroPart[],
-      };
-
-      queryClient.setQueryData<AeroConversationTurn[]>(queryKey, [
-        ...previousTurns,
-        optimisticTurn,
-      ]);
-
-      return { previousTurns };
-    },
-
-    onError: (_error, _variables, context) => {
-      if (!context) {
-        return;
-      }
-
-      queryClient.setQueryData(
-        sessionKeys.messages(harnessId, sessionId),
-        context.previousTurns,
-      );
-    },
   });
 }
 
-export function useAbortSession(harnessId?: string) {
-  const queryClient = useQueryClient();
+export function useAbortSession(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $individualSession.abort.$post({
-        param: { id: sessionId },
-        query: { harnessId },
+        param: {
+          id: sessionId,
+        },
+        query: {
+          harnessId,
+        },
       });
-      if (!res.ok) throw new Error('Failed to abort session');
+
+      if (!res.ok) {
+        throw new Error('Failed to abort session');
+      }
+
       return res.json();
-    },
-    onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
     },
   });
 }

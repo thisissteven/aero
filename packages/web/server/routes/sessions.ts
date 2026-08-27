@@ -11,11 +11,7 @@ import {
 } from '@/server/services/sessions/sessions-merger';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 
-import {
-  groupMessages,
-  waitForMessagePersistence,
-  withPagination,
-} from '../helper';
+import { groupMessages, withPagination } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import type { AeroPartRequest, AeroTocItem } from '../services/harness/types';
 
@@ -44,18 +40,6 @@ const createSessionInputSchema = z.object({
   title: z.string().optional(),
   directory: z.string().optional(),
   harnessId: z.string().optional(),
-  parts: z.custom<AeroPartRequest[]>(
-    (val) => Array.isArray(val),
-    'parts must be an array',
-  ),
-  model: z
-    .object({
-      providerId: z.string(),
-      modelId: z.string(),
-    })
-    .optional(),
-  system: z.string().optional(),
-  agent: z.string().optional(),
 });
 
 const sessions = new Hono()
@@ -75,6 +59,24 @@ const sessions = new Hono()
       });
 
       return c.json(result);
+    },
+  )
+
+  // GET /api/sessions/status?harnessId=...&directory=...
+  .get(
+    '/status',
+    zValidator(
+      'query',
+      harnessQuerySchema.extend({
+        directory: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, directory } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const status = await harness.getSessionStatus(directory);
+      return c.json(status);
     },
   )
 
@@ -143,15 +145,6 @@ const sessions = new Hono()
         directory,
         harnessId,
       });
-
-      await harness.sendMessage(session.id, {
-        parts: body.parts,
-        model: body.model,
-        system: body.system,
-        agent: body.agent,
-      });
-
-      await waitForMessagePersistence(harness, session.id);
 
       return c.json(session);
     },
@@ -243,6 +236,29 @@ const sessions = new Hono()
 
       const harness = await getActiveAdapter(harnessId);
       const todos = await harness.listTodos(id);
+
+      return c.json(todos);
+    },
+  )
+
+  // GET /api/sessions/:id/model?harnessId=...
+  .patch(
+    '/:id/model',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        model: z.string(),
+        directory: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId } = c.req.valid('query');
+      const { model, directory } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const todos = await harness.updateActiveModel(model, directory);
 
       return c.json(todos);
     },

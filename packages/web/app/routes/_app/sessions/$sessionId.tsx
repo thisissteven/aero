@@ -3,7 +3,11 @@ import { useCallback, useEffect } from 'react';
 
 import { ChatPage } from '@/app/features/chat-page';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
-import { useSession, useSessionMessages } from '@/app/hooks/api/sessions';
+import {
+  useSession,
+  useSessionMessages,
+  useSessionStatus,
+} from '@/app/hooks/api/sessions';
 import { useSessionStream } from '@/app/hooks/api/stream-event';
 
 export const Route = createFileRoute('/_app/sessions/$sessionId')({
@@ -18,17 +22,48 @@ function SessionPage() {
     sessionId,
   );
 
-  const { data: turns = [] } = useSessionMessages(undefined, sessionId);
+  const { data: queriedTurns = [], isLoading: isMessagesLoading } =
+    useSessionMessages(undefined, sessionId);
 
-  const notFound = !session && !isSessionLoading;
+  const turns = useChatStore((state) => state.turns);
 
   const setConversationData = useChatStore(
     (state) => state.setConversationData,
   );
 
+  const setStatus = useChatStore((state) => state.setStatus);
+
+  const reset = useChatStore((state) => state.reset);
+
   useEffect(() => {
-    setConversationData(turns, session?.revert?.messageID);
-  }, [turns, session?.revert?.messageID, setConversationData]);
+    reset();
+  }, [sessionId, reset]);
+
+  useEffect(() => {
+    if (isMessagesLoading) {
+      return;
+    }
+
+    setConversationData(queriedTurns, session?.revert?.messageID);
+  }, [
+    isMessagesLoading,
+    queriedTurns,
+    session?.revert?.messageID,
+    setConversationData,
+  ]);
+
+  const { data: sessionStatus } = useSessionStatus(
+    undefined,
+    session?.workspace ?? '',
+  );
+
+  useEffect(() => {
+    const status = sessionStatus?.[sessionId];
+
+    if (status) {
+      setStatus(status);
+    }
+  }, [sessionStatus, sessionId, setStatus]);
 
   const onStreamEvent = useCallback(
     (
@@ -46,8 +81,11 @@ function SessionPage() {
   useSessionStream({
     sessionId,
     harnessId: undefined,
+    enabled: !isSessionLoading && !isMessagesLoading,
     onEvent: onStreamEvent,
   });
+
+  const notFound = !session && !isSessionLoading;
 
   return (
     <ChatPage

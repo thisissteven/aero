@@ -1,11 +1,3 @@
-// server/services/harness/types.ts
-//
-// This is the contract every harness adapter (opencode, codex, claude, ...)
-// must implement. Routes NEVER import from server/adapters/* directly —
-// they only ever talk to this interface, resolved at request-time via the
-// registry. That's what makes client.api.sessions.$get() work identically
-// no matter which harness is actually running underneath.
-
 import { ApiError, ToolState } from '@opencode-ai/sdk';
 import {
   Agent,
@@ -14,6 +6,7 @@ import {
   FilePart,
   FilePartSource,
   Provider,
+  SessionStatus,
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
 
@@ -51,9 +44,6 @@ export interface AeroSessionSummary {
   };
 }
 
-// Keep this union intentionally small for MVP. Extend as adapters need to
-// express more (e.g. "diff" parts, "todo" parts) — every adapter's mapper
-// has to be updated to produce whichever variants it can support.
 export type AeroPartRequest =
   | {
       type: 'text';
@@ -148,41 +138,41 @@ export type AeroPart = AeroPartRequest & {
 };
 
 export interface AeroSessionContextDetails {
-  provider: string; // last used provider
-  model: string; // last used model
-  createdAt: number; // first message created at
+  provider: string;
+  model: string;
+  createdAt: number;
   context: {
-    used: number; // total used
-    usedPercentage: number; // total used / limit
-    limit: number; // limit of last used model (set 0 for now if unavailable)
+    used: number;
+    usedPercentage: number;
+    limit: number;
     outputLimit: number;
   };
-  messages: number; // total number of messages
-  user: number; // total number sent by role 'user'
-  assistant: number; // total number sent by role 'assistant'
-  cost: number; // all message costs summed up
+  messages: number;
+  user: number;
+  assistant: number;
+  cost: number;
   lastAssistantMessage: {
     input: number;
     output: number;
     reasoning: number;
     cacheRead: number;
     cacheWrite: number;
-    cacheHit: number; // cache read / (input + cache read) * 100
+    cacheHit: number;
   };
   distribution: {
-    userPercentage: number; // percentage of messages sent by user (role: user)
-    assistantPercentage: number; // percentage of messages sent by assistant (type: reasoning, text)
-    toolCallPercentage: number; // percentanges of messages that is of type tool
-    otherPercentage: number; // others
+    userPercentage: number;
+    assistantPercentage: number;
+    toolCallPercentage: number;
+    otherPercentage: number;
   };
   rawMessages: {
     id: string;
     role: ConversationRole;
-    text: string; // each message's part type joined by '-', to not include: 'step-start', 'step-finish'
+    text: string;
     createdAt: number;
     input: number;
     output: number;
-    rawContent: string; // the message json itself
+    rawContent: string;
   }[];
 }
 
@@ -227,9 +217,6 @@ export interface AeroMarkdownExport {
   markdown: string;
 }
 
-// Events an adapter can emit over its live stream. Route layer relays these
-// verbatim as SSE payloads, so the shape here IS the wire contract with the
-// frontend @aero/ui chat components.
 export type AeroSessionStatus =
   | { type: 'idle' }
   | { type: 'busy' }
@@ -253,6 +240,25 @@ export type AeroEvent =
       part: AeroPart;
     }
   | {
+      type: 'message.part.delta';
+      sessionId: string;
+      messageId: string;
+      partId: string;
+      field: 'text';
+      delta: string;
+    }
+  | {
+      type: 'message.part.removed';
+      sessionId: string;
+      messageId: string;
+      partId: string;
+    }
+  | {
+      type: 'message.removed';
+      sessionId: string;
+      messageId: string;
+    }
+  | {
       type: 'session.updated';
       session: AeroSessionSummary;
     }
@@ -264,6 +270,11 @@ export type AeroEvent =
   | {
       type: 'session.idle';
       sessionId: string;
+    }
+  | {
+      type: 'session.diff';
+      sessionId: string;
+      diff: unknown;
     }
   | {
       type: 'session.error';
@@ -305,32 +316,38 @@ export interface AddWorktreeInput {
   directory: string;
 }
 
+export interface BasePaginationParams {
+  cursor?: string;
+  limit?: number;
+  search?: string;
+}
+
 export interface ListSessionsParams extends BasePaginationParams {
   directory?: string;
   archived?: boolean;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  nextCursor?: string;
+}
+
 export interface StreamEventsOptions {
-  /** Filter to a single session's events. Omit for a global/workspace stream. */
   sessionId?: string;
   signal?: AbortSignal;
 }
 
-// Config domain
 export type AeroConfig = Config;
-
-// Provider domain
 export type AeroProvider = Provider;
-
-// Agent & Capability domains
 export type AeroAgent = Agent;
+
 export type AeroAgentCompact = Pick<
   Agent,
   'name' | 'description' | 'mode' | 'native'
 >;
+
 export type AeroCommand = Command;
 
-// Worktree domain
 export interface AeroWorktreeItem {
   directory: string;
   name?: string;
@@ -338,10 +355,9 @@ export interface AeroWorktreeItem {
   isCurrent?: boolean;
 }
 
-// Skill domain (e.g. MCP / Tool / Custom Extension Capabilities)
 export interface AeroSkill {
   name: string;
-  description?: string | undefined;
+  description?: string;
   location: string;
   content: string;
 }
@@ -351,7 +367,6 @@ export type AeroTool = ToolListItem;
 export interface HarnessAdapter {
   readonly id: HarnessId;
 
-  // Workspace Operations
   listWorkspaces(
     params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroWorkspaceSummary>>;
@@ -371,11 +386,9 @@ export interface HarnessAdapter {
     worktreeIdOrDir: string,
   ): Promise<AeroWorkspaceSummary>;
 
-  // Initial Bootstrapping & Syncing
   initWorkspaces(): Promise<AeroWorkspaceSummary[]>;
   syncWorkspaces(): Promise<AeroWorkspaceSummary[]>;
 
-  // Messages Operations
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
   sendMessage(sessionId: string, input: SendMessageInput): Promise<boolean>;
@@ -392,7 +405,9 @@ export interface HarnessAdapter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any(sessionId: string): Promise<any>;
 
-  // Session Operations
+  getSessionStatus(directory: string): Promise<{
+    [key: string]: SessionStatus;
+  }>;
   listSessions(
     params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroSessionSummary>>;
@@ -418,10 +433,8 @@ export interface HarnessAdapter {
 
   abortSession(sessionId: string): Promise<boolean>;
 
-  /** Live event stream, already normalized to AeroEvent. */
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
 
-  // Agents & App Capabilities
   listAgents(directory?: string): Promise<AeroAgent[]>;
   listAgentsCompact(directory?: string): Promise<AeroAgentCompact[]>;
   listSkills(directory?: string): Promise<AeroSkill[]>;
@@ -431,28 +444,18 @@ export interface HarnessAdapter {
     model: string,
     directory?: string,
   ): Promise<AeroTool[]>;
+  updateActiveModel(
+    model: string,
+    directory?: string,
+  ): Promise<string | undefined>;
 
-  // Worktree Operations
   listWorktreeNames(directory?: string): Promise<string[]>;
   createWorktree(directory: string, name: string): Promise<AeroWorktreeItem>;
   removeWorktreeItem(directory: string): Promise<boolean>;
 
-  // Providers & Auth Operations
   listProviders(directory?: string): Promise<AeroProvider[]>;
   listConfiguredProviders(directory?: string): Promise<AeroProvider[]>;
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
 
-  // Config Operations
   getConfig(directory?: string): Promise<AeroConfig>;
-}
-
-export interface BasePaginationParams {
-  cursor?: string;
-  limit?: number;
-  search?: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  nextCursor?: string;
 }

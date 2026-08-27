@@ -65,47 +65,71 @@ export function useSessionStream({
         onEventRef.current?.(event);
 
         if (event.type === 'session.idle') {
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: sessionKeys.messages(harnessId, sessionId),
           });
 
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: sessionKeys.toc(harnessId, sessionId),
           });
 
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: sessionKeys.todos(harnessId, sessionId),
           });
 
           onCompleteRef.current?.();
-
-          // DO NOT close the EventSource here.
-          // This stream is session-scoped and should stay alive.
         }
       } catch (error) {
         console.error('Failed to parse SSE event:', error);
       }
     };
 
-    eventSource.onmessage = handleEvent;
-
-    const knownEvents = [
+    /**
+     * Keep this list in sync with AeroEvent.
+     *
+     * Events such as plugin.added/catalog.updated/etc.
+     * never reach this layer because the server mapper drops them.
+     */
+    const knownEvents: AeroEvent['type'][] = [
       'message.updated',
       'message.part.updated',
+      'message.part.delta',
+      'message.part.removed',
+      'message.removed',
       'session.updated',
+      'session.status',
       'session.idle',
       'session.error',
+      'session.diff',
     ];
 
     for (const type of knownEvents) {
       eventSource.addEventListener(type, handleEvent);
     }
 
+    /**
+     * Also support default SSE messages in case the server
+     * emits an event without an explicit `event:` name.
+     */
+    eventSource.onmessage = handleEvent;
+
     eventSource.onerror = () => {
-      onErrorRef.current?.(new Error('Stream disconnected'));
+      /**
+       * EventSource automatically attempts to reconnect.
+       *
+       * Do NOT mark the session idle here: a transport error
+       * does not mean the model stopped working.
+       */
+      onErrorRef.current?.(new Error('Session event stream disconnected'));
     };
 
     return () => {
+      for (const type of knownEvents) {
+        eventSource.removeEventListener(type, handleEvent);
+      }
+
+      eventSource.onmessage = null;
+      eventSource.onerror = null;
       eventSource.close();
     };
   }, [sessionId, harnessId, enabled, queryClient]);

@@ -5,7 +5,11 @@ import { PromptInput, toast } from '@aero/ui';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
-import { useCreateSession, useSendMessage } from '@/app/hooks/api/sessions';
+import {
+  useAbortSession,
+  useCreateSession,
+  useSendMessage,
+} from '@/app/hooks/api/sessions';
 
 export function NewSessionPromptInputWrapper({
   children,
@@ -16,14 +20,25 @@ export function NewSessionPromptInputWrapper({
 
   const navigate = useNavigate();
 
-  const { mutate: createSession, isPending } = useCreateSession();
+  const { mutateAsync: createSession, isPending: isPendingCreateSession } =
+    useCreateSession();
+  const { mutateAsync: sendMessage, isPending: isPendingSendMessage } =
+    useSendMessage(undefined);
 
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
-  const handleSubmit = (text: string) =>
-    createSession(
+  const handleSubmit = async (text: string) => {
+    const session = await createSession(
+      {},
       {
+        onError: () => toast.danger('Failed to create session'),
+      },
+    );
+
+    await sendMessage(
+      {
+        sessionId: session.id,
         parts: [
           {
             type: 'text',
@@ -31,19 +46,21 @@ export function NewSessionPromptInputWrapper({
           },
         ],
         model: {
-          modelId: selectedModel?.providerId as string,
-          providerId: selectedModel?.id as string,
+          modelId: selectedModel?.id as string,
+          providerId: selectedModel?.providerId as string,
         },
         agent: selectedAgent?.name,
       },
       {
-        onSuccess: (session) =>
+        onSuccess: () =>
           navigate({
-            to: `/sessions/${session.id}`,
+            to: `/plugins/${session.id}`,
           }),
-        onError: () => toast.danger('Failed to create session'),
       },
     );
+  };
+
+  const isPending = isPendingCreateSession || isPendingSendMessage;
 
   const isDisabled =
     isPending || !selectedModel?.providerId || !selectedModel?.id;
@@ -69,18 +86,39 @@ export function ActiveSessionPromptInputWrapper({
   isDisabled: boolean;
 }) {
   const [value, setValue] = useState('');
-  const { sessionId } = useParams({ strict: false });
+
+  const { sessionId } = useParams({
+    strict: false,
+  });
 
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-  const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
-  const { mutateAsync: sendMessage } = useSendMessage(undefined, sessionId);
+  const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
   const isStreaming = useChatStore((state) => state.isStreaming);
 
-  const handleSubmit = (text: string) => {
+  const setStatus = useChatStore((state) => state.setStatus);
+
+  const { mutate: sendMessage } = useSendMessage(undefined);
+
+  const { mutate: abortSession } = useAbortSession(undefined);
+
+  const handleSend = () => {
+    const text = value.trim();
+
+    if (
+      !text ||
+      isStreaming ||
+      !sessionId ||
+      !selectedModel?.providerId ||
+      !selectedModel?.id
+    ) {
+      return;
+    }
+
     sendMessage(
       {
+        sessionId,
         parts: [
           {
             type: 'text',
@@ -88,18 +126,45 @@ export function ActiveSessionPromptInputWrapper({
           },
         ],
         model: {
-          modelId: selectedModel?.id as string,
-          providerId: selectedModel?.providerId as string,
+          modelId: selectedModel.id,
+          providerId: selectedModel.providerId,
         },
         agent: selectedAgent?.name,
       },
       {
-        onError: () => toast.danger('Failed to send message'),
+        onSuccess: () => {
+          setValue('');
+        },
+        onError: () => {
+          toast.danger('Failed to send message');
+        },
       },
     );
   };
 
-  const isInputDisabled =
+  const handleAbort = () => {
+    if (!sessionId || !isStreaming) {
+      return;
+    }
+
+    abortSession(sessionId, {
+      onSuccess: () => {
+        /**
+         * Don't wait for another SSE event to unlock
+         * the input. The server accepted the abort.
+         *
+         * The eventual session.status/session.idle event
+         * will keep the store synchronized.
+         */
+        setStatus({ type: 'idle' });
+      },
+      onError: () => {
+        toast.danger('Failed to stop session');
+      },
+    });
+  };
+
+  const inputDisabled =
     isDisabled || !selectedModel?.providerId || !selectedModel?.id;
 
   return (
@@ -107,10 +172,12 @@ export function ActiveSessionPromptInputWrapper({
       className='w-full max-w-[780px]'
       value={value}
       onValueChange={setValue}
-      onSubmit={() => handleSubmit(value)}
-      isDisabled={isInputDisabled}
+      onSubmit={handleSend}
+      onStop={handleAbort}
+      isDisabled={inputDisabled}
       isPending={isStreaming}
       allowSubmitWhileRunning={false}
+      lockInputOnRun
     >
       {children}
     </PromptInput>

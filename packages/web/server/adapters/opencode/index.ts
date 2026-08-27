@@ -4,15 +4,18 @@ import type { Event } from '@opencode-ai/sdk/v2';
 import pLimit from 'p-limit';
 
 import {
+  getOpencodeClientV2,
   withOpencodeClientV1,
   withOpencodeClientV2,
 } from '@/server/adapters/opencode/client';
+import { parseSseEventEnvelope } from '@/server/adapters/opencode/sse-envelope';
 import {
   AERO_DIR,
   GET_ALL_LIMIT,
   PAGINATION_LIMIT,
   WORKSPACE_VISIBLE_SESSIONS_LIMIT,
 } from '@/server/helper';
+import { debugLog } from '@/server/lib/debug-log';
 import type {
   AddWorktreeInput,
   AeroEvent,
@@ -399,6 +402,17 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       };
     },
 
+    async getSessionStatus(directory) {
+      const status = await withOpencodeClientV2(async (client) => {
+        return unwrap(
+          await client.session.status({
+            directory,
+          }),
+        );
+      });
+      return status;
+    },
+
     async getSession(sessionID) {
       return withOpencodeClientV1(async (client) => {
         const session = unwrap(
@@ -634,6 +648,20 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           client.session.todo({ sessionID }),
         ),
       );
+    },
+
+    async updateActiveModel(model, directory) {
+      const config = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.config.update({
+            directory,
+            config: {
+              model,
+            },
+          }),
+        ),
+      );
+      return config.model;
     },
 
     async any() {
@@ -918,36 +946,135 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     ): AsyncIterable<AeroEvent> {
       const { sessionId, signal } = options;
 
-      const events = await withOpencodeClientV2((client) =>
-        client.event.subscribe(),
-      );
+      const { node, release } = await getOpencodeClientV2();
 
-      for await (const event of events.stream) {
-        if (signal?.aborted) {
-          return;
+      const controller = new AbortController();
+
+      const abortFromCaller = () => {
+        controller.abort();
+      };
+
+      signal?.addEventListener('abort', abortFromCaller, {
+        once: true,
+      });
+
+      let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
+      try {
+        const url = new URL('/global/event', node.server.url);
+
+        console.log('[OPENCODE STREAM] connecting', url.toString());
+
+        const response = await fetch(url, {
+          headers: {
+            Accept: 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `OpenCode event stream failed: ${response.status} ${response.statusText}`,
+          );
         }
 
-        const mapped = mapOpencodeEvent(event);
-
-        if (!mapped) {
-          continue;
+        if (!response.body) {
+          throw new Error('OpenCode event stream has no response body');
         }
 
-        if (
-          sessionId &&
-          'sessionId' in mapped &&
-          mapped.sessionId !== sessionId
-        ) {
-          continue;
+        reader = response.body.getReader();
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (!controller.signal.aborted) {
+          const { value, done } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          buffer += decoder
+            .decode(value, { stream: true })
+            .replace(/\r\n/g, '\n');
+
+          let separatorIndex = buffer.indexOf('\n\n');
+
+          while (separatorIndex !== -1 && !controller.signal.aborted) {
+            const block = buffer.slice(0, separatorIndex);
+
+            buffer = buffer.slice(separatorIndex + 2);
+
+            const envelope = parseSseEventEnvelope<{
+              id?: string;
+              type?: string;
+              properties?: Record<string, unknown>;
+            }>(block);
+
+            if (!envelope?.payload) {
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
+
+            const payload = envelope.payload;
+
+            // OpenCode also emits internal sync envelopes.
+            // We only want the actual event payloads.
+            if (payload.type === 'sync') {
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
+
+            if (typeof payload.type !== 'string') {
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
+
+            const mapped = mapOpencodeEvent(payload as Event);
+
+            if (!mapped) {
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
+
+            if (
+              sessionId &&
+              'sessionId' in mapped &&
+              mapped.sessionId !== sessionId
+            ) {
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
+
+            console.log('[OPENCODE AERO EVENT]', mapped);
+
+            yield mapped;
+
+            separatorIndex = buffer.indexOf('\n\n');
+          }
+        }
+      } finally {
+        signal?.removeEventListener('abort', abortFromCaller);
+
+        controller.abort();
+
+        try {
+          await reader?.cancel();
+        } catch {
+          // Ignore cancellation errors.
         }
 
-        yield mapped;
+        release();
       }
     },
   };
 }
 
 function mapOpencodeEvent(event: Event): AeroEvent | null {
+  void debugLog('OPENCODE', `RAW EVENT: ${event.type}`, event);
+
   switch (event.type) {
     case 'message.updated': {
       const { info } = event.properties;
@@ -973,6 +1100,40 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
       };
     }
 
+    case 'message.part.delta': {
+      const { sessionID, messageID, partID, field, delta } = event.properties;
+
+      return {
+        type: 'message.part.delta',
+        sessionId: sessionID,
+        messageId: messageID,
+        partId: partID,
+        field: field as 'text',
+        delta,
+      };
+    }
+
+    case 'message.part.removed': {
+      const { sessionID, messageID, partID } = event.properties;
+
+      return {
+        type: 'message.part.removed',
+        sessionId: sessionID,
+        messageId: messageID,
+        partId: partID,
+      };
+    }
+
+    case 'message.removed': {
+      const { sessionID, messageID } = event.properties;
+
+      return {
+        type: 'message.removed',
+        sessionId: sessionID,
+        messageId: messageID,
+      };
+    }
+
     case 'session.status': {
       const { sessionID, status } = event.properties;
 
@@ -983,14 +1144,35 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
       };
     }
 
+    case 'session.updated': {
+      const { info } = event.properties;
+
+      return {
+        type: 'session.updated',
+        session: toAeroSessionV2(info),
+      };
+    }
+
     case 'session.idle':
       return {
         type: 'session.idle',
         sessionId: event.properties.sessionID,
       };
 
+    case 'session.diff': {
+      const { sessionID, diff } = event.properties;
+
+      return {
+        type: 'session.diff',
+        sessionId: sessionID,
+        diff,
+      };
+    }
+
     case 'session.error': {
       const error = event.properties.error as { message?: string } | undefined;
+
+      console.log('[OPENCODE RAW ERROR]', JSON.stringify(event, null, 2));
 
       return {
         type: 'session.error',
