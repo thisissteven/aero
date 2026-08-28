@@ -122,8 +122,8 @@ div[ref] canvas,
 }
 
 :root {
-  --tool-pop-dur: 500ms;
-  --tool-pop-distance: 8px;
+  --tool-pop-dur: 400ms;
+  --tool-pop-distance: 4px;
   --tool-pop-step: 70ms;
   --tool-pop-blur: 2px;
   --tool-pop-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
