@@ -48,7 +48,6 @@ The foundation is being built:
 
 ⏳ Additional harness integrations
 
-
 The first milestone is a working web application powered by **opencode**.
 
 ---
@@ -107,8 +106,8 @@ Adding a new harness should only require implementing Aero's adapter interface.
 
 - [x] Complete web application structure
 - [x] Connect opencode adapter
-- [ ] Stream agent responses into Aero UI
-- [ ] Persist workspace and session state
+- [x] Stream agent responses into Aero UI
+- [x] Persist workspace and session state
 
 ### Phase 2 — Web Polish
 

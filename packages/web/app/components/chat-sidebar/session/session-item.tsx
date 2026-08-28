@@ -85,7 +85,7 @@ export const ChatSidebarSessionItem = memo(
         isCurrent={isCurrent}
         textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
-        className='group'
+        className='group relative'
       >
         {isEditModeRecents && from === 'recents' && (
           <SelectSession sessionId={session.id} />
@@ -161,7 +161,7 @@ export const WorkspaceSessionItem = memo(
         isCurrent={isCurrent}
         textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
-        className='group [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
+        className='group relative [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
       >
         {isEditMode && <SelectWorkspaceSession sessionId={session.id} />}
         <SessionItemSummary

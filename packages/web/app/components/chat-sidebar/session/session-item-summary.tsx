@@ -60,9 +60,32 @@ export function SessionItemSummary({
       workspacesState.isRenaming &&
       workspacesState.sessionId === session.id);
 
+  const { isUnread, unreadStatus } = useChatStore(
+    useShallow((state) => {
+      const unread = state.unreadSessions.find(
+        (item) => item.sessionId === session.id,
+      );
+
+      return {
+        isUnread: !!unread,
+        unreadStatus: unread?.status ?? null,
+      };
+    }),
+  );
+
   if (!isRenaming) {
     return (
       <>
+        {isUnread && (
+          <div
+            className={cn(
+              'absolute top-1.5 right-1.5 size-1 rounded-full',
+              unreadStatus === 'success' && 'bg-success',
+              unreadStatus === 'error' && 'bg-danger',
+            )}
+          ></div>
+        )}
+
         <Sidebar.MenuItemContent>
           <Sidebar.MenuLabel
             className={cn(

@@ -75,7 +75,7 @@ export const ChatFeed = forwardRef<
         handle.scrollToIndex(targetFlatIndex, {
           align: 'start',
           smooth: false,
-          offset: -40,
+          offset: -24,
         });
       },
     }),

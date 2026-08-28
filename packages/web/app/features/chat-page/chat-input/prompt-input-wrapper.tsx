@@ -29,6 +29,8 @@ export function NewSessionPromptInputWrapper({
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
+  const addRunningSession = useChatStore((state) => state.addRunningSession);
+
   const handleSubmit = async (text: string) => {
     const session = await createSession(
       {},
@@ -36,6 +38,11 @@ export function NewSessionPromptInputWrapper({
         onError: () => toast.danger('Failed to create session'),
       },
     );
+
+    await sessionStreamManager.ensure({
+      sessionId: session.id,
+      harnessId: undefined,
+    });
 
     await sendMessage(
       {
@@ -59,6 +66,8 @@ export function NewSessionPromptInputWrapper({
           }),
       },
     );
+
+    addRunningSession(session.id);
   };
 
   const isPending = isPendingCreateSession || isPendingSendMessage;

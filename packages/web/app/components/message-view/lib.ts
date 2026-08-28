@@ -209,7 +209,6 @@ export function buildFlatConversationItems(
      * continue to render while a newer assistant turn is streaming.
      */
     const isLastTurn = turnIndex === displayedGroups.length - 1;
-
     const isTurnStreaming = isStreaming && isLastTurn;
 
     if (!hasRenderedTurn) {
@@ -327,12 +326,12 @@ export function buildFlatConversationItems(
           assistantTextResponse: assistantTextResponse || (errorMessage ?? ''),
           nextTurnId,
         });
-
-        items.push({
-          id: `${turn.id}-spacer-footer`,
-          type: 'spacer-footer',
-        });
       }
+
+      items.push({
+        id: `${turn.id}-spacer-footer`,
+        type: 'spacer-footer',
+      });
     }
   }
 

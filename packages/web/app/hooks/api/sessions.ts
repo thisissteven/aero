@@ -17,8 +17,8 @@ import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-st
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { AeroSessionSummary, HarnessId } from '@/server/services/harness/types';
 
-const $sessions = honoClient.api.sessions;
-const $individualSession = honoClient.api.sessions[':id'];
+export const $sessions = honoClient.api.sessions;
+export const $individualSession = honoClient.api.sessions[':id'];
 
 export const sessionKeys = {
   merged: () => ['sessions', 'default'] as const,
@@ -137,14 +137,14 @@ export function useSessionTodos(
 
 export function useSessionStatus(
   harnessId: string | undefined,
-  directory: string,
+  sessionId: string,
 ) {
   return useQuery({
-    queryKey: sessionKeys.status(harnessId, directory),
+    queryKey: sessionKeys.status(harnessId, sessionId),
     queryFn: async () => {
-      const res = await $sessions.status.$get({
+      const res = await $individualSession.status.$get({
+        param: { id: sessionId },
         query: {
-          directory,
           harnessId,
         },
       });
@@ -155,7 +155,7 @@ export function useSessionStatus(
 
       return res.json();
     },
-    enabled: !!directory,
+    enabled: !!sessionId,
   });
 }
 

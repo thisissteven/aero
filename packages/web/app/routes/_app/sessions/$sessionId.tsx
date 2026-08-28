@@ -27,6 +27,10 @@ function SessionPage() {
 
   const setActiveSession = useChatStore((state) => state.setActiveSession);
 
+  const removeUnreadSession = useChatStore(
+    (state) => state.removeUnreadSession,
+  );
+
   const setConversationData = useChatStore(
     (state) => state.setConversationData,
   );
@@ -43,7 +47,16 @@ function SessionPage() {
    */
   useEffect(() => {
     setActiveSession(sessionId, session?.revert?.messageID);
-  }, [sessionId, session?.revert?.messageID, setActiveSession]);
+    /**
+     * Changing the active view also marks the session as read.
+     */
+    removeUnreadSession(sessionId);
+  }, [
+    sessionId,
+    session?.revert?.messageID,
+    setActiveSession,
+    removeUnreadSession,
+  ]);
 
   /**
    * Hydrate persisted messages once.
@@ -65,10 +78,7 @@ function SessionPage() {
     setConversationData,
   ]);
 
-  const { data: sessionStatus } = useSessionStatus(
-    undefined,
-    session?.workspace ?? '',
-  );
+  const { data: sessionStatus } = useSessionStatus(undefined, sessionId);
 
   useEffect(() => {
     const status = sessionStatus?.[sessionId];

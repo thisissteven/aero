@@ -63,24 +63,6 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/status?harnessId=...&directory=...
-  .get(
-    '/status',
-    zValidator(
-      'query',
-      harnessQuerySchema.extend({
-        directory: z.string(),
-      }),
-    ),
-    async (c) => {
-      const { harnessId, directory } = c.req.valid('query');
-
-      const harness = await getActiveAdapter(harnessId);
-      const status = await harness.getSessionStatus(directory);
-      return c.json(status);
-    },
-  )
-
   // GET /api/sessions?harnessId=...&cursor=...&limit=...&search=...
   .get(
     '/',
@@ -163,6 +145,22 @@ const sessions = new Hono()
       const harness = await getActiveAdapter(harnessId);
       const session = await harness.getSession(id);
       return c.json(session);
+    },
+  )
+
+  // GET /api/sessions/:id/status?harnessId=...
+  .get(
+    '/:id/status',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const status = await harness.getSessionStatus(session.workspace);
+      return c.json(status);
     },
   )
 

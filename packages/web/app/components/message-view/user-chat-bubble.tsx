@@ -95,7 +95,7 @@ export const UserChatBubble = memo(
       const scrollContainer = bubbleEl.closest<HTMLElement>('.overflow-y-auto');
 
       if (scrollContainer) {
-        const topOffset = 40;
+        const topOffset = 32;
         const containerRect = scrollContainer.getBoundingClientRect();
         const bubbleRect = bubbleEl.getBoundingClientRect();
         const targetScrollTop =

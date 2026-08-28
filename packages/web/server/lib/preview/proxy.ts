@@ -11,10 +11,8 @@ function buildUpstreamUrl(
   requestUrl: string,
 ): URL {
   const request = new URL(requestUrl);
-
   const upstream = new URL(restPath || '/', `${target.origin}/`);
 
-  // Preserve the raw query string exactly.
   upstream.search = request.search;
 
   return upstream;
@@ -83,9 +81,6 @@ function rewritePreviewResourceUrl(
     return value;
   }
 
-  // IMPORTANT:
-  // SVG <use href="#foo"> and other fragment-only references
-  // must remain same-document references.
   if (trimmed.startsWith('#')) {
     return value;
   }
@@ -94,33 +89,20 @@ function rewritePreviewResourceUrl(
     return value;
   }
 
-  /*
-   * Root-relative URL:
-   *
-   *   /assets/foo.js
-   *
-   * stays on the preview origin:
-   *
-   *   http://abc.preview.localhost:5173/assets/foo.js
-   */
   if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
     return previewOrigin + trimmed;
   }
 
   try {
-    const parsed = new URL(trimmed, targetOrigin + '/');
+    const parsed = new URL(trimmed, `${targetOrigin}/`);
 
     const target = new URL(targetOrigin);
 
-    /*
-     * Absolute URL belonging to the upstream
-     * target becomes a preview-origin URL.
-     */
     if (parsed.origin === target.origin) {
       return previewOrigin + parsed.pathname + parsed.search + parsed.hash;
     }
   } catch {
-    //
+    // Keep original URL.
   }
 
   return value;
@@ -133,11 +115,6 @@ function rewriteHtml(
 ): string {
   let result = html;
 
-  /*
-   * HTML resource attributes.
-   *
-   * Keep fragment references untouched.
-   */
   result = result.replace(
     /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
     (_match, attribute, quote, value) => {
@@ -151,9 +128,6 @@ function rewriteHtml(
     },
   );
 
-  /*
-   * srcset
-   */
   result = result.replace(
     /\bsrcset=(['"])([^'"]*)\1/gi,
     (_match, quote, value) => {
@@ -184,15 +158,6 @@ function rewriteHtml(
     },
   );
 
-  /*
-   * Inline module scripts.
-   *
-   * OpenChamber does this because a module may contain:
-   *
-   *   import "/assets/foo.js"
-   *
-   * which otherwise bypasses HTML rewriting.
-   */
   result = result.replace(
     /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
     (match, attrs, scriptBody) => {
@@ -224,11 +189,8 @@ function rewriteHtml(
     },
   );
 
-  /*
-   * Remove Vite's late-injected loader.
-   */
   result = result.replace(
-    /<script\b[^>]*>\s*import\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi,
+    /<script\b[^>]*>\s*import\s*\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi,
     '',
   );
 
@@ -255,16 +217,11 @@ function rewriteCss(
     },
   );
 
-  /*
-   * This was missing from your implementation.
-   *
-   * @import "/assets/foo.css"
-   */
   result = result.replace(
-    /@import\s+(['"])\/(?!\/)([^'"]*)\1/gi,
+    /@import\s+(['"])(\/[^'"]*)\1/gi,
     (_match, quote, path) => {
       const rewritten = rewritePreviewResourceUrl(
-        `/${path}`,
+        String(path),
         targetOrigin,
         previewOrigin,
       );
@@ -283,14 +240,11 @@ function rewriteJavaScript(
 ): string {
   let result = javascript;
 
-  /*
-   * import "/foo.js"
-   */
   result = result.replace(
-    /\bimport\s+(['"])\/(?!\/)([^'"]*)\1/g,
+    /\bimport\s+(['"])(\/[^'"]*)\1/g,
     (_match, quote, path) => {
       const rewritten = rewritePreviewResourceUrl(
-        `/${path}`,
+        String(path),
         targetOrigin,
         previewOrigin,
       );
@@ -299,14 +253,11 @@ function rewriteJavaScript(
     },
   );
 
-  /*
-   * import("./foo.js")
-   */
   result = result.replace(
-    /\bimport\(\s*(['"])\/(?!\/)([^'"]*)\1\s*\)/g,
+    /\bimport\(\s*(['"])(\/[^'"]*)\1\s*\)/g,
     (_match, quote, path) => {
       const rewritten = rewritePreviewResourceUrl(
-        `/${path}`,
+        String(path),
         targetOrigin,
         previewOrigin,
       );
@@ -315,14 +266,11 @@ function rewriteJavaScript(
     },
   );
 
-  /*
-   * from "/foo.js"
-   */
   result = result.replace(
-    /\bfrom\s+(['"])\/(?!\/)([^'"]*)\1/g,
+    /\bfrom\s+(['"])(\/[^'"]*)\1/g,
     (_match, quote, path) => {
       const rewritten = rewritePreviewResourceUrl(
-        `/${path}`,
+        String(path),
         targetOrigin,
         previewOrigin,
       );
@@ -368,32 +316,31 @@ export async function proxyRequest(
 
   const upstream = buildUpstreamUrl(target, restPath, c.req.url);
 
-  // console.info('[PREVIEW]', c.req.method, '→', upstream.toString());
+  const proxy =
+    upstream.protocol === 'https:'
+      ? process.env.HTTPS_PROXY
+      : process.env.HTTP_PROXY;
 
   let response: Response;
 
   try {
     response = await fetch(upstream, {
       method: c.req.method,
+
       headers: filterRequestHeaders(c.req.raw.headers),
+
       body:
         c.req.method === 'GET' || c.req.method === 'HEAD'
           ? undefined
           : c.req.raw.body,
+
       redirect: 'manual',
+
       signal: AbortSignal.timeout(30_000),
+
+      proxy,
     });
-
-    // console.info('[PREVIEW RESPONSE]', {
-    //   request: c.req.url,
-    //   upstream: upstream.toString(),
-    //   status: response.status,
-    //   contentType: response.headers.get('content-type'),
-    //   location: response.headers.get('location'),
-    // });
   } catch (error) {
-    // console.error('[PREVIEW ERROR]', upstream.toString(), error);
-
     return c.json(
       {
         error: 'Preview upstream request failed',
@@ -406,10 +353,6 @@ export async function proxyRequest(
 
   const headers = copyResponseHeaders(response.headers);
 
-  /*
-   * Same-origin redirects stay on
-   * the preview hostname.
-   */
   if (response.status >= 300 && response.status < 400) {
     const location = response.headers.get('location');
 
@@ -460,7 +403,6 @@ export async function proxyRequest(
   const body = await response.text();
 
   headers.delete('content-length');
-
   headers.delete('content-encoding');
 
   if (isHtml) {
@@ -495,23 +437,7 @@ export async function proxyRequest(
     });
   }
 
-  /*
-   * JavaScript is deliberately passed through unchanged.
-   *
-   * Because the document origin is:
-   *
-   *   <id>.preview.localhost:5173
-   *
-   * browser-relative imports resolve against the
-   * preview origin automatically.
-   */
-  const rewrittenJavaScript = rewriteJavaScript(
-    body,
-    target.origin,
-    previewOrigin,
-  );
-
-  return new Response(rewrittenJavaScript, {
+  return new Response(rewriteJavaScript(body, target.origin, previewOrigin), {
     status: response.status,
     statusText: response.statusText,
     headers,
