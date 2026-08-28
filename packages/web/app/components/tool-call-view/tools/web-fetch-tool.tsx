@@ -6,7 +6,15 @@ import { WebFetchPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const WebFetchToolView = memo(
-  ({ part, blockId }: { part: WebFetchPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: WebFetchPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const url = part.input.url || '';
     const format = part.input.format || 'text';
     const rawOutput = formatToolOutput(part.output);
@@ -23,6 +31,7 @@ export const WebFetchToolView = memo(
         language={format}
         preview={url}
         copyText={rawOutput}
+        isStreaming={isStreaming}
       />
     );
   },

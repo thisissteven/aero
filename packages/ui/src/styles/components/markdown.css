@@ -202,26 +202,22 @@
     overflow-wrap: break-word;
   }
 
-  /* Streaming animation support */
-  .markdown [data-sd-animate] {
-    animation: var(--sd-animation, sd-fadeIn) var(--sd-duration, 0.15s)
-      var(--sd-easing, ease) var(--sd-delay, 0s) both;
+  /*
+   * Streaming text
+   *
+   * The Markdown renderer adds `.t-stream-w` to newly rendered words.
+   * The animation runs once when each span enters the DOM.
+   */
+  .markdown .t-stream-w {
+    opacity: 0;
+    filter: blur(1px);
+    animation: t-stream-word-in 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  @keyframes sd-fadeIn {
+  @keyframes t-stream-word-in {
     from {
       opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes sd-blurIn {
-    from {
-      opacity: 0;
-      filter: blur(4px);
+      filter: blur(1px);
     }
 
     to {
@@ -230,15 +226,11 @@
     }
   }
 
-  @keyframes sd-slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-
-    to {
+  @media (prefers-reduced-motion: reduce) {
+    .markdown .t-stream-w {
+      animation: none;
       opacity: 1;
-      transform: translateY(0);
+      filter: none;
     }
   }
 }

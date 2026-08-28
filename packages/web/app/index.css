@@ -61,3 +61,105 @@ div[ref] canvas,
   -o-transition: none !important;
   transition: none !important;
 }
+
+:root {
+  --think-swap: 150ms;
+  --think-gap: 50ms;
+  --think-distance: 8px;
+  --think-blur: 2px;
+  --think-ease: ease-in-out;
+}
+
+.t-think {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.t-think-sizer {
+  display: block;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.t-think-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  white-space: nowrap;
+  transform: translateY(0);
+  filter: blur(0);
+  opacity: 1;
+  transition:
+    transform var(--think-swap) var(--think-ease),
+    filter var(--think-swap) var(--think-ease),
+    opacity var(--think-swap) var(--think-ease);
+  will-change: transform, filter, opacity;
+}
+
+.t-think-text.is-exit {
+  transform: translateY(calc(var(--think-distance) * -1));
+  filter: blur(var(--think-blur));
+  opacity: 0;
+}
+
+.t-think-text.is-enter-start {
+  transition: none;
+  transform: translateY(var(--think-distance));
+  filter: blur(var(--think-blur));
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-think-text {
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+:root {
+  --tool-pop-dur: 500ms;
+  --tool-pop-distance: 8px;
+  --tool-pop-step: 70ms;
+  --tool-pop-blur: 2px;
+  --tool-pop-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --tool-pop-dir-x: 0;
+  --tool-pop-dir-y: 1;
+}
+
+@keyframes t-tool-pop-in {
+  0% {
+    transform: translate(
+      calc(var(--tool-pop-distance) * var(--tool-pop-dir-x)),
+      calc(var(--tool-pop-distance) * var(--tool-pop-dir-y))
+    );
+    opacity: 0;
+    filter: blur(var(--tool-pop-blur));
+  }
+
+  100% {
+    transform: translate(0, 0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-tool-pop-item {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+  animation-name: t-tool-pop-in;
+  animation-duration: var(--tool-pop-dur);
+  animation-timing-function: var(--tool-pop-ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--tool-pop-index) * var(--tool-pop-step));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tool-pop-item {
+    animation: none !important;
+  }
+}

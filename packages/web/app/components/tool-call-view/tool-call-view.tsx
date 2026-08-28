@@ -36,10 +36,11 @@ type ToolPart = Extract<AeroPart, { type: 'tool' }>;
 
 export const ToolCallView = memo(function ToolCallView({
   part,
-  blockId,
+  ...props
 }: {
   part: ToolPart;
   blockId: string;
+  isStreaming: boolean;
 }) {
   switch (part.toolName) {
     // Edit tools
@@ -50,47 +51,47 @@ export const ToolCallView = memo(function ToolCallView({
     case 'write':
     case 'create':
     case 'file_write':
-      return <EditToolView part={part as EditPart} blockId={blockId} />;
+      return <EditToolView part={part as EditPart} {...props} />;
 
     case 'apply_patch':
-      return <PatchToolView part={part as PatchPart} blockId={blockId} />;
+      return <PatchToolView part={part as PatchPart} {...props} />;
 
     // Read tools
     case 'read':
     case 'view':
     case 'file_read':
     case 'cat':
-      return <ReadToolView part={part as ReadPart} blockId={blockId} />;
+      return <ReadToolView part={part as ReadPart} {...props} />;
 
     // Shell / Execution tools
     case 'bash':
     case 'shell':
     case 'cmd':
     case 'terminal':
-      return <BashToolView part={part as BashPart} blockId={blockId} />;
+      return <BashToolView part={part as BashPart} {...props} />;
 
     // Directory search tools
     case 'search':
     case 'grep':
     case 'find':
     case 'ripgrep':
-      return <SearchToolView part={part as SearchPart} blockId={blockId} />;
+      return <SearchToolView part={part as SearchPart} {...props} />;
 
     case 'glob':
-      return <GlobToolView part={part as GlobPart} blockId={blockId} />;
+      return <GlobToolView part={part as GlobPart} {...props} />;
 
     case 'lsp':
-      return <LspToolView part={part as LspPart} blockId={blockId} />;
+      return <LspToolView part={part as LspPart} {...props} />;
 
     case 'skill':
-      return <SkillToolView part={part as SkillPart} blockId={blockId} />;
+      return <SkillToolView part={part as SkillPart} {...props} />;
 
     // Network / Web tools
     case 'fetch':
     case 'curl':
     case 'wget':
     case 'webfetch':
-      return <WebFetchToolView part={part as WebFetchPart} blockId={blockId} />;
+      return <WebFetchToolView part={part as WebFetchPart} {...props} />;
 
     case 'web-search':
     case 'websearch':
@@ -100,20 +101,18 @@ export const ToolCallView = memo(function ToolCallView({
     case 'bing':
     case 'duckduckgo':
     case 'perplexity':
-      return (
-        <WebSearchToolView part={part as WebSearchPart} blockId={blockId} />
-      );
+      return <WebSearchToolView part={part as WebSearchPart} {...props} />;
 
     case 'question':
-      return <QuestionToolView part={part as QuestionPart} blockId={blockId} />;
+      return <QuestionToolView part={part as QuestionPart} {...props} />;
 
     case 'todowrite':
     case 'todoread':
-      return <TodoToolView part={part as TodoWritePart} blockId={blockId} />;
+      return <TodoToolView part={part as TodoWritePart} {...props} />;
 
     // Catch-all default tool view
     default:
-      return <GenericToolView part={part} blockId={blockId} />;
+      return <GenericToolView part={part} {...props} />;
   }
 });
 

@@ -8,7 +8,15 @@ import {
 } from '@/app/components/tool-call-view/tools/tool-types';
 
 export const TodoToolView = memo(
-  ({ part, blockId }: { part: TodoWritePart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: TodoWritePart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const todos: TodoItem[] = useMemo(() => {
       if (Array.isArray(part.metadata?.todos)) {
         return part.metadata.todos;
@@ -37,6 +45,7 @@ export const TodoToolView = memo(
         title='Update Todo List'
         preview={`${stats.total} todos`}
         copyText={JSON.stringify(todos, null, 2)}
+        isStreaming={isStreaming}
       >
         <div className='space-y-6 py-2 text-sm'>
           <div className='text-muted bg-surface/50 border-separator flex flex-wrap items-center gap-3 rounded-xl border p-3 text-xs'>

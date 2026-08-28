@@ -2,7 +2,6 @@
 
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { AnimatePresence, motion } from 'motion/react';
 import { memo, ReactElement, useEffect, useRef, useState } from 'react';
 
 import {
@@ -16,6 +15,9 @@ import {
 import { DeferredView } from '@/app/components/deferred-view';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
+
+const THINK_SWAP = 150;
+const THINK_GAP = 50;
 
 export const ReasoningBlock = memo(function ReasoningBlock({
   blockId,
@@ -48,7 +50,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
       const currentLength = currentText.length;
 
       if (!isStreaming) {
-        setPreview(currentText.slice(0, 100));
+        setPreview(stripMarkdown(currentText.slice(0, 100)));
         lastPreviewLengthRef.current = currentLength;
         return;
       }
@@ -58,7 +60,6 @@ export const ReasoningBlock = memo(function ReasoningBlock({
       }
 
       lastPreviewLengthRef.current = currentLength;
-
       setPreview(stripMarkdown(currentText.slice(-100)));
     };
 
@@ -73,12 +74,6 @@ export const ReasoningBlock = memo(function ReasoningBlock({
     return () => clearInterval(intervalId);
   }, [isStreaming]);
 
-  const hasStreamedRef = useRef(isStreaming);
-
-  if (isStreaming) {
-    hasStreamedRef.current = true;
-  }
-
   return (
     <ChainOfThought
       key={blockId}
@@ -90,6 +85,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
         icon={
           <div className='relative shrink-0'>
             <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
+
             <Icon
               data={Bulb}
               className='text-muted absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
@@ -101,35 +97,15 @@ export const ReasoningBlock = memo(function ReasoningBlock({
           </div>
         }
         preview={
-          <div className='w-full min-w-0'>
-            <AnimatePresence mode='wait' initial={false}>
-              <motion.span
-                key={hasStreamedRef.current ? preview : 'static-initial'}
-                initial={
-                  hasStreamedRef.current
-                    ? { opacity: 0, y: 4, filter: 'blur(2px)' }
-                    : false
-                }
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  filter: 'blur(0px)',
-                }}
-                exit={
-                  hasStreamedRef.current
-                    ? { opacity: 0, y: -4, filter: 'blur(2px)' }
-                    : undefined
-                }
-                transition={{
-                  duration: 0.15,
-                  ease: 'easeInOut',
-                }}
-                className='block w-4/5 truncate text-left md:w-full'
-              >
+          isStreaming ? (
+            <ThinkingPreview preview={preview} />
+          ) : (
+            <div className='w-full min-w-0'>
+              <span className='block w-4/5 truncate text-left md:w-full'>
                 {preview}
-              </motion.span>
-            </AnimatePresence>
-          </div>
+              </span>
+            </div>
+          )
         }
       >
         <span className='text-foreground'>Thinking</span>
@@ -159,5 +135,80 @@ export const ReasoningBlock = memo(function ReasoningBlock({
         </ScrollShadow>
       </ChainOfThought.Content>
     </ChainOfThought>
+  );
+});
+
+const ThinkingPreview = memo(function ThinkingPreview({
+  preview,
+}: {
+  preview: string;
+}): ReactElement {
+  const [currentText, setCurrentText] = useState(preview);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+
+  const pendingTextRef = useRef(preview);
+  const previousPreviewRef = useRef(preview);
+  const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!preview || preview === previousPreviewRef.current) {
+      return;
+    }
+
+    previousPreviewRef.current = preview;
+    pendingTextRef.current = preview;
+
+    // Exact original sequence:
+    // current state -> .is-exit
+    setIsExiting(true);
+
+    if (gapTimerRef.current) {
+      clearTimeout(gapTimerRef.current);
+    }
+
+    gapTimerRef.current = setTimeout(() => {
+      const nextText = pendingTextRef.current;
+
+      // Replace the outgoing copy with the incoming copy.
+      setCurrentText(nextText);
+
+      // Exact original initial state for incoming copy.
+      setIsExiting(false);
+      setIsEntering(true);
+
+      // Force reflow, then release .is-enter-start.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsEntering(false);
+        });
+      });
+    }, THINK_SWAP + THINK_GAP);
+
+    return () => {
+      if (gapTimerRef.current) {
+        clearTimeout(gapTimerRef.current);
+      }
+    };
+  }, [preview]);
+
+  return (
+    <div className='w-full min-w-0'>
+      <span className='t-think'>
+        <span className='t-think-sizer' aria-hidden='true'>
+          {currentText}
+        </span>
+
+        <span
+          className={cn(
+            't-think-text block w-4/5 truncate text-left md:w-full',
+            isExiting && 'is-exit',
+            isEntering && 'is-enter-start',
+          )}
+        >
+          {currentText}
+        </span>
+      </span>
+    </div>
   );
 });

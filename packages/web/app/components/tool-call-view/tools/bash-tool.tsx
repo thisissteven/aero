@@ -6,7 +6,15 @@ import { BashPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const BashToolView = memo(
-  ({ part, blockId }: { part: BashPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: BashPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const command = part.input.command ?? '';
     const rawOutput = formatToolOutput(part.output);
     return (
@@ -23,6 +31,7 @@ export const BashToolView = memo(
         preview={command}
         copyText={command ? `$ ${command}\n\n${rawOutput}` : rawOutput}
         showLineNumbers={false}
+        isStreaming={isStreaming}
       />
     );
   },

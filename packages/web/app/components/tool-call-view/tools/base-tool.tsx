@@ -1,5 +1,5 @@
 import { Icon } from '@gravity-ui/uikit';
-import { ReactNode, SVGProps } from 'react';
+import { ReactNode, SVGProps, useRef } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
@@ -15,6 +15,10 @@ import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-trunc
 import { useTheme } from '@/app/providers';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
+
+type ToolAnimationStyle = React.CSSProperties & {
+  '--tool-pop-index'?: number;
+};
 
 export function BaseTool({
   blockId,
@@ -33,6 +37,7 @@ export function BaseTool({
   isItalicHeader = false,
   diff,
   children,
+  isStreaming = false,
 }: {
   blockId: string;
   status: string;
@@ -53,12 +58,30 @@ export function BaseTool({
     deletions: number;
   };
   children?: ReactNode;
+  isStreaming?: boolean;
 }) {
   const hasCodeContent = Boolean(copyText && code);
   const hasContent = hasCodeContent || Boolean(children);
 
   const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[blockId]));
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
+
+  /*
+   * Capture the initial streaming state only once.
+   * If the tool starts while streaming, it gets the entrance animation.
+   * Later changes to isStreaming do not interrupt/restart it.
+   */
+  const shouldAnimateOnMount = useRef(isStreaming).current;
+
+  const getAnimationClass = () =>
+    shouldAnimateOnMount ? 't-tool-pop-item' : undefined;
+
+  const getAnimationStyle = (index: number): ToolAnimationStyle | undefined =>
+    shouldAnimateOnMount
+      ? {
+          '--tool-pop-index': index,
+        }
+      : undefined;
 
   return (
     <Disclosure
@@ -75,33 +98,56 @@ export function BaseTool({
           isDisabled={!hasContent && !error}
         >
           <div className='flex min-w-0 flex-1 items-center gap-2'>
-            <div className='relative shrink-0'>
+            <div
+              className={cn('relative shrink-0', getAnimationClass())}
+              style={getAnimationStyle(0)}
+            >
               <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
+
               <Icon
                 data={icon}
                 className='text-muted absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'
                 style={{ width: 12, height: 12 }}
               />
             </div>
+
             <span className='flex items-center justify-start gap-2 truncate'>
               <span
                 className={cn(
+                  getAnimationClass(),
                   status === 'error' && 'text-danger',
                   status === 'completed' && 'text-foreground',
                 )}
+                style={getAnimationStyle(1)}
               >
                 {title}
               </span>
 
               {previewType === 'read-path' && typeof preview === 'string' && (
-                <FileTypeIcon filePath={preview} />
+                <span
+                  className={getAnimationClass()}
+                  style={getAnimationStyle(2)}
+                >
+                  <FileTypeIcon filePath={preview} />
+                </span>
               )}
 
               {duration ? (
-                <span className='text-muted/70'>{duration}s</span>
+                <span
+                  className={cn('text-muted/70', getAnimationClass())}
+                  style={getAnimationStyle(3)}
+                >
+                  {duration}s
+                </span>
               ) : null}
 
-              <div className='text-muted/70 flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+              <div
+                className={cn(
+                  'text-muted/70 flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                  getAnimationClass(),
+                )}
+                style={getAnimationStyle(4)}
+              >
                 {preview ? (
                   (previewType === 'path' || previewType === 'read-path') &&
                   typeof preview === 'string' ? (
@@ -119,12 +165,25 @@ export function BaseTool({
               {diff && (
                 <>
                   {diff.additions > 0 && (
-                    <span className='text-success transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                    <span
+                      className={cn(
+                        'text-success transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                        getAnimationClass(),
+                      )}
+                      style={getAnimationStyle(5)}
+                    >
                       +{diff.additions}
                     </span>
                   )}
+
                   {diff.deletions > 0 && (
-                    <span className='text-danger transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                    <span
+                      className={cn(
+                        'text-danger transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                        getAnimationClass(),
+                      )}
+                      style={getAnimationStyle(diff.additions > 0 ? 6 : 5)}
+                    >
                       -{diff.deletions}
                     </span>
                   )}
@@ -142,6 +201,7 @@ export function BaseTool({
               {typeof preview === 'string' && (
                 <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
               )}
+
               <Alert
                 status='danger'
                 className='bg-transparent p-0 pt-4 shadow-none'
@@ -170,10 +230,12 @@ export function BaseTool({
                 >
                   {codeTitle}
                 </div>
+
                 {copyText && (
                   <CodeBlock.CopyButton code={copyText} className='shrink-0' />
                 )}
               </CodeBlock.Header>
+
               <CodeBlockContent
                 code={code!}
                 language={language || 'text'}
@@ -187,6 +249,7 @@ export function BaseTool({
     </Disclosure>
   );
 }
+
 // Code theme context helper used across all tools
 export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
   const { resolvedTheme } = useTheme();
@@ -232,7 +295,11 @@ function getShikiTheme(
   themeName: string | undefined,
   mode: 'light' | 'dark',
 ): string | undefined {
-  if (!themeName) return undefined;
+  if (!themeName) {
+    return undefined;
+  }
+
   const entry = SHIKI_THEME_MAP[themeName.toLowerCase()];
+
   return entry ? entry[mode] : undefined;
 }

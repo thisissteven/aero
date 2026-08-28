@@ -6,7 +6,15 @@ import { WebSearchPart } from '@/app/components/tool-call-view/tools/tool-types'
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const WebSearchToolView = memo(
-  ({ part, blockId }: { part: WebSearchPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: WebSearchPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const query = part.input.query || '';
     const rawOutput = formatToolOutput(part.output);
 
@@ -22,6 +30,7 @@ export const WebSearchToolView = memo(
         language='json'
         preview={query}
         copyText={rawOutput}
+        isStreaming={isStreaming}
       />
     );
   },

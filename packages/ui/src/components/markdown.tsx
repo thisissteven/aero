@@ -16,7 +16,6 @@ import remarkMath from 'remark-math';
 
 import { CodeBlock } from './code-block';
 
-// 1. Define Context to pass file matching logic down to custom Markdown components
 interface MarkdownFileContextValue {
   isFile?: (path: string) => boolean;
   onFileClick?: (path: string) => void;
@@ -83,6 +82,7 @@ const MarkdownCode = memo(function MarkdownCode({
         <span className='text-muted text-xs uppercase'>{language}</span>
         <CodeBlock.CopyButton code={code} />
       </CodeBlock.Header>
+
       <CodeBlock.Code code={code} language={language} />
     </CodeBlock>
   );
@@ -93,21 +93,104 @@ export const defaultComponents: Components = {
   pre: ({ children }) => <>{children}</>,
 };
 
+/**
+ * Rehype plugin that wraps rendered text nodes in word spans.
+ *
+ * This runs after Markdown has been parsed, so Markdown syntax remains intact.
+ * Code blocks and inline code are intentionally skipped.
+ */
+function rehypeStreamingWords() {
+  return function transformer(tree: HastRoot) {
+    visitTextNodes(tree);
+  };
+}
+
+type HastRoot = {
+  type: string;
+  children?: HastNode[];
+};
+
+type HastNode = {
+  type: string;
+  tagName?: string;
+  value?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+function visitTextNodes(node: HastNode, insideCode = false): void {
+  if (!node.children) return;
+
+  const nextChildren: HastNode[] = [];
+
+  const isCodeElement =
+    node.type === 'element' &&
+    (node.tagName === 'code' || node.tagName === 'pre');
+
+  const nextInsideCode = insideCode || isCodeElement;
+
+  for (const child of node.children) {
+    if (child.type === 'text' && !nextInsideCode) {
+      const tokens = splitTextIntoTokens(child.value ?? '');
+
+      for (const token of tokens) {
+        if (!token) continue;
+
+        if (/^\s+$/.test(token)) {
+          nextChildren.push({
+            type: 'text',
+            value: token,
+          });
+          continue;
+        }
+
+        nextChildren.push({
+          type: 'element',
+          tagName: 'span',
+          properties: {
+            className: ['t-stream-w'],
+          },
+          children: [
+            {
+              type: 'text',
+              value: token,
+            },
+          ],
+        });
+      }
+
+      continue;
+    }
+
+    visitTextNodes(child, nextInsideCode);
+    nextChildren.push(child);
+  }
+
+  node.children = nextChildren;
+}
+
+function splitTextIntoTokens(value: string): string[] {
+  return value.split(/(\s+)/);
+}
+
 export interface MemoizedBlockProps {
   components: Components;
   content: string;
+  streaming?: boolean;
 }
 
 export const MemoizedBlock = memo(
   function MemoizedBlock({
     components,
     content,
+    streaming = false,
   }: MemoizedBlockProps): ReactElement {
     return (
       <div className='markdown__block' data-slot='markdown-block'>
         <ReactMarkdown
           components={components}
           remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={streaming ? [rehypeStreamingWords] : undefined}
         >
           {content}
         </ReactMarkdown>
@@ -115,7 +198,9 @@ export const MemoizedBlock = memo(
     );
   },
   (prev, next) =>
-    prev.content === next.content && prev.components === next.components,
+    prev.content === next.content &&
+    prev.components === next.components &&
+    prev.streaming === next.streaming,
 );
 
 export interface MarkdownProps extends Omit<
@@ -124,12 +209,11 @@ export interface MarkdownProps extends Omit<
 > {
   children: string;
   components?: Partial<Components>;
-  id: string; // Enforce explicitly passed stable identity keys
-  /** Optional function to determine if inline code is a file path */
+  id: string;
   isFile?: (path: string) => boolean;
-  /** Optional callback triggered when a file inline code is clicked */
   onFileClick?: (path: string) => void;
   scrollRef?: RefObject<HTMLElement | null>;
+  streaming?: boolean;
 }
 
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
@@ -137,34 +221,24 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     children,
     className,
     components,
-    id,
     isFile,
     onFileClick,
-    scrollRef,
+    streaming = false,
     ...props
   }: MarkdownProps): ReactElement {
-    // Completely bypass using marked.lexer during high-frequency scrolls
-    const blockContent = useMemo(() => {
-      const fastHash = (str: string): string => {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          hash = (hash << 5) - hash + str.charCodeAt(i);
-          hash |= 0;
-        }
-        return hash.toString(36);
-      };
-
-      const contentHash = fastHash(children);
-      return [{ content: children, key: `${id}-${contentHash}` }];
-    }, [children, id]);
-
     const renderers = useMemo(
-      () => ({ ...defaultComponents, ...components }),
+      () => ({
+        ...defaultComponents,
+        ...components,
+      }),
       [components],
     );
 
     const contextValue = useMemo(
-      () => ({ isFile, onFileClick }),
+      () => ({
+        isFile,
+        onFileClick,
+      }),
       [isFile, onFileClick],
     );
 
@@ -175,13 +249,11 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
           data-slot='markdown'
           {...props}
         >
-          {blockContent.map((block) => (
-            <MemoizedBlock
-              components={renderers}
-              content={block.content}
-              key={block.key}
-            />
-          ))}
+          <MemoizedBlock
+            components={renderers}
+            content={children}
+            streaming={streaming}
+          />
         </div>
       </MarkdownFileContext.Provider>
     );

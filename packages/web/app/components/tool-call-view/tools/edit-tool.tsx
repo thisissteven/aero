@@ -5,7 +5,15 @@ import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { EditPart } from '@/app/components/tool-call-view/tools/tool-types';
 
 export const EditToolView = memo(
-  ({ part, blockId }: { part: EditPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: EditPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const path = part.input.path || part.input.filePath || '';
 
     const additions = part.metadata?.filediff?.additions;
@@ -32,6 +40,7 @@ export const EditToolView = memo(
         diff={diff}
         code=''
         copyText=''
+        isStreaming={isStreaming}
       />
     );
   },

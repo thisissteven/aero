@@ -6,7 +6,15 @@ import { PatchPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const PatchToolView = memo(
-  ({ part, blockId }: { part: PatchPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: PatchPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const rawOutput = formatToolOutput(part.output);
     const patchText = part.input.patchText || rawOutput;
     const preview =
@@ -24,6 +32,7 @@ export const PatchToolView = memo(
         language='diff'
         preview={preview}
         copyText={patchText}
+        isStreaming={isStreaming}
       />
     );
   },

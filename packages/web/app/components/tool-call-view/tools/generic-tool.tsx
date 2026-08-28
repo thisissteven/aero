@@ -7,7 +7,15 @@ import { toTitleCase } from '@/app/lib/file';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const GenericToolView = memo(
-  ({ part, blockId }: { part: GenericToolPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: GenericToolPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const rawOutput = formatToolOutput(part.output);
     const inputStr =
       typeof part.input === 'string'
@@ -26,6 +34,7 @@ export const GenericToolView = memo(
         code={rawOutput}
         language='json'
         copyText={`// Input:\n${inputStr}\n\n// Output:\n${rawOutput}`}
+        isStreaming={isStreaming}
       />
     );
   },

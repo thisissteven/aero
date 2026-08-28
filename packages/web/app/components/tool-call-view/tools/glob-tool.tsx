@@ -6,7 +6,15 @@ import { GlobPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const GlobToolView = memo(
-  ({ part, blockId }: { part: GlobPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: GlobPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const pattern = part.input.pattern || '';
     const rawOutput = formatToolOutput(part.output);
 
@@ -22,6 +30,7 @@ export const GlobToolView = memo(
         language='text'
         preview={pattern}
         copyText={rawOutput}
+        isStreaming={isStreaming}
         isItalicHeader
       />
     );

@@ -6,7 +6,15 @@ import { QuestionPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const QuestionToolView = memo(
-  ({ part, blockId }: { part: QuestionPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: QuestionPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     // 1. Extract questions and answers
     const questions = part.input?.questions || [];
     const answers = part.metadata?.answers || [];
@@ -46,6 +54,7 @@ export const QuestionToolView = memo(
         language='markdown'
         preview={previewText}
         copyText={formattedMarkdown}
+        isStreaming={isStreaming}
       />
     );
   },

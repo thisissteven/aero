@@ -9,7 +9,15 @@ import {
 } from '@/app/lib/file-icons/tool-helpers';
 
 export const ReadToolView = memo(
-  ({ part, blockId }: { part: ReadPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: ReadPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const path = part.input.path || part.input.filePath || '';
     const output = formatReadToolOutput(part.output);
 
@@ -28,6 +36,7 @@ export const ReadToolView = memo(
         preview={path}
         previewType='read-path'
         copyText={output}
+        isStreaming={isStreaming}
         showLineNumbers
       />
     );

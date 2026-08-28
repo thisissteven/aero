@@ -103,7 +103,12 @@ export const AssistantChatBubble = memo(
 
                 case 'tool':
                   return (
-                    <ToolCallView key={blockId} part={part} blockId={blockId} />
+                    <ToolCallView
+                      key={blockId}
+                      part={part}
+                      blockId={blockId}
+                      isStreaming={isPartStreaming}
+                    />
                   );
 
                 default:

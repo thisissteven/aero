@@ -6,7 +6,15 @@ import { SkillPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const SkillToolView = memo(
-  ({ part, blockId }: { part: SkillPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: SkillPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const name = part.input.name || part.input.skill || '';
     const rawOutput = formatToolOutput(part.output);
 
@@ -22,6 +30,7 @@ export const SkillToolView = memo(
         language='markdown'
         preview={name}
         copyText={rawOutput}
+        isStreaming={isStreaming}
       />
     );
   },

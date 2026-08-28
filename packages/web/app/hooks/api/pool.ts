@@ -77,7 +77,7 @@ export function usePoolReady() {
         const v1Healthy = pool.v1.healthyNodesCount > 0;
         const v2Healthy = pool.v2.healthyNodesCount > 0;
 
-        if (v1Healthy && v2Healthy) {
+        if (v1Healthy || v2Healthy) {
           if (!cancelled) {
             setIsPoolReady(true);
           }

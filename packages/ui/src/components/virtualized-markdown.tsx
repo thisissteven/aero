@@ -5,8 +5,8 @@ import type {
   ComponentPropsWithRef,
   NamedExoticComponent,
   ReactElement,
+  RefObject,
 } from 'react';
-import type { RefObject } from 'react';
 import { memo, useMemo } from 'react';
 import type { Components } from 'react-markdown';
 import { Virtualizer } from 'virtua';
@@ -36,7 +36,11 @@ function splitMarkdownIntoBlocks(markdown: string): string[] {
 
   const flush = () => {
     const block = buffer.join('\n').trim();
-    if (block) blocks.push(block);
+
+    if (block) {
+      blocks.push(block);
+    }
+
     buffer = [];
   };
 
@@ -45,9 +49,12 @@ function splitMarkdownIntoBlocks(markdown: string): string[] {
 
     if (fenceMatch) {
       buffer.push(line);
+
       const marker = fenceMatch[1]!;
+
       fence =
         fence && line.trimStart().startsWith(fence) ? null : (fence ?? marker);
+
       continue;
     }
 
@@ -57,27 +64,19 @@ function splitMarkdownIntoBlocks(markdown: string): string[] {
     }
 
     if (line.trim() === '') {
-      if (buffer.length > 0) flush();
+      if (buffer.length > 0) {
+        flush();
+      }
+
       continue;
     }
 
     buffer.push(line);
   }
+
   flush();
 
   return blocks.length > 0 ? blocks : [markdown];
-}
-
-// Same fast, non-cryptographic hash as Markdown uses — lets unchanged
-// blocks keep a stable key across re-renders during streaming, so
-// Virtualizer/React don't remount blocks that haven't actually changed.
-function fastHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash.toString(36);
 }
 
 export interface VirtualizedMarkdownProps extends Omit<
@@ -91,6 +90,7 @@ export interface VirtualizedMarkdownProps extends Omit<
   itemSize?: number;
   onFileClick?: (path: string) => void;
   scrollRef?: RefObject<HTMLElement | null>;
+  streaming?: boolean;
 }
 
 export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps> =
@@ -103,6 +103,7 @@ export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps>
     itemSize,
     onFileClick,
     scrollRef,
+    streaming = false,
     ...props
   }: VirtualizedMarkdownProps): ReactElement {
     const blocks = useMemo(() => splitMarkdownIntoBlocks(children), [children]);
@@ -130,8 +131,12 @@ export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps>
             scrollRef={scrollRef}
           >
             {(block, index) => (
-              <div key={`${id}-${index}-${fastHash(block)}`} className='mb-4'>
-                <MemoizedBlock components={renderers} content={block} />
+              <div key={`${id}-${index}`} className='mb-4'>
+                <MemoizedBlock
+                  components={renderers}
+                  content={block}
+                  streaming={streaming}
+                />
               </div>
             )}
           </Virtualizer>

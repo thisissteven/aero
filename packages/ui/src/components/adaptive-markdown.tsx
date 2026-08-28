@@ -52,11 +52,15 @@ export const AdaptiveMarkdown = memo(function AdaptiveMarkdown({
   return (
     <div ref={contentRef}>
       {shouldVirtualize ? (
-        <VirtualizedMarkdown scrollRef={scrollRef} {...props}>
+        <VirtualizedMarkdown
+          scrollRef={scrollRef}
+          streaming={isStreaming}
+          {...props}
+        >
           {children}
         </VirtualizedMarkdown>
       ) : (
-        <Markdown scrollRef={scrollRef} {...props}>
+        <Markdown scrollRef={scrollRef} streaming={isStreaming} {...props}>
           {children}
         </Markdown>
       )}

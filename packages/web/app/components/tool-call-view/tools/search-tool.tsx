@@ -6,7 +6,15 @@ import { SearchPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const SearchToolView = memo(
-  ({ part, blockId }: { part: SearchPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: SearchPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const pattern = part.input.pattern || part.input.query || '';
     const path = part.input.path;
     const rawOutput = formatToolOutput(part.output);
@@ -24,6 +32,7 @@ export const SearchToolView = memo(
         preview={path ? `${pattern} in ${path}` : pattern}
         copyText={rawOutput}
         showLineNumbers={false}
+        isStreaming={isStreaming}
         isItalicHeader
       />
     );

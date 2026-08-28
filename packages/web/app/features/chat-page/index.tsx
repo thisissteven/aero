@@ -4,16 +4,14 @@ import { cn } from '@aero/ui';
 
 import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { ChatActivityIndicator } from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
-import {
-  ChatFeed,
-  type ChatFeedRef,
-} from '@/app/features/chat-page/chat-feed/chat-feed';
+import { type ChatFeedRef } from '@/app/features/chat-page/chat-feed/chat-feed';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
+import { MockChatPage } from '@/app/features/mock-chat';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -77,12 +75,13 @@ export function ChatPage({
             onSelectTocItem={handleSelectTocItem}
           />
 
-          <ChatFeed
+          <MockChatPage mockGroups={groups} ref={feedRef} />
+          {/* <ChatFeed
             key={sessionId}
             groups={groups}
             ref={feedRef}
             onActiveGroupIndexChange={setActiveGroupIndex}
-          />
+          /> */}
         </>
       )}
 

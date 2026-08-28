@@ -1,6 +1,5 @@
 // assistant-part-view.tsx
-import { motion } from 'motion/react';
-import { memo, ReactNode, useRef } from 'react';
+import { memo } from 'react';
 
 import { ChatMessage, Markdown } from '@aero/ui';
 
@@ -8,7 +7,6 @@ import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
 import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';
 import { AeroPart } from '@/server/services/harness/types';
 
-// Re-use your helper handlers
 const MOCK_WORKTREE_FILES = new Set([
   'src/components/tool-call-view.tsx',
   'src/components/code-block.tsx',
@@ -44,9 +42,6 @@ export const AssistantPartView = memo(function AssistantPartView({
 
   switch (part.type) {
     case 'text': {
-      // Don't return null if streaming; let the empty shell render to establish height
-      // if (!part.text && !isPartStreaming) return null;
-
       return (
         <ChatMessage.Assistant className='group'>
           <ChatMessage.Body className='pe-0'>
@@ -56,6 +51,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   id={blockId}
                   isFile={handleIsWorktreeFile}
                   onFileClick={handleOpenFileInEditor}
+                  streaming={isPartStreaming}
                 >
                   {part.text}
                 </Markdown>
@@ -67,8 +63,6 @@ export const AssistantPartView = memo(function AssistantPartView({
     }
 
     case 'reasoning': {
-      // if (!part.text && !isPartStreaming) return null;
-
       return (
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
@@ -93,9 +87,11 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <StreamAnimation isStreaming={isPartStreaming}>
-                <ToolCallView part={part} blockId={blockId} />
-              </StreamAnimation>
+              <ToolCallView
+                part={part}
+                blockId={blockId}
+                isStreaming={isPartStreaming}
+              />
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -105,29 +101,3 @@ export const AssistantPartView = memo(function AssistantPartView({
       return null;
   }
 });
-
-interface StreamAnimationProps {
-  children: ReactNode;
-  isStreaming: boolean;
-  className?: string;
-}
-
-export function StreamAnimation({
-  children,
-  isStreaming,
-  className,
-}: StreamAnimationProps) {
-  // Lock the initial streaming state on mount so transition targets never change mid-flight
-  const shouldAnimateOnMount = useRef(isStreaming);
-
-  return (
-    <motion.div
-      initial={shouldAnimateOnMount.current ? { opacity: 0, x: -4 } : false}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}

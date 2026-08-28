@@ -6,7 +6,15 @@ import { LspPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const LspToolView = memo(
-  ({ part, blockId }: { part: LspPart; blockId: string }) => {
+  ({
+    part,
+    blockId,
+    isStreaming,
+  }: {
+    part: LspPart;
+    blockId: string;
+    isStreaming: boolean;
+  }) => {
     const operation = part.input.operation || '';
     const path = part.input.path || '';
     const rawOutput = formatToolOutput(part.output);
@@ -23,6 +31,7 @@ export const LspToolView = memo(
         language='json'
         preview={path ? `${operation} ${path}` : operation}
         copyText={rawOutput}
+        isStreaming={isStreaming}
       />
     );
   },
