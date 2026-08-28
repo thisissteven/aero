@@ -39,12 +39,19 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
   }, [pathname, isMobile]);
 
   return (
-    <ActiveSessionPromptInputWrapper key={pathname} isDisabled={isDisabled}>
+    <ActiveSessionPromptInputWrapper
+      key={pathname}
+      isDisabled={isDisabled}
+      onSubmit={() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = '';
+        }
+      }}
+    >
       <PromptInput.Shell className='shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea
             ref={textareaRef}
-            className='min-h-18'
             placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
           />
         </PromptInput.Content>

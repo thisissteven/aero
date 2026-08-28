@@ -77,8 +77,8 @@ export function ChatActivityIndicator() {
   }
 
   return (
-    <div className='text-default-500 flex items-center gap-2 px-1 pb-2 text-xs'>
-      <span className='bg-default-400 h-1.5 w-1.5 animate-pulse rounded-full' />
+    <div className='flex items-center gap-2 px-1 pb-2 text-xs'>
+      <span className='h-1.5 w-1.5 animate-pulse rounded-full' />
 
       <span>{label}</span>
 

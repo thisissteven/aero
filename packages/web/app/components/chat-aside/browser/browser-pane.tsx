@@ -100,21 +100,35 @@ function getCachedProxyTarget(key: string): CachedProxyTarget | null {
 }
 
 function normalizeBrowserUrl(input: string): string {
-  const trimmed = input.trim();
+  let trimmed = input.trim();
 
   if (!trimmed) {
     return 'about:blank';
   }
 
+  /**
+   * Remove accidental whitespace around path separators.
+   *
+   * Example:
+   *   C:\foo \bar\index.html -> C:\foo\bar\index.html
+   *   C:\foo\ \bar           -> C:\foo\bar
+   *
+   * Spaces inside a filename are preserved:
+   *   C:\foo\my file.html    -> C:\foo\my file.html
+   */
+  trimmed = trimmed
+    .replace(/[ \t]+(?=[\\/])/g, '')
+    .replace(/([\\/])[ \t]+/g, '$1');
+
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    return trimmed;
+    return encodeURI(trimmed);
   }
 
   if (/^(about|chrome|edge|javascript|mailto):/i.test(trimmed)) {
     return trimmed;
   }
 
-  /*
+  /**
    * Windows absolute path:
    *
    * C:\Users\Steven\file.html
@@ -125,7 +139,7 @@ function normalizeBrowserUrl(input: string): string {
     return encodeURI(`file:///${normalizedPath}`);
   }
 
-  /*
+  /**
    * Windows UNC:
    *
    * \\server\share\file.html
@@ -136,14 +150,14 @@ function normalizeBrowserUrl(input: string): string {
     return encodeURI(`file:${normalizedPath}`);
   }
 
-  /*
+  /**
    * Unix absolute path.
    */
   if (/^\//.test(trimmed)) {
     return encodeURI(`file://${trimmed}`);
   }
 
-  /*
+  /**
    * Localhost.
    */
   if (
@@ -154,14 +168,14 @@ function normalizeBrowserUrl(input: string): string {
     return `http://${trimmed}`;
   }
 
-  /*
+  /**
    * IPv6.
    */
   if (/^\[[a-f0-9:]+\](?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
     return `https://${trimmed}`;
   }
 
-  /*
+  /**
    * Domain / IPv4.
    */
   if (
@@ -172,12 +186,12 @@ function normalizeBrowserUrl(input: string): string {
     return `https://${trimmed}`;
   }
 
-  /*
+  /**
    * Relative/local paths.
    */
   if (
-    /^\.{0,2}[\\/]/.test(trimmed) ||
-    /^[^\\/:*?"<>|]+(?:[\\/][^\\/:*?"<>|]+)*$/.test(trimmed)
+    /^\.\.?[\\/]/.test(trimmed) ||
+    /^[^\\/:*?"<>|]+(?:[\\/][^\\/:*?"<>|]+)+$/.test(trimmed)
   ) {
     return encodeURI(`file://${trimmed.replace(/\\/g, '/')}`);
   }
@@ -244,7 +258,8 @@ export function BrowserPane({
       return;
     }
 
-    const key = getBrowserProxyTargetKey(tab.loadedUrl);
+    const normalizedLoadedUrl = normalizeBrowserUrl(tab.loadedUrl);
+    const key = getBrowserProxyTargetKey(normalizedLoadedUrl);
 
     const cached = getCachedProxyTarget(key);
 
@@ -269,7 +284,7 @@ export function BrowserPane({
       try {
         const response = await honoClient.api.preview.targets.$post({
           json: {
-            url: tab.loadedUrl,
+            url: normalizedLoadedUrl,
           },
         });
 
@@ -346,7 +361,8 @@ export function BrowserPane({
       return;
     }
 
-    const url = tab.currentUrl || tab.loadedUrl;
+    const rawUrl = tab.currentUrl || tab.loadedUrl;
+    const url = rawUrl ? normalizeBrowserUrl(rawUrl) : '';
 
     if (!url) {
       setIframeSrc('');
@@ -406,7 +422,8 @@ export function BrowserPane({
 
         const preview = new URL(tab.proxyState.previewOrigin);
 
-        const upstream = new URL(tab.loadedUrl);
+        const normalizedLoadedUrl = normalizeBrowserUrl(tab.loadedUrl);
+        const upstream = new URL(normalizedLoadedUrl);
 
         if (frame.origin !== preview.origin) {
           return '';
@@ -691,6 +708,28 @@ export function BrowserPane({
     navigate(tabId, nextUrl);
   };
 
+  const getExternalUrl = useCallback(() => {
+    if (!tab?.currentUrl || tab.proxyState.status !== 'ready') {
+      return null;
+    }
+
+    try {
+      const url = new URL(normalizeBrowserUrl(tab.currentUrl));
+      const previewOrigin = tab.proxyState.previewOrigin.replace(/\/+$/, '');
+
+      if (url.protocol === 'file:') {
+        const filePath = decodeURIComponent(url.pathname);
+        const fileName = filePath.split('/').pop() || '';
+
+        return `${previewOrigin}/${encodeURIComponent(fileName)}${url.search}${url.hash}`;
+      }
+
+      return `${previewOrigin}${url.pathname || '/'}${url.search}${url.hash}`;
+    } catch {
+      return null;
+    }
+  }, [tab]);
+
   if (!tab) {
     return null;
   }
@@ -752,9 +791,13 @@ export function BrowserPane({
 
         <IconBtn
           disabled={!tab.currentUrl}
-          onClick={() =>
-            tab.currentUrl && window.open(tab.currentUrl, '_blank')
-          }
+          onClick={() => {
+            const url = getExternalUrl();
+
+            if (url) {
+              window.open(url, '_blank', 'noopener,noreferrer');
+            }
+          }}
           title='Open externally'
         >
           <Icon data={ArrowUpRightFromSquare} size={14} />

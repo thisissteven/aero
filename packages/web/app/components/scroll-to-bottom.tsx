@@ -26,7 +26,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
   }, []);
 
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const threshold = 28;
+  const threshold = 100;
 
   const checkIsAtBottom = useCallback(() => {
     const scrollEl = scrollRef.current;

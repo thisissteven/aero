@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   buildFlatConversationItems,
@@ -48,13 +48,6 @@ interface ChatStore {
 
   runningSessions: string[];
 
-  /**
-   * Sessions currently blocked on an interactive question.
-   *
-   * This is intentionally separate from `runningSessions` because
-   * a question is a special kind of running state that requires
-   * user interaction rather than more streaming work.
-   */
   awaitingQuestions: string[];
 
   unreadSessions: Array<{
@@ -270,6 +263,39 @@ function replaceMessageParts(
   return nextParts;
 }
 
+function updateFlatAssistantPart(
+  flatItems: FlatConversationVirtualItem[],
+  turnId: string,
+  partIndex: number,
+  part: AeroPart,
+): FlatConversationVirtualItem[] | null {
+  const itemIndex = flatItems.findIndex(
+    (item) =>
+      item.type === 'assistant-part' &&
+      item.turnId === turnId &&
+      item.partIndex === partIndex,
+  );
+
+  if (itemIndex === -1) {
+    return null;
+  }
+
+  const currentItem = flatItems[itemIndex];
+
+  if (currentItem.type !== 'assistant-part') {
+    return null;
+  }
+
+  const nextFlatItems = flatItems.slice();
+
+  nextFlatItems[itemIndex] = {
+    ...currentItem,
+    part,
+  };
+
+  return nextFlatItems;
+}
+
 function appendIncomingMessage(
   runtime: SessionRuntime,
   incoming: AeroMessage,
@@ -280,8 +306,6 @@ function appendIncomingMessage(
    * Existing message -> update that turn.
    *
    * Turn metadata is intentionally NOT touched here.
-   * providerID/modelID/agent/mode are write-once when
-   * the turn is initially created.
    */
   if (existingTurnId) {
     const turnIndex = runtime.turns.findIndex(
@@ -307,6 +331,16 @@ function appendIncomingMessage(
             },
       );
 
+      const messageTurnIds = {
+        ...runtime.messageTurnIds,
+      };
+
+      for (const part of incoming.parts) {
+        if (part.messageID) {
+          messageTurnIds[part.messageID] = existingTurnId;
+        }
+      }
+
       return {
         ...runtime,
         ...buildRuntime(
@@ -315,6 +349,7 @@ function appendIncomingMessage(
           undefined,
           runtime.usageExceeded,
         ),
+        messageTurnIds,
       };
     }
   }
@@ -322,10 +357,8 @@ function appendIncomingMessage(
   const previous = runtime.turns.at(-1);
 
   /**
-   * Consecutive messages with the same role are still
-   * grouped into the existing turn.
-   *
-   * Metadata stays on `previous` and is never overwritten.
+   * Consecutive messages with the same role are grouped
+   * into the existing turn.
    */
   if (previous?.role === incoming.role) {
     const nextTurns = [
@@ -337,6 +370,17 @@ function appendIncomingMessage(
       },
     ];
 
+    const messageTurnIds = {
+      ...runtime.messageTurnIds,
+      [incoming.id]: previous.id,
+    };
+
+    for (const part of incoming.parts) {
+      if (part.messageID) {
+        messageTurnIds[part.messageID] = previous.id;
+      }
+    }
+
     return {
       ...runtime,
       ...buildRuntime(
@@ -345,19 +389,10 @@ function appendIncomingMessage(
         undefined,
         runtime.usageExceeded,
       ),
-      messageTurnIds: {
-        ...runtime.messageTurnIds,
-        [incoming.id]: previous.id,
-      },
+      messageTurnIds,
     };
   }
 
-  /**
-   * New turn.
-   *
-   * This is the ONLY place where the per-turn model/agent
-   * metadata is captured.
-   */
   const nextTurn: AeroConversationTurn = {
     id: incoming.id,
     role: incoming.role,
@@ -371,6 +406,17 @@ function appendIncomingMessage(
     mode: incoming.mode,
   };
 
+  const messageTurnIds = {
+    ...runtime.messageTurnIds,
+    [incoming.id]: incoming.id,
+  };
+
+  for (const part of incoming.parts) {
+    if (part.messageID) {
+      messageTurnIds[part.messageID] = incoming.id;
+    }
+  }
+
   return {
     ...runtime,
     ...buildRuntime(
@@ -379,12 +425,78 @@ function appendIncomingMessage(
       undefined,
       runtime.usageExceeded,
     ),
-    messageTurnIds: {
-      ...runtime.messageTurnIds,
-      [incoming.id]: incoming.id,
-    },
+    messageTurnIds,
   };
 }
+
+type PersistedChatState = {
+  runningSessions: string[];
+  awaitingQuestions: string[];
+  unreadSessions: Array<{
+    sessionId: string;
+    status: 'success' | 'error';
+  }>;
+};
+
+const PERSIST_DELAY = 250;
+
+const persistedTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const persistedValues = new Map<string, string>();
+
+const debouncedStateStorage = {
+  getItem(name: string) {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    return window.localStorage.getItem(name);
+  },
+
+  setItem(name: string, value: string) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    persistedValues.set(name, value);
+
+    const existingTimer = persistedTimers.get(name);
+
+    if (existingTimer !== undefined) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+      persistedTimers.delete(name);
+
+      const latest = persistedValues.get(name);
+
+      if (latest === undefined) {
+        return;
+      }
+
+      persistedValues.delete(name);
+      window.localStorage.setItem(name, latest);
+    }, PERSIST_DELAY);
+
+    persistedTimers.set(name, timer);
+  },
+
+  removeItem(name: string) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const existingTimer = persistedTimers.get(name);
+
+    if (existingTimer !== undefined) {
+      clearTimeout(existingTimer);
+      persistedTimers.delete(name);
+    }
+
+    persistedValues.delete(name);
+    window.localStorage.removeItem(name);
+  },
+};
 
 export const useChatStore = create<ChatStore>()(
   persist(
@@ -515,13 +627,6 @@ export const useChatStore = create<ChatStore>()(
 
             const isStreaming = status.type !== 'idle';
 
-            /**
-             * Query/stream status updates do not normally
-             * carry the retry payload. Preserve an existing
-             * payload until the session becomes idle.
-             *
-             * Idle is the explicit reset point.
-             */
             const usageExceeded =
               status.type === 'idle' ? undefined : current.usageExceeded;
 
@@ -611,11 +716,6 @@ export const useChatStore = create<ChatStore>()(
               case 'session.status': {
                 const isStreaming = event.status.type !== 'idle';
 
-                /**
-                 * The usage limit is represented by the
-                 * structured retry action, not by
-                 * AeroMessage.error.
-                 */
                 const nextUsageExceeded =
                   event.status.type === 'retry' &&
                   event.status.action?.reason === 'free_tier_limit'
@@ -679,23 +779,12 @@ export const useChatStore = create<ChatStore>()(
               }
 
               case 'session.error': {
-                /**
-                 * Ignore events that do not contain a
-                 * named error. In particular, the
-                 * normalized "Unknown error" event is
-                 * not allowed to overwrite useful data.
-                 */
                 const error = event.error;
 
                 if (!error) {
                   return state;
                 }
 
-                /**
-                 * session.error does not carry the
-                 * message id, so associate it with
-                 * the latest assistant turn.
-                 */
                 let turnIndex = -1;
 
                 for (let i = current.turns.length - 1; i >= 0; i--) {
@@ -709,15 +798,16 @@ export const useChatStore = create<ChatStore>()(
                   return state;
                 }
 
+                /**
+                 * The original implementation intentionally preserved
+                 * an already-populated turn.error here.
+                 *
+                 * Keep that behavior intact.
+                 */
                 const nextTurns = current.turns.map((turn, index) =>
                   index === turnIndex
                     ? {
                         ...turn,
-
-                        /**
-                         * Prefer an already
-                         * populated message error.
-                         */
                         error: turn.error,
                       }
                     : turn,
@@ -749,49 +839,46 @@ export const useChatStore = create<ChatStore>()(
                 let runtime = appendIncomingMessage(current, event.message);
 
                 const pendingKey = `${sessionId}:${event.message.id}`;
-
                 const pendingParts = pendingPartUpdates.get(pendingKey);
 
                 if (pendingParts?.length) {
                   pendingPartUpdates.delete(pendingKey);
 
-                  for (const part of pendingParts) {
-                    const turnIndex = findTurnIndexByMessageId(
-                      runtime,
-                      event.message.id,
-                    );
+                  const turnIndex = findTurnIndexByMessageId(
+                    runtime,
+                    event.message.id,
+                  );
 
-                    if (turnIndex === -1) {
-                      continue;
-                    }
-
+                  if (turnIndex !== -1) {
                     const nextTurns = runtime.turns.map((turn, index) => {
                       if (index !== turnIndex) {
                         return turn;
                       }
 
-                      const partIndex = turn.parts.findIndex(
-                        (currentPart) => currentPart.id === part.id,
-                      );
+                      let nextParts = turn.parts;
 
-                      if (partIndex === -1) {
-                        return {
-                          ...turn,
-                          parts: [...turn.parts, part],
-                        };
+                      for (const part of pendingParts) {
+                        const partIndex = nextParts.findIndex(
+                          (currentPart) => currentPart.id === part.id,
+                        );
+
+                        if (partIndex === -1) {
+                          nextParts = [...nextParts, part];
+                        } else {
+                          nextParts = nextParts.map((currentPart, index) =>
+                            index === partIndex ? part : currentPart,
+                          );
+                        }
                       }
 
                       return {
                         ...turn,
-                        parts: turn.parts.map((currentPart, index) =>
-                          index === partIndex ? part : currentPart,
-                        ),
+                        parts: nextParts,
                       };
                     });
 
                     runtime = {
                       ...runtime,
-
                       ...buildRuntime(
                         nextTurns,
                         runtime.isStreaming,
@@ -800,17 +887,6 @@ export const useChatStore = create<ChatStore>()(
                       ),
                     };
                   }
-                } else {
-                  runtime = {
-                    ...runtime,
-
-                    ...buildRuntime(
-                      runtime.turns,
-                      runtime.isStreaming,
-                      revertMessageId,
-                      runtime.usageExceeded,
-                    ),
-                  };
                 }
 
                 const hasAwaitingQuestion = runtime.turns.some((turn) =>
@@ -879,10 +955,6 @@ export const useChatStore = create<ChatStore>()(
                     part,
                   ]);
 
-                  /**
-                   * We can still detect an incoming question even
-                   * if its parent message.updated has not arrived yet.
-                   */
                   const awaitingQuestions =
                     part.type === 'tool' &&
                     part.toolName === 'question' &&
@@ -898,29 +970,60 @@ export const useChatStore = create<ChatStore>()(
                   };
                 }
 
-                const nextTurns = current.turns.map((turn, index) => {
-                  if (index !== turnIndex) {
-                    return turn;
-                  }
+                const currentTurn = current.turns[turnIndex];
 
-                  const partIndex = turn.parts.findIndex(
-                    (currentPart) => currentPart.id === part.id,
+                const partIndex = currentTurn.parts.findIndex(
+                  (currentPart) => currentPart.id === part.id,
+                );
+
+                if (partIndex === -1) {
+                  const nextTurns = current.turns.map((turn, index) =>
+                    index !== turnIndex
+                      ? turn
+                      : {
+                          ...turn,
+                          parts: [...turn.parts, part],
+                        },
                   );
 
-                  if (partIndex === -1) {
-                    return {
-                      ...turn,
-                      parts: [...turn.parts, part],
-                    };
-                  }
-
-                  return {
-                    ...turn,
-                    parts: turn.parts.map((currentPart, index) =>
-                      index === partIndex ? part : currentPart,
+                  const runtime: SessionRuntime = {
+                    ...current,
+                    ...buildRuntime(
+                      nextTurns,
+                      current.isStreaming,
+                      revertMessageId,
+                      current.usageExceeded,
                     ),
                   };
-                });
+
+                  const sessions = {
+                    ...state.sessions,
+                    [sessionId]: runtime,
+                  };
+
+                  return {
+                    sessions,
+                    ...projectActiveSession(sessions, state.activeSessionId),
+                  };
+                }
+
+                /**
+                 * Part.updated can change rendering structure,
+                 * footer content, filtering of empty parts, etc.
+                 *
+                 * Keep the safe full rebuild here. The high-frequency
+                 * path is message.part.delta below.
+                 */
+                const nextTurns = current.turns.map((turn, index) =>
+                  index !== turnIndex
+                    ? turn
+                    : {
+                        ...turn,
+                        parts: turn.parts.map((currentPart, index) =>
+                          index === partIndex ? part : currentPart,
+                        ),
+                      },
+                );
 
                 const runtime: SessionRuntime = {
                   ...current,
@@ -937,6 +1040,11 @@ export const useChatStore = create<ChatStore>()(
                     getStreamStartTime(nextTurns, current.status, null),
                 };
 
+                const sessions = {
+                  ...state.sessions,
+                  [sessionId]: runtime,
+                };
+
                 const hasAwaitingQuestion = runtime.turns.some((turn) =>
                   turn.parts.some(
                     (runtimePart) =>
@@ -945,11 +1053,6 @@ export const useChatStore = create<ChatStore>()(
                       runtimePart.status === 'running',
                   ),
                 );
-
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
 
                 const awaitingQuestions = hasAwaitingQuestion
                   ? state.awaitingQuestions.includes(sessionId)
@@ -988,11 +1091,11 @@ export const useChatStore = create<ChatStore>()(
 
                 const turn = current.turns[turnIndex];
 
-                const part = turn.parts.find(
+                const partIndex = turn.parts.findIndex(
                   (currentPart) => currentPart.id === event.partId,
                 );
 
-                if (!part) {
+                if (partIndex === -1) {
                   const key = `${sessionId}:${event.partId}`;
 
                   const pending = pendingDeltas.get(key) ?? [];
@@ -1008,6 +1111,8 @@ export const useChatStore = create<ChatStore>()(
                   return state;
                 }
 
+                const part = turn.parts[partIndex];
+
                 if (
                   event.field !== 'text' ||
                   (part.type !== 'text' && part.type !== 'reasoning')
@@ -1020,15 +1125,80 @@ export const useChatStore = create<ChatStore>()(
                   text: part.text + event.delta,
                 };
 
-                const nextTurns = current.turns.map((turn, index) =>
+                /**
+                 * Fast path:
+                 *
+                 * Only use the incremental update when the event is
+                 * updating the currently-streaming last part.
+                 *
+                 * In that situation:
+                 * - no item is added
+                 * - no item is removed
+                 * - no footer exists
+                 * - flat indices do not change
+                 *
+                 * This avoids rebuilding the whole conversation.
+                 */
+                const isCurrentStreamingPart =
+                  current.isStreaming &&
+                  turnIndex === current.turns.length - 1 &&
+                  partIndex === turn.parts.length - 1;
+
+                if (isCurrentStreamingPart) {
+                  const nextFlatItems = updateFlatAssistantPart(
+                    current.flatItems,
+                    turn.id,
+                    partIndex,
+                    updatedPart,
+                  );
+
+                  if (nextFlatItems) {
+                    const nextTurns = current.turns.map((runtimeTurn, index) =>
+                      index !== turnIndex
+                        ? runtimeTurn
+                        : {
+                            ...runtimeTurn,
+                            parts: runtimeTurn.parts.map(
+                              (runtimePart, index) =>
+                                index === partIndex ? updatedPart : runtimePart,
+                            ),
+                          },
+                    );
+
+                    const runtime: SessionRuntime = {
+                      ...current,
+
+                      turns: nextTurns,
+                      flatItems: nextFlatItems,
+
+                      streamStartedAt:
+                        current.streamStartedAt ??
+                        getStreamStartTime(nextTurns, current.status, null),
+                    };
+
+                    const sessions = {
+                      ...state.sessions,
+                      [sessionId]: runtime,
+                    };
+
+                    return {
+                      sessions,
+                      ...projectActiveSession(sessions, state.activeSessionId),
+                    };
+                  }
+                }
+
+                /**
+                 * Safe fallback for unusual out-of-order events or
+                 * deltas targeting a non-current part.
+                 */
+                const nextTurns = current.turns.map((runtimeTurn, index) =>
                   index !== turnIndex
-                    ? turn
+                    ? runtimeTurn
                     : {
-                        ...turn,
-                        parts: turn.parts.map((currentPart) =>
-                          currentPart.id === event.partId
-                            ? updatedPart
-                            : currentPart,
+                        ...runtimeTurn,
+                        parts: runtimeTurn.parts.map((runtimePart, index) =>
+                          index === partIndex ? updatedPart : runtimePart,
                         ),
                       },
                 );
@@ -1134,6 +1304,12 @@ export const useChatStore = create<ChatStore>()(
 
                 const turn = current.turns[turnIndex];
 
+                const removedMessagePartIds = new Set(
+                  turn.parts
+                    .filter((part) => part.messageID === event.messageId)
+                    .map((part) => part.id),
+                );
+
                 const nextParts = turn.parts.filter(
                   (part) => part.messageID !== event.messageId,
                 );
@@ -1155,6 +1331,10 @@ export const useChatStore = create<ChatStore>()(
                 };
 
                 delete nextMessageTurnIds[event.messageId];
+
+                for (const partId of removedMessagePartIds) {
+                  delete nextMessageTurnIds[partId];
+                }
 
                 const runtime: SessionRuntime = {
                   ...current,
@@ -1206,10 +1386,6 @@ export const useChatStore = create<ChatStore>()(
 
                 const shouldMarkUnread = activeId !== sessionId;
 
-                /**
-                 * Idle is the terminal reset point for
-                 * the session-level retry payload.
-                 */
                 const runtime: SessionRuntime = {
                   ...current,
 
@@ -1362,6 +1538,10 @@ export const useChatStore = create<ChatStore>()(
     },
     {
       name: 'aero-chat-store',
+
+      storage: createJSONStorage<PersistedChatState>(
+        () => debouncedStateStorage,
+      ),
 
       partialize: (state) => ({
         runningSessions: state.runningSessions,

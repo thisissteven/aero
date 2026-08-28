@@ -14,8 +14,10 @@ import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
   children,
+  onSubmit,
 }: {
   children: ReactNode;
+  onSubmit: () => void;
 }) {
   const [value, setValue] = useState('');
 
@@ -68,6 +70,7 @@ export function NewSessionPromptInputWrapper({
     );
 
     addRunningSession(session.id);
+    onSubmit();
   };
 
   const isPending = isPendingCreateSession || isPendingSendMessage;
@@ -91,11 +94,13 @@ export function NewSessionPromptInputWrapper({
 interface ActiveSessionPromptInputWrapperProps {
   children: ReactNode;
   isDisabled: boolean;
+  onSubmit: () => void;
 }
 
 export function ActiveSessionPromptInputWrapper({
   children,
   isDisabled,
+  onSubmit,
 }: ActiveSessionPromptInputWrapperProps) {
   const [value, setValue] = useState('');
 
@@ -168,6 +173,8 @@ export function ActiveSessionPromptInputWrapper({
         },
       },
     );
+
+    onSubmit();
   }, [value, isPending, sessionId, selectedModel, selectedAgent, sendMessage]);
 
   const [isAborting, setIsAborting] = useState(false);

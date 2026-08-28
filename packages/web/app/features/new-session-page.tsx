@@ -58,12 +58,17 @@ export function NewSessionPage() {
           </p>
         </div>
 
-        <NewSessionPromptInputWrapper>
+        <NewSessionPromptInputWrapper
+          onSubmit={() => {
+            if (textareaRef.current) {
+              textareaRef.current.style.height = '';
+            }
+          }}
+        >
           <PromptInput.Shell className='shadow'>
             <PromptInput.Content>
               <PromptInput.TextArea
                 ref={textareaRef}
-                className='min-h-18'
                 placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
               />
             </PromptInput.Content>

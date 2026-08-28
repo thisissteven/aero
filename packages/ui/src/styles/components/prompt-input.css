@@ -215,9 +215,9 @@
     opacity: 0.6;
   }
 
-  .prompt-input[data-pending='true'] .prompt-input__shell {
+  /* .prompt-input[data-pending='true'] .prompt-input__shell {
     opacity: 0.95;
-  }
+  } */
 
   .prompt-input[data-status='error'] .prompt-input__send {
     background-color: var(--danger);

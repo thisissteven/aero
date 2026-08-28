@@ -95,7 +95,7 @@ export function BaseTool({
             status === 'error' && 'text-danger',
             status === 'completed' && 'text-muted/70',
           )}
-          isDisabled={!hasContent && !error}
+          isDisabled={(!hasContent && !error) || shouldAnimateOnMount}
         >
           <div className='flex min-w-0 flex-1 items-center gap-2'>
             <div
@@ -219,7 +219,7 @@ export function BaseTool({
           {children}
 
           {/* Fallback to CodeBlock when code prop is passed */}
-          {hasCodeContent && !children && (
+          {hasCodeContent && !children && !shouldAnimateOnMount && (
             <CodeBlock className='bg-transparent'>
               <CodeBlock.Header>
                 <div

@@ -1,4 +1,5 @@
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import type { AeroEvent } from '@/server/services/harness/types';
 
 interface StreamOptions {
   sessionId: string;
@@ -11,6 +12,13 @@ interface Connection {
   openPromise: Promise<void>;
   resolveOpen: () => void;
   rejectOpen: (error: Error) => void;
+}
+
+type DeltaEvent = Extract<AeroEvent, { type: 'message.part.delta' }>;
+
+interface PendingDelta {
+  sessionId: string;
+  event: DeltaEvent;
 }
 
 function qs(params: Record<string, string | undefined>) {
@@ -29,6 +37,84 @@ function qs(params: Record<string, string | undefined>) {
 
 class SessionStreamManager {
   private connections = new Map<string, Connection>();
+
+  private pendingDeltas = new Map<string, PendingDelta>();
+
+  private deltaRaf: number | null = null;
+
+  private queueDelta(sessionId: string, event: DeltaEvent) {
+    const key = `${sessionId}:${event.messageId}:${event.partId}:${event.field}`;
+
+    const existing = this.pendingDeltas.get(key);
+
+    if (existing) {
+      existing.event = {
+        ...existing.event,
+        delta: existing.event.delta + event.delta,
+      };
+    } else {
+      this.pendingDeltas.set(key, {
+        sessionId,
+        event,
+      });
+    }
+
+    this.scheduleDeltaFlush();
+  }
+
+  private scheduleDeltaFlush() {
+    if (this.deltaRaf !== null) {
+      return;
+    }
+
+    this.deltaRaf = requestAnimationFrame(() => {
+      this.deltaRaf = null;
+      this.flushAllDeltas();
+    });
+  }
+
+  private flushAllDeltas() {
+    if (this.pendingDeltas.size === 0) {
+      return;
+    }
+
+    const pending = Array.from(this.pendingDeltas.values());
+
+    this.pendingDeltas.clear();
+
+    const store = useChatStore.getState();
+
+    for (const { sessionId, event } of pending) {
+      store.handleStreamEvent(sessionId, event);
+    }
+  }
+
+  private flushSessionDeltas(sessionId: string) {
+    if (this.pendingDeltas.size === 0) {
+      return;
+    }
+
+    const sessionPending: PendingDelta[] = [];
+
+    for (const [key, pending] of this.pendingDeltas) {
+      if (pending.sessionId !== sessionId) {
+        continue;
+      }
+
+      sessionPending.push(pending);
+      this.pendingDeltas.delete(key);
+    }
+
+    if (sessionPending.length === 0) {
+      return;
+    }
+
+    const store = useChatStore.getState();
+
+    for (const { sessionId: pendingSessionId, event } of sessionPending) {
+      store.handleStreamEvent(pendingSessionId, event);
+    }
+  }
 
   ensure({ sessionId, harnessId }: StreamOptions): Promise<void> {
     const existing = this.connections.get(sessionId);
@@ -69,7 +155,19 @@ class SessionStreamManager {
       }
 
       try {
-        const data = JSON.parse(event.data);
+        const data: AeroEvent = JSON.parse(event.data);
+
+        if (data.type === 'message.part.delta') {
+          this.queueDelta(sessionId, data);
+          return;
+        }
+
+        /**
+         * Preserve event ordering:
+         * anything other than a delta must see all previous
+         * deltas for this session first.
+         */
+        this.flushSessionDeltas(sessionId);
 
         useChatStore.getState().handleStreamEvent(sessionId, data);
       } catch (error) {
@@ -96,6 +194,10 @@ class SessionStreamManager {
 
       handle(event);
 
+      /**
+       * handle() flushes deltas synchronously before processing idle.
+       * At this point the stream can safely be removed.
+       */
       const current = this.connections.get(sessionId);
 
       if (current?.source === source) {
@@ -121,6 +223,7 @@ class SessionStreamManager {
       }
 
       if (source.readyState === EventSource.CLOSED) {
+        this.flushSessionDeltas(sessionId);
         rejectOpen(new Error(`Session stream closed: ${sessionId}`));
       }
     };
@@ -131,6 +234,8 @@ class SessionStreamManager {
   }
 
   close(sessionId: string) {
+    this.flushSessionDeltas(sessionId);
+
     const connection = this.connections.get(sessionId);
 
     if (!connection) {
@@ -142,6 +247,8 @@ class SessionStreamManager {
   }
 
   closeAll() {
+    this.flushAllDeltas();
+
     for (const sessionId of this.connections.keys()) {
       this.close(sessionId);
     }
