@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import {
   buildFlatConversationItems,
   type FlatConversationVirtualItem,
+  type UsageExceeded,
 } from '@/app/components/message-view/lib';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
 import type {
@@ -31,6 +32,8 @@ interface SessionRuntime {
   status: AeroSessionStatus;
   isStreaming: boolean;
   streamStartedAt: number | null;
+
+  usageExceeded?: UsageExceeded;
 
   hasLiveStatus: boolean;
   hasHydrated: boolean;
@@ -84,6 +87,7 @@ interface ChatStore {
 
   addRunningSession: (sessionId: string) => void;
   removeRunningSession: (sessionId: string) => void;
+  addUnreadSession: (sessionId: string, status: 'success' | 'error') => void;
   removeUnreadSession: (sessionId: string) => void;
 
   resetSession: (sessionId: string) => void;
@@ -135,12 +139,18 @@ function buildRuntime(
   turns: AeroConversationTurn[],
   isStreaming: boolean,
   revertMessageId?: string,
+  usageExceeded?: UsageExceeded,
 ): Pick<
   SessionRuntime,
   'turns' | 'flatItems' | 'groupFlatIndex' | 'revertedMessages' | 'isStreaming'
 > {
   const { flatItems, groupFlatIndex, revertedMessages } =
-    buildFlatConversationItems(turns, isStreaming, revertMessageId);
+    buildFlatConversationItems(
+      turns,
+      isStreaming,
+      revertMessageId,
+      usageExceeded,
+    );
 
   return {
     turns,
@@ -157,6 +167,8 @@ function createEmptyRuntime(): SessionRuntime {
 
     status: IDLE,
     streamStartedAt: null,
+
+    usageExceeded: undefined,
 
     hasLiveStatus: false,
     hasHydrated: false,
@@ -251,6 +263,13 @@ function appendIncomingMessage(
 ): SessionRuntime {
   const existingTurnId = runtime.messageTurnIds[incoming.id];
 
+  /**
+   * Existing message -> update that turn.
+   *
+   * Turn metadata is intentionally NOT touched here.
+   * providerID/modelID/agent/mode are write-once when
+   * the turn is initially created.
+   */
   if (existingTurnId) {
     const turnIndex = runtime.turns.findIndex(
       (turn) => turn.id === existingTurnId,
@@ -262,40 +281,57 @@ function appendIncomingMessage(
           ? turn
           : {
               ...turn,
+
               parts:
                 incoming.parts.length > 0
                   ? replaceMessageParts(turn, incoming.id, incoming.parts)
                   : turn.parts,
+
               createdAt:
                 turn.id === incoming.id ? incoming.createdAt : turn.createdAt,
-              error: incoming.error?.data?.message
-                ? incoming.error
-                : turn.error,
+
+              error: incoming.error ?? turn.error,
             },
       );
 
       return {
         ...runtime,
-        ...buildRuntime(nextTurns, runtime.isStreaming),
+        ...buildRuntime(
+          nextTurns,
+          runtime.isStreaming,
+          undefined,
+          runtime.usageExceeded,
+        ),
       };
     }
   }
 
   const previous = runtime.turns.at(-1);
 
+  /**
+   * Consecutive messages with the same role are still
+   * grouped into the existing turn.
+   *
+   * Metadata stays on `previous` and is never overwritten.
+   */
   if (previous?.role === incoming.role) {
     const nextTurns = [
       ...runtime.turns.slice(0, -1),
       {
         ...previous,
         parts: [...previous.parts, ...incoming.parts],
-        error: incoming.error?.data?.message ? incoming.error : previous.error,
+        error: incoming.error ?? previous.error,
       },
     ];
 
     return {
       ...runtime,
-      ...buildRuntime(nextTurns, runtime.isStreaming),
+      ...buildRuntime(
+        nextTurns,
+        runtime.isStreaming,
+        undefined,
+        runtime.usageExceeded,
+      ),
       messageTurnIds: {
         ...runtime.messageTurnIds,
         [incoming.id]: previous.id,
@@ -303,17 +339,33 @@ function appendIncomingMessage(
     };
   }
 
+  /**
+   * New turn.
+   *
+   * This is the ONLY place where the per-turn model/agent
+   * metadata is captured.
+   */
   const nextTurn: AeroConversationTurn = {
     id: incoming.id,
     role: incoming.role,
     parts: [...incoming.parts],
     createdAt: incoming.createdAt,
-    error: incoming.error?.data?.message ? incoming.error : undefined,
+    error: incoming.error,
+
+    providerID: incoming.providerID,
+    modelID: incoming.modelID,
+    agent: incoming.agent,
+    mode: incoming.mode,
   };
 
   return {
     ...runtime,
-    ...buildRuntime([...runtime.turns, nextTurn], runtime.isStreaming),
+    ...buildRuntime(
+      [...runtime.turns, nextTurn],
+      runtime.isStreaming,
+      undefined,
+      runtime.usageExceeded,
+    ),
     messageTurnIds: {
       ...runtime.messageTurnIds,
       [incoming.id]: incoming.id,
@@ -325,7 +377,6 @@ export const useChatStore = create<ChatStore>()(
   persist(
     (set) => {
       const pendingDeltas = new Map<string, PendingDelta[]>();
-
       const pendingPartUpdates = new Map<string, AeroPart[]>();
 
       return {
@@ -359,6 +410,7 @@ export const useChatStore = create<ChatStore>()(
                 runtime.turns,
                 runtime.isStreaming,
                 revertMessageId,
+                runtime.usageExceeded,
               ),
             };
 
@@ -383,7 +435,12 @@ export const useChatStore = create<ChatStore>()(
             const runtime: SessionRuntime = {
               ...current,
 
-              ...buildRuntime(turns, isStreaming, revertMessageId),
+              ...buildRuntime(
+                turns,
+                isStreaming,
+                revertMessageId,
+                current.usageExceeded,
+              ),
 
               status: current.status,
               isStreaming,
@@ -428,10 +485,22 @@ export const useChatStore = create<ChatStore>()(
 
             const isStreaming = status.type !== 'idle';
 
+            /**
+             * Query/stream status updates do not normally
+             * carry the retry payload. Preserve an existing
+             * payload until the session becomes idle.
+             *
+             * Idle is the explicit reset point.
+             */
+            const usageExceeded =
+              status.type === 'idle' ? undefined : current.usageExceeded;
+
             const runtime: SessionRuntime = {
               ...current,
+
               status,
-              isStreaming,
+
+              usageExceeded,
 
               hasLiveStatus: source === 'stream' ? true : current.hasLiveStatus,
 
@@ -440,6 +509,15 @@ export const useChatStore = create<ChatStore>()(
                 status,
                 current.streamStartedAt,
               ),
+
+              ...buildRuntime(
+                current.turns,
+                isStreaming,
+                undefined,
+                usageExceeded,
+              ),
+
+              isStreaming,
             };
 
             const sessions = {
@@ -469,11 +547,30 @@ export const useChatStore = create<ChatStore>()(
               case 'session.status': {
                 const isStreaming = event.status.type !== 'idle';
 
+                /**
+                 * The usage limit is represented by the
+                 * structured retry action, not by
+                 * AeroMessage.error.
+                 */
+                const nextUsageExceeded =
+                  event.status.type === 'retry' &&
+                  event.status.action?.reason === 'free_tier_limit'
+                    ? {
+                        title: event.status.action.title,
+                        message: event.status.action.message,
+                        label: event.status.action.label,
+                        link: event.status.action.link,
+                      }
+                    : event.status.type === 'idle'
+                      ? undefined
+                      : current.usageExceeded;
+
                 const runtime: SessionRuntime = {
                   ...current,
 
                   status: event.status,
-                  isStreaming,
+
+                  usageExceeded: nextUsageExceeded,
 
                   hasLiveStatus: true,
 
@@ -482,6 +579,15 @@ export const useChatStore = create<ChatStore>()(
                     event.status,
                     current.streamStartedAt,
                   ),
+
+                  ...buildRuntime(
+                    current.turns,
+                    isStreaming,
+                    revertMessageId,
+                    nextUsageExceeded,
+                  ),
+
+                  isStreaming,
                 };
 
                 const sessions = {
@@ -498,6 +604,73 @@ export const useChatStore = create<ChatStore>()(
                 return {
                   sessions,
                   runningSessions,
+                  ...projectActiveSession(sessions, state.activeSessionId),
+                };
+              }
+
+              case 'session.error': {
+                /**
+                 * Ignore events that do not contain a
+                 * named error. In particular, the
+                 * normalized "Unknown error" event is
+                 * not allowed to overwrite useful data.
+                 */
+                const error = event.error;
+
+                if (!error) {
+                  return state;
+                }
+
+                /**
+                 * session.error does not carry the
+                 * message id, so associate it with
+                 * the latest assistant turn.
+                 */
+                let turnIndex = -1;
+
+                for (let i = current.turns.length - 1; i >= 0; i--) {
+                  if (current.turns[i].role === 'assistant') {
+                    turnIndex = i;
+                    break;
+                  }
+                }
+
+                if (turnIndex === -1) {
+                  return state;
+                }
+
+                const nextTurns = current.turns.map((turn, index) =>
+                  index === turnIndex
+                    ? {
+                        ...turn,
+
+                        /**
+                         * Prefer an already
+                         * populated message error.
+                         */
+                        error: turn.error,
+                      }
+                    : turn,
+                );
+
+                const runtime: SessionRuntime = {
+                  ...current,
+
+                  ...buildRuntime(
+                    nextTurns,
+                    current.isStreaming,
+                    revertMessageId,
+                    current.usageExceeded,
+                  ),
+                };
+
+                const sessions = {
+                  ...state.sessions,
+                  [sessionId]: runtime,
+                };
+
+                return {
+                  sessions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -548,20 +721,24 @@ export const useChatStore = create<ChatStore>()(
 
                     runtime = {
                       ...runtime,
+
                       ...buildRuntime(
                         nextTurns,
                         runtime.isStreaming,
                         revertMessageId,
+                        runtime.usageExceeded,
                       ),
                     };
                   }
                 } else {
                   runtime = {
                     ...runtime,
+
                     ...buildRuntime(
                       runtime.turns,
                       runtime.isStreaming,
                       revertMessageId,
+                      runtime.usageExceeded,
                     ),
                   };
                 }
@@ -650,6 +827,7 @@ export const useChatStore = create<ChatStore>()(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
+                    current.usageExceeded,
                   ),
 
                   streamStartedAt:
@@ -744,6 +922,7 @@ export const useChatStore = create<ChatStore>()(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
+                    current.usageExceeded,
                   ),
 
                   streamStartedAt:
@@ -792,6 +971,7 @@ export const useChatStore = create<ChatStore>()(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
+                    current.usageExceeded,
                   ),
                 };
 
@@ -849,6 +1029,7 @@ export const useChatStore = create<ChatStore>()(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
+                    current.usageExceeded,
                   ),
 
                   messageTurnIds: nextMessageTurnIds,
@@ -866,18 +1047,19 @@ export const useChatStore = create<ChatStore>()(
               }
 
               case 'session.idle': {
-                const hasError = current.turns.some(
-                  (turn) => turn.error != null,
-                );
+                const lastTurn = current.turns[current.turns.length - 1];
 
-                const unreadStatus: 'success' | 'error' = hasError
-                  ? 'error'
-                  : 'success';
+                const unreadStatus: 'success' | 'error' =
+                  lastTurn?.error != null ? 'error' : 'success';
 
                 const activeId = useActiveSessionStore.getState().activeId;
 
                 const shouldMarkUnread = activeId !== sessionId;
 
+                /**
+                 * Idle is the terminal reset point for
+                 * the session-level retry payload.
+                 */
                 const runtime: SessionRuntime = {
                   ...current,
 
@@ -886,7 +1068,15 @@ export const useChatStore = create<ChatStore>()(
 
                   hasLiveStatus: true,
 
-                  ...buildRuntime(current.turns, false, revertMessageId),
+                  usageExceeded: undefined,
+
+                  ...buildRuntime(
+                    current.turns,
+                    false,
+                    revertMessageId,
+                    undefined,
+                  ),
+
                   isStreaming: false,
                 };
 
@@ -956,6 +1146,10 @@ export const useChatStore = create<ChatStore>()(
 
         addRunningSession: (sessionId) => {
           set((state) => {
+            if (state.runningSessions.includes(sessionId)) {
+              return state;
+            }
+
             return {
               runningSessions: [...state.runningSessions, sessionId],
             };
@@ -978,6 +1172,20 @@ export const useChatStore = create<ChatStore>()(
           });
         },
 
+        addUnreadSession: (sessionId, status) => {
+          set((state) => ({
+            unreadSessions: [
+              ...state.unreadSessions.filter(
+                (item) => item.sessionId !== sessionId,
+              ),
+              {
+                sessionId,
+                status,
+              },
+            ],
+          }));
+        },
+
         removeUnreadSession: (sessionId) => {
           set((state) => {
             const unreadSessions = state.unreadSessions.filter(
@@ -997,6 +1205,7 @@ export const useChatStore = create<ChatStore>()(
     },
     {
       name: 'aero-chat-store',
+
       partialize: (state) => ({
         runningSessions: state.runningSessions,
         unreadSessions: state.unreadSessions,

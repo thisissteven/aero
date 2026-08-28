@@ -3,6 +3,15 @@ export function capitalizeFirstLetter(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+export function toPascalCase(str: string) {
+  return str
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export const handleDownloadMarkdown = (content: string, filename: string) => {
   // 1. Create a Blob with the markdown content
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });

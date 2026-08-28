@@ -192,6 +192,27 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/messages/:messageId?harnessId=...
+  .get(
+    '/:id/messages/:messageId',
+    zValidator(
+      'param',
+      idParamSchema.extend({
+        messageId: z.string(),
+      }),
+    ),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id, messageId } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const message = await harness.getSessionMessage(id, messageId);
+
+      return c.json(message);
+    },
+  )
+
   // GET /api/sessions/:id/messages?harnessId=...
   .get(
     '/:id/messages',

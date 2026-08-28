@@ -499,6 +499,11 @@ export function toAeroMessage(entry: {
           }
         : undefined,
     createdAt: entry.info.time?.created ?? Date.now(),
+    agent: entry.info.agent,
+    mode: entry.info.role === 'assistant' ? entry.info.mode : undefined,
+    modelID: entry.info.role === 'assistant' ? entry.info.modelID : undefined,
+    providerID:
+      entry.info.role === 'assistant' ? entry.info.providerID : undefined,
   };
 }
 

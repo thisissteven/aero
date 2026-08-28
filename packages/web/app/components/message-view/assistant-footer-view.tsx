@@ -5,29 +5,51 @@ import { memo } from 'react';
 
 import { ChatMessage, Tooltip } from '@aero/ui';
 
+import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import {
   MessageActionsCopy,
   MessageActionsFork,
   MessageActionsReadAloud,
 } from '@/app/components/message-view/message-actions';
+import { ProviderLogo } from '@/app/components/provider-logo';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { formatDateTime } from '@/app/lib/date';
+import { toPascalCase } from '@/app/lib/file';
 
 export const AssistantFooterView = memo(function AssistantFooterView({
-  turnId,
-  createdAt,
-  assistantTextResponse,
-  nextTurnId,
+  item,
 }: {
-  turnId: string;
-  createdAt: string | Date;
-  assistantTextResponse: string;
-  nextTurnId: string;
+  item: Extract<FlatConversationVirtualItem, { type: 'assistant-footer' }>;
 }) {
+  const {
+    createdAt,
+    assistantTextResponse,
+    nextTurnId,
+    turnId,
+    providerID,
+    modelID,
+  } = item;
+
   return (
     <ChatMessage.Assistant className='group py-0'>
       <ChatMessage.Body className='pe-0 pt-2 pb-1'>
-        <div className='flex w-full justify-start gap-2 pr-3'>
+        <div className='flex w-full flex-wrap items-center justify-start gap-2 pr-3'>
+          <div className='flex h-7 items-center gap-2'>
+            {providerID && (
+              <ProviderLogo
+                className='size-4 shrink-0'
+                alt={modelID}
+                providerId={providerID}
+              />
+            )}
+
+            {modelID && (
+              <span className='text-foreground text-xs'>
+                {toPascalCase(modelID)}
+              </span>
+            )}
+          </div>
+
           <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
             <Icon data={Clock} size={12} className='opacity-80' />
             {formatDateTime(createdAt)}

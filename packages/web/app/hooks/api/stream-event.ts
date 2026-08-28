@@ -37,6 +37,8 @@ export function useRestoreSessionStreams() {
     hasRestored.current = true;
 
     const runningSessions = useChatStore.getState().runningSessions;
+    const removeRunningSession = useChatStore.getState().removeRunningSession;
+    const addUnreadSession = useChatStore.getState().addUnreadSession;
 
     if (runningSessions.length === 0) {
       return;
@@ -107,6 +109,11 @@ export function useRestoreSessionStreams() {
          * reconnect its stream.
          */
         if (!status || status.type !== 'busy') {
+          removeRunningSession(sessionId);
+          addUnreadSession(
+            sessionId,
+            status.type === 'idle' ? 'success' : 'error',
+          );
           return;
         }
 

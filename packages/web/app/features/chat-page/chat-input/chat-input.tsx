@@ -39,7 +39,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
   }, [pathname, isMobile]);
 
   return (
-    <ActiveSessionPromptInputWrapper isDisabled={isDisabled}>
+    <ActiveSessionPromptInputWrapper key={pathname} isDisabled={isDisabled}>
       <PromptInput.Shell className='shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea

@@ -97,10 +97,8 @@ export function groupMessages(messages: AeroMessage[]): AeroConversationTurn[] {
     }
 
     turns.push({
-      id: message.id,
-      role: message.role,
+      ...message,
       parts: [...message.parts],
-      createdAt: message.createdAt,
       error: message.error?.data?.message ? message.error : undefined,
     });
   }

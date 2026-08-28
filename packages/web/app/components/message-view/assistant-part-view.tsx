@@ -51,10 +51,7 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <StreamAnimation
-                isStreaming={isPartStreaming}
-                className='relative min-h-[1.5rem]'
-              >
+              <div className='relative min-h-[1.5rem]'>
                 <Markdown
                   id={blockId}
                   isFile={handleIsWorktreeFile}
@@ -62,7 +59,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                 >
                   {part.text}
                 </Markdown>
-              </StreamAnimation>
+              </div>
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -76,10 +73,7 @@ export const AssistantPartView = memo(function AssistantPartView({
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
             <ChatMessage.Content>
-              <StreamAnimation
-                isStreaming={isPartStreaming}
-                className='relative min-h-[2.5rem]'
-              >
+              <div className='relative min-h-[2.5rem]'>
                 <ReasoningBlock
                   blockId={blockId}
                   isFile={handleIsWorktreeFile}
@@ -87,7 +81,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   text={part.text}
                   isStreaming={isPartStreaming}
                 />
-              </StreamAnimation>
+              </div>
             </ChatMessage.Content>
           </ChatMessage.Body>
         </ChatMessage.Assistant>
@@ -128,8 +122,8 @@ export function StreamAnimation({
 
   return (
     <motion.div
-      initial={shouldAnimateOnMount.current ? { opacity: 0, y: 6 } : false}
-      animate={{ opacity: 1, y: 0 }}
+      initial={shouldAnimateOnMount.current ? { opacity: 0, x: -4 } : false}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
       className={className}
     >

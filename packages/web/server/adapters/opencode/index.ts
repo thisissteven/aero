@@ -842,6 +842,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       }
     },
 
+    async getSessionMessage(sessionID, messageID) {
+      const entry = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.session.message({ sessionID, messageID }),
+        ),
+      );
+
+      return toAeroMessage(entry);
+    },
+
     async getSessionContext(sessionID) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>

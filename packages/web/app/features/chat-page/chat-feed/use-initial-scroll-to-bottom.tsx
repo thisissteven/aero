@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
 export function useInitialScrollToBottom(
@@ -6,13 +6,27 @@ export function useInitialScrollToBottom(
   totalItems: number,
 ) {
   const [isReady, setIsReady] = useState(false);
+  const didInitialScrollRef = useRef(false);
 
   useLayoutEffect(() => {
-    if (!totalItems) return;
+    if (!totalItems || didInitialScrollRef.current) {
+      return;
+    }
 
+    let raf1: number;
     let raf2: number;
-    const raf1 = requestAnimationFrame(() => {
-      virtualizerRef.current?.scrollToIndex(totalItems - 1, {
+
+    const tryInitialize = () => {
+      const virtualizer = virtualizerRef.current;
+
+      if (!virtualizer) {
+        raf1 = requestAnimationFrame(tryInitialize);
+        return;
+      }
+
+      didInitialScrollRef.current = true;
+
+      virtualizer.scrollToIndex(totalItems - 1, {
         align: 'end',
         offset: 48,
       });
@@ -20,7 +34,9 @@ export function useInitialScrollToBottom(
       raf2 = requestAnimationFrame(() => {
         setIsReady(true);
       });
-    });
+    };
+
+    raf1 = requestAnimationFrame(tryInitialize);
 
     return () => {
       cancelAnimationFrame(raf1);

@@ -4,6 +4,8 @@ import { useCallback } from 'react';
 
 import { AppLayout, Resizable } from '@aero/ui';
 
+import { useRestoreSessionStreams } from '@/app/hooks/api/stream-event';
+
 import { ChatAsidePanel } from './chat-aside/chat-aside-panel';
 import { ConnectedChatAside } from './chat-aside/connected-chat-aside';
 import { ChatMainContentPanel } from './chat-main-content-panel';
@@ -24,6 +26,8 @@ export function ChatShell({ children }: ChatShellProps) {
     },
     [navigate],
   );
+
+  useRestoreSessionStreams();
 
   return (
     <div className='bg-background text-foreground flex h-screen w-screen overflow-hidden'>

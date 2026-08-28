@@ -76,13 +76,16 @@ export function ChatConversationView({
                 {item.message}
               </div>
             )}
+            {item.type === 'assistant-usage-exceeded' && (
+              <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-2xl border px-4 py-2 text-sm'>
+                <div>
+                  <b>{item.title}</b>
+                </div>
+                {item.message}
+              </div>
+            )}
             {item.type === 'assistant-footer' && (
-              <AssistantFooterView
-                turnId={item.turnId}
-                createdAt={item.createdAt}
-                assistantTextResponse={item.assistantTextResponse}
-                nextTurnId={item.nextTurnId}
-              />
+              <AssistantFooterView item={item} />
             )}
           </div>
         );

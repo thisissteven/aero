@@ -20,7 +20,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setIsReady(true), 300);
+    const timeout = setTimeout(() => setIsReady(true), 1000);
 
     return () => clearTimeout(timeout);
   }, []);

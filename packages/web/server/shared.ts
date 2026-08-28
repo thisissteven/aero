@@ -1,5 +1,7 @@
 /** Standardize path separators to forward slashes and remove trailing slashes */
 export function normalizePath(path: string): string {
+  if (!path) return path;
+
   const normalized = path.replace(/\\/g, '/');
   return normalized.endsWith('/') && normalized.length > 1
     ? normalized.slice(0, -1)

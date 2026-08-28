@@ -193,6 +193,10 @@ export interface AeroMessage {
   id: string;
   sessionId: string;
   role: ConversationRole;
+  modelID?: string;
+  providerID?: string;
+  agent?: string;
+  mode?: string;
   parts: AeroPart[];
   error?: AeroAssistantError;
   createdAt: number;
@@ -207,6 +211,10 @@ export interface AeroTocItem {
 export interface AeroConversationTurn {
   id: string;
   role: ConversationRole;
+  modelID?: string;
+  providerID?: string;
+  agent?: string;
+  mode?: string;
   parts: AeroPart[];
   error?: AeroAssistantError;
   createdAt: number;
@@ -224,6 +232,14 @@ export type AeroSessionStatus =
       type: 'retry';
       attempt: number;
       message: string;
+      action?: {
+        reason: string;
+        provider: string;
+        title: string;
+        message: string;
+        label: string;
+        link?: string;
+      };
       next: number;
     };
 
@@ -406,6 +422,7 @@ export interface HarnessAdapter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any(sessionId: string): Promise<any>;
 
+  getSessionMessage(sessionId: string, messageId: string): Promise<AeroMessage>;
   getSessionStatus(directory: string): Promise<{
     [key: string]: SessionStatus;
   }>;

@@ -33,30 +33,43 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [preview, setPreview] = useState('');
 
   useKeepMountedFeed(blockId, isExpanded);
-
-  const [preview, setPreview] = useState('');
 
   const textRef = useRef(text);
   textRef.current = text;
 
+  const lastPreviewLengthRef = useRef(0);
+
   useEffect(() => {
     const updatePreview = () => {
-      const sliced = textRef.current.slice(-150);
-      if (sliced.length >= 50) {
-        setPreview(stripMarkdown(sliced));
+      const currentText = textRef.current;
+      const currentLength = currentText.length;
+
+      if (!isStreaming) {
+        setPreview(currentText.slice(0, 100));
+        lastPreviewLengthRef.current = currentLength;
+        return;
       }
+
+      if (currentLength - lastPreviewLengthRef.current <= 100) {
+        return;
+      }
+
+      lastPreviewLengthRef.current = currentLength;
+
+      setPreview(stripMarkdown(currentText.slice(-100)));
     };
 
     updatePreview();
 
     if (!isStreaming) {
-      setPreview(textRef.current.slice(0, 150));
       return;
     }
 
     const intervalId = setInterval(updatePreview, 1000);
+
     return () => clearInterval(intervalId);
   }, [isStreaming]);
 
@@ -97,13 +110,20 @@ export const ReasoningBlock = memo(function ReasoningBlock({
                     ? { opacity: 0, y: 4, filter: 'blur(2px)' }
                     : false
                 }
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  filter: 'blur(0px)',
+                }}
                 exit={
                   hasStreamedRef.current
                     ? { opacity: 0, y: -4, filter: 'blur(2px)' }
                     : undefined
                 }
-                transition={{ duration: 0.15, ease: 'easeInOut' }}
+                transition={{
+                  duration: 0.15,
+                  ease: 'easeInOut',
+                }}
                 className='block w-4/5 truncate text-left md:w-full'
               >
                 {preview}

@@ -100,6 +100,13 @@ function arePartsEqual(prev: AeroPart, next: AeroPart): boolean {
   }
 }
 
+export interface UsageExceeded {
+  title: string;
+  message: string;
+  label: string;
+  link?: string;
+}
+
 export type FlatConversationVirtualItem =
   | {
       id: string;
@@ -123,11 +130,24 @@ export type FlatConversationVirtualItem =
       createdAt: string | Date;
       assistantTextResponse: string;
       nextTurnId: string;
+      providerID?: string;
+      modelID?: string;
+      agent?: string;
+      mode?: string;
     }
   | {
       id: string;
       type: 'assistant-error';
       message: string;
+    }
+  | {
+      id: string;
+      type: 'assistant-usage-exceeded';
+      turnId: string;
+      title: string;
+      message: string;
+      label: string;
+      link?: string;
     }
   | {
       id: string;
@@ -142,11 +162,11 @@ export type FlatConversationVirtualItem =
       type: 'spacer-footer';
     };
 
-// buildFlatConversationItems.ts
 export function buildFlatConversationItems(
   displayedGroups: AeroConversationTurn[],
   isStreaming: boolean,
   revertMessageId?: string,
+  usageExceeded?: UsageExceeded,
 ): {
   flatItems: FlatConversationVirtualItem[];
   groupFlatIndex: number[];
@@ -165,6 +185,23 @@ export function buildFlatConversationItems(
   let isReverted = false;
   let hasRenderedTurn = false;
 
+  /**
+   * Usage-exceeded belongs to the latest assistant turn,
+   * not necessarily the last turn in the conversation.
+   *
+   * This matters if a newer user turn has already been added
+   * while the previous assistant is still the one associated
+   * with the retry state.
+   */
+  let latestAssistantTurnIndex = -1;
+
+  for (let i = displayedGroups.length - 1; i >= 0; i--) {
+    if (displayedGroups[i].role === 'assistant') {
+      latestAssistantTurnIndex = i;
+      break;
+    }
+  }
+
   for (let turnIndex = 0; turnIndex < displayedGroups.length; turnIndex++) {
     const turn = displayedGroups[turnIndex];
 
@@ -179,8 +216,8 @@ export function buildFlatConversationItems(
     if (isReverted) {
       if (turn.role === 'user') {
         const preview = turn.parts
-          .filter((p) => p.type === 'text')
-          .map((p) => p.text.trim())
+          .filter((part) => part.type === 'text')
+          .map((part) => part.text.trim())
           .filter(Boolean)
           .join(' ');
 
@@ -193,6 +230,11 @@ export function buildFlatConversationItems(
       continue;
     }
 
+    /**
+     * Empty turns are ignored only when they also have no error.
+     *
+     * An errored assistant turn can legitimately have zero parts.
+     */
     if (turn.parts.length === 0 && !turn.error) {
       continue;
     }
@@ -200,13 +242,13 @@ export function buildFlatConversationItems(
     groupFlatIndex[turnIndex] = items.length;
 
     const nextTurn = displayedGroups[turnIndex + 1];
-    const nextTurnId = nextTurn?.id;
+    const nextTurnId = nextTurn?.id ?? '';
 
     /**
      * Only the actual last turn is considered streaming.
      *
-     * Older assistant turns must remain completed so their footers
-     * continue to render while a newer assistant turn is streaming.
+     * Older assistant turns remain completed so their footers
+     * continue to render while a newer assistant turn streams.
      */
     const isLastTurn = turnIndex === displayedGroups.length - 1;
     const isTurnStreaming = isStreaming && isLastTurn;
@@ -219,17 +261,6 @@ export function buildFlatConversationItems(
 
       hasRenderedTurn = true;
     } else {
-      /**
-       * Spacing belongs BETWEEN turns.
-       *
-       * This is what gives:
-       *
-       *   assistant
-       *   [space]
-       *   user
-       *
-       * instead of putting the spacer after the user.
-       */
       items.push({
         id: `${turn.id}-spacer-before`,
         type: 'spacer',
@@ -247,92 +278,115 @@ export function buildFlatConversationItems(
       continue;
     }
 
-    if (turn.role === 'assistant') {
-      const assistantTextResponse = turn.parts
-        .filter((p) => p.type === 'text')
-        .map((p) => p.text.trim())
-        .filter(Boolean)
-        .join('\n\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+    if (turn.role !== 'assistant') {
+      continue;
+    }
 
-      /**
-       * IMPORTANT:
-       *
-       * Do not check `!isStreaming` here.
-       *
-       * If the current last assistant finishes, the next
-       * `session.idle` event rebuilds with isStreaming=false and
-       * this footer appears.
-       *
-       * If a newer turn is streaming, older assistant turns still
-       * need their footer.
-       */
-      const hasFooter =
-        !isTurnStreaming &&
-        (turn.parts.length > 0 || !!turn.error?.data?.message);
+    const assistantTextResponse = turn.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text.trim())
+      .filter(Boolean)
+      .join('\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
-      turn.parts.forEach((part, partIndex) => {
-        const isLastPartInTurn = partIndex === turn.parts.length - 1;
-
-        const isPartStreaming = isTurnStreaming && isLastPartInTurn;
-
-        if (part.type === 'text' && !part.text?.trim() && !isPartStreaming) {
-          return;
-        }
-
-        if (
-          part.type === 'reasoning' &&
-          !part.text?.trim() &&
-          !isPartStreaming
-        ) {
-          return;
-        }
-
-        items.push({
-          id: `${turn.id}-part-${partIndex}`,
-          type: 'assistant-part',
-          turnId: turn.id,
-          part,
-          partIndex,
-          isPartStreaming,
-          isLastPartInTurn,
-        });
-      });
-
-      const errorMessage = (() => {
-        switch (turn.error?.name) {
-          case 'MessageAbortedError':
-            return 'This turn was aborted by the user.';
-          default:
-            return turn.error?.data?.message;
-        }
-      })();
-
-      if (errorMessage) {
-        items.push({
-          id: `${turn.id}-assistant-error`,
-          type: 'assistant-error',
-          message: errorMessage,
-        });
+    const errorMessage = (() => {
+      if (!turn.error) {
+        return undefined;
       }
 
-      if (hasFooter) {
-        items.push({
-          id: `${turn.id}-footer`,
-          type: 'assistant-footer',
-          turnId: turn.id,
-          createdAt: formatDateTime(turn.createdAt),
-          assistantTextResponse: assistantTextResponse || (errorMessage ?? ''),
-          nextTurnId,
-        });
+      switch (turn.error.name) {
+        case 'MessageAbortedError':
+          return 'This turn was aborted by the user';
+
+        default:
+          return turn.error.data?.message;
+      }
+    })();
+
+    turn.parts.forEach((part, partIndex) => {
+      const isLastPartInTurn = partIndex === turn.parts.length - 1;
+
+      const isPartStreaming = isTurnStreaming && isLastPartInTurn;
+
+      if (part.type === 'text' && !part.text?.trim() && !isPartStreaming) {
+        return;
+      }
+
+      if (part.type === 'reasoning' && !part.text?.trim() && !isPartStreaming) {
+        return;
       }
 
       items.push({
-        id: `${turn.id}-spacer-footer`,
-        type: 'spacer-footer',
+        id: `${turn.id}-part-${partIndex}`,
+        type: 'assistant-part',
+        turnId: turn.id,
+        part,
+        partIndex,
+        isPartStreaming,
+        isLastPartInTurn,
+      });
+    });
+
+    /**
+     * Error rendering is independent from the footer.
+     *
+     * Therefore an errored assistant turn with zero parts
+     * still gets a visible error item.
+     */
+    if (errorMessage) {
+      items.push({
+        id: `${turn.id}-assistant-error`,
+        type: 'assistant-error',
+        message: errorMessage,
       });
     }
+
+    /**
+     * Usage exceeded is a session-level retry state, not
+     * an AeroMessage error.
+     *
+     * Attach it only to the latest assistant turn.
+     */
+    if (usageExceeded && turnIndex === latestAssistantTurnIndex) {
+      items.push({
+        id: `${turn.id}-usage-exceeded`,
+        type: 'assistant-usage-exceeded',
+        turnId: turn.id,
+        title: usageExceeded.title,
+        message: usageExceeded.message,
+        label: usageExceeded.label,
+        link: usageExceeded.link,
+      });
+    }
+
+    /**
+     * A completed assistant turn gets a footer when it has
+     * either content or an error.
+     */
+    const hasFooter =
+      !isTurnStreaming && (turn.parts.length > 0 || !!turn.error);
+
+    if (hasFooter) {
+      items.push({
+        id: `${turn.id}-footer`,
+        type: 'assistant-footer',
+        turnId: turn.id,
+        createdAt: formatDateTime(turn.createdAt),
+        assistantTextResponse: assistantTextResponse || errorMessage || '',
+        nextTurnId,
+
+        providerID: turn.providerID,
+        modelID: turn.modelID,
+        agent: turn.agent,
+        mode: turn.mode,
+      });
+    }
+
+    items.push({
+      id: `${turn.id}-spacer-footer`,
+      type: 'spacer-footer',
+    });
   }
 
   return {
