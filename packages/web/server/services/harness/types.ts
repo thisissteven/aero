@@ -6,6 +6,8 @@ import {
   FilePart,
   FilePartSource,
   Provider,
+  QuestionAnswer,
+  QuestionRequest,
   SessionStatus,
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
@@ -182,6 +184,10 @@ export interface AeroTodo {
   priority: string;
 }
 
+export interface AeroQuestions {
+  entries: QuestionRequest[];
+}
+
 export interface AeroAssistantError {
   name?: string;
   data?: {
@@ -189,6 +195,9 @@ export interface AeroAssistantError {
   };
 }
 
+export interface AeroQuestionAnswer {
+  answers: QuestionAnswer[];
+}
 export interface AeroMessage {
   id: string;
   sessionId: string;
@@ -408,7 +417,11 @@ export interface HarnessAdapter {
 
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
-  sendMessage(sessionId: string, input: SendMessageInput): Promise<boolean>;
+  sendMessage(
+    sessionId: string,
+    input: SendMessageInput,
+    directory: string,
+  ): Promise<boolean>;
   sendMessageSync(
     sessionId: string,
     input: SendMessageInput,
@@ -448,7 +461,14 @@ export interface HarnessAdapter {
     messageId: string,
   ): Promise<AeroSessionSummary>;
   listTodos(sessionId: string): Promise<AeroTodo[]>;
+  listQuestions(directory: string): Promise<AeroQuestions['entries']>;
 
+  replyToQuestion(
+    requestId: string,
+    answers: AeroQuestionAnswer['answers'],
+    directory: string,
+  ): Promise<boolean>;
+  rejectQuestion(requestId: string, directory: string): Promise<boolean>;
   abortSession(sessionId: string): Promise<boolean>;
 
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;

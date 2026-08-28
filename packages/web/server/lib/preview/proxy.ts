@@ -1,16 +1,34 @@
 import type { Context } from 'hono';
 import { randomBytes } from 'node:crypto';
+import { openAsBlob } from 'node:fs';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import path from 'node:path';
 
 import { buildBridgeScript } from './bridge-script';
-import { rewritePreviewCspHeader } from './rewrite';
+import {
+  detectRewriteKind,
+  rewritePreviewBody,
+  rewritePreviewCspHeader,
+  rewritePreviewRedirectLocation,
+} from './rewrite';
 import type { PreviewTarget } from './store';
 
+const UPSTREAM_TIMEOUT_MS = 20_000;
+
+const MAX_CONCURRENT_UPSTREAM_FETCHES = 64;
+
+const MAX_HTML_BYTES = 4 * 1024 * 1024;
+const MAX_CSS_BYTES = 2 * 1024 * 1024;
+
+let activeUpstreamFetches = 0;
+
 function buildUpstreamUrl(
-  target: PreviewTarget,
+  target: Extract<PreviewTarget, { kind: 'http' }>,
   restPath: string,
   requestUrl: string,
 ): URL {
   const request = new URL(requestUrl);
+
   const upstream = new URL(restPath || '/', `${target.origin}/`);
 
   upstream.search = request.search;
@@ -70,216 +88,16 @@ function copyResponseHeaders(source: Headers): Headers {
   return result;
 }
 
-function rewritePreviewResourceUrl(
-  value: string,
-  targetOrigin: string,
-  previewOrigin: string,
-): string {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return value;
-  }
-
-  if (trimmed.startsWith('#')) {
-    return value;
-  }
-
-  if (/^(?:data|blob|javascript|mailto|tel|about):/i.test(trimmed)) {
-    return value;
-  }
-
-  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
-    return previewOrigin + trimmed;
-  }
-
-  try {
-    const parsed = new URL(trimmed, `${targetOrigin}/`);
-
-    const target = new URL(targetOrigin);
-
-    if (parsed.origin === target.origin) {
-      return previewOrigin + parsed.pathname + parsed.search + parsed.hash;
-    }
-  } catch {
-    // Keep original URL.
-  }
-
-  return value;
+function isGetOrHead(method: string): boolean {
+  return method === 'GET' || method === 'HEAD';
 }
 
-function rewriteHtml(
-  html: string,
-  targetOrigin: string,
-  previewOrigin: string,
-): string {
-  let result = html;
-
-  result = result.replace(
-    /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
-    (_match, attribute, quote, value) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(value),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `${attribute}=${quote}${rewritten}${quote}`;
-    },
-  );
-
-  result = result.replace(
-    /\bsrcset=(['"])([^'"]*)\1/gi,
-    (_match, quote, value) => {
-      const rewritten = String(value)
-        .split(',')
-        .map((part) => {
-          const trimmed = part.trim();
-
-          if (!trimmed) {
-            return trimmed;
-          }
-
-          const segments = trimmed.split(/\s+/);
-
-          const url = segments.shift() ?? '';
-
-          const nextUrl = rewritePreviewResourceUrl(
-            url,
-            targetOrigin,
-            previewOrigin,
-          );
-
-          return [nextUrl, ...segments].join(' ');
-        })
-        .join(', ');
-
-      return `srcset=${quote}${rewritten}${quote}`;
-    },
-  );
-
-  result = result.replace(
-    /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
-    (match, attrs, scriptBody) => {
-      const typeMatch = String(attrs).match(
-        /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
-      );
-
-      const type = String(
-        typeMatch?.[1] ?? typeMatch?.[2] ?? typeMatch?.[3] ?? '',
-      )
-        .trim()
-        .toLowerCase();
-
-      if (type !== 'module' || /\bsrc\s*=/i.test(attrs)) {
-        return match;
-      }
-
-      const rewritten = rewriteJavaScript(
-        scriptBody,
-        targetOrigin,
-        previewOrigin,
-      );
-
-      if (rewritten === scriptBody) {
-        return match;
-      }
-
-      return `<script${attrs}>${rewritten}</script>`;
-    },
-  );
-
-  result = result.replace(
-    /<script\b[^>]*>\s*import\s*\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi,
-    '',
-  );
-
-  return result;
+function isPreviewHost(requestUrl: URL, target: PreviewTarget): boolean {
+  return requestUrl.hostname.toLowerCase() === `${target.id}.preview.localhost`;
 }
 
-function rewriteCss(
-  css: string,
-  targetOrigin: string,
-  previewOrigin: string,
-): string {
-  let result = css;
-
-  result = result.replace(
-    /url\(\s*(['"]?)(.*?)\1\s*\)/gi,
-    (_match, quote, value) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(value),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `url(${quote || ''}${rewritten}${quote || ''})`;
-    },
-  );
-
-  result = result.replace(
-    /@import\s+(['"])(\/[^'"]*)\1/gi,
-    (_match, quote, path) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(path),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `@import ${quote}${rewritten}${quote}`;
-    },
-  );
-
-  return result;
-}
-
-function rewriteJavaScript(
-  javascript: string,
-  targetOrigin: string,
-  previewOrigin: string,
-): string {
-  let result = javascript;
-
-  result = result.replace(
-    /\bimport\s+(['"])(\/[^'"]*)\1/g,
-    (_match, quote, path) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(path),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `import ${quote}${rewritten}${quote}`;
-    },
-  );
-
-  result = result.replace(
-    /\bimport\(\s*(['"])(\/[^'"]*)\1\s*\)/g,
-    (_match, quote, path) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(path),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `import(${quote}${rewritten}${quote})`;
-    },
-  );
-
-  result = result.replace(
-    /\bfrom\s+(['"])(\/[^'"]*)\1/g,
-    (_match, quote, path) => {
-      const rewritten = rewritePreviewResourceUrl(
-        String(path),
-        targetOrigin,
-        previewOrigin,
-      );
-
-      return `from ${quote}${rewritten}${quote}`;
-    },
-  );
-
-  return result;
+function buildProxyBasePath(requestUrl: URL, target: PreviewTarget): string {
+  return isPreviewHost(requestUrl, target) ? '' : `/api/preview/p/${target.id}`;
 }
 
 function injectBridge(
@@ -302,7 +120,368 @@ function injectBridge(
     return html.replace(body[0], `${bridge}${body[0]}`);
   }
 
-  return bridge + html;
+  return `${bridge}${html}`;
+}
+
+async function fetchUpstream(c: Context, upstream: URL): Promise<Response> {
+  if (activeUpstreamFetches >= MAX_CONCURRENT_UPSTREAM_FETCHES) {
+    return new Response(
+      JSON.stringify({
+        error: 'Preview proxy busy',
+      }),
+      {
+        status: 503,
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': '1',
+          'cache-control': 'no-store',
+        },
+      },
+    );
+  }
+
+  activeUpstreamFetches++;
+
+  try {
+    const proxy =
+      upstream.protocol === 'https:'
+        ? process.env.HTTPS_PROXY
+        : process.env.HTTP_PROXY;
+
+    return await fetch(upstream, {
+      method: c.req.method,
+      headers: filterRequestHeaders(c.req.raw.headers),
+      body: isGetOrHead(c.req.method) ? undefined : c.req.raw.body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      proxy,
+    });
+  } finally {
+    activeUpstreamFetches--;
+  }
+}
+
+async function readTextSafely(
+  response: Response,
+  maxBytes: number,
+): Promise<string | null> {
+  const contentLength = Number(response.headers.get('content-length'));
+
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    return null;
+  }
+
+  if (!response.body) {
+    return '';
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      total += value.byteLength;
+
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+
+      chunks.push(value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  }
+
+  const merged = new Uint8Array(total);
+
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(merged);
+}
+
+function makePassThroughResponse(
+  response: Response,
+  headers: Headers,
+): Response {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function getMimeType(filePath: string): string {
+  switch (path.extname(filePath).toLowerCase()) {
+    case '.html':
+    case '.htm':
+      return 'text/html; charset=utf-8';
+
+    case '.css':
+      return 'text/css; charset=utf-8';
+
+    case '.js':
+    case '.mjs':
+    case '.cjs':
+      return 'text/javascript; charset=utf-8';
+
+    case '.json':
+      return 'application/json; charset=utf-8';
+
+    case '.xml':
+      return 'application/xml; charset=utf-8';
+
+    case '.svg':
+      return 'image/svg+xml';
+
+    case '.png':
+      return 'image/png';
+
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+
+    case '.gif':
+      return 'image/gif';
+
+    case '.webp':
+      return 'image/webp';
+
+    case '.avif':
+      return 'image/avif';
+
+    case '.ico':
+      return 'image/x-icon';
+
+    case '.woff':
+      return 'font/woff';
+
+    case '.woff2':
+      return 'font/woff2';
+
+    case '.ttf':
+      return 'font/ttf';
+
+    case '.otf':
+      return 'font/otf';
+
+    case '.wasm':
+      return 'application/wasm';
+
+    case '.webmanifest':
+      return 'application/manifest+json';
+
+    case '.txt':
+      return 'text/plain; charset=utf-8';
+
+    case '.pdf':
+      return 'application/pdf';
+
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function isPathInside(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+
+  return (
+    relative === '' ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== '..' &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function resolveLocalRequestPath(
+  target: Extract<PreviewTarget, { kind: 'file' }>,
+  restPath: string,
+): string | null {
+  let decoded: string;
+
+  try {
+    decoded = decodeURIComponent(restPath || '/');
+  } catch {
+    return null;
+  }
+
+  if (decoded.includes('\0')) {
+    return null;
+  }
+
+  const relativePath = decoded
+    .replace(/^[/\\]+/, '')
+    .replace(/\//g, path.sep)
+    .replace(/\\/g, path.sep);
+
+  const rootPath = path.resolve(target.rootPath);
+
+  const candidate = path.resolve(rootPath, relativePath);
+
+  if (!isPathInside(rootPath, candidate)) {
+    return null;
+  }
+
+  return candidate;
+}
+
+function stripLocalCspMeta(html: string): string {
+  return html.replace(
+    /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>\s*/gi,
+    '',
+  );
+}
+
+function injectLocalBridge(html: string, previewOrigin: string): string {
+  const nonce = randomBytes(16).toString('base64');
+
+  const bridge = buildBridgeScript(previewOrigin, nonce, previewOrigin);
+
+  const sanitized = stripLocalCspMeta(html);
+
+  const head = sanitized.match(/<head\b[^>]*>/i);
+
+  if (head) {
+    return sanitized.replace(head[0], `${head[0]}${bridge}`);
+  }
+
+  const body = sanitized.match(/<body\b[^>]*>/i);
+
+  if (body) {
+    return sanitized.replace(body[0], `${bridge}${body[0]}`);
+  }
+
+  return `${bridge}${sanitized}`;
+}
+
+async function serveLocalFile(
+  c: Context,
+  target: Extract<PreviewTarget, { kind: 'file' }>,
+  restPath: string,
+): Promise<Response> {
+  const requestedPath = resolveLocalRequestPath(target, restPath);
+
+  if (!requestedPath) {
+    return c.text('Forbidden', 403);
+  }
+
+  let rootRealPath: string;
+  let fileRealPath: string;
+
+  try {
+    rootRealPath = await realpath(target.rootPath);
+
+    fileRealPath = await realpath(requestedPath);
+  } catch {
+    return c.notFound();
+  }
+
+  if (!isPathInside(rootRealPath, fileRealPath)) {
+    return c.text('Forbidden', 403);
+  }
+
+  let info;
+
+  try {
+    info = await stat(fileRealPath);
+  } catch {
+    return c.notFound();
+  }
+
+  if (!info.isFile()) {
+    return c.notFound();
+  }
+
+  const contentType = getMimeType(fileRealPath);
+
+  const headers = new Headers({
+    'content-type': contentType,
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+  });
+
+  if (c.req.method === 'HEAD') {
+    return new Response(null, {
+      status: 200,
+      headers,
+    });
+  }
+
+  /*
+   * HTML must be buffered because the Aero
+   * bridge has to be injected into it.
+   */
+  if (contentType.includes('text/html')) {
+    if (info.size > MAX_HTML_BYTES) {
+      return c.text('Local HTML file is too large to preview', 413);
+    }
+
+    let html: string;
+
+    try {
+      html = await readFile(fileRealPath, 'utf8');
+    } catch (error) {
+      return c.json(
+        {
+          error: 'Failed to read local HTML file',
+          reason: error instanceof Error ? error.message : String(error),
+        },
+        502,
+      );
+    }
+
+    const requestUrl = new URL(c.req.url);
+
+    const previewOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+
+    const withBridge = injectLocalBridge(html, previewOrigin);
+
+    return new Response(withBridge, {
+      status: 200,
+      headers,
+    });
+  }
+
+  /*
+   * Non-HTML local files are returned as a Blob.
+   *
+   * openAsBlob() is from node:fs and works with
+   * the native Response implementation used by
+   * the Node-based Hono dev server.
+   */
+  try {
+    const blob = await openAsBlob(fileRealPath, {
+      type: contentType,
+    });
+
+    headers.set('content-length', String(info.size));
+
+    return new Response(blob, {
+      status: 200,
+      headers,
+    });
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Failed to read local file',
+        reason: error instanceof Error ? error.message : String(error),
+      },
+      502,
+    );
+  }
 }
 
 export async function proxyRequest(
@@ -310,42 +489,31 @@ export async function proxyRequest(
   target: PreviewTarget,
   restPath: string,
 ): Promise<Response> {
+  /*
+   * Local filesystem preview.
+   */
+  if (target.kind === 'file') {
+    return serveLocalFile(c, target, restPath);
+  }
+
+  /*
+   * Existing HTTP/HTTPS preview.
+   */
   const requestUrl = new URL(c.req.url);
 
-  const previewOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
-
   const upstream = buildUpstreamUrl(target, restPath, c.req.url);
-
-  const proxy =
-    upstream.protocol === 'https:'
-      ? process.env.HTTPS_PROXY
-      : process.env.HTTP_PROXY;
 
   let response: Response;
 
   try {
-    response = await fetch(upstream, {
-      method: c.req.method,
-
-      headers: filterRequestHeaders(c.req.raw.headers),
-
-      body:
-        c.req.method === 'GET' || c.req.method === 'HEAD'
-          ? undefined
-          : c.req.raw.body,
-
-      redirect: 'manual',
-
-      signal: AbortSignal.timeout(30_000),
-
-      proxy,
-    });
+    response = await fetchUpstream(c, upstream);
   } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+
     return c.json(
       {
         error: 'Preview upstream request failed',
-        target: upstream.toString(),
-        reason: error instanceof Error ? error.message : String(error),
+        reason,
       },
       502,
     );
@@ -353,24 +521,21 @@ export async function proxyRequest(
 
   const headers = copyResponseHeaders(response.headers);
 
+  /*
+   * Redirect handling.
+   */
   if (response.status >= 300 && response.status < 400) {
     const location = response.headers.get('location');
 
     if (location) {
-      try {
-        const resolved = new URL(location, target.origin);
-
-        if (resolved.origin === new URL(target.origin).origin) {
-          headers.set(
-            'location',
-            resolved.pathname + resolved.search + resolved.hash,
-          );
-        } else {
-          headers.set('location', resolved.toString());
-        }
-      } catch {
-        headers.set('location', location);
-      }
+      headers.set(
+        'location',
+        rewritePreviewRedirectLocation(
+          location,
+          buildProxyBasePath(requestUrl, target),
+          target.origin,
+        ),
+      );
     }
 
     return new Response(null, {
@@ -382,30 +547,60 @@ export async function proxyRequest(
 
   const contentType = response.headers.get('content-type') ?? '';
 
-  const lower = contentType.toLowerCase();
+  const rewriteKind = detectRewriteKind(contentType);
 
-  const isHtml =
-    lower.includes('text/html') || lower.includes('application/xhtml+xml');
-
-  const isCss = lower.includes('text/css');
-
-  const isJavaScript =
-    lower.includes('javascript') || lower.includes('ecmascript');
-
-  if (!isHtml && !isCss && !isJavaScript) {
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+  /*
+   * Binary / unsupported content.
+   */
+  if (!rewriteKind) {
+    return makePassThroughResponse(response, headers);
   }
 
-  const body = await response.text();
+  /*
+   * JavaScript is deliberately passed
+   * through untouched.
+   */
+  if (rewriteKind === 'javascript') {
+    return makePassThroughResponse(response, headers);
+  }
 
-  headers.delete('content-length');
-  headers.delete('content-encoding');
+  const maxBytes = rewriteKind === 'html' ? MAX_HTML_BYTES : MAX_CSS_BYTES;
 
-  if (isHtml) {
+  let body: string | null;
+
+  try {
+    body = await readTextSafely(response, maxBytes);
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Preview response read failed',
+        reason: error instanceof Error ? error.message : String(error),
+      },
+      502,
+    );
+  }
+
+  /*
+   * Too large for safe rewriting.
+   */
+  if (body === null) {
+    return makePassThroughResponse(response, headers);
+  }
+
+  const proxyBasePath = buildProxyBasePath(requestUrl, target);
+
+  const previewOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+
+  const rewrittenBody = rewritePreviewBody(body, rewriteKind, {
+    proxyBasePath,
+    targetOrigin: target.origin,
+  });
+
+  /*
+   * HTML gets the Aero bridge and
+   * CSP handling.
+   */
+  if (rewriteKind === 'html') {
     const nonce = randomBytes(16).toString('base64');
 
     const originalCsp = response.headers.get('content-security-policy');
@@ -418,26 +613,31 @@ export async function proxyRequest(
       }
     }
 
-    const rewritten = injectBridge(body, target.origin, previewOrigin, nonce);
+    const withBridge = injectBridge(
+      rewrittenBody,
+      target.origin,
+      previewOrigin,
+      nonce,
+    );
+
+    headers.delete('content-length');
+
+    headers.delete('content-encoding');
 
     headers.set('cache-control', 'no-store');
 
-    return new Response(rewritten, {
+    return new Response(withBridge, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
   }
 
-  if (isCss) {
-    return new Response(rewriteCss(body, target.origin, previewOrigin), {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  }
+  headers.delete('content-length');
 
-  return new Response(rewriteJavaScript(body, target.origin, previewOrigin), {
+  headers.delete('content-encoding');
+
+  return new Response(rewrittenBody, {
     status: response.status,
     statusText: response.statusText,
     headers,

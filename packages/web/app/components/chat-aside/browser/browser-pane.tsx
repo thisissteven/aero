@@ -10,6 +10,8 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { toast } from '@aero/ui';
+
 import { honoClient } from '@/app/lib';
 
 import { useBrowserActions, useBrowserTab } from './browser-store';
@@ -65,6 +67,10 @@ function getBrowserProxyTargetKey(url: string): string {
   try {
     const parsed = new URL(url);
 
+    if (parsed.protocol === 'file:') {
+      return `file:${parsed.href}`;
+    }
+
     return `${parsed.origin}${parsed.pathname}`;
   } catch {
     return url;
@@ -108,6 +114,38 @@ function normalizeBrowserUrl(input: string): string {
     return trimmed;
   }
 
+  /*
+   * Windows absolute path:
+   *
+   * C:\Users\Steven\file.html
+   */
+  if (/^[a-zA-Z]:[\\/]/.test(trimmed)) {
+    const normalizedPath = trimmed.replace(/\\/g, '/');
+
+    return encodeURI(`file:///${normalizedPath}`);
+  }
+
+  /*
+   * Windows UNC:
+   *
+   * \\server\share\file.html
+   */
+  if (/^\\\\/.test(trimmed)) {
+    const normalizedPath = trimmed.replace(/\\/g, '/');
+
+    return encodeURI(`file:${normalizedPath}`);
+  }
+
+  /*
+   * Unix absolute path.
+   */
+  if (/^\//.test(trimmed)) {
+    return encodeURI(`file://${trimmed}`);
+  }
+
+  /*
+   * Localhost.
+   */
   if (
     /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?(?:\/.*)?$/i.test(
       trimmed,
@@ -116,16 +154,32 @@ function normalizeBrowserUrl(input: string): string {
     return `http://${trimmed}`;
   }
 
+  /*
+   * IPv6.
+   */
   if (/^\[[a-f0-9:]+\](?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
     return `https://${trimmed}`;
   }
 
+  /*
+   * Domain / IPv4.
+   */
   if (
     /^([\w-]+(?:\.[\w-]+)+|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?(?:\/.*)?$/i.test(
       trimmed,
     )
   ) {
     return `https://${trimmed}`;
+  }
+
+  /*
+   * Relative/local paths.
+   */
+  if (
+    /^\.{0,2}[\\/]/.test(trimmed) ||
+    /^[^\\/:*?"<>|]+(?:[\\/][^\\/:*?"<>|]+)*$/.test(trimmed)
+  ) {
+    return encodeURI(`file://${trimmed.replace(/\\/g, '/')}`);
   }
 
   return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
@@ -171,25 +225,16 @@ export function BrowserPane({
     setIframeHistoryState,
   } = useBrowserActions();
 
-  /*
-   * This is intentionally LOCAL state.
-   *
-   * currentUrl changes during CSR navigation, but that must
-   * NOT change iframeSrc or reload the iframe.
-   */
   const [iframeSrc, setIframeSrc] = useState('');
 
-  /*
-   * Used to distinguish an intentional full iframe
-   * navigation from a CSR URL update.
-   */
   const iframeNavigationRef = useRef(false);
 
   /*
-   * Create/reuse preview target.
-   *
-   * ONLY loadedUrl participates here.
+   * ----------------------------------------------------------
+   * Create/reuse preview target
+   * ----------------------------------------------------------
    */
+
   useEffect(() => {
     if (!tab?.loadedUrl) {
       setProxyState(tabId, {
@@ -280,17 +325,22 @@ export function BrowserPane({
   }, [tabId, tab?.loadedUrl, setLoading, setProxyState]);
 
   /*
-   * IMPORTANT:
+   * ----------------------------------------------------------
+   * Build iframe source
+   * ----------------------------------------------------------
    *
-   * This effect does NOT depend on currentUrl.
+   * HTTP pages:
    *
-   * It runs when:
-   * - the preview target changes
-   * - the preview origin changes
-   * - reloadNonce changes
+   *   previewOrigin + upstream pathname
    *
-   * Therefore CSR navigation cannot recreate the iframe.
+   * Local files:
+   *
+   *   previewOrigin + local filename/path
+   *
+   * The server's local target root is the directory
+   * containing the original file.
    */
+
   useEffect(() => {
     if (!tab || tab.proxyState.status !== 'ready') {
       return;
@@ -308,9 +358,21 @@ export function BrowserPane({
 
       const previewOrigin = tab.proxyState.previewOrigin.replace(/\/+$/, '');
 
-      const nextSrc = `${previewOrigin}${
-        parsed.pathname || '/'
-      }${parsed.search}${parsed.hash}`;
+      let nextSrc: string;
+
+      if (parsed.protocol === 'file:') {
+        const filePath = decodeURIComponent(parsed.pathname);
+
+        const fileName = filePath.split('/').pop() || '';
+
+        nextSrc = `${previewOrigin}/${encodeURIComponent(
+          fileName,
+        )}${parsed.search}${parsed.hash}`;
+      } else {
+        nextSrc = `${previewOrigin}${
+          parsed.pathname || '/'
+        }${parsed.search}${parsed.hash}`;
+      }
 
       iframeNavigationRef.current = true;
 
@@ -326,6 +388,12 @@ export function BrowserPane({
   ]);
 
   const isProxied = tab?.proxyState.status === 'ready';
+
+  /*
+   * ----------------------------------------------------------
+   * Preview URL -> original URL
+   * ----------------------------------------------------------
+   */
 
   const getCurrentUrlFromFrameUrl = useCallback(
     (frameUrl: string): string => {
@@ -344,6 +412,53 @@ export function BrowserPane({
           return '';
         }
 
+        /*
+         * Local file preview.
+         *
+         * Preview root:
+         *
+         *   C:\foo\bar.html
+         *   -> C:\foo\
+         *
+         * So:
+         *
+         *   /bar.html
+         *   -> file:///C:/foo/bar.html
+         *
+         * and:
+         *
+         *   /pages/about.html
+         *   -> file:///C:/foo/pages/about.html
+         */
+        if (upstream.protocol === 'file:') {
+          const originalPath = decodeURIComponent(upstream.pathname);
+
+          const lastSlash = originalPath.lastIndexOf('/');
+
+          const originalDirectory =
+            lastSlash >= 0 ? originalPath.slice(0, lastSlash + 1) : '/';
+
+          const previewPath = decodeURIComponent(frame.pathname).replace(
+            /^\/+/,
+            '',
+          );
+
+          const nextPath = `${originalDirectory}${previewPath}`;
+
+          const nextUrl = new URL(upstream.toString());
+
+          nextUrl.pathname = nextPath;
+
+          nextUrl.search = frame.search;
+
+          nextUrl.hash = frame.hash;
+
+          return nextUrl.toString();
+        }
+
+        /*
+         * HTTP/HTTPS preview.
+         */
         return new URL(
           `${frame.pathname}${frame.search}${frame.hash}`,
           upstream.origin,
@@ -402,6 +517,7 @@ export function BrowserPane({
 
   const cancelInspect = useCallback(() => {
     setHoverTarget(tabId, null);
+
     postInspectMode(false);
   }, [tabId, setHoverTarget, postInspectMode]);
 
@@ -418,6 +534,7 @@ export function BrowserPane({
       event.preventDefault();
 
       setInspecting(tabId, false);
+
       cancelInspect();
     };
 
@@ -428,18 +545,17 @@ export function BrowserPane({
 
   useEffect(() => {
     return () => {
-      /*
-       * Only transient inspector state gets cleared.
-       *
-       * DO NOT clear:
-       * - currentUrl
-       * - history
-       * - loadedUrl
-       */
       setInspecting(tabId, false);
+
       setHoverTarget(tabId, null);
     };
   }, [tabId, setInspecting, setHoverTarget]);
+
+  /*
+   * ----------------------------------------------------------
+   * Bridge messages
+   * ----------------------------------------------------------
+   */
 
   useEffect(() => {
     const handler = (event: MessageEvent<PreviewBridgeMessage>) => {
@@ -472,12 +588,6 @@ export function BrowserPane({
         const nextUrl = getCurrentUrlFromFrameUrl(frameUrl);
 
         if (nextUrl && nextUrl !== tab?.currentUrl) {
-          /*
-           * CSR navigation:
-           * update Zustand only.
-           *
-           * iframeSrc remains untouched.
-           */
           syncNavigation(tabId, nextUrl);
         }
 
@@ -490,10 +600,6 @@ export function BrowserPane({
         if (data.type === 'ready') {
           setLoading(tabId, false);
 
-          /*
-           * The document finished loading, so subsequent
-           * URL changes are no longer the initial iframe load.
-           */
           iframeNavigationRef.current = false;
         }
 
@@ -511,8 +617,17 @@ export function BrowserPane({
 
       if (data.type === 'select' && isPreviewElementMetadata(data.target)) {
         setHoverTarget(tabId, null);
+
         setInspecting(tabId, false);
+
         postInspectMode(false);
+
+        if (tab) {
+          const context = formatAgentationContext(tab.url, data.target);
+          void navigator.clipboard.writeText(context);
+          toast.success('Context copied to clipboard');
+        }
+
         attachContext(data.target);
       }
     };
@@ -541,12 +656,16 @@ export function BrowserPane({
 
     if (tab.isInspecting) {
       setInspecting(tabId, false);
+
       cancelInspect();
+
       return;
     }
 
     setHoverTarget(tabId, null);
+
     setInspecting(tabId, true);
+
     postInspectMode(true);
   };
 
@@ -556,6 +675,7 @@ export function BrowserPane({
     }
 
     setLoading(tabId, true);
+
     reload(tabId);
   };
 
@@ -568,13 +688,6 @@ export function BrowserPane({
 
     const nextUrl = normalized === 'about:blank' ? '' : normalized;
 
-    /*
-     * This is a genuine top-level navigation.
-     *
-     * navigate() changes loadedUrl, which causes the
-     * iframeSrc effect above to intentionally recreate
-     * the iframe.
-     */
     navigate(tabId, nextUrl);
   };
 
@@ -652,6 +765,7 @@ export function BrowserPane({
         {iframeSrc ? (
           <div className='absolute inset-0'>
             <iframe
+              key={`${iframeSrc}:${tab.reloadNonce}`}
               ref={iframeRef}
               src={iframeSrc}
               title='Browser preview'

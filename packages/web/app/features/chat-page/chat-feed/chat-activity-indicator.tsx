@@ -36,6 +36,9 @@ function getActivityLabel(
     );
 
   if (activeTool) {
+    if (activeTool.type === 'tool' && activeTool.toolName === 'question') {
+      return 'Assistant is waiting for an answer…';
+    }
     return 'Assistant is calling a tool…';
   }
 

@@ -15,7 +15,11 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
-import { AeroSessionSummary, HarnessId } from '@/server/services/harness/types';
+import {
+  AeroQuestionAnswer,
+  AeroSessionSummary,
+  HarnessId,
+} from '@/server/services/harness/types';
 
 export const $sessions = honoClient.api.sessions;
 export const $individualSession = honoClient.api.sessions[':id'];
@@ -36,6 +40,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'context'] as const,
   todos: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'todos'] as const,
+  questions: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'questions'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -272,6 +278,24 @@ export function useSessionMessages(
   });
 }
 
+export function useSessionQuestions(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.questions(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.questions.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch questions');
+      return res.json();
+    },
+    enabled: !!sessionId,
+  });
+}
+
 export function useSessionContext(
   harnessId: string | undefined,
   sessionId: string,
@@ -472,6 +496,59 @@ export function useAbortSession(harnessId: string | undefined) {
 
       if (!res.ok) {
         throw new Error('Failed to abort session');
+      }
+
+      return res.json();
+    },
+  });
+}
+
+export function useReplyToQuestion(harnessId: string | undefined) {
+  return useMutation({
+    mutationFn: async (input: {
+      sessionId: string;
+      requestId: string;
+      answers: AeroQuestionAnswer['answers'];
+    }) => {
+      const res = await $individualSession['reply-to-question'].$post({
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
+        json: {
+          requestId: input.requestId,
+          answers: input.answers,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to reply to question');
+      }
+
+      return res.json();
+    },
+  });
+}
+
+export function useRejectQuestion(harnessId: string | undefined) {
+  return useMutation({
+    mutationFn: async (input: { sessionId: string; requestId: string }) => {
+      const res = await $individualSession['reject-question'].$post({
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
+        json: {
+          requestId: input.requestId,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to reply to question');
       }
 
       return res.json();

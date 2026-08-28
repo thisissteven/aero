@@ -5,6 +5,7 @@ interface UseAutoScrollOptions {
   contentRef: React.RefObject<HTMLElement | null>;
   isStreaming?: boolean;
   threshold?: number;
+  enabled?: boolean;
 }
 
 export function useAutoScroll({
@@ -12,67 +13,226 @@ export function useAutoScroll({
   contentRef,
   isStreaming = false,
   threshold = 100,
+  enabled = true,
 }: UseAutoScrollOptions) {
-  const userIsAtBottomRef = useRef(true);
-  const lastScrollTopRef = useRef(0);
-  const isAutoScrollingRef = useRef(false);
+  const shouldFollowBottomRef = useRef(false);
+  const isStreamingRef = useRef(isStreaming);
+  const settlingRef = useRef(false);
 
-  // 1. Scroll listener — active only while streaming or when user resets position
+  const resizeRafRef = useRef<number | null>(null);
+  const streamEndRaf1Ref = useRef<number | null>(null);
+  const streamEndRaf2Ref = useRef<number | null>(null);
+  const streamEndRaf3Ref = useRef<number | null>(null);
+
+  isStreamingRef.current = isStreaming;
+
   useEffect(() => {
+    if (!enabled) {
+      shouldFollowBottomRef.current = false;
+      return;
+    }
+
     const scrollEl = scrollRef.current;
-    if (!scrollEl || !isStreaming) return;
 
-    const handleScroll = () => {
-      if (isAutoScrollingRef.current) return;
+    if (!scrollEl) {
+      return;
+    }
 
-      const currentScrollTop = scrollEl.scrollTop;
-      const lastScrollTop = lastScrollTopRef.current;
-      lastScrollTopRef.current = currentScrollTop;
-
+    const isAtBottom = () => {
       const distanceFromBottom =
-        scrollEl.scrollHeight - currentScrollTop - scrollEl.clientHeight;
+        scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
 
-      if (currentScrollTop < lastScrollTop && distanceFromBottom > threshold) {
-        userIsAtBottomRef.current = false;
-      } else if (distanceFromBottom <= threshold) {
-        userIsAtBottomRef.current = true;
-      }
+      return distanceFromBottom <= threshold;
     };
 
-    scrollEl.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollEl.removeEventListener('scroll', handleScroll);
-  }, [scrollRef, isStreaming, threshold]);
+    const handleScroll = () => {
+      shouldFollowBottomRef.current = isAtBottom();
+    };
 
-  // 2. ResizeObserver — active only while streaming
-  // useAutoScroll.ts
+    shouldFollowBottomRef.current = isAtBottom();
+
+    scrollEl.addEventListener('scroll', handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      scrollEl.removeEventListener('scroll', handleScroll);
+    };
+  }, [enabled, scrollRef, threshold]);
+
   useLayoutEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const scrollEl = scrollRef.current;
     const contentEl = contentRef.current;
-    if (!scrollEl || !contentEl || !isStreaming) return;
+
+    if (!scrollEl || !contentEl) {
+      return;
+    }
+
+    const isAtBottom = () => {
+      const distanceFromBottom =
+        scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+
+      return distanceFromBottom <= threshold;
+    };
 
     const scrollToBottom = () => {
-      if (!userIsAtBottomRef.current) return;
+      if (!shouldFollowBottomRef.current) {
+        return false;
+      }
 
-      isAutoScrollingRef.current = true;
-      scrollEl.scrollTop = scrollEl.scrollHeight;
-      lastScrollTopRef.current = scrollEl.scrollTop;
+      scrollEl.scrollTop = scrollEl.scrollHeight + 48;
 
-      // Dispatch scroll event so external subscribers (ScrollToBottomButton) get notified
-      scrollEl.dispatchEvent(new Event('scroll'));
+      return true;
+    };
 
-      requestAnimationFrame(() => {
-        isAutoScrollingRef.current = false;
+    const scheduleScrollToBottom = () => {
+      if (!shouldFollowBottomRef.current) {
+        return;
+      }
+
+      if (resizeRafRef.current !== null) {
+        return;
+      }
+
+      resizeRafRef.current = requestAnimationFrame(() => {
+        resizeRafRef.current = null;
+
+        if (
+          !shouldFollowBottomRef.current ||
+          (!isStreamingRef.current && !settlingRef.current)
+        ) {
+          return;
+        }
+
+        scrollToBottom();
       });
     };
 
-    scrollToBottom();
-
     const resizeObserver = new ResizeObserver(() => {
-      scrollToBottom();
+      if (!shouldFollowBottomRef.current) {
+        return;
+      }
+
+      if (!isStreamingRef.current && !settlingRef.current) {
+        return;
+      }
+
+      scheduleScrollToBottom();
     });
 
     resizeObserver.observe(contentEl);
 
-    return () => resizeObserver.disconnect();
-  }, [scrollRef, contentRef, isStreaming]);
+    if (isStreamingRef.current && shouldFollowBottomRef.current) {
+      scheduleScrollToBottom();
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+
+      if (resizeRafRef.current !== null) {
+        cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = null;
+      }
+    };
+  }, [enabled, scrollRef, contentRef, threshold]);
+
+  useLayoutEffect(() => {
+    if (!enabled || isStreaming) {
+      return;
+    }
+
+    const scrollEl = scrollRef.current;
+
+    if (!scrollEl) {
+      return;
+    }
+
+    /**
+     * Streaming ended. Only settle if we were actually following
+     * the bottom.
+     */
+    if (!shouldFollowBottomRef.current) {
+      settlingRef.current = false;
+      return;
+    }
+
+    settlingRef.current = true;
+
+    const settle = () => {
+      if (!shouldFollowBottomRef.current) {
+        settlingRef.current = false;
+        return;
+      }
+
+      /**
+       * If something moved us away from the bottom while settling,
+       * stop immediately.
+       */
+      const distanceFromBottom =
+        scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+
+      if (distanceFromBottom > threshold) {
+        shouldFollowBottomRef.current = false;
+        settlingRef.current = false;
+        return;
+      }
+
+      scrollEl.scrollTop = scrollEl.scrollHeight + 48;
+    };
+
+    streamEndRaf1Ref.current = requestAnimationFrame(() => {
+      streamEndRaf1Ref.current = null;
+
+      if (!shouldFollowBottomRef.current) {
+        settlingRef.current = false;
+        return;
+      }
+
+      settle();
+
+      streamEndRaf2Ref.current = requestAnimationFrame(() => {
+        streamEndRaf2Ref.current = null;
+
+        if (!shouldFollowBottomRef.current) {
+          settlingRef.current = false;
+          return;
+        }
+
+        settle();
+
+        streamEndRaf3Ref.current = requestAnimationFrame(() => {
+          streamEndRaf3Ref.current = null;
+
+          if (shouldFollowBottomRef.current) {
+            settle();
+          }
+
+          settlingRef.current = false;
+        });
+      });
+    });
+
+    return () => {
+      if (streamEndRaf1Ref.current !== null) {
+        cancelAnimationFrame(streamEndRaf1Ref.current);
+        streamEndRaf1Ref.current = null;
+      }
+
+      if (streamEndRaf2Ref.current !== null) {
+        cancelAnimationFrame(streamEndRaf2Ref.current);
+        streamEndRaf2Ref.current = null;
+      }
+
+      if (streamEndRaf3Ref.current !== null) {
+        cancelAnimationFrame(streamEndRaf3Ref.current);
+        streamEndRaf3Ref.current = null;
+      }
+
+      settlingRef.current = false;
+    };
+  }, [enabled, isStreaming, scrollRef, threshold]);
 }

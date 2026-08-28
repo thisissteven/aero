@@ -468,11 +468,7 @@ export function PromptInputAction({
       isIconOnly
       className={cls('', className)}
       data-slot='prompt-input-action'
-      isDisabled={
-        state.disabled ||
-        isDisabled ||
-        (state.lockInputOnRun && running(state.status))
-      }
+      isDisabled={state.disabled || isDisabled}
       size='sm'
       variant={variant}
     >

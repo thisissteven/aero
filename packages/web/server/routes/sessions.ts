@@ -148,6 +148,74 @@ const sessions = new Hono()
     },
   )
 
+  // POST /api/sessions/:id/reply-to-question?harnessId=...
+  .post(
+    '/:id/reply-to-question',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        requestId: z.string(),
+        answers: z.array(z.array(z.string())),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const { requestId, answers } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const ok = await harness.replyToQuestion(
+        requestId,
+        answers,
+        session.workspace,
+      );
+      return c.json({ ok });
+    },
+  )
+
+  // POST /api/sessions/:id/reject-question?harnessId=...
+  .post(
+    '/:id/reject-question',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        requestId: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const { requestId } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const ok = await harness.rejectQuestion(requestId, session.workspace);
+      return c.json({ ok });
+    },
+  )
+
+  // GET /api/sessions/:id/questions?harnessId=...
+  .get(
+    '/:id/questions',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const questions = await harness.listQuestions(session.workspace);
+
+      return c.json(questions);
+    },
+  )
+
   // GET /api/sessions/:id/status?harnessId=...
   .get(
     '/:id/status',
@@ -319,7 +387,7 @@ const sessions = new Hono()
         tocs.push(item);
       }
 
-      if (tocs.length < 3) return c.json([]);
+      if (tocs.length < 1) return c.json([]);
 
       return c.json(tocs);
     },
@@ -547,7 +615,8 @@ const sessions = new Hono()
       const body = c.req.valid('json');
 
       const harness = await getActiveAdapter(harnessId);
-      const ok = await harness.sendMessage(id, body);
+      const session = await harness.getSession(id);
+      const ok = await harness.sendMessage(id, body, session.workspace);
       return c.json(ok);
     },
   )

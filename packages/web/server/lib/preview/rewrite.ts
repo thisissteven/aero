@@ -5,14 +5,15 @@ interface RewriteOptions {
   targetOrigin: string;
 }
 
-const VITE_CLIENT_RE =
-  /<script\b[^>]*>\s*import\(\s*["']\/@vite\/client["']\s*\)\s*<\/script>/gi;
-
 function normalizeProxyBase(value: string): string {
+  if (!value) {
+    return '';
+  }
+
   return value.replace(/\/+$/, '');
 }
 
-function isSameOrigin(value: string, targetOrigin: string): boolean {
+function sameOrigin(value: string, targetOrigin: string): boolean {
   try {
     return new URL(value).origin === new URL(targetOrigin).origin;
   } catch {
@@ -20,135 +21,210 @@ function isSameOrigin(value: string, targetOrigin: string): boolean {
   }
 }
 
-function rewriteResourceUrl(value: string, options: RewriteOptions): string {
-  if (!value) {
+function proxyPath(
+  pathname: string,
+  search: string,
+  hash: string,
+  options: RewriteOptions,
+): string {
+  const base = normalizeProxyBase(options.proxyBasePath);
+
+  return `${base || ''}${pathname}${search}${hash}`;
+}
+
+function rewriteAbsoluteSameOriginUrl(
+  value: string,
+  options: RewriteOptions,
+): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
     return value;
   }
 
-  const trimmed = value.trim();
-  const proxyBase = normalizeProxyBase(options.proxyBasePath);
-
   if (
-    !trimmed ||
     trimmed.startsWith('#') ||
     /^(?:data|blob|javascript|mailto|tel|about):/i.test(trimmed)
   ) {
     return value;
   }
 
-  if (trimmed === proxyBase || trimmed.startsWith(`${proxyBase}/`)) {
-    return trimmed;
-  }
-
   if (trimmed.startsWith('//')) {
     try {
       const parsed = new URL(`http:${trimmed}`);
 
-      if (isSameOrigin(parsed.toString(), options.targetOrigin)) {
-        return `${proxyBase}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      if (!sameOrigin(parsed.toString(), options.targetOrigin)) {
+        return value;
       }
+
+      return proxyPath(parsed.pathname, parsed.search, parsed.hash, options);
     } catch {
-      //
+      return value;
+    }
+  }
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return value;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+
+    if (parsed.origin !== new URL(options.targetOrigin).origin) {
+      return value;
     }
 
+    return proxyPath(parsed.pathname, parsed.search, parsed.hash, options);
+  } catch {
+    return value;
+  }
+}
+
+function rewriteRootRelativeUrl(
+  value: string,
+  options: RewriteOptions,
+): string {
+  const trimmed = value.trim();
+
+  if (!trimmed.startsWith('/')) {
+    return value;
+  }
+
+  const base = normalizeProxyBase(options.proxyBasePath);
+
+  // Dedicated preview subdomain:
+  // /assets/foo.js can stay /assets/foo.js.
+  if (!base) {
+    return value;
+  }
+
+  return `${base}${trimmed}`;
+}
+
+function rewriteResourceUrl(value: string, options: RewriteOptions): string {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return value;
+  }
+
+  if (
+    trimmed.startsWith('#') ||
+    /^(?:data|blob|javascript|mailto|tel|about):/i.test(trimmed)
+  ) {
     return value;
   }
 
   if (trimmed.startsWith('/')) {
-    return `${proxyBase}${trimmed}`;
+    return rewriteRootRelativeUrl(trimmed, options);
   }
 
-  if (/^https?:\/\//i.test(trimmed)) {
-    try {
-      const parsed = new URL(trimmed);
+  return rewriteAbsoluteSameOriginUrl(trimmed, options);
+}
 
-      if (parsed.origin === new URL(options.targetOrigin).origin) {
-        return `${proxyBase}${parsed.pathname}${parsed.search}${parsed.hash}`;
+function rewriteSrcSet(value: string, options: RewriteOptions): string {
+  return value
+    .split(',')
+    .map((entry) => {
+      const parts = entry.trim().split(/\s+/);
+
+      if (!parts[0]) {
+        return entry;
       }
-    } catch {
-      //
-    }
+
+      const resource = parts.shift()!;
+
+      return [rewriteResourceUrl(resource, options), ...parts].join(' ');
+    })
+    .join(', ');
+}
+
+function rewriteBaseTag(html: string, options: RewriteOptions): string {
+  if (!options.proxyBasePath) {
+    return html;
   }
 
-  return value;
-}
+  return html.replace(/<base\b([^>]*)>/gi, (match, attributes: string) => {
+    const hrefMatch = attributes.match(
+      /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
+    );
 
-function stripCspMeta(html: string): string {
-  return html.replace(
-    /<meta\b[^>]*\bhttp-equiv\s*=\s*(?:"content-security-policy"|'content-security-policy'|content-security-policy)[^>]*>/gi,
-    '',
-  );
-}
+    const href = String(
+      hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? '',
+    );
 
-function stripViteClient(html: string): string {
-  return html.replace(VITE_CLIENT_RE, '');
-}
+    if (!href) {
+      return match;
+    }
 
-function rewriteBaseTag(html: string, proxyBasePath: string): string {
-  const href = `${normalizeProxyBase(proxyBasePath)}/`;
+    try {
+      const resolved = new URL(href, `${options.targetOrigin}/`);
 
-  let found = false;
+      if (resolved.origin !== new URL(options.targetOrigin).origin) {
+        return match;
+      }
 
-  let result = html.replace(
-    /<base\b([^>]*)>/gi,
-    (_match, attributes: string) => {
-      found = true;
+      const nextHref = `${normalizeProxyBase(options.proxyBasePath)}/`;
 
       const cleaned = attributes.replace(
         /\s+href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i,
         '',
       );
 
-      return `<base${cleaned} href="${href}">`;
-    },
-  );
-
-  if (!found) {
-    result = result.replace(
-      /<head\b[^>]*>/i,
-      (match) => `${match}<base href="${href}">`,
-    );
-  }
-
-  return result;
+      return `<base${cleaned} href="${nextHref}">`;
+    } catch {
+      return match;
+    }
+  });
 }
 
 function rewriteHtml(html: string, options: RewriteOptions): string {
-  let result = stripCspMeta(html);
+  let result = html;
 
-  result = stripViteClient(result);
-
-  result = rewriteBaseTag(result, options.proxyBasePath);
+  // Only rewrite an existing <base> that already points at the
+  // target origin. Never introduce a new base tag.
+  result = rewriteBaseTag(result, options);
 
   result = result.replace(
-    /\b(src|href|action|poster|cite|formaction)=(['"])([^'"]*)\2/gi,
+    /\b(src|href|action|poster|cite|formaction)\s*=\s*(["'])([^"']*)\2/gi,
     (_match, attribute, quote, value) => {
-      const rewritten = rewriteResourceUrl(value, options);
+      const rewritten = rewriteResourceUrl(String(value), options);
+
+      if (rewritten === value) {
+        return _match;
+      }
 
       return `${attribute}=${quote}${rewritten}${quote}`;
     },
   );
 
   result = result.replace(
-    /\bsrcset=(['"])([^'"]*)\1/gi,
+    /\bsrcset\s*=\s*(["'])([^"']*)\1/gi,
     (_match, quote, value) => {
-      const rewritten = String(value)
-        .split(',')
-        .map((entry) => {
-          const parts = entry.trim().split(/\s+/);
-          const resource = parts.shift() ?? '';
+      const rewritten = rewriteSrcSet(String(value), options);
 
-          return [rewriteResourceUrl(resource, options), ...parts].join(' ');
-        })
-        .join(', ');
+      if (rewritten === value) {
+        return _match;
+      }
 
       return `srcset=${quote}${rewritten}${quote}`;
     },
   );
 
-  result = result.replace(/\bstyle=(['"])(.*?)\1/gi, (_match, quote, value) => {
-    return `style=${quote}${rewriteCss(value, options)}${quote}`;
-  });
+  // CSS inside inline style attributes can contain absolute
+  // same-origin URLs. Only rewrite those.
+  result = result.replace(
+    /\bstyle\s*=\s*(["'])(.*?)\1/gi,
+    (_match, quote, value) => {
+      const rewritten = rewriteCss(String(value), options);
+
+      if (rewritten === value) {
+        return _match;
+      }
+
+      return `style=${quote}${rewritten}${quote}`;
+    },
+  );
 
   return result;
 }
@@ -157,15 +233,16 @@ function rewriteCss(css: string, options: RewriteOptions): string {
   return css.replace(
     /url\(\s*(['"]?)(.*?)\1\s*\)/gi,
     (_match, quote, value) => {
-      const rewritten = rewriteResourceUrl(String(value).trim(), options);
+      const original = String(value).trim();
+      const rewritten = rewriteResourceUrl(original, options);
 
-      return `url(${quote || ''}${rewritten}${quote || ''})`;
+      if (rewritten === original) {
+        return _match;
+      }
+
+      return `url(${quote}${rewritten}${quote})`;
     },
   );
-}
-
-function rewriteJavaScript(source: string, _options: RewriteOptions): string {
-  return source;
 }
 
 export function rewritePreviewBody(
@@ -181,7 +258,8 @@ export function rewritePreviewBody(
       return rewriteCss(bodyText, options);
 
     case 'javascript':
-      return rewriteJavaScript(bodyText, options);
+      // Deliberately do not touch JS.
+      return bodyText;
 
     default:
       return bodyText;
@@ -217,6 +295,8 @@ export function isBlockedExternalHost(hostname: string): boolean {
     host = host.slice(1, -1);
   }
 
+  // These are intentionally permitted because Aero previews
+  // commonly point at local development servers.
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
@@ -225,11 +305,14 @@ export function isBlockedExternalHost(hostname: string): boolean {
     return false;
   }
 
-  const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
 
-  if (v4) {
-    const a = Number(v4[1]);
-    const b = Number(v4[2]);
+  if (ipv4) {
+    const [a, b, c, d] = ipv4.slice(1).map(Number);
+
+    if ([a, b, c, d].some((part) => part < 0 || part > 255)) {
+      return true;
+    }
 
     return (
       a === 0 ||
@@ -333,13 +416,18 @@ export function rewritePreviewRedirectLocation(
   targetOrigin: string,
 ): string {
   try {
-    const resolved = new URL(location, new URL(targetOrigin));
+    const resolved = new URL(location, `${targetOrigin}/`);
 
     if (resolved.origin !== new URL(targetOrigin).origin) {
       return resolved.toString();
     }
 
-    return `${normalizeProxyBase(proxyBasePath)}${resolved.pathname}${resolved.search}${resolved.hash}`;
+    return (
+      `${normalizeProxyBase(proxyBasePath)}` +
+      `${resolved.pathname}` +
+      `${resolved.search}` +
+      `${resolved.hash}`
+    );
   } catch {
     return location;
   }

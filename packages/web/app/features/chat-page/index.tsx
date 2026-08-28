@@ -8,6 +8,7 @@ import {
   ChatFeed,
   type ChatFeedRef,
 } from '@/app/features/chat-page/chat-feed/chat-feed';
+import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
@@ -88,6 +89,8 @@ export function ChatPage({
 
       <div className='bg-background shrink-0 px-4 pb-2 md:pb-4'>
         <div className='relative mx-auto w-full max-w-[720px]'>
+          <ReplyToQuestion />
+
           <ChatActivityIndicator />
 
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
@@ -106,7 +109,6 @@ export function ChatPage({
 
           <div className='@container flex items-center justify-between'>
             <SessionDiff workspace={workspace} />
-
             <SessionTodos />
           </div>
 

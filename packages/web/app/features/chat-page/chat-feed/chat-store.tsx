@@ -48,6 +48,15 @@ interface ChatStore {
 
   runningSessions: string[];
 
+  /**
+   * Sessions currently blocked on an interactive question.
+   *
+   * This is intentionally separate from `runningSessions` because
+   * a question is a special kind of running state that requires
+   * user interaction rather than more streaming work.
+   */
+  awaitingQuestions: string[];
+
   unreadSessions: Array<{
     sessionId: string;
     status: 'success' | 'error';
@@ -87,6 +96,10 @@ interface ChatStore {
 
   addRunningSession: (sessionId: string) => void;
   removeRunningSession: (sessionId: string) => void;
+
+  addAwaitingQuestion: (sessionId: string) => void;
+  removeAwaitingQuestion: (sessionId: string) => void;
+
   addUnreadSession: (sessionId: string, status: 'success' | 'error') => void;
   removeUnreadSession: (sessionId: string) => void;
 
@@ -385,6 +398,7 @@ export const useChatStore = create<ChatStore>()(
         sessions: {},
 
         runningSessions: [],
+        awaitingQuestions: [],
         unreadSessions: [],
 
         turns: [],
@@ -456,6 +470,15 @@ export const useChatStore = create<ChatStore>()(
               messageTurnIds: buildMessageTurnIds(turns),
             };
 
+            const hasAwaitingQuestion = turns.some((turn) =>
+              turn.parts.some(
+                (part) =>
+                  part.type === 'tool' &&
+                  part.toolName === 'question' &&
+                  part.status === 'running',
+              ),
+            );
+
             const sessions = {
               ...state.sessions,
               [sessionId]: runtime,
@@ -467,9 +490,16 @@ export const useChatStore = create<ChatStore>()(
                 : [...state.runningSessions, sessionId]
               : state.runningSessions.filter((id) => id !== sessionId);
 
+            const awaitingQuestions = hasAwaitingQuestion
+              ? state.awaitingQuestions.includes(sessionId)
+                ? state.awaitingQuestions
+                : [...state.awaitingQuestions, sessionId]
+              : state.awaitingQuestions.filter((id) => id !== sessionId);
+
             return {
               sessions,
               runningSessions,
+              awaitingQuestions,
               ...projectActiveSession(sessions, state.activeSessionId),
             };
           });
@@ -531,10 +561,44 @@ export const useChatStore = create<ChatStore>()(
                 : [...state.runningSessions, sessionId]
               : state.runningSessions.filter((id) => id !== sessionId);
 
+            const awaitingQuestions =
+              status.type === 'idle'
+                ? state.awaitingQuestions.filter((id) => id !== sessionId)
+                : state.awaitingQuestions;
+
             return {
               sessions,
               runningSessions,
+              awaitingQuestions,
               ...projectActiveSession(sessions, state.activeSessionId),
+            };
+          });
+        },
+
+        addAwaitingQuestion: (sessionId) => {
+          set((state) => {
+            if (state.awaitingQuestions.includes(sessionId)) {
+              return state;
+            }
+
+            return {
+              awaitingQuestions: [...state.awaitingQuestions, sessionId],
+            };
+          });
+        },
+
+        removeAwaitingQuestion: (sessionId) => {
+          set((state) => {
+            const awaitingQuestions = state.awaitingQuestions.filter(
+              (id) => id !== sessionId,
+            );
+
+            if (awaitingQuestions.length === state.awaitingQuestions.length) {
+              return state;
+            }
+
+            return {
+              awaitingQuestions,
             };
           });
         },
@@ -601,9 +665,15 @@ export const useChatStore = create<ChatStore>()(
                     : [...state.runningSessions, sessionId]
                   : state.runningSessions.filter((id) => id !== sessionId);
 
+                const awaitingQuestions =
+                  event.status.type === 'idle'
+                    ? state.awaitingQuestions.filter((id) => id !== sessionId)
+                    : state.awaitingQuestions;
+
                 return {
                   sessions,
                   runningSessions,
+                  awaitingQuestions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -743,13 +813,29 @@ export const useChatStore = create<ChatStore>()(
                   };
                 }
 
+                const hasAwaitingQuestion = runtime.turns.some((turn) =>
+                  turn.parts.some(
+                    (part) =>
+                      part.type === 'tool' &&
+                      part.toolName === 'question' &&
+                      part.status === 'running',
+                  ),
+                );
+
                 const sessions = {
                   ...state.sessions,
                   [sessionId]: runtime,
                 };
 
+                const awaitingQuestions = hasAwaitingQuestion
+                  ? state.awaitingQuestions.includes(sessionId)
+                    ? state.awaitingQuestions
+                    : [...state.awaitingQuestions, sessionId]
+                  : state.awaitingQuestions.filter((id) => id !== sessionId);
+
                 return {
                   sessions,
+                  awaitingQuestions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -793,7 +879,23 @@ export const useChatStore = create<ChatStore>()(
                     part,
                   ]);
 
-                  return state;
+                  /**
+                   * We can still detect an incoming question even
+                   * if its parent message.updated has not arrived yet.
+                   */
+                  const awaitingQuestions =
+                    part.type === 'tool' &&
+                    part.toolName === 'question' &&
+                    part.status === 'running'
+                      ? state.awaitingQuestions.includes(sessionId)
+                        ? state.awaitingQuestions
+                        : [...state.awaitingQuestions, sessionId]
+                      : state.awaitingQuestions;
+
+                  return {
+                    ...state,
+                    awaitingQuestions,
+                  };
                 }
 
                 const nextTurns = current.turns.map((turn, index) => {
@@ -835,13 +937,29 @@ export const useChatStore = create<ChatStore>()(
                     getStreamStartTime(nextTurns, current.status, null),
                 };
 
+                const hasAwaitingQuestion = runtime.turns.some((turn) =>
+                  turn.parts.some(
+                    (runtimePart) =>
+                      runtimePart.type === 'tool' &&
+                      runtimePart.toolName === 'question' &&
+                      runtimePart.status === 'running',
+                  ),
+                );
+
                 const sessions = {
                   ...state.sessions,
                   [sessionId]: runtime,
                 };
 
+                const awaitingQuestions = hasAwaitingQuestion
+                  ? state.awaitingQuestions.includes(sessionId)
+                    ? state.awaitingQuestions
+                    : [...state.awaitingQuestions, sessionId]
+                  : state.awaitingQuestions.filter((id) => id !== sessionId);
+
                 return {
                   sessions,
+                  awaitingQuestions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -980,8 +1098,24 @@ export const useChatStore = create<ChatStore>()(
                   [sessionId]: runtime,
                 };
 
+                const hasAwaitingQuestion = runtime.turns.some((turn) =>
+                  turn.parts.some(
+                    (part) =>
+                      part.type === 'tool' &&
+                      part.toolName === 'question' &&
+                      part.status === 'running',
+                  ),
+                );
+
+                const awaitingQuestions = hasAwaitingQuestion
+                  ? state.awaitingQuestions.includes(sessionId)
+                    ? state.awaitingQuestions
+                    : [...state.awaitingQuestions, sessionId]
+                  : state.awaitingQuestions.filter((id) => id !== sessionId);
+
                 return {
                   sessions,
+                  awaitingQuestions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -1040,8 +1174,24 @@ export const useChatStore = create<ChatStore>()(
                   [sessionId]: runtime,
                 };
 
+                const hasAwaitingQuestion = runtime.turns.some((turn) =>
+                  turn.parts.some(
+                    (part) =>
+                      part.type === 'tool' &&
+                      part.toolName === 'question' &&
+                      part.status === 'running',
+                  ),
+                );
+
+                const awaitingQuestions = hasAwaitingQuestion
+                  ? state.awaitingQuestions.includes(sessionId)
+                    ? state.awaitingQuestions
+                    : [...state.awaitingQuestions, sessionId]
+                  : state.awaitingQuestions.filter((id) => id !== sessionId);
+
                 return {
                   sessions,
+                  awaitingQuestions,
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -1101,6 +1251,10 @@ export const useChatStore = create<ChatStore>()(
                   sessions,
                   unreadSessions,
 
+                  awaitingQuestions: state.awaitingQuestions.filter(
+                    (id) => id !== sessionId,
+                  ),
+
                   runningSessions: state.runningSessions.filter(
                     (id) => id !== sessionId,
                   ),
@@ -1136,6 +1290,9 @@ export const useChatStore = create<ChatStore>()(
 
             return {
               sessions,
+              awaitingQuestions: state.awaitingQuestions.filter(
+                (id) => id !== sessionId,
+              ),
               runningSessions: state.runningSessions.filter(
                 (id) => id !== sessionId,
               ),
@@ -1208,6 +1365,7 @@ export const useChatStore = create<ChatStore>()(
 
       partialize: (state) => ({
         runningSessions: state.runningSessions,
+        awaitingQuestions: state.awaitingQuestions,
         unreadSessions: state.unreadSessions,
       }),
     },

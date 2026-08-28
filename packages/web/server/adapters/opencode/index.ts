@@ -663,6 +663,42 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return config.model;
     },
 
+    async listQuestions(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.question.list({
+            directory,
+          }),
+        ),
+      );
+      return entries;
+    },
+
+    async replyToQuestion(requestID, answers, directory) {
+      const ok = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.question.reply({
+            requestID,
+            answers,
+            directory,
+          }),
+        ),
+      );
+      return ok;
+    },
+
+    async rejectQuestion(requestID, directory) {
+      const ok = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.question.reject({
+            requestID,
+            directory,
+          }),
+        ),
+      );
+      return ok;
+    },
+
     async any() {
       return unwrap(
         await withOpencodeClientV1((client) => client.config.get({})),
@@ -890,10 +926,11 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroSessionV2(session);
     },
 
-    async sendMessage(sessionID, input) {
+    async sendMessage(sessionID, input, directory) {
       await withOpencodeClientV2((client) =>
         client.session.promptAsync({
           sessionID,
+          directory,
           parts: input.parts.map((p) =>
             p.type === 'text'
               ? {
