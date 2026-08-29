@@ -1,10 +1,11 @@
-import { CircleTree, Plus } from '@gravity-ui/icons';
+import { CircleTree, EllipsisVertical, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo, useState } from 'react';
 
-import { Sidebar } from '@aero/ui';
+import { Dropdown, Sidebar } from '@aero/ui';
 
 import { WorkspaceSessionItem } from '@/app/components/chat-sidebar/session/session-item';
+import { DeleteWorktree } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { dedupeById } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { AeroWorktreeSummary } from '@/server/services/harness/types';
@@ -12,6 +13,7 @@ import { AeroWorktreeSummary } from '@/server/services/harness/types';
 export interface SubWorktreeItemProps {
   idPrefix: string;
   worktree: AeroWorktreeSummary;
+  onNewSessionClick: () => void;
 }
 
 const INITIAL_LIMIT = 3;
@@ -20,6 +22,7 @@ const LIMIT_INCREMENT = 5;
 export const SubWorktreeItem = memo(function SubWorktreeItem({
   idPrefix,
   worktree,
+  onNewSessionClick,
 }: SubWorktreeItemProps) {
   const worktreeItemId = `${idPrefix}-wt-${worktree.id}`;
 
@@ -59,6 +62,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              onNewSessionClick();
             }}
           >
             <Icon
@@ -67,6 +71,34 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
               style={{ width: 12, height: 12 }}
             />
           </Sidebar.MenuAction>
+          <Dropdown size='sm'>
+            <Dropdown.Trigger
+              aria-label={`More actions for ${worktree.name}`}
+              className='sidebar__menu-action group'
+              data-slot='sidebar-menu-action'
+            >
+              <Icon
+                data={EllipsisVertical}
+                className='opacity-50 transition-opacity group-hover:opacity-80'
+                style={{
+                  width: 12,
+                  height: 12,
+                }}
+              />
+            </Dropdown.Trigger>
+            <Dropdown.Popover
+              className='w-44'
+              crossOffset={6}
+              placement='bottom end'
+            >
+              <Dropdown.Menu aria-label={`${worktree.name} actions`}>
+                <DeleteWorktree
+                  worktreeName={worktree.name}
+                  worktreeDirectory={worktree.directory}
+                />
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
         </Sidebar.MenuActions>
       </Sidebar.MenuItemContent>
 

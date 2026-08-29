@@ -1,9 +1,10 @@
 import { Archive, TrashBin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import { Button, Checkbox } from '@aero/ui';
+import { Button, Checkbox, Dropdown, Label, Modal, toast } from '@aero/ui';
 
 import {
   ArchiveBulkSessionsConfirmationModal,
@@ -13,6 +14,8 @@ import {
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
+import { useDeleteWorkspace } from '@/app/hooks/api/workspaces';
+import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 
 export function WorkspacesToggleEditModeButton() {
@@ -163,5 +166,167 @@ export function SelectWorkspaceSession({ sessionId }: { sessionId: string }) {
         </Checkbox.Content>
       </Checkbox>
     </div>
+  );
+}
+
+function DeleteWorkspaceConfirmationModal({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
+  const { mutateAsync } = useDeleteWorkspace();
+
+  const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Delete workspace?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          <span className='text-foreground'>"{workspaceName}"</span> will be
+          permanently deleted. All sessions under this workspace will also be
+          archived.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='tertiary'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync(workspaceId), {
+              loading: 'Deleting workspace...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Workspace deleted';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+export function DeleteWorkspace({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      variant='danger'
+      onPress={() => {
+        openModal({
+          children: (
+            <DeleteWorkspaceConfirmationModal
+              workspaceId={workspaceId}
+              workspaceName={workspaceName}
+            />
+          ),
+        });
+      }}
+    >
+      <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
+      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+    </Dropdown.Item>
+  );
+}
+
+function DeleteWorktreeConfirmationModal({
+  worktreeDirectory,
+  worktreeName,
+}: {
+  worktreeDirectory: string;
+  worktreeName: string;
+}) {
+  const { mutateAsync } = useDeleteWorktree();
+
+  const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Delete worktree?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          <span className='text-foreground'>"{worktreeName}"</span> will be
+          permanently deleted. All sessions under this worktree will also be
+          archived.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='tertiary'>
+          Cancel
+        </Button>
+        <Button
+          slot='close'
+          onPress={() => {
+            toast.promise(mutateAsync({ directory: worktreeDirectory }), {
+              loading: 'Deleting worktree...',
+              error: (err) => err.message,
+              success: (_data) => {
+                navigate({
+                  to: '/new',
+                });
+                return 'Worktree deleted';
+              },
+            });
+          }}
+          variant='danger'
+        >
+          Delete
+        </Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+export function DeleteWorktree({
+  worktreeDirectory,
+  worktreeName,
+}: {
+  worktreeDirectory: string;
+  worktreeName: string;
+}) {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      variant='danger'
+      onPress={() => {
+        openModal({
+          children: (
+            <DeleteWorktreeConfirmationModal
+              worktreeDirectory={worktreeDirectory}
+              worktreeName={worktreeName}
+            />
+          ),
+        });
+      }}
+    >
+      <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
+      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+    </Dropdown.Item>
   );
 }

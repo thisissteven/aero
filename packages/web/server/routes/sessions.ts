@@ -313,6 +313,48 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/diff?harnessId=...&messageId=...&directory=...
+  .get(
+    '/:id/diff',
+    zValidator('param', idParamSchema),
+    zValidator(
+      'query',
+      harnessQuerySchema.extend({
+        messageId: z.string(),
+        directory: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId, messageId, directory } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const todos = await harness.getSessionDiff({
+        sessionID: id,
+        messageID: messageId,
+        directory: directory,
+      });
+
+      return c.json(todos);
+    },
+  )
+
+  // GET /api/sessions/:id/children?harnessId=...
+  .get(
+    '/:id/children',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const todos = await harness.listSessionChildren(id);
+
+      return c.json(todos);
+    },
+  )
+
   // GET /api/sessions/:id/todos?harnessId=...
   .get(
     '/:id/todos',

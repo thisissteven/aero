@@ -9,12 +9,12 @@ import { getLastPathName } from '@/app/lib/file';
 
 export function WorktreesDropdown() {
   const selectedWorkspace = useNewSessionStore(
-    (state) => state.selectedWorkspace,
+    (state) => state.selectedWorkspace?.directory,
   );
 
   const { data: worktrees } = useWorktrees({
     harnessId: undefined,
-    directory: selectedWorkspace?.directory,
+    directory: selectedWorkspace,
   });
 
   const selectedWorktree = useNewSessionStore(

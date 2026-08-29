@@ -13,7 +13,7 @@ export const worktreeKeys = {
 };
 
 type CreateWorktreeInput = InferRequestType<typeof $worktrees.$post>['json'];
-type RemoveWorktreeInput = InferRequestType<typeof $worktrees.$delete>['json'];
+type DeleteWorktreeInput = InferRequestType<typeof $worktrees.$delete>['json'];
 
 interface UseWorktreesOptions {
   harnessId?: string;
@@ -57,16 +57,16 @@ export function useCreateWorktree(harnessId?: string) {
   });
 }
 
-export function useRemoveWorktree(harnessId?: string) {
+export function useDeleteWorktree(harnessId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: RemoveWorktreeInput) => {
+    mutationFn: async (input: DeleteWorktreeInput) => {
       const res = await $worktrees.$delete({
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to remove worktree');
+      if (!res.ok) throw new Error('Failed to delete worktree');
       return res.json();
     },
     onSuccess: () => {

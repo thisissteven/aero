@@ -412,6 +412,17 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return status;
     },
 
+    async listSessionChildren(sessionID) {
+      const children = await withOpencodeClientV2(async (client) => {
+        return unwrap(
+          await client.session.children({
+            sessionID,
+          }),
+        );
+      });
+      return children.map(toAeroSessionV2);
+    },
+
     async getSession(sessionID) {
       return withOpencodeClientV1(async (client) => {
         const session = unwrap(
@@ -924,6 +935,20 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       return toAeroSessionV2(session);
+    },
+
+    async getSessionDiff(input) {
+      const diff = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.session.diff({
+            sessionID: input.sessionID,
+            messageID: input.messageID,
+            directory: input.directory,
+          }),
+        ),
+      );
+
+      return diff;
     },
 
     async sendMessage(sessionID, input, directory) {

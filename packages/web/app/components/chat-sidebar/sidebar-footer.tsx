@@ -5,8 +5,6 @@ import {
   ChevronsExpandHorizontal,
   ChevronsExpandVertical,
   CircleInfo,
-  CircleQuestion,
-  CircleQuestionFill,
   CircleTree,
   Clock,
   CodeFork,
@@ -15,6 +13,7 @@ import {
   Display,
   Folder,
   Gear,
+  Keyboard,
   LayoutSideContentLeft,
   LayoutSideContentRight,
   LayoutTabs,
@@ -79,7 +78,7 @@ export function SidebarFooter() {
             slot='close'
             svgSize='sm'
           >
-            <Icon data={CircleQuestion} />
+            <Icon data={Keyboard} />
           </IconButton>
 
           <Tooltip.Content>
@@ -220,7 +219,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       {
         label: 'Show Keyboard Shortcuts (this dialog)',
         keys: ['Ctrl', '.'],
-        icon: <Icon data={CircleQuestion} size={14} />,
+        icon: <Icon data={Keyboard} size={14} />,
       },
       {
         label: 'Toggle Session Sidebar',
@@ -403,7 +402,7 @@ export function ShortcutsModal() {
       {/* Header */}
       <Modal.Header className='border-separator flex flex-col gap-1 border-b px-6 py-5'>
         <div className='flex items-center gap-2'>
-          <Icon data={CircleQuestionFill} />
+          <Icon data={Keyboard} />
           <Modal.Heading className='typography typography--h5 typography--weight-semibold text-foreground'>
             Keyboard Shortcuts
           </Modal.Heading>
@@ -470,7 +469,7 @@ export function ShortcutsModal() {
             {/* Pro Tips Section */}
             <div className='border-separator bg-surface-secondary space-y-2 rounded-xl border p-4'>
               <div className='flex items-center gap-2'>
-                <Icon data={CircleQuestion} />
+                <Icon data={Keyboard} />
                 <Typography
                   type='body-sm'
                   weight='semibold'

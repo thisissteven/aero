@@ -64,13 +64,17 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
 
           <PromptInput.ToolbarEnd>
             <div className='flex'>
-              <div className='@md:hidden'>
-                <ModelAgentDropdownTrigger />
-              </div>
-              <div className='flex @max-md:hidden'>
-                <ModelDropdown />
-                <AgentDropdown />
-              </div>
+              {!isDisabled && (
+                <>
+                  <div className='@md:hidden'>
+                    <ModelAgentDropdownTrigger />
+                  </div>
+                  <div className='flex @max-md:hidden'>
+                    <ModelDropdown />
+                    <AgentDropdown />
+                  </div>
+                </>
+              )}
               <VoiceInputButton />
             </div>
             <SendButton />

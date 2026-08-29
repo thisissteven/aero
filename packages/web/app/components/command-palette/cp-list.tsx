@@ -1,4 +1,4 @@
-import { CircleQuestion, Comment, Gear } from '@gravity-ui/icons';
+import { Comment, Gear, Keyboard } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
@@ -108,7 +108,7 @@ export function CommandPaletteList() {
           kind: 'action',
           id: 'action-shortcuts',
           textValue: 'Shortcuts',
-          icon: CircleQuestion,
+          icon: Keyboard,
           label: 'Shortcuts',
           onAction: () =>
             onSelect(() =>

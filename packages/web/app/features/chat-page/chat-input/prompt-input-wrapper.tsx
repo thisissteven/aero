@@ -33,7 +33,7 @@ export function NewSessionPromptInputWrapper({
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
   const selectedWorkspace = useNewSessionStore(
-    (state) => state.selectedWorkspace,
+    (state) => state.selectedWorkspace?.directory,
   );
   const selectedWorktree = useNewSessionStore(
     (state) => state.selectedWorktree,
@@ -44,7 +44,7 @@ export function NewSessionPromptInputWrapper({
   const handleSubmit = async (text: string) => {
     const session = await createSession(
       {
-        directory: selectedWorktree ?? selectedWorkspace?.directory,
+        directory: selectedWorktree ?? selectedWorkspace,
       },
       {
         onError: () => toast.danger('Failed to create session'),

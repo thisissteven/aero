@@ -1,11 +1,14 @@
-import { Folder, Plus } from '@gravity-ui/icons';
+import { EllipsisVertical, Folder, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useNavigate } from '@tanstack/react-router';
 import { memo, useId, useMemo } from 'react';
 
-import { Sidebar } from '@aero/ui';
+import { Dropdown, Separator, Sidebar } from '@aero/ui';
 
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
+import { DeleteWorkspace } from '@/app/components/chat-sidebar/workspace/workspace-actions';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
@@ -77,6 +80,16 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
     return { root: rootWorktree, otherWorktrees: others };
   }, [workspace]);
 
+  const setSelectedWorkspace = useNewSessionStore(
+    (state) => state.setSelectedWorkspace,
+  );
+
+  const setSelectedWorktree = useNewSessionStore(
+    (state) => state.setSelectedWorktree,
+  );
+
+  const navigate = useNavigate();
+
   if (!root) return null;
 
   const workspaceIdPrefix = `${idPrefix}-${uniqueId}-${workspace.id}`;
@@ -106,6 +119,8 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              setSelectedWorkspace(workspace);
+              navigate({ to: '/new' });
             }}
           >
             <Icon
@@ -114,6 +129,36 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
               style={{ width: 12, height: 12 }}
             />
           </Sidebar.MenuAction>
+          <Dropdown size='sm'>
+            <Dropdown.Trigger
+              aria-label={`More actions for ${workspace.name}`}
+              className='sidebar__menu-action group'
+              data-slot='sidebar-menu-action'
+            >
+              <Icon
+                data={EllipsisVertical}
+                className='opacity-50 transition-opacity group-hover:opacity-80'
+                style={{
+                  width: 12,
+                  height: 12,
+                }}
+              />
+            </Dropdown.Trigger>
+            <Dropdown.Popover
+              className='w-44'
+              crossOffset={6}
+              placement='bottom end'
+            >
+              <Dropdown.Menu aria-label={`${workspace.name} actions`}>
+                <Separator className='my-0.5' />
+
+                <DeleteWorkspace
+                  workspaceId={workspace.id}
+                  workspaceName={workspace.name}
+                />
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
         </Sidebar.MenuActions>
       </Sidebar.MenuItemContent>
 
@@ -125,6 +170,11 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
             key={worktree.id}
             idPrefix={workspaceIdPrefix}
             worktree={worktree}
+            onNewSessionClick={() => {
+              setSelectedWorkspace(workspace);
+              setSelectedWorktree(worktree.directory);
+              navigate({ to: '/new' });
+            }}
           />
         ))}
       </Sidebar.Submenu>

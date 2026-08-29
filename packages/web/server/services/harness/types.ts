@@ -198,6 +198,14 @@ export interface AeroAssistantError {
 export interface AeroQuestionAnswer {
   answers: QuestionAnswer[];
 }
+
+export interface AeroSnapshotFileDiff {
+  file?: string;
+  patch?: string;
+  additions: number;
+  deletions: number;
+  status?: 'added' | 'deleted' | 'modified';
+}
 export interface AeroMessage {
   id: string;
   sessionId: string;
@@ -439,6 +447,12 @@ export interface HarnessAdapter {
   getSessionStatus(directory: string): Promise<{
     [key: string]: SessionStatus;
   }>;
+  getSessionDiff(input: {
+    sessionID: string;
+    messageID: string;
+    directory: string;
+  }): Promise<AeroSnapshotFileDiff[]>;
+  listSessionChildren(sessionId: string): Promise<AeroSessionSummary[]>;
   listSessions(
     params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroSessionSummary>>;

@@ -454,7 +454,10 @@ function ArchiveSessionConfirmationModal({
         <Modal.Heading>Archive session?</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
-        <p>"{sessionTitle}" will be archived.</p>
+        <p>
+          <span className='text-foreground'>"{sessionTitle}"</span> will be
+          archived.
+        </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
@@ -616,7 +619,10 @@ function DeleteSessionConfirmationModal({
         <Modal.Heading>Delete session?</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
-        <p>"{sessionTitle}" will be permanently deleted.</p>
+        <p>
+          <span className='text-foreground'>"{sessionTitle}"</span> will be
+          permanently deleted.
+        </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
