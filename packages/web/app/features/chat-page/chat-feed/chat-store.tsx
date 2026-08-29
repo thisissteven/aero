@@ -6,6 +6,8 @@ import {
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
+import { sessionKeys } from '@/app/hooks/api/sessions';
+import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
 import type {
   AeroConversationTurn,
@@ -713,6 +715,17 @@ export const useChatStore = create<ChatStore>()(
             const current = getRuntime(state.sessions, sessionId);
 
             switch (event.type) {
+              case 'session.updated': {
+                queryClient.setQueryData(
+                  sessionKeys.detail(event.session.harnessId, sessionId),
+                  event.session,
+                );
+                queryClient.invalidateQueries({
+                  queryKey: sessionKeys.context(undefined, sessionId),
+                });
+                return state;
+              }
+
               case 'session.status': {
                 const isStreaming = event.status.type !== 'idle';
 
@@ -1377,10 +1390,15 @@ export const useChatStore = create<ChatStore>()(
               }
 
               case 'session.idle': {
-                const lastTurn = current.turns[current.turns.length - 1];
+                queryClient.invalidateQueries({
+                  queryKey: sessionKeys.context(undefined, sessionId),
+                });
 
-                const unreadStatus: 'success' | 'error' =
-                  lastTurn?.error != null ? 'error' : 'success';
+                const lastTurn = current.turns[current.turns.length - 1];
+                const unreadStatus: 'success' | 'error' = lastTurn?.error?.data
+                  ?.message
+                  ? 'error'
+                  : 'success';
 
                 const activeId = useActiveSessionStore.getState().activeId;
 

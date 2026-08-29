@@ -162,13 +162,6 @@
     opacity: 0 !important;
   }
 
-  [data-sheet-drawer]:not([data-sheet-custom-container='true'])::after {
-    content: '';
-    pointer-events: none;
-    background-color: var(--overlay);
-    position: absolute;
-  }
-
   [data-sheet-drawer][data-sheet-drawer-direction='top']::after {
     top: initial;
     height: 200%;
@@ -626,6 +619,59 @@
     .sheet__close-trigger[data-hovered='true'] {
       color: var(--foreground);
     }
+  }
+
+  /* Custom container support */
+  .sheet__backdrop[data-sheet-custom-container='true'] {
+    position: absolute;
+    inset: 0;
+  }
+
+  [data-sheet-overlay][data-sheet-custom-container='true']::before {
+    position: absolute;
+    inset: 0;
+  }
+
+  .sheet__content[data-vaul-custom-container='true'] {
+    position: absolute;
+  }
+
+  /* Bottom */
+  .sheet__content[data-vaul-custom-container='true'].sheet__content--bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  /* Top */
+  .sheet__content[data-vaul-custom-container='true'].sheet__content--top {
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+
+  /* Left */
+  .sheet__content[data-vaul-custom-container='true'].sheet__content--left {
+    top: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  /* Right */
+  .sheet__content[data-vaul-custom-container='true'].sheet__content--right {
+    top: 0;
+    bottom: 0;
+    right: 0;
+  }
+
+  [data-sheet-drawer][data-vaul-custom-container='true'][data-sheet-snap-points='true'][data-sheet-drawer-direction='bottom'],
+  [data-sheet-drawer][data-vaul-custom-container='true'][data-sheet-snap-points='true'][data-sheet-drawer-direction='top'] {
+    height: 100%;
+  }
+
+  [data-sheet-drawer][data-vaul-custom-container='true'][data-sheet-snap-points='true'][data-sheet-drawer-direction='left'],
+  [data-sheet-drawer][data-vaul-custom-container='true'][data-sheet-snap-points='true'][data-sheet-drawer-direction='right'] {
+    width: 100%;
   }
 }
 

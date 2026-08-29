@@ -2,7 +2,6 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Cpu,
   Magnifier,
   Plus,
   Star,
@@ -20,6 +19,7 @@ import {
 
 import { Button, Command, Kbd, Popover } from '@aero/ui';
 
+import { ProviderLogo } from '@/app/components/provider-logo';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useConfiguredProviders } from '@/app/hooks/api/providers';
 
@@ -158,27 +158,14 @@ export function ModelDropdown() {
 
   const [hoverTop, setHoverTop] = useState(0);
 
+  const [infoSide, setInfoSide] = useState<'left' | 'right'>('left');
+
   const activeItemRef = useRef<HTMLElement | null>(null);
 
   const popoverMenuRef = useRef<HTMLDivElement | null>(null);
 
-  /*
-   * FIX (bug 2): single source of truth for "which DOM node
-   * represents model X". Both mouse hover and keyboard focus
-   * read/write through this map, so there's no chicken-and-egg
-   * problem between activeModel state and the ref that's
-   * supposed to supply its element.
-   */
   const itemElementsRef = useRef<Map<string, HTMLElement>>(new Map());
 
-  /*
-   * FIX (bug 3): de-dupe by model.id while building the flat
-   * list. If the same id shows up twice — either inside one
-   * provider's model map or across two providers — only the
-   * first occurrence survives. Everything downstream (favorites,
-   * grouping, selection) keys off model.id, so guaranteeing
-   * uniqueness here prevents duplicate rendering everywhere else.
-   */
   const searchableModels = useMemo<SearchableModel[]>(() => {
     if (!providersData) {
       return [];
@@ -253,14 +240,6 @@ export function ModelDropdown() {
       0,
     );
 
-  /*
-   * Default model, extended to also cover the "mismatch" case:
-   * a persisted selectedModel whose id no longer exists in the
-   * freshly-fetched provider list falls back to the first
-   * available model instead of silently referencing nothing.
-   * Guarded on searchableModels being non-empty so we don't wipe
-   * a valid persisted selection while providers are still loading.
-   */
   useEffect(() => {
     if (searchableModels.length === 0) {
       return;
@@ -283,11 +262,6 @@ export function ModelDropdown() {
     });
   }, [selectedModel, searchableModels, setSelectedModel]);
 
-  /*
-   * Mismatch handling for favorites: prune any persisted favorite
-   * id that doesn't correspond to a currently-fetched model, once
-   * we actually have data to check against.
-   */
   useEffect(() => {
     if (searchableModels.length === 0 || favoriteModelIds.length === 0) {
       return;
@@ -322,9 +296,20 @@ export function ModelDropdown() {
     const parentRect = parent.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
 
-    const centerY = itemRect.top + itemRect.height / 2 - parentRect.top;
+    const panelWidth = 256;
+    const gap = 8;
 
-    setHoverTop(centerY);
+    // Space available from the left viewport edge to the
+    // left edge of the model dropdown.
+    const spaceLeft = parentRect.left;
+
+    // Default to left whenever the panel can fully fit there.
+    // Only move to the right when it cannot.
+    const side = spaceLeft >= panelWidth + gap ? 'left' : 'right';
+
+    setInfoSide(side);
+
+    setHoverTop(itemRect.top + itemRect.height / 2 - parentRect.top);
   }, []);
 
   useLayoutEffect(() => {
@@ -351,29 +336,33 @@ export function ModelDropdown() {
     };
   }, [activeModel, updateActiveItemPosition]);
 
-  /*
-   * FIX (bug 2): looks the element up from itemElementsRef itself
-   * rather than requiring the caller to supply it. Both
-   * onMouseEnter and onFocusChange can now call this the same
-   * way, so keyboard focus gets exactly the same treatment mouse
-   * hover always got.
-   */
   const activateModel = useCallback((model: ModelItem) => {
     const element = itemElementsRef.current.get(model.id) ?? null;
 
     activeItemRef.current = element;
     setActiveModel(model);
 
-    if (element) {
-      const parent = popoverMenuRef.current;
-
-      if (parent) {
-        const parentRect = parent.getBoundingClientRect();
-        const itemRect = element.getBoundingClientRect();
-
-        setHoverTop(itemRect.top + itemRect.height / 2 - parentRect.top);
-      }
+    if (!element) {
+      return;
     }
+
+    const parent = popoverMenuRef.current;
+
+    if (!parent) {
+      return;
+    }
+
+    const parentRect = parent.getBoundingClientRect();
+    const itemRect = element.getBoundingClientRect();
+
+    const panelWidth = 256;
+    const gap = 8;
+
+    const spaceLeft = parentRect.left;
+
+    setInfoSide(spaceLeft >= panelWidth + gap ? 'left' : 'right');
+
+    setHoverTop(itemRect.top + itemRect.height / 2 - parentRect.top);
   }, []);
 
   const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
@@ -405,14 +394,6 @@ export function ModelDropdown() {
     setIsOpen(false);
   };
 
-  /*
-   * FIX (bug 1): isGroupCollapsed no longer controls whether the
-   * item mounts. It stays mounted (so the collection's internal
-   * bookkeeping never sees the group go to zero items) and is
-   * instead visually hidden + marked isDisabled. React Aria menus
-   * automatically skip disabled items during arrow-key nav, so
-   * this also stops keyboard focus from landing on a hidden row.
-   */
   const renderModelItem = (
     entry: SearchableModel,
     key: string,
@@ -430,19 +411,17 @@ export function ModelDropdown() {
         textValue={`${model.name} ${model.id} ${providerName}`}
         ref={(element: HTMLElement | null) => {
           if (!element || isGroupCollapsed) {
-            // Cleanup map entry when element unmounts or collapses
             itemElementsRef.current.delete(model.id);
             return;
           }
 
-          // Store the inner element ref for position calculations
           const innerElement =
             element.querySelector<HTMLElement>('[data-model-inner]');
+
           if (innerElement) {
             itemElementsRef.current.set(model.id, innerElement);
           }
 
-          // Check if it's already focused on mount/render
           if (
             element.getAttribute('data-focused') === 'true' ||
             element.getAttribute('data-hovered') === 'true'
@@ -450,7 +429,6 @@ export function ModelDropdown() {
             activateModel(model);
           }
 
-          // Create an observer to watch for data-focused attribute changes from keyboard nav
           const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
               if (
@@ -459,8 +437,10 @@ export function ModelDropdown() {
                   mutation.attributeName === 'data-hovered')
               ) {
                 const target = mutation.target as HTMLElement;
+
                 const isFocused =
                   target.getAttribute('data-focused') === 'true';
+
                 const isHovered =
                   target.getAttribute('data-hovered') === 'true';
 
@@ -485,7 +465,11 @@ export function ModelDropdown() {
           data-model-inner
           className='flex min-w-0 flex-1 items-center gap-2'
         >
-          <Icon data={Cpu} className='size-3.5 shrink-0 opacity-70' />
+          <ProviderLogo
+            providerId={model.providerID}
+            alt={model.name}
+            className='size-3.5 shrink-0'
+          />
 
           <span className='truncate font-medium'>{model.name}</span>
 
@@ -521,8 +505,14 @@ export function ModelDropdown() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant='tertiary' size='sm' className='gap-1.5 text-xs'>
-        <Icon data={Cpu} className='size-3.5' />
+      <Button variant='ghost' size='sm' className='gap-1.5 rounded-lg text-xs'>
+        {selectedModel && (
+          <ProviderLogo
+            providerId={selectedModel.providerId}
+            alt={selectedModel.name}
+            className='size-3.5'
+          />
+        )}
 
         {selectedModel?.name ?? 'Select Model'}
 
@@ -663,7 +653,9 @@ export function ModelDropdown() {
                 top: `${hoverTop}px`,
                 transform: 'translateY(-50%)',
               }}
-              className='bg-overlay text-overlay-foreground border-border absolute right-full mr-2 w-64 space-y-2 rounded-xl border p-3 text-xs transition-all duration-75'
+              className={`bg-overlay text-overlay-foreground border-border absolute w-64 space-y-2 rounded-xl border p-3 text-xs transition-all duration-75 ${
+                infoSide === 'right' ? 'left-full ml-2' : 'right-full mr-2'
+              }`}
             >
               <div className='text-muted flex items-center justify-between gap-2'>
                 <span>Capabilities</span>

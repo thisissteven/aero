@@ -1,4 +1,12 @@
-import { Check, ChevronDown, FaceRobot, Magnifier } from '@gravity-ui/icons';
+import {
+  Bulb,
+  Check,
+  ChevronDown,
+  FaceRobot,
+  Magnifier,
+  PersonWorker,
+  PlanetEarth,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo, useState } from 'react';
 
@@ -8,6 +16,21 @@ import { useAgentsCompact } from '@/app/hooks/api/agents';
 import { capitalizeFirstLetter } from '@/app/lib/file';
 
 import { useChatSettingsStore } from './chat-settings-store';
+
+function getAgentIconData(name?: string) {
+  switch (name?.toLowerCase()) {
+    case 'build':
+      return PersonWorker;
+    case 'plan':
+      return Bulb;
+    case 'explore':
+      return Magnifier;
+    case 'general':
+      return PlanetEarth;
+    default:
+      return FaceRobot;
+  }
+}
 
 export function AgentDropdown() {
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
@@ -43,8 +66,11 @@ export function AgentDropdown() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant='tertiary' size='sm' className='gap-1.5 text-xs'>
-        <Icon data={FaceRobot} className='size-3.5' />
+      <Button variant='ghost' size='sm' className='gap-1.5 rounded-lg text-xs'>
+        <Icon
+          data={getAgentIconData(selectedAgent?.name)}
+          className='size-3.5'
+        />
 
         {selectedAgent?.name
           ? capitalizeFirstLetter(selectedAgent.name)

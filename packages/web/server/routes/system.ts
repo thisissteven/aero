@@ -11,6 +11,16 @@ import { z } from 'zod';
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
+// Every subprocess call below MUST carry a timeout. Without one, a hung
+// child (macOS Automation permission dialog blocking osascript, a wedged
+// Spotlight/mdfind index, a terminal binary that never returns) hangs the
+// awaiting request forever — that's what was making the app unresponsive.
+const QUICK_TIMEOUT_MS = 3_000; // which/where/test lookups
+const ICON_TIMEOUT_MS = 5_000; // osascript/powershell icon extraction
+const LAUNCH_TIMEOUT_MS = 8_000; // opening apps/terminals
+
+const killOpts = { killSignal: 'SIGKILL' as const };
+
 export interface OpenInApp {
   id: string;
   label: string;
@@ -239,7 +249,10 @@ function formatPath(inputPath: string): string {
 async function isBinaryAvailable(binary: string): Promise<boolean> {
   const isWin = os.platform() === 'win32';
   try {
-    await execFileAsync(isWin ? 'where' : 'which', [binary]);
+    await execFileAsync(isWin ? 'where' : 'which', [binary], {
+      timeout: QUICK_TIMEOUT_MS,
+      ...killOpts,
+    });
     return true;
   } catch {
     return false;
@@ -250,9 +263,11 @@ async function isMacAppAvailable(appName: string): Promise<boolean> {
   if (os.platform() !== 'darwin') return false;
 
   try {
-    const { stdout } = await execFileAsync('mdfind', [
-      `kMDItemCFBundleIdentifier == * && kMDItemDisplayName == "${appName}"`,
-    ]);
+    const { stdout } = await execFileAsync(
+      'mdfind',
+      [`kMDItemCFBundleIdentifier == * && kMDItemDisplayName == "${appName}"`],
+      { timeout: QUICK_TIMEOUT_MS, ...killOpts },
+    );
     if (stdout.trim().length > 0) return true;
   } catch {
     // Fall back to direct folder checks
@@ -265,16 +280,16 @@ async function isMacAppAvailable(appName: string): Promise<boolean> {
     `${os.homedir()}/Applications/${appName}.app`,
   ];
 
-  for (const appPath of searchPaths) {
-    try {
-      await execFileAsync('test', ['-d', appPath]);
-      return true;
-    } catch {
-      // Path does not exist
-    }
-  }
+  const checks = await Promise.allSettled(
+    searchPaths.map((appPath) =>
+      execFileAsync('test', ['-d', appPath], {
+        timeout: QUICK_TIMEOUT_MS,
+        ...killOpts,
+      }),
+    ),
+  );
 
-  return false;
+  return checks.some((r) => r.status === 'fulfilled');
 }
 
 // Zero-dependency native icon extraction logic
@@ -305,7 +320,10 @@ async function extractNativeIconUrl(
       return pngData's base64EncodedStringWithOptions:0 as text
     `;
     try {
-      const { stdout } = await execFileAsync('osascript', ['-e', script]);
+      const { stdout } = await execFileAsync('osascript', ['-e', script], {
+        timeout: ICON_TIMEOUT_MS,
+        ...killOpts,
+      });
       const base64 = stdout.trim();
       return base64 ? `data:image/png;base64,${base64}` : undefined;
     } catch {
@@ -334,11 +352,11 @@ async function extractNativeIconUrl(
       [Convert]::ToBase64String($ms.ToArray())
     `;
     try {
-      const { stdout } = await execFileAsync('powershell', [
-        '-NoProfile',
-        '-Command',
-        psScript,
-      ]);
+      const { stdout } = await execFileAsync(
+        'powershell',
+        ['-NoProfile', '-Command', psScript],
+        { timeout: ICON_TIMEOUT_MS, ...killOpts },
+      );
       const base64 = stdout.trim();
       return base64 ? `data:image/png;base64,${base64}` : undefined;
     } catch {
@@ -390,7 +408,7 @@ const system = new Hono()
     const isMac = platform === 'darwin';
     const isWin = platform === 'win32';
 
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       OPEN_IN_APPS.map(async (app) => {
         let available = false;
 
@@ -409,40 +427,42 @@ const system = new Hono()
               'alacritty',
               'kitty',
             ];
-            for (const term of linuxTerms) {
-              if (await isBinaryAvailable(term)) {
-                available = true;
-                break;
-              }
-            }
+            const results = await Promise.allSettled(
+              linuxTerms.map((t) => isBinaryAvailable(t)),
+            );
+            available = results.some(
+              (r) => r.status === 'fulfilled' && r.value,
+            );
           }
         }
 
-        // Binaries Check across system PATH
+        // Binaries Check across system PATH (parallel, not sequential)
         if (!available && app.binaries) {
-          for (const bin of app.binaries) {
-            if (await isBinaryAvailable(bin)) {
-              available = true;
-              break;
-            }
-          }
+          const results = await Promise.allSettled(
+            app.binaries.map((bin) => isBinaryAvailable(bin)),
+          );
+          available = results.some((r) => r.status === 'fulfilled' && r.value);
         }
 
         // macOS App Bundle Check
         if (!available && isMac) {
           const namesToTest = app.macAppNames || [app.appName, app.label];
-          for (const macName of namesToTest) {
-            if (await isMacAppAvailable(macName)) {
-              available = true;
-              break;
-            }
-          }
+          const results = await Promise.allSettled(
+            namesToTest.map((n) => isMacAppAvailable(n)),
+          );
+          available = results.some((r) => r.status === 'fulfilled' && r.value);
         }
 
-        // Extract native icon dynamically if available
+        // Extract native icon dynamically if available. Icon extraction
+        // is best-effort — never let a stuck/failed icon lookup take
+        // down the app's availability result.
         let appIconUrl = app.appIconUrl;
         if (available) {
-          appIconUrl = (await extractNativeIconUrl(app)) || appIconUrl;
+          try {
+            appIconUrl = (await extractNativeIconUrl(app)) || appIconUrl;
+          } catch {
+            // keep fallback appIconUrl
+          }
         }
 
         return {
@@ -455,7 +475,22 @@ const system = new Hono()
       }),
     );
 
-    return c.json({ editors: results });
+    // Any single app check that rejected (shouldn't happen now that every
+    // subprocess call has a timeout, but belt-and-suspenders) degrades to
+    // "unavailable" instead of failing the whole endpoint.
+    const editors = settled.map((r, i) => {
+      if (r.status === 'fulfilled') return r.value;
+      const app = OPEN_IN_APPS[i];
+      return {
+        id: app.id,
+        label: app.label,
+        appName: app.appName,
+        appIconUrl: app.appIconUrl,
+        available: false,
+      };
+    });
+
+    return c.json({ editors });
   })
 
   .post('/open-app', zValidator('json', openAppSchema), async (c) => {
@@ -471,35 +506,64 @@ const system = new Hono()
     try {
       // 1. File Explorer Handler
       if (appId === 'finder') {
-        if (platform === 'win32') await execAsync(`explorer "${targetPath}"`);
-        else if (platform === 'darwin')
-          await execFileAsync('open', [targetPath]);
-        else await execFileAsync('xdg-open', [targetPath]);
+        if (platform === 'win32') {
+          // await execFileAsync('explorer', [targetPath], {
+          //   timeout: LAUNCH_TIMEOUT_MS,
+          //   ...killOpts,
+          // });
+          exec(`explorer "${targetPath}"`, () => {});
+        } else if (platform === 'darwin') {
+          await execFileAsync('open', [targetPath], {
+            timeout: LAUNCH_TIMEOUT_MS,
+            ...killOpts,
+          });
+        } else {
+          await execFileAsync('xdg-open', [targetPath], {
+            timeout: LAUNCH_TIMEOUT_MS,
+            ...killOpts,
+          });
+        }
         return c.json({ success: true, appId, path: targetPath });
       }
 
       // 2. Native Terminal Handler
       if (appId === 'terminal') {
         if (platform === 'win32') {
-          await execAsync(`wt -d "${targetPath}"`).catch(() =>
-            execAsync(`start cmd /k "cd /d ${targetPath}"`),
+          await execFileAsync('wt', ['-d', targetPath], {
+            timeout: LAUNCH_TIMEOUT_MS,
+            ...killOpts,
+          }).catch(() =>
+            execAsync(`start cmd /k "cd /d ${targetPath}"`, {
+              timeout: LAUNCH_TIMEOUT_MS,
+              ...killOpts,
+            }),
           );
         } else if (platform === 'darwin') {
           const script = `tell application "Terminal" to do script "cd ${targetPath.replace(/"/g, '\\"')}"`;
-          await execFileAsync('osascript', [
-            '-e',
-            script,
-            '-e',
-            'tell application "Terminal" to activate',
-          ]);
+          await execFileAsync(
+            'osascript',
+            ['-e', script, '-e', 'tell application "Terminal" to activate'],
+            { timeout: LAUNCH_TIMEOUT_MS, ...killOpts },
+          );
         } else {
-          await execAsync(
-            `x-terminal-emulator --working-directory="${targetPath}"`,
+          await execFileAsync(
+            'x-terminal-emulator',
+            [`--working-directory=${targetPath}`],
+            { timeout: LAUNCH_TIMEOUT_MS, ...killOpts },
           )
             .catch(() =>
-              execAsync(`gnome-terminal --working-directory="${targetPath}"`),
+              execFileAsync(
+                'gnome-terminal',
+                [`--working-directory=${targetPath}`],
+                { timeout: LAUNCH_TIMEOUT_MS, ...killOpts },
+              ),
             )
-            .catch(() => execAsync(`konsole --workdir "${targetPath}"`));
+            .catch(() =>
+              execFileAsync('konsole', ['--workdir', targetPath], {
+                timeout: LAUNCH_TIMEOUT_MS,
+                ...killOpts,
+              }),
+            );
         }
         return c.json({ success: true, appId, path: targetPath });
       }
@@ -514,7 +578,10 @@ const system = new Hono()
 
         for (const macName of namesToTest) {
           try {
-            await execFileAsync('open', ['-a', macName, targetPath]);
+            await execFileAsync('open', ['-a', macName, targetPath], {
+              timeout: LAUNCH_TIMEOUT_MS,
+              ...killOpts,
+            });
             launched = true;
             break;
           } catch {
@@ -525,7 +592,10 @@ const system = new Hono()
         if (!launched && appConfig.binaries) {
           for (const bin of appConfig.binaries) {
             try {
-              await execFileAsync(bin, [targetPath]);
+              await execFileAsync(bin, [targetPath], {
+                timeout: LAUNCH_TIMEOUT_MS,
+                ...killOpts,
+              });
               launched = true;
               break;
             } catch {
@@ -545,7 +615,10 @@ const system = new Hono()
         if (appConfig.binaries) {
           for (const bin of appConfig.binaries) {
             try {
-              await execAsync(`cmd.exe /c start "" ${bin} "${targetPath}"`);
+              await execAsync(`cmd.exe /c start "" ${bin} "${targetPath}"`, {
+                timeout: LAUNCH_TIMEOUT_MS,
+                ...killOpts,
+              });
               launched = true;
               break;
             } catch {
@@ -565,7 +638,10 @@ const system = new Hono()
         if (appConfig.binaries) {
           for (const bin of appConfig.binaries) {
             try {
-              await execFileAsync(bin, [targetPath]);
+              await execFileAsync(bin, [targetPath], {
+                timeout: LAUNCH_TIMEOUT_MS,
+                ...killOpts,
+              });
               launched = true;
               break;
             } catch {

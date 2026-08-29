@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { PromptInput } from '@aero/ui';
 
+import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
@@ -48,7 +49,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
         }
       }}
     >
-      <PromptInput.Shell className='shadow'>
+      <PromptInput.Shell className='@container shadow'>
         <PromptInput.Content>
           <PromptInput.TextArea
             ref={textareaRef}
@@ -62,8 +63,13 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
           </PromptInput.ToolbarStart>
 
           <PromptInput.ToolbarEnd>
-            <ModelDropdown />
-            <AgentDropdown />
+            <div className='@md:hidden'>
+              <ModelAgentDropdownTrigger />
+            </div>
+            <div className='flex @max-md:hidden'>
+              <ModelDropdown />
+              <AgentDropdown />
+            </div>
             <VoiceInputButton />
             <SendButton />
           </PromptInput.ToolbarEnd>

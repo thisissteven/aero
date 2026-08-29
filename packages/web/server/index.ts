@@ -6,6 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 import { initProxyConfig } from './proxy-loader';
 import agentRoutes from './routes/agents';
 import configRoutes from './routes/config';
+import folderPickerRoutes from './routes/folder-picker';
 import gitRoutes from './routes/git';
 import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
@@ -30,7 +31,8 @@ const app = new Hono()
   .route('/agents', agentRoutes)
   .route('/providers', providerRoutes)
   .route('/worktree', worktreeRoutes)
-  .route('/config', configRoutes);
+  .route('/config', configRoutes)
+  .route('/folder-picker', folderPickerRoutes);
 
 app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);

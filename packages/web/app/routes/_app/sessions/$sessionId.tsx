@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ChatPage } from '@/app/features/chat-page';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import {
   useSession,
   useSessionMessages,
@@ -102,12 +103,17 @@ function SessionPage() {
 
   const notFound = !session && !isSessionLoading;
 
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
   return (
-    <ChatPage
-      sessionId={sessionId}
-      workspace={session?.workspace}
-      groups={turns}
-      notFound={notFound}
-    />
+    <div ref={setContainer} className='relative h-full overflow-hidden'>
+      {container && <ModelAgentDropdownSheet container={container} />}
+      <ChatPage
+        sessionId={sessionId}
+        workspace={session?.workspace}
+        groups={turns}
+        notFound={notFound}
+      />
+    </div>
   );
 }

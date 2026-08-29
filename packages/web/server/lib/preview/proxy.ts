@@ -22,6 +22,17 @@ const MAX_CSS_BYTES = 2 * 1024 * 1024;
 
 let activeUpstreamFetches = 0;
 
+// Wraps a fetched upstream Response together with the function that
+// releases its concurrency-pool slot. The slot must stay held for as
+// long as the response body might still be read or streamed — not just
+// for the initial fetch() call — otherwise the semaphore undercounts
+// true concurrency. `release` is idempotent so every exit path in
+// proxyRequest can call it without double-decrementing.
+interface UpstreamFetchResult {
+  response: Response;
+  release: () => void;
+}
+
 function buildUpstreamUrl(
   target: Extract<PreviewTarget, { kind: 'http' }>,
   restPath: string,
@@ -123,24 +134,54 @@ function injectBridge(
   return `${bridge}${html}`;
 }
 
-async function fetchUpstream(c: Context, upstream: URL): Promise<Response> {
+// Combines the incoming client request's own abort signal with the
+// upstream timeout, so if the browser disconnects/navigates away mid-load
+// we stop holding an upstream connection (and a concurrency slot) for the
+// full 20s timeout for no reason.
+function buildUpstreamSignal(c: Context): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(UPSTREAM_TIMEOUT_MS);
+  const clientSignal = c.req.raw.signal;
+
+  if (!clientSignal) {
+    return timeoutSignal;
+  }
+
+  return AbortSignal.any([clientSignal, timeoutSignal]);
+}
+
+async function fetchUpstream(
+  c: Context,
+  upstream: URL,
+): Promise<UpstreamFetchResult> {
   if (activeUpstreamFetches >= MAX_CONCURRENT_UPSTREAM_FETCHES) {
-    return new Response(
-      JSON.stringify({
-        error: 'Preview proxy busy',
-      }),
-      {
-        status: 503,
-        headers: {
-          'content-type': 'application/json',
-          'retry-after': '1',
-          'cache-control': 'no-store',
+    return {
+      response: new Response(
+        JSON.stringify({
+          error: 'Preview proxy busy',
+        }),
+        {
+          status: 503,
+          headers: {
+            'content-type': 'application/json',
+            'retry-after': '1',
+            'cache-control': 'no-store',
+          },
         },
-      },
-    );
+      ),
+      // Nothing was acquired for the busy response — release is a no-op.
+      release: () => undefined,
+    };
   }
 
   activeUpstreamFetches++;
+
+  let released = false;
+  const release = () => {
+    if (!released) {
+      released = true;
+      activeUpstreamFetches--;
+    }
+  };
 
   try {
     const proxy =
@@ -148,16 +189,24 @@ async function fetchUpstream(c: Context, upstream: URL): Promise<Response> {
         ? process.env.HTTPS_PROXY
         : process.env.HTTP_PROXY;
 
-    return await fetch(upstream, {
+    const response = await fetch(upstream, {
       method: c.req.method,
       headers: filterRequestHeaders(c.req.raw.headers),
       body: isGetOrHead(c.req.method) ? undefined : c.req.raw.body,
       redirect: 'manual',
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      signal: buildUpstreamSignal(c),
       proxy,
     });
-  } finally {
-    activeUpstreamFetches--;
+
+    // Ownership of `release` now passes to the caller (proxyRequest),
+    // which must call it once the response body has been fully handled
+    // — drained, cancelled, or handed off to the client as a stream.
+    return { response, release };
+  } catch (error) {
+    // fetch() itself failed (DNS, connection refused, abort, etc.) —
+    // nothing to release against, so free the slot immediately.
+    release();
+    throw error;
   }
 }
 
@@ -213,11 +262,57 @@ async function readTextSafely(
   return new TextDecoder().decode(merged);
 }
 
-function makePassThroughResponse(
+// Forwards a response's body to the client untouched (binary assets and
+// JS passthrough), while releasing the upstream concurrency slot once
+// the client side of the stream is fully done — not before.
+//
+// IMPORTANT: response.body is a ReadableStream and can only be consumed
+// by ONE reader. We must NOT both pipe it somewhere to watch for
+// completion AND hand it to the outgoing Response — that double-consumes
+// it and corrupts/empties whatever the client receives (this is what
+// broke images/fonts/scripts in the previous version of this file).
+// tee() splits it into two independent streams instead: one goes to the
+// client via the Response, the other is drained silently just to detect
+// when the transfer is finished so we know when to release().
+function passThroughAndRelease(
   response: Response,
   headers: Headers,
+  release: () => void,
 ): Response {
-  return new Response(response.body, {
+  if (!response.body) {
+    release();
+
+    return new Response(null, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  const [clientStream, monitorStream] = response.body.tee();
+
+  // Drain the monitor branch in the background purely to know when the
+  // transfer has completed (or failed), so we release the slot at the
+  // right time. Errors here don't affect what the client receives —
+  // that's carried entirely by clientStream.
+  const monitorReader = monitorStream.getReader();
+
+  (async () => {
+    try {
+      while (true) {
+        const { done } = await monitorReader.read();
+        if (done) {
+          break;
+        }
+      }
+    } catch {
+      // Ignore — the client-facing stream reports its own errors.
+    } finally {
+      release();
+    }
+  })();
+
+  return new Response(clientStream, {
     status: response.status,
     statusText: response.statusText,
     headers,
@@ -504,9 +599,12 @@ export async function proxyRequest(
   const upstream = buildUpstreamUrl(target, restPath, c.req.url);
 
   let response: Response;
+  let release: () => void;
 
   try {
-    response = await fetchUpstream(c, upstream);
+    const result = await fetchUpstream(c, upstream);
+    response = result.response;
+    release = result.release;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
 
@@ -538,6 +636,14 @@ export async function proxyRequest(
       );
     }
 
+    // Redirects can carry a body (some dev servers send one), and we're
+    // not forwarding it — it must be drained/cancelled or undici will
+    // keep the upstream connection open indefinitely, eventually
+    // starving the process-wide fetch connection pool for every other
+    // outbound request the app makes.
+    await response.body?.cancel().catch(() => undefined);
+    release();
+
     return new Response(null, {
       status: response.status,
       statusText: response.statusText,
@@ -550,18 +656,13 @@ export async function proxyRequest(
   const rewriteKind = detectRewriteKind(contentType);
 
   /*
-   * Binary / unsupported content.
+   * Binary / unsupported content, and JavaScript (deliberately passed
+   * through untouched). Both are streamed straight to the client via
+   * tee() — see passThroughAndRelease for why this can't use pipeTo()
+   * plus a second read of response.body.
    */
-  if (!rewriteKind) {
-    return makePassThroughResponse(response, headers);
-  }
-
-  /*
-   * JavaScript is deliberately passed
-   * through untouched.
-   */
-  if (rewriteKind === 'javascript') {
-    return makePassThroughResponse(response, headers);
+  if (!rewriteKind || rewriteKind === 'javascript') {
+    return passThroughAndRelease(response, headers, release);
   }
 
   const maxBytes = rewriteKind === 'html' ? MAX_HTML_BYTES : MAX_CSS_BYTES;
@@ -571,6 +672,8 @@ export async function proxyRequest(
   try {
     body = await readTextSafely(response, maxBytes);
   } catch (error) {
+    release();
+
     return c.json(
       {
         error: 'Preview response read failed',
@@ -584,8 +687,23 @@ export async function proxyRequest(
    * Too large for safe rewriting.
    */
   if (body === null) {
-    return makePassThroughResponse(response, headers);
+    // readTextSafely already cancelled the reader in this case (either
+    // via the content-length short-circuit, where the body was never
+    // touched, or after exceeding maxBytes mid-stream), so the upstream
+    // side is done — safe to release now. But response.body has already
+    // been read from directly above (not tee'd), so it can go straight
+    // to the client here without the tee dance passThroughAndRelease
+    // uses for the streaming case.
+    release();
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   }
+
+  release();
 
   const proxyBasePath = buildProxyBasePath(requestUrl, target);
 

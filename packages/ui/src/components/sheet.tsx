@@ -30,6 +30,7 @@ export type SheetSnapPoint = number | string;
 
 interface SheetContextValue {
   close: () => void;
+  container: HTMLElement | null;
   isDetached: boolean;
   isDismissable: boolean;
   isOpen: boolean;
@@ -180,6 +181,7 @@ function SheetRootBase({
   const context = useMemo(
     () => ({
       close: () => setOpen(false),
+      container: container ?? null,
       isDetached,
       isDismissable,
       isOpen: openState,
@@ -190,6 +192,7 @@ function SheetRootBase({
       triggerRef,
     }),
     [
+      container,
       isDetached,
       isDismissable,
       openState,
@@ -280,6 +283,7 @@ export const SheetBackdrop: ForwardRefExoticComponent<SheetBackdropProps> =
     { children, className, variant = 'opaque', ...props },
     ref,
   ) {
+    const { container } = useSheetContext();
     return (
       <Vaul.Portal>
         <Vaul.Overlay
@@ -290,6 +294,7 @@ export const SheetBackdrop: ForwardRefExoticComponent<SheetBackdropProps> =
             className,
           )}
           data-sheet-overlay=''
+          data-sheet-custom-container={container ? 'true' : undefined}
           data-slot='sheet-backdrop'
           data-variant={variant}
           ref={ref}

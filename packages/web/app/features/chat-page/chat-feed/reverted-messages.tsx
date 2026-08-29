@@ -34,8 +34,8 @@ export function RevertedMessages() {
   if (revertedMessages.length === 0) return null;
 
   return (
-    <div className='relative mx-auto w-full max-w-[720px]'>
-      <div className='mx-1 mb-2 md:mx-3 md:mx-5'>
+    <div className='@container relative mx-auto w-full max-w-[720px]'>
+      <div className='mx-1 mb-2 @sm:mx-3'>
         <Disclosure
           isExpanded={isExpanded}
           onExpandedChange={setIsExpanded}

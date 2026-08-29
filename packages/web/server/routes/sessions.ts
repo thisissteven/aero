@@ -387,7 +387,7 @@ const sessions = new Hono()
         tocs.push(item);
       }
 
-      if (tocs.length < 1) return c.json([]);
+      if (tocs.length < 3) return c.json([]);
 
       return c.json(tocs);
     },

@@ -1,9 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cn, PromptInput, TextShimmer } from '@aero/ui';
 
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
+import {
+  ModelAgentDropdownSheet,
+  ModelAgentDropdownTrigger,
+} from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
 import { NewSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { SendButton } from '@/app/features/chat-page/chat-input/send-button';
@@ -36,60 +40,67 @@ export function NewSessionPage() {
     }
   }, [isMobile]);
 
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
   return (
-    <div
-      className={cn(
-        'relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col justify-center overflow-hidden',
-        'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
-        isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
-      )}
-    >
-      <div className='mx-auto flex min-h-[520px] w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4'>
-        <div className='flex flex-col items-center gap-2 text-center'>
-          <h2 className='text-foreground text-3xl font-normal tracking-tight'>
-            Build something useful with{' '}
-            <TextShimmer className='shimmer-accent font-medium tracking-normal'>
-              Aero
-            </TextShimmer>
-          </h2>
-          <p className='text-muted text-sm'>
-            Start with a prompt, add files, or pick a suggestion to shape the
-            first response.
-          </p>
+    <div ref={setContainer} className='relative h-full overflow-hidden'>
+      {container && <ModelAgentDropdownSheet container={container} />}
+      <div
+        className={cn(
+          'relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col justify-center overflow-hidden',
+          'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
+          isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
+        )}
+      >
+        <div className='mx-auto flex min-h-[520px] w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4'>
+          <div className='flex flex-col items-center gap-2 text-center'>
+            <h2 className='text-foreground text-3xl font-normal tracking-tight'>
+              Build something useful with{' '}
+              <TextShimmer className='shimmer-accent font-medium tracking-normal'>
+                Aero
+              </TextShimmer>
+            </h2>
+            <p className='text-muted text-sm'>
+              Start with a prompt, add files, or pick a suggestion to shape the
+              first response.
+            </p>
+          </div>
+
+          <NewSessionPromptInputWrapper
+            onSubmit={() => {
+              if (textareaRef.current) {
+                textareaRef.current.style.height = '';
+              }
+            }}
+          >
+            <PromptInput.Shell className='@container shadow'>
+              <PromptInput.Content>
+                <PromptInput.TextArea
+                  ref={textareaRef}
+                  placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
+                />
+              </PromptInput.Content>
+
+              <PromptInput.Toolbar>
+                <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
+                  <FileAttachmentsButton isMobile={isMobile} />
+                </PromptInput.ToolbarStart>
+
+                <PromptInput.ToolbarEnd>
+                  <div className='@md:hidden'>
+                    <ModelAgentDropdownTrigger />
+                  </div>
+                  <div className='flex @max-md:hidden'>
+                    <ModelDropdown />
+                    <AgentDropdown />
+                  </div>
+                  <VoiceInputButton />
+                  <SendButton />
+                </PromptInput.ToolbarEnd>
+              </PromptInput.Toolbar>
+            </PromptInput.Shell>
+          </NewSessionPromptInputWrapper>
         </div>
-
-        <NewSessionPromptInputWrapper
-          onSubmit={() => {
-            if (textareaRef.current) {
-              textareaRef.current.style.height = '';
-            }
-          }}
-        >
-          <PromptInput.Shell className='shadow'>
-            <PromptInput.Content>
-              <PromptInput.TextArea
-                ref={textareaRef}
-                placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
-              />
-            </PromptInput.Content>
-
-            <PromptInput.Toolbar>
-              <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
-                <FileAttachmentsButton isMobile={isMobile} />
-              </PromptInput.ToolbarStart>
-
-              <PromptInput.ToolbarEnd>
-                <ModelDropdown />
-
-                <AgentDropdown />
-
-                <VoiceInputButton />
-
-                <SendButton />
-              </PromptInput.ToolbarEnd>
-            </PromptInput.Toolbar>
-          </PromptInput.Shell>
-        </NewSessionPromptInputWrapper>
       </div>
     </div>
   );
