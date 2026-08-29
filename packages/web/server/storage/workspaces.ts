@@ -73,11 +73,9 @@ export async function createWorkspace(input: {
   const normalizedDir = normalizePath(input.directory);
 
   const existing = all.find((w) => w.directory === normalizedDir);
-  if (existing) {
-    return existing;
-  }
 
-  const initialWorktreeInputs = input.worktrees || [];
+  const initialWorktreeInputs = [...(input.worktrees || [])];
+
   const hasRootWorktree = initialWorktreeInputs.some(
     (wt) => normalizePath(wt.directory) === normalizedDir,
   );
@@ -89,8 +87,50 @@ export async function createWorkspace(input: {
     });
   }
 
+  // Workspace already exists → sync its worktrees
+  if (existing) {
+    const existingWorktreesByDir = new Map(
+      existing.worktrees.map((wt) => [normalizePath(wt.directory), wt]),
+    );
+
+    const worktrees: AeroWorktree[] = initialWorktreeInputs.map((wt) => {
+      const normWtDir = normalizePath(wt.directory);
+      const existingWorktree = existingWorktreesByDir.get(normWtDir);
+
+      if (existingWorktree) {
+        return {
+          ...existingWorktree,
+          name: wt.name || existingWorktree.name || getBasename(normWtDir),
+        };
+      }
+
+      return {
+        id: randomUUID(),
+        name: wt.name || getBasename(normWtDir),
+        directory: normWtDir,
+        createdAt: now,
+      };
+    });
+
+    const updatedWorkspace: AeroWorkspace = {
+      ...existing,
+      name: input.name || existing.name,
+      worktrees,
+      updatedAt: now,
+    };
+
+    const index = all.indexOf(existing);
+    all[index] = updatedWorkspace;
+
+    await writeAll(all);
+
+    return updatedWorkspace;
+  }
+
+  // Workspace doesn't exist → create it
   const worktrees: AeroWorktree[] = initialWorktreeInputs.map((wt) => {
     const normWtDir = normalizePath(wt.directory);
+
     return {
       id: randomUUID(),
       name: wt.name || getBasename(normWtDir),
@@ -109,7 +149,9 @@ export async function createWorkspace(input: {
   };
 
   all.push(workspace);
+
   await writeAll(all);
+
   return workspace;
 }
 

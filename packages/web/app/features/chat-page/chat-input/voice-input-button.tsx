@@ -5,7 +5,7 @@ import { PromptInput } from '@aero/ui';
 
 export function VoiceInputButton() {
   return (
-    <PromptInput.Action aria-label='Use voice'>
+    <PromptInput.Action aria-label='Use voice' variant='ghost'>
       <Icon aria-hidden data={Microphone} />
     </PromptInput.Action>
   );

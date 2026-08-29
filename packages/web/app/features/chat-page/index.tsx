@@ -66,7 +66,7 @@ export function ChatPage({
   return (
     <div
       className={cn(
-        'ease relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col justify-center overflow-hidden',
+        'ease relative flex h-[calc(100svh-var(--chat-navbar-height,56px))] flex-col justify-center overflow-hidden',
       )}
     >
       {notFound ? (

@@ -20,7 +20,7 @@ export function FileAttachmentsButton({
       distance={isMobile ? 44 : 40}
     >
       <CollapsibleActions.Trigger>
-        <PromptInput.Action aria-label='Add context'>
+        <PromptInput.Action aria-label='Add context' variant='ghost'>
           <Icon aria-hidden data={Plus} />
         </PromptInput.Action>
       </CollapsibleActions.Trigger>

@@ -72,14 +72,20 @@ export function ChatConversationView({
               />
             )}
             {item.type === 'assistant-error' && (
-              <div className='pt-2'>
-                <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-2xl border px-4 py-2 text-sm'>
+              <div className='relative pt-4'>
+                <div className='absolute top-0 left-0 h-full pt-4'>
+                  <div className='bg-danger h-full w-1'></div>
+                </div>
+                <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
                   {item.message}
                 </div>
               </div>
             )}
             {item.type === 'assistant-usage-exceeded' && (
-              <div className='pt-2'>
+              <div className='relative pt-2'>
+                <div className='absolute top-0 left-0 h-full pt-2'>
+                  <div className='bg-warning h-full w-1'></div>
+                </div>
                 <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-2xl border px-4 py-2 text-sm'>
                   <div>
                     <b>{item.title}</b>

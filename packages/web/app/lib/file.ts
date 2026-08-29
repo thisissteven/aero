@@ -12,6 +12,15 @@ export function toPascalCase(str: string) {
     .join(' ');
 }
 
+export function getLastPathName(path: string): string {
+  return (
+    path
+      .replace(/[\\/]+$/, '')
+      .split(/[\\/]/)
+      .pop() ?? ''
+  );
+}
+
 export const handleDownloadMarkdown = (content: string, filename: string) => {
   // 1. Create a Blob with the markdown content
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });

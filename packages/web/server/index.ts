@@ -15,7 +15,7 @@ import sessionRoutes from './routes/sessions';
 import systemRoutes from './routes/system';
 import terminalRoutes from './routes/terminal';
 import workspaceRoutes from './routes/workspaces';
-import worktreeRoutes from './routes/worktree';
+import worktreeRoutes from './routes/worktrees';
 
 initProxyConfig();
 
@@ -30,7 +30,7 @@ const app = new Hono()
   .route('/git', gitRoutes)
   .route('/agents', agentRoutes)
   .route('/providers', providerRoutes)
-  .route('/worktree', worktreeRoutes)
+  .route('/worktrees', worktreeRoutes)
   .route('/config', configRoutes)
   .route('/folder-picker', folderPickerRoutes);
 

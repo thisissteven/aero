@@ -1,44 +1,39 @@
 // app/hooks/worktree.ts
 
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
 import { honoClient } from '@/app/lib';
 
-const $worktree = honoClient.api.worktree;
+const $worktrees = honoClient.api.worktrees;
 
 export const worktreeKeys = {
   all: (harnessId?: string, directory?: string) =>
     ['worktrees', harnessId ?? 'default', directory ?? 'root'] as const,
 };
 
-type CreateWorktreeInput = InferRequestType<typeof $worktree.$post>['json'];
-type RemoveWorktreeInput = InferRequestType<typeof $worktree.$delete>['json'];
+type CreateWorktreeInput = InferRequestType<typeof $worktrees.$post>['json'];
+type RemoveWorktreeInput = InferRequestType<typeof $worktrees.$delete>['json'];
 
-interface UseWorktreeNamesOptions {
+interface UseWorktreesOptions {
   harnessId?: string;
   directory?: string;
 }
 
-export function useWorktreeNames({
+export function useWorktrees({
   harnessId,
   directory,
-}: UseWorktreeNamesOptions = {}) {
+}: UseWorktreesOptions = {}) {
   return useQuery({
     queryKey: worktreeKeys.all(harnessId, directory),
     queryFn: async () => {
-      const res = await $worktree.$get({
+      const res = await $worktrees.$get({
         query: { harnessId, directory },
       });
       if (!res.ok) throw new Error('Failed to fetch worktrees');
       return res.json();
     },
-    placeholderData: keepPreviousData,
+    enabled: !!directory,
   });
 }
 
@@ -47,7 +42,7 @@ export function useCreateWorktree(harnessId?: string) {
 
   return useMutation({
     mutationFn: async (input: CreateWorktreeInput) => {
-      const res = await $worktree.$post({
+      const res = await $worktrees.$post({
         query: { harnessId },
         json: input,
       });
@@ -67,7 +62,7 @@ export function useRemoveWorktree(harnessId?: string) {
 
   return useMutation({
     mutationFn: async (input: RemoveWorktreeInput) => {
-      const res = await $worktree.$delete({
+      const res = await $worktrees.$delete({
         query: { harnessId },
         json: input,
       });

@@ -12,6 +12,8 @@ import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdow
 import { NewSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { SendButton } from '@/app/features/chat-page/chat-input/send-button';
 import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
+import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
+import { WorktreesDropdown } from '@/app/features/new-session-page/worktrees-dropdown';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
@@ -47,7 +49,7 @@ export function NewSessionPage() {
       {container && <ModelAgentDropdownSheet container={container} />}
       <div
         className={cn(
-          'relative flex h-[calc(100svh-var(--chat-navbar-height,64px))] flex-col justify-center overflow-hidden',
+          'relative flex h-[calc(100svh-var(--chat-navbar-height,56px))] flex-col justify-center overflow-hidden',
           'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
           isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
         )}
@@ -66,40 +68,49 @@ export function NewSessionPage() {
             </p>
           </div>
 
-          <NewSessionPromptInputWrapper
-            onSubmit={() => {
-              if (textareaRef.current) {
-                textareaRef.current.style.height = '';
-              }
-            }}
-          >
-            <PromptInput.Shell className='@container shadow'>
-              <PromptInput.Content>
-                <PromptInput.TextArea
-                  ref={textareaRef}
-                  placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
-                />
-              </PromptInput.Content>
+          <div className='mx-auto w-full max-w-[720px] space-y-2'>
+            <div className='flex w-full justify-start gap-2'>
+              <WorkspacesDropdown />
+              <WorktreesDropdown />
+            </div>
 
-              <PromptInput.Toolbar>
-                <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
-                  <FileAttachmentsButton isMobile={isMobile} />
-                </PromptInput.ToolbarStart>
+            <NewSessionPromptInputWrapper
+              onSubmit={() => {
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = '';
+                }
+              }}
+            >
+              <PromptInput.Shell className='@container shadow'>
+                <PromptInput.Content>
+                  <PromptInput.TextArea
+                    ref={textareaRef}
+                    placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
+                  />
+                </PromptInput.Content>
 
-                <PromptInput.ToolbarEnd>
-                  <div className='@md:hidden'>
-                    <ModelAgentDropdownTrigger />
-                  </div>
-                  <div className='flex @max-md:hidden'>
-                    <ModelDropdown />
-                    <AgentDropdown />
-                  </div>
-                  <VoiceInputButton />
-                  <SendButton />
-                </PromptInput.ToolbarEnd>
-              </PromptInput.Toolbar>
-            </PromptInput.Shell>
-          </NewSessionPromptInputWrapper>
+                <PromptInput.Toolbar>
+                  <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
+                    <FileAttachmentsButton isMobile={isMobile} />
+                  </PromptInput.ToolbarStart>
+
+                  <PromptInput.ToolbarEnd>
+                    <div className='flex'>
+                      <div className='@md:hidden'>
+                        <ModelAgentDropdownTrigger />
+                      </div>
+                      <div className='flex @max-md:hidden'>
+                        <ModelDropdown />
+                        <AgentDropdown />
+                      </div>
+                      <VoiceInputButton />
+                    </div>
+                    <SendButton />
+                  </PromptInput.ToolbarEnd>
+                </PromptInput.Toolbar>
+              </PromptInput.Shell>
+            </NewSessionPromptInputWrapper>
+          </div>
         </div>
       </div>
     </div>

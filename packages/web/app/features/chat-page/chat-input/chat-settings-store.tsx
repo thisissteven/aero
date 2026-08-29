@@ -44,7 +44,7 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       favoriteModelIds: [],
 
       modelAgentSheetOpen: false,
-      modelAgentSheetSelection: 'model',
+      modelAgentSheetSelection: 'agent',
 
       setSelectedModel: (selectedModel) => set({ selectedModel }),
 
@@ -68,11 +68,6 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       setModelAgentSheetOpen: (open) =>
         set({
           modelAgentSheetOpen: open,
-          ...(open
-            ? {}
-            : {
-                modelAgentSheetSelection: 'agent',
-              }),
         }),
 
       setModelAgentSheetSelection: (selection) =>

@@ -110,7 +110,7 @@ export const ChatFeed = forwardRef<
     >
       {!isReady && groups.length === 0 && (
         <div className='animate-in fade-in absolute inset-0'>
-          <div className='mx-auto mt-12 w-full space-y-6 px-3 opacity-60 md:max-w-[720px] dark:opacity-30'>
+          <div className='mx-auto mt-12 w-full space-y-6 px-3 opacity-60 md:max-w-[720px] dark:opacity-50'>
             <div className='flex w-full justify-end'>
               <Skeleton className='h-8 w-2/5 rounded-xl' />
             </div>

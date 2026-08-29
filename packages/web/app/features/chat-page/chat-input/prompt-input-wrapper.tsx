@@ -5,6 +5,7 @@ import { PromptInput, toast } from '@aero/ui';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
   useAbortSession,
   useCreateSession,
@@ -31,11 +32,20 @@ export function NewSessionPromptInputWrapper({
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
+  const selectedWorkspace = useNewSessionStore(
+    (state) => state.selectedWorkspace,
+  );
+  const selectedWorktree = useNewSessionStore(
+    (state) => state.selectedWorktree,
+  );
+
   const addRunningSession = useChatStore((state) => state.addRunningSession);
 
   const handleSubmit = async (text: string) => {
     const session = await createSession(
-      {},
+      {
+        directory: selectedWorktree ?? selectedWorkspace?.directory,
+      },
       {
         onError: () => toast.danger('Failed to create session'),
       },
@@ -80,7 +90,6 @@ export function NewSessionPromptInputWrapper({
 
   return (
     <PromptInput
-      className='w-full max-w-[720px]'
       value={value}
       onValueChange={setValue}
       onSubmit={() => handleSubmit(value)}

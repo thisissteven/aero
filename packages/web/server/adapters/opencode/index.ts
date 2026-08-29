@@ -1105,7 +1105,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
               continue;
             }
 
-            console.log('[OPENCODE AERO EVENT]', mapped);
+            void debugLog('OPENCODE', `RAW EVENT: ${mapped.type}`, mapped);
 
             yield mapped;
 
@@ -1128,8 +1128,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 }
 
 function mapOpencodeEvent(event: Event): AeroEvent | null {
-  void debugLog('OPENCODE', `RAW EVENT: ${event.type}`, event);
-
   switch (event.type) {
     case 'message.updated': {
       const { info } = event.properties;
