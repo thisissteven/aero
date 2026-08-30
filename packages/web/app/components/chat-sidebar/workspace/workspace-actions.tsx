@@ -1,4 +1,4 @@
-import { Archive, TrashBin } from '@gravity-ui/icons';
+import { Archive, Check, Copy, Pencil, TrashBin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -16,7 +16,10 @@ import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
 import { useDeleteWorkspace } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
+import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { copyButtonCss } from '@/app/lib/file';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
+import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 export function WorkspacesToggleEditModeButton() {
   const isEditMode = useWorkspacesSidebarStore((state) => state.isEditMode);
@@ -327,6 +330,94 @@ export function DeleteWorktree({
     >
       <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
       <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+    </Dropdown.Item>
+  );
+}
+
+export function CopyDirectoryPath({ directory }: { directory: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { copied, copy } = useCopyToClipboard({
+    animatedRef: containerRef,
+  });
+
+  return (
+    <Dropdown.Item onPress={() => copy(directory)} shouldCloseOnSelect={false}>
+      <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
+
+      <div ref={containerRef} className='t-text-swap items-center gap-1.25'>
+        <div className='shrink-0'>
+          {copied ? (
+            <Icon size={14} data={Check} />
+          ) : (
+            <Icon size={14} data={Copy} />
+          )}
+        </div>
+
+        <Label className='min-w-0 flex-1'>
+          {copied ? 'Copied' : 'Copy Path'}
+        </Label>
+      </div>
+    </Dropdown.Item>
+  );
+}
+
+export function EditWorkspaceModal({
+  workspace,
+}: {
+  workspace: AeroWorkspaceSummary;
+}) {
+  const { mutateAsync } = useDeleteWorktree();
+
+  const navigate = useNavigate();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Heading>Delete worktree?</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          <span className='text-foreground'>"{workspace.name}"</span> will be
+          permanently deleted. All sessions under this worktree will also be
+          archived.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='tertiary'>
+          Cancel
+        </Button>
+        <Button slot='close'>Save Changes</Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+export function EditWorkspace({
+  workspace,
+  directoryNotFound,
+}: {
+  workspace: AeroWorkspaceSummary;
+  directoryNotFound: boolean;
+}) {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  return (
+    <Dropdown.Item
+      onPress={() => {
+        openModal({
+          children: <EditWorkspaceModal workspace={workspace} />,
+        });
+      }}
+    >
+      <Icon size={14} data={Pencil} />
+      <div className='relative'>
+        {directoryNotFound && (
+          <div className='bg-danger absolute top-0.5 -right-2 size-1 rounded-full' />
+        )}
+        <Label className='font-medium'>Edit</Label>
+      </div>
     </Dropdown.Item>
   );
 }

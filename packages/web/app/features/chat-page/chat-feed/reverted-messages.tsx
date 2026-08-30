@@ -8,10 +8,12 @@ import { cn, Disclosure, toast } from '@aero/ui';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
+  sessionKeys,
   useForkSession,
   useRestoreAllMessages,
   useRevertSession,
 } from '@/app/hooks/api/sessions';
+import { queryClient } from '@/app/providers';
 
 export function RevertedMessages() {
   const revertedMessages = useChatStore((state) => state.revertedMessages);
@@ -90,7 +92,15 @@ export function RevertedMessages() {
                             toast.promise(restoreMessages(), {
                               loading: 'Restoring messages...',
                               error: (err) => err.message,
-                              success: 'Messages restored successfully',
+                              success: () => {
+                                queryClient.invalidateQueries({
+                                  queryKey: sessionKeys.toc(
+                                    undefined,
+                                    sessionId,
+                                  ),
+                                });
+                                return 'Messages restored successfully';
+                              },
                             });
                             return;
                           }
@@ -101,7 +111,15 @@ export function RevertedMessages() {
                             {
                               loading: 'Restoring messages...',
                               error: (err) => err.message,
-                              success: 'Messages restored successfully',
+                              success: () => {
+                                queryClient.invalidateQueries({
+                                  queryKey: sessionKeys.toc(
+                                    undefined,
+                                    sessionId,
+                                  ),
+                                });
+                                return 'Messages restored successfully';
+                              },
                             },
                           );
                         }}

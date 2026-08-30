@@ -42,24 +42,24 @@ function LanguageSelect() {
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
-      <Select.Popover>
+      <Select.Popover className='rounded-xl'>
         <ListBox>
-          <ListBox.Item id='en'>
+          <ListBox.Item id='en' className='rounded-lg'>
             <Label>English (US)</Label>
           </ListBox.Item>
-          <ListBox.Item id='en-gb'>
+          <ListBox.Item id='en-gb' className='rounded-lg'>
             <Label>English (UK)</Label>
           </ListBox.Item>
-          <ListBox.Item id='es'>
+          <ListBox.Item id='es' className='rounded-lg'>
             <Label>Español</Label>
           </ListBox.Item>
-          <ListBox.Item id='fr'>
+          <ListBox.Item id='fr' className='rounded-lg'>
             <Label>Français</Label>
           </ListBox.Item>
-          <ListBox.Item id='de'>
+          <ListBox.Item id='de' className='rounded-lg'>
             <Label>Deutsch</Label>
           </ListBox.Item>
-          <ListBox.Item id='ja'>
+          <ListBox.Item id='ja' className='rounded-lg'>
             <Label>日本語</Label>
           </ListBox.Item>
         </ListBox>
@@ -83,15 +83,15 @@ function TimeFormatSelect() {
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
-      <Select.Popover>
+      <Select.Popover className='rounded-xl'>
         <ListBox>
-          <ListBox.Item id='auto'>
+          <ListBox.Item id='auto' className='rounded-lg'>
             <Label>Auto (System Default)</Label>
           </ListBox.Item>
-          <ListBox.Item id='12h'>
+          <ListBox.Item id='12h' className='rounded-lg'>
             <Label>12-hour (1:00 PM)</Label>
           </ListBox.Item>
-          <ListBox.Item id='24h'>
+          <ListBox.Item id='24h' className='rounded-lg'>
             <Label>24-hour (13:00)</Label>
           </ListBox.Item>
         </ListBox>
@@ -115,18 +115,18 @@ function WeekStartsOnSelect() {
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
-      <Select.Popover>
+      <Select.Popover className='rounded-xl'>
         <ListBox>
-          <ListBox.Item id='auto'>
+          <ListBox.Item id='auto' className='rounded-lg'>
             <Label>Auto (System Default)</Label>
           </ListBox.Item>
-          <ListBox.Item id='sunday'>
+          <ListBox.Item id='sunday' className='rounded-lg'>
             <Label>Sunday</Label>
           </ListBox.Item>
-          <ListBox.Item id='monday'>
+          <ListBox.Item id='monday' className='rounded-lg'>
             <Label>Monday</Label>
           </ListBox.Item>
-          <ListBox.Item id='saturday'>
+          <ListBox.Item id='saturday' className='rounded-lg'>
             <Label>Saturday</Label>
           </ListBox.Item>
         </ListBox>

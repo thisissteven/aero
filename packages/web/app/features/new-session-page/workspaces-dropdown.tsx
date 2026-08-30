@@ -1,24 +1,25 @@
-import { Folder } from '@gravity-ui/icons';
+import { Folder, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useRef } from 'react';
 
-import { Dropdown, Label } from '@aero/ui';
+import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
-import { useWorkspaces } from '@/app/hooks/api/workspaces';
+import { useWorkspacesCompact } from '@/app/hooks/api/workspaces';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 export function WorkspacesDropdown() {
-  const workspacesQuery = useWorkspaces();
+  const workspacesQuery = useWorkspacesCompact();
+
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   const {
     items: workspaces,
     loadMoreRef,
     hasNextPage,
   } = useInfiniteScroll<AeroWorkspaceSummary>(workspacesQuery, {
-    // search: debouncedSearch,
-    // rootRef: listRef,
-    limitWithoutSearch: 5,
+    rootRef: listRef,
   });
 
   const selectedWorkspace = useNewSessionStore(
@@ -46,21 +47,45 @@ export function WorkspacesDropdown() {
           <span>{selectedWorkspace?.name ?? 'Choose Project'}</span>
         </div>
       </Dropdown.Trigger>
-      <Dropdown.Popover className='w-44 max-sm:min-w-44' placement='top start'>
-        <Dropdown.Menu aria-label='List of workspaces'>
-          {workspaces.map((workspace) => {
-            return (
-              <Dropdown.Item
-                key={workspace.id}
-                className='gap-1'
-                onPress={() => setSelectedWorkspace(workspace)}
-              >
-                <Icon size={14} data={Folder} className='shrink-0' />
-                <Label>{workspace.name}</Label>
-              </Dropdown.Item>
-            );
-          })}
+      <Dropdown.Popover
+        className='w-44 overflow-x-hidden max-sm:min-w-44'
+        placement='top start'
+      >
+        <Dropdown.Menu>
+          <Dropdown.Item onPress={() => {}}>
+            <Icon size={14} data={Plus} className='shrink-0' />
+            <Label>new project</Label>
+          </Dropdown.Item>
         </Dropdown.Menu>
+        <Separator className='!ms-0 !w-[calc(100%+8px)] -translate-x-1' />
+        <div className='max-h-[min(190px,40vh)] scrollbar-thin overflow-y-auto'>
+          <Dropdown.Menu aria-label='List of workspaces'>
+            {workspaces.map((workspace) => {
+              return (
+                <Dropdown.Item
+                  key={workspace.id}
+                  className='gap-1'
+                  onPress={() => setSelectedWorkspace(workspace)}
+                >
+                  <Icon size={14} data={Folder} className='shrink-0' />
+                  <Label>{workspace.name}</Label>
+                </Dropdown.Item>
+              );
+            })}
+            {hasNextPage && (
+              <Dropdown.Item
+                textValue='__sentinel__'
+                ref={loadMoreRef}
+                isDisabled
+                className='flex h-[36px] items-center justify-center py-2 text-sm aria-selected:bg-transparent'
+              >
+                <div className='flex items-center justify-center'>
+                  <Spinner className='text-muted size-4' />
+                </div>
+              </Dropdown.Item>
+            )}
+          </Dropdown.Menu>
+        </div>
       </Dropdown.Popover>
     </Dropdown>
   );

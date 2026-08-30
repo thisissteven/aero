@@ -39,6 +39,47 @@ const addWorktreeSchema = z.object({
 });
 
 const workspaces = new Hono()
+  // GET /api/workspaces/compact -> Returns unified workspaces with sessions merged from ALL adapters
+  .get(
+    '/compact',
+    zValidator('query', withPagination(z.object({}))),
+    async (c) => {
+      const { cursor, limit, search } = c.req.valid('query');
+      const adapters = await getAllAdapters();
+
+      let result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+        cursor,
+        limit,
+        search,
+      });
+
+      // First-load guard: nothing in store yet, and this isn't a filtered/paged query
+      if (result.items.length === 0 && !cursor && !search) {
+        await adapters[0].initWorkspaces();
+        await Promise.all(adapters.map((a) => a.syncWorkspaces()));
+        result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+          cursor,
+          limit,
+          search,
+        });
+      }
+
+      result = {
+        items: result.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          directory: item.directory,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+          worktrees: [],
+        })),
+        nextCursor: result.nextCursor,
+      };
+
+      return c.json(result);
+    },
+  )
+
   // GET /api/workspaces/merged -> Returns unified workspaces with sessions merged from ALL adapters
   .get(
     '/merged',
@@ -65,6 +106,46 @@ const workspaces = new Hono()
       }
 
       return c.json(result);
+    },
+  )
+
+  // GET /api/workspaces/vcs-info?harnessId=...&directory=...
+  .get(
+    '/vcs-info',
+    zValidator(
+      'query',
+      z.object({
+        harnessId: z.string().optional(),
+        directory: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, directory } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const info = await harness.getVcsInfo(directory);
+
+      return c.json(info);
+    },
+  )
+
+  // GET /api/workspaces/vcs-status?harnessId=...&directory=...
+  .get(
+    '/vcs-status',
+    zValidator(
+      'query',
+      z.object({
+        harnessId: z.string().optional(),
+        directory: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, directory } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const status = await harness.getVcsStatus(directory);
+
+      return c.json(status);
     },
   )
 

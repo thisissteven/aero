@@ -216,6 +216,40 @@ const sessions = new Hono()
     },
   )
 
+  // GET /api/sessions/:id/vcs-info?harnessId=...
+  .get(
+    '/:id/vcs-info',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const info = await harness.getVcsInfo(session.workspace);
+
+      return c.json(info);
+    },
+  )
+
+  // GET /api/sessions/:id/vcs-status?harnessId=...
+  .get(
+    '/:id/vcs-status',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const status = await harness.getVcsStatus(session.workspace);
+
+      return c.json(status);
+    },
+  )
+
   // GET /api/sessions/:id/status?harnessId=...
   .get(
     '/:id/status',

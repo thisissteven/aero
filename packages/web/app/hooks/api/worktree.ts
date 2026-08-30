@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
+import { workspaceKeys } from '@/app/hooks/api/workspaces';
 import { honoClient } from '@/app/lib';
 
 const $worktrees = honoClient.api.worktrees;
@@ -49,10 +50,11 @@ export function useCreateWorktree(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to create worktree');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
       queryClient.invalidateQueries({
-        queryKey: ['worktrees', harnessId ?? 'default'],
+        queryKey: ['worktrees', harnessId ?? 'default', input.directory],
       });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
     },
   });
 }
@@ -69,10 +71,11 @@ export function useDeleteWorktree(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to delete worktree');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
       queryClient.invalidateQueries({
-        queryKey: ['worktrees', harnessId ?? 'default'],
+        queryKey: ['worktrees', harnessId ?? 'default', input.directory],
       });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
     },
   });
 }

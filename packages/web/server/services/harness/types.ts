@@ -19,7 +19,6 @@ export interface AeroWorktreeSummary {
   id: string;
   name: string;
   directory: string;
-  sessions: AeroSessionSummary[];
   hasMoreSessions: boolean;
 }
 
@@ -242,6 +241,18 @@ export interface AeroMarkdownExport {
   markdown: string;
 }
 
+export interface AeroVcsStatus {
+  file: string;
+  additions: number;
+  deletions: number;
+  status: 'added' | 'deleted' | 'modified';
+}
+
+export interface AeroVcsInfo {
+  branch?: string;
+  default_branch?: string;
+}
+
 export type AeroSessionStatus =
   | { type: 'idle' }
   | { type: 'busy' }
@@ -439,6 +450,9 @@ export interface HarnessAdapter {
     messageId: string,
   ): Promise<AeroSessionSummary>;
   unrevertSession(sessionId: string): Promise<AeroSessionSummary>;
+
+  getVcsStatus(directory: string): Promise<AeroVcsStatus[]>;
+  getVcsInfo(directory: string): Promise<AeroVcsInfo>;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any(sessionId: string): Promise<any>;

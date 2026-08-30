@@ -1,4 +1,4 @@
-import { CircleTree, EllipsisVertical, Plus } from '@gravity-ui/icons';
+import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo, useState } from 'react';
 
@@ -7,13 +7,17 @@ import { Dropdown, Sidebar } from '@aero/ui';
 import { WorkspaceSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { DeleteWorktree } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { dedupeById } from '@/app/components/chat-sidebar/workspace/workspace-item';
+import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import { useSessions } from '@/app/hooks/api/sessions';
-import { AeroWorktreeSummary } from '@/server/services/harness/types';
+import {
+  AeroWorkspaceSummary,
+  AeroWorktreeSummary,
+} from '@/server/services/harness/types';
 
 export interface SubWorktreeItemProps {
   idPrefix: string;
   worktree: AeroWorktreeSummary;
-  onNewSessionClick: () => void;
+  workspace: AeroWorkspaceSummary;
 }
 
 const INITIAL_LIMIT = 3;
@@ -22,7 +26,7 @@ const LIMIT_INCREMENT = 5;
 export const SubWorktreeItem = memo(function SubWorktreeItem({
   idPrefix,
   worktree,
-  onNewSessionClick,
+  workspace,
 }: SubWorktreeItemProps) {
   const worktreeItemId = `${idPrefix}-wt-${worktree.id}`;
 
@@ -30,12 +34,11 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSessions({
     directory: worktree.directory,
-    initialSessions: worktree.sessions,
+    initialSessions: [],
     limit,
   });
 
-  const rawSessions =
-    data?.pages.flatMap((page) => page.items) ?? worktree.sessions;
+  const rawSessions = data?.pages.flatMap((page) => page.items) ?? [];
   const sessions = useMemo(() => dedupeById(rawSessions), [rawSessions]);
 
   return (
@@ -56,21 +59,10 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
         <Sidebar.MenuLabel>{worktree.name}</Sidebar.MenuLabel>
 
         <Sidebar.MenuActions className='ml-auto translate-x-1.5'>
-          <Sidebar.MenuAction
-            aria-label='Actions'
-            className='group'
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onNewSessionClick();
-            }}
-          >
-            <Icon
-              data={Plus}
-              className='opacity-50 transition-opacity group-hover:opacity-80'
-              style={{ width: 12, height: 12 }}
-            />
-          </Sidebar.MenuAction>
+          <WorkspaceNewSessionButton
+            workspace={workspace}
+            worktree={worktree}
+          />
           <Dropdown size='sm'>
             <Dropdown.Trigger
               aria-label={`More actions for ${worktree.name}`}
@@ -131,7 +123,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
           <Sidebar.MenuItem
             id={`${worktreeItemId}-show-more`}
             textValue='show more sessions'
-            className='group'
+            className='group [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
           >
             <Sidebar.MenuItemContent className='bg-transparent group-hover:bg-transparent'>
               <button

@@ -1,4 +1,4 @@
-import { Ellipsis } from '@gravity-ui/icons';
+import { CircleTree, Ellipsis } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 
@@ -25,7 +25,9 @@ import {
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { getLastPathName } from '@/app/lib/file';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
+import { isWorktree } from '@/server/shared';
 
 import type { ChatActivePage } from '../../data/chat';
 
@@ -160,10 +162,19 @@ function SessionsNavbarContent() {
             {formatCompactRelativeTime(session.updatedAt, true)}
             {!isStandaloneSession && ` at `}
           </span>
-          {isStandaloneSession ? (
-            <span>(Standalone session)</span>
-          ) : (
-            <span className='truncate font-bold'>{session.workspace}</span>
+          {isStandaloneSession && <span>(Standalone session)</span>}
+          {!isStandaloneSession && !isWorktree(session.workspace) && (
+            <span className='truncate font-bold'>
+              {getLastPathName(session.workspace)}
+            </span>
+          )}
+          {!isStandaloneSession && isWorktree(session.workspace) && (
+            <div className='flex items-center gap-1'>
+              <Icon data={CircleTree} size={12} />
+              <span className='truncate font-bold'>
+                {getLastPathName(session.workspace)}
+              </span>
+            </div>
           )}
         </div>
       </div>

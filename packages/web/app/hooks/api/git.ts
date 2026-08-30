@@ -11,10 +11,14 @@ export const gitKeys = {
   all: (directory?: string) => ['git', directory ?? 'default'] as const,
   status: (directory?: string) =>
     [...gitKeys.all(directory), 'status'] as const,
+  currentBranch: (directory?: string) =>
+    [...gitKeys.all(directory), 'currentBranch'] as const,
   diff: (directory?: string, filePath?: string) =>
     [...gitKeys.all(directory), 'diff', filePath ?? 'all'] as const,
   branches: (directory?: string) =>
     [...gitKeys.all(directory), 'branches'] as const,
+  errorCode: (directory?: string) =>
+    [...gitKeys.all(directory), 'error-code'] as const,
 };
 
 type CommitInput = InferRequestType<typeof $git.commit.$post>['json'];
@@ -25,10 +29,25 @@ export function useGitStatus(directory?: string) {
     queryKey: gitKeys.status(directory),
     queryFn: async () => {
       if (!directory) return null;
-      const res = await $git.$get({
+      const res = await $git.status.$get({
         query: { directory },
       });
       if (!res.ok) throw new Error('Failed to fetch Git status');
+      return res.json();
+    },
+    enabled: !!directory,
+  });
+}
+
+export function useGitCurrentBranch(directory?: string) {
+  return useQuery({
+    queryKey: gitKeys.currentBranch(directory),
+    queryFn: async () => {
+      if (!directory) return null;
+      const res = await $git.current.$get({
+        query: { directory },
+      });
+      if (!res.ok) throw new Error('Failed to fetch Git current branch');
       return res.json();
     },
     enabled: !!directory,
@@ -47,6 +66,20 @@ export function useGitDiff(directory?: string, filePath?: string) {
         },
       });
       if (!res.ok) throw new Error('Failed to fetch Git diff');
+      return res.json();
+    },
+    enabled: !!directory,
+  });
+}
+
+export function useGitErrorCode(directory?: string) {
+  return useQuery({
+    queryKey: gitKeys.errorCode(directory),
+    queryFn: async () => {
+      if (!directory) return null;
+      const res = await $git['error-code'].$get({
+        query: { directory },
+      });
       return res.json();
     },
     enabled: !!directory,

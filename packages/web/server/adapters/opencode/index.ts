@@ -412,6 +412,28 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return status;
     },
 
+    async getVcsStatus(directory) {
+      const status = await withOpencodeClientV2(async (client) => {
+        return unwrap(
+          await client.vcs.status({
+            directory,
+          }),
+        );
+      });
+      return status;
+    },
+
+    async getVcsInfo(directory) {
+      const info = await withOpencodeClientV2(async (client) => {
+        return unwrap(
+          await client.vcs.get({
+            directory,
+          }),
+        );
+      });
+      return info;
+    },
+
     async listSessionChildren(sessionID) {
       const children = await withOpencodeClientV2(async (client) => {
         return unwrap(
@@ -584,11 +606,13 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         ),
       );
 
+      await scanAndSyncWorkspaces();
+
       return toAeroWorktreeItem(entry);
     },
 
     async removeWorktreeItem(directory) {
-      return unwrap(
+      const ok = unwrap(
         await withOpencodeClientV2((client) =>
           client.worktree.remove({
             directory,
@@ -598,6 +622,10 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           }),
         ),
       );
+
+      await scanAndSyncWorkspaces();
+
+      return ok;
     },
 
     async setApiKey(provider, apiKey) {

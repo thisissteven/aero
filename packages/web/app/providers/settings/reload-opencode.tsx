@@ -13,9 +13,9 @@ export function ReloadOpencode() {
     <IconButton
       onPress={() =>
         toast.promise(reloadOpencode(), {
-          error: 'Reload failed',
+          error: 'Opencode failed to reload',
           loading: 'Reloading opencode...',
-          success: 'Reload success',
+          success: 'Opencode reloaded successfully',
         })
       }
       isIconOnly={false}

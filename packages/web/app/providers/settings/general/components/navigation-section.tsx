@@ -139,18 +139,18 @@ function TerminalShellSelect() {
           <Select.Value />
           <Select.Indicator />
         </Select.Trigger>
-        <Select.Popover>
+        <Select.Popover className='rounded-xl'>
           <ListBox>
-            <ListBox.Item id='auto'>
+            <ListBox.Item id='auto' className='rounded-lg'>
               <Label>auto</Label>
             </ListBox.Item>
-            <ListBox.Item id='bash'>
+            <ListBox.Item id='bash' className='rounded-lg'>
               <Label>bash</Label>
             </ListBox.Item>
-            <ListBox.Item id='zsh'>
+            <ListBox.Item id='zsh' className='rounded-lg'>
               <Label>zsh</Label>
             </ListBox.Item>
-            <ListBox.Item id='powershell'>
+            <ListBox.Item id='powershell' className='rounded-lg'>
               <Label>powershell</Label>
             </ListBox.Item>
           </ListBox>

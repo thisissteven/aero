@@ -7,10 +7,12 @@ import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
+  sessionKeys,
   useAbortSession,
   useCreateSession,
   useSendMessage,
 } from '@/app/hooks/api/sessions';
+import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
@@ -184,6 +186,10 @@ export function ActiveSessionPromptInputWrapper({
     );
 
     onSubmit();
+
+    queryClient.invalidateQueries({
+      queryKey: sessionKeys.toc(undefined, sessionId),
+    });
   }, [value, isPending, sessionId, selectedModel, selectedAgent, sendMessage]);
 
   const [isAborting, setIsAborting] = useState(false);

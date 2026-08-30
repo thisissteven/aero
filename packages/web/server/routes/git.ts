@@ -5,44 +5,58 @@ import path from 'node:path';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
 
+export const gitErrorCodeSchema = z.enum([
+  'DIRECTORY_NOT_FOUND',
+  'INVALID_GIT_REPOSITORY',
+  'VALIDATION_ERROR',
+  'INTERNAL_SERVER_ERROR',
+]);
+
+export type GitErrorCode = z.infer<typeof gitErrorCodeSchema>;
+
+export class DirectoryNotFoundError extends Error {
+  readonly code = 'DIRECTORY_NOT_FOUND' as const;
+
+  constructor(public readonly directory: string) {
+    super(`Directory does not exist: ${directory}`);
+    this.name = 'DirectoryNotFoundError';
+  }
+}
+
+export class InvalidGitRepositoryError extends Error {
+  readonly code = 'INVALID_GIT_REPOSITORY' as const;
+
+  constructor(public readonly directory: string) {
+    super(`Directory is not a valid Git repository: ${directory}`);
+    this.name = 'InvalidGitRepositoryError';
+  }
+}
+
 export async function resolveGitDir(inputPath: string): Promise<string> {
-  // 1. Convert to an absolute path & normalize relative segments (., ..)
+  // 1. Convert to an absolute path & normalize relative segments
   const absolutePath = path.resolve(inputPath);
 
-  // 2. Formatting (slashes logic)
+  // 2. Normalize Windows path separators
   const normalizedPath = absolutePath.replace(/\\/g, '/').replace(/\/$/, '');
 
   // 3. Ensure the folder exists on disk
   if (!fs.existsSync(normalizedPath)) {
-    throw new Error(`Directory does not exist: ${normalizedPath}`);
+    throw new DirectoryNotFoundError(normalizedPath);
   }
 
   // 4. Ensure it's actually inside a valid Git repository
   const isRepo = await simpleGit(normalizedPath).checkIsRepo();
+
   if (!isRepo) {
-    throw new Error(
-      `Directory is not a valid Git repository: ${normalizedPath}`,
-    );
+    throw new InvalidGitRepositoryError(normalizedPath);
   }
 
   return normalizedPath;
 }
 
-// Zod schema helper that resolves and validates git directories
-const gitDirectorySchema = z
-  .string()
-  .min(1, 'Directory path is required')
-  .transform(async (val, ctx) => {
-    try {
-      return await resolveGitDir(val);
-    } catch (err) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: err instanceof Error ? err.message : 'Invalid Git directory',
-      });
-      return z.NEVER;
-    }
-  });
+// Zod is only responsible for validating request shape.
+// Filesystem / Git validation happens in resolveGitDir().
+const gitDirectorySchema = z.string().min(1, 'Directory path is required');
 
 const gitDirectoryQuerySchema = z.object({
   directory: gitDirectorySchema,
@@ -51,7 +65,7 @@ const gitDirectoryQuerySchema = z.object({
 const commitBodySchema = z.object({
   directory: gitDirectorySchema,
   message: z.string().min(1, 'Commit message is required'),
-  files: z.array(z.string()).optional(), // Optional specific files to stage & commit
+  files: z.array(z.string()).optional(),
 });
 
 const checkoutBodySchema = z.object({
@@ -60,14 +74,134 @@ const checkoutBodySchema = z.object({
   createBranch: z.boolean().optional(),
 });
 
+/**
+ * Resolve and validate the Git directory from the request.
+ */
+async function getGitDirectory(inputDirectory: string): Promise<string> {
+  return resolveGitDir(inputDirectory);
+}
+
 const git = new Hono()
+
+  /**
+   * Convert known application errors into a consistent API response.
+   */
+  .onError((err, c) => {
+    if (err instanceof DirectoryNotFoundError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            directory: err.directory,
+          },
+        },
+        404,
+      );
+    }
+
+    if (err instanceof InvalidGitRepositoryError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            directory: err.directory,
+          },
+        },
+        400,
+      );
+    }
+
+    // Let Zod validation errors keep their normal behavior.
+    if (err instanceof z.ZodError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request',
+            issues: err.issues,
+          },
+        },
+        400,
+      );
+    }
+
+    console.error(err);
+
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: err instanceof Error ? err.message : 'Internal server error',
+        },
+      },
+      500,
+    );
+  })
+
+  // GET /api/git/error-code?directory=/path/to/repo
+  // Returns only the Git directory validation error code, if any.
+  .get('/error-code', async (c) => {
+    const directory = c.req.query('directory');
+
+    if (!directory) {
+      return c.json(
+        {
+          code: 'VALIDATION_ERROR',
+        } as const,
+        400,
+      );
+    }
+
+    try {
+      await resolveGitDir(directory);
+
+      return c.json({
+        code: null,
+      } as const);
+    } catch (err) {
+      if (err instanceof DirectoryNotFoundError) {
+        return c.json({
+          code: 'DIRECTORY_NOT_FOUND',
+        } as const);
+      }
+
+      if (err instanceof InvalidGitRepositoryError) {
+        return c.json({
+          code: 'INVALID_GIT_REPOSITORY',
+        } as const);
+      }
+
+      throw err;
+    }
+  })
+
+  // GET /api/git/current?directory=/path/to/repo
+  // Returns current branch
+  .get('/current', zValidator('query', gitDirectoryQuerySchema), async (c) => {
+    const { directory: inputDirectory } = c.req.valid('query');
+    const directory = await getGitDirectory(inputDirectory);
+
+    const gitClient = simpleGit(directory);
+    const status = await gitClient.status();
+
+    return c.json({
+      currentBranch: status.current,
+    });
+  })
 
   // GET /api/git/status?directory=/path/to/repo
   // Returns untracked, modified, staged, additions, deletions
-  .get('/', zValidator('query', gitDirectoryQuerySchema), async (c) => {
-    const { directory } = c.req.valid('query');
-    const gitClient = simpleGit(directory);
+  .get('/status', zValidator('query', gitDirectoryQuerySchema), async (c) => {
+    const { directory: inputDirectory } = c.req.valid('query');
+    const directory = await getGitDirectory(inputDirectory);
 
+    const gitClient = simpleGit(directory);
     const status = await gitClient.status();
 
     return c.json({
@@ -93,20 +227,24 @@ const git = new Hono()
     '/diff',
     zValidator(
       'query',
-      gitDirectoryQuerySchema.extend({ filePath: z.string().optional() }),
+      gitDirectoryQuerySchema.extend({
+        filePath: z.string().optional(),
+      }),
     ),
     async (c) => {
-      const { directory, filePath } = c.req.valid('query');
+      const { directory: inputDirectory, filePath } = c.req.valid('query');
+
+      const directory = await getGitDirectory(inputDirectory);
       const gitClient = simpleGit(directory);
 
-      // 1. Target HEAD to include BOTH staged and unstaged changes
+      // Target HEAD to include BOTH staged and unstaged changes
       const diffOptions = filePath
         ? ['HEAD', '--numstat', '--', filePath]
         : ['HEAD', '--numstat'];
 
       const patchOptions = filePath ? ['HEAD', '--', filePath] : ['HEAD'];
 
-      // 2. Fetch diff stats against HEAD and fetch status for untracked files
+      // Fetch diff stats against HEAD and fetch status for untracked files
       const [numstatRaw, patch, status] = await Promise.all([
         gitClient.diff(diffOptions),
         gitClient.diff(patchOptions),
@@ -116,7 +254,11 @@ const git = new Hono()
       // Parse --numstat output (tracked staged + unstaged)
       const changedFilesMap = new Map<
         string,
-        { path: string; additions: number; deletions: number }
+        {
+          path: string;
+          additions: number;
+          deletions: number;
+        }
       >();
 
       numstatRaw
@@ -125,7 +267,10 @@ const git = new Hono()
         .filter(Boolean)
         .forEach((line) => {
           const [additions, deletions, relPath] = line.split('\t');
-          if (filePath && relPath !== filePath) return;
+
+          if (filePath && relPath !== filePath) {
+            return;
+          }
 
           changedFilesMap.set(relPath, {
             path: relPath,
@@ -134,9 +279,12 @@ const git = new Hono()
           });
         });
 
-      // 3. Account for Untracked / Newly Created Files
+      // Account for untracked / newly created files
       for (const untrackedFile of status.not_added) {
-        if (filePath && untrackedFile !== filePath) continue;
+        if (filePath && untrackedFile !== filePath) {
+          continue;
+        }
+
         if (!changedFilesMap.has(untrackedFile)) {
           try {
             const fullPath = path.join(directory, untrackedFile);
@@ -149,7 +297,7 @@ const git = new Hono()
               deletions: 0,
             });
           } catch {
-            // If binary or unreadable file
+            // Binary or unreadable file
             changedFilesMap.set(untrackedFile, {
               path: untrackedFile,
               additions: 0,
@@ -168,9 +316,10 @@ const git = new Hono()
 
   // GET /api/git/branches?directory=/path/to/repo
   .get('/branches', zValidator('query', gitDirectoryQuerySchema), async (c) => {
-    const { directory } = c.req.valid('query');
-    const gitClient = simpleGit(directory);
+    const { directory: inputDirectory } = c.req.valid('query');
+    const directory = await getGitDirectory(inputDirectory);
 
+    const gitClient = simpleGit(directory);
     const branches = await gitClient.branchLocal();
 
     return c.json({
@@ -187,13 +336,15 @@ const git = new Hono()
 
   // POST /api/git/commit
   .post('/commit', zValidator('json', commitBodySchema), async (c) => {
-    const { directory, message, files } = c.req.valid('json');
+    const { directory: inputDirectory, message, files } = c.req.valid('json');
+
+    const directory = await getGitDirectory(inputDirectory);
     const gitClient = simpleGit(directory);
 
     if (files && files.length > 0) {
       await gitClient.add(files);
     } else {
-      await gitClient.add('.'); // Stage all changes
+      await gitClient.add('.');
     }
 
     const commitResult = await gitClient.commit(message);
@@ -208,7 +359,13 @@ const git = new Hono()
 
   // POST /api/git/checkout
   .post('/checkout', zValidator('json', checkoutBodySchema), async (c) => {
-    const { directory, target, createBranch } = c.req.valid('json');
+    const {
+      directory: inputDirectory,
+      target,
+      createBranch,
+    } = c.req.valid('json');
+
+    const directory = await getGitDirectory(inputDirectory);
     const gitClient = simpleGit(directory);
 
     if (createBranch) {
@@ -217,7 +374,10 @@ const git = new Hono()
       await gitClient.checkout(target);
     }
 
-    return c.json({ success: true, activeTarget: target });
+    return c.json({
+      success: true,
+      activeTarget: target,
+    });
   });
 
 export default git;

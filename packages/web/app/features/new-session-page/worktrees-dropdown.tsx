@@ -1,10 +1,11 @@
-import { CircleTree } from '@gravity-ui/icons';
+import { CircleTree, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
-import { Dropdown, Label } from '@aero/ui';
+import { Dropdown, Label, Separator, toast } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
-import { useWorktrees } from '@/app/hooks/api/worktree';
+import { useGitCurrentBranch, useGitErrorCode } from '@/app/hooks/api/git';
+import { useCreateWorktree, useWorktrees } from '@/app/hooks/api/worktree';
 import { getLastPathName } from '@/app/lib/file';
 
 export function WorktreesDropdown() {
@@ -12,10 +13,15 @@ export function WorktreesDropdown() {
     (state) => state.selectedWorkspace?.directory,
   );
 
-  const { data: worktrees } = useWorktrees({
+  const { data: worktrees = [] } = useWorktrees({
     harnessId: undefined,
     directory: selectedWorkspace,
   });
+
+  const { mutateAsync: createNewWorktree } = useCreateWorktree();
+
+  const { data: git } = useGitCurrentBranch(selectedWorkspace);
+  const { data: error } = useGitErrorCode(selectedWorkspace);
 
   const selectedWorktree = useNewSessionStore(
     (state) => state.selectedWorktree,
@@ -25,7 +31,21 @@ export function WorktreesDropdown() {
     (state) => state.setSelectedWorktree,
   );
 
-  if (!worktrees || worktrees.length === 0) return null;
+  if (error?.code === 'INVALID_GIT_REPOSITORY') {
+    return (
+      <div className='text-muted flex items-end text-xs'>
+        No git repository detected.
+      </div>
+    );
+  } else if (error?.code === 'DIRECTORY_NOT_FOUND') {
+    return (
+      <div className='text-danger flex items-end text-xs'>
+        Directory not found.
+      </div>
+    );
+  }
+
+  if (!git?.currentBranch || !selectedWorkspace) return null;
 
   return (
     <Dropdown size='sm'>
@@ -42,25 +62,61 @@ export function WorktreesDropdown() {
           <span>
             {selectedWorktree
               ? getLastPathName(selectedWorktree)
-              : 'No worktree selected'}
+              : git.currentBranch}
           </span>
         </div>
       </Dropdown.Trigger>
-      <Dropdown.Popover className='w-44 max-sm:min-w-44' placement='top start'>
-        <Dropdown.Menu aria-label='List of worktrees'>
-          {worktrees.map((worktree) => {
-            return (
-              <Dropdown.Item
-                key={worktree}
-                className='gap-1'
-                onPress={() => setSelectedWorktree(worktree)}
-              >
-                <Icon size={14} data={CircleTree} className='shrink-0' />
-                <Label>{getLastPathName(worktree)}</Label>
-              </Dropdown.Item>
-            );
-          })}
-        </Dropdown.Menu>
+      <Dropdown.Popover
+        className='w-44 overflow-x-hidden max-sm:min-w-44'
+        placement='top start'
+      >
+        <div>
+          <Dropdown.Menu>
+            <Dropdown.Item
+              className='gap-1'
+              onPress={() => {
+                toast.promise(
+                  createNewWorktree({
+                    directory: selectedWorkspace,
+                    name: '123',
+                  }),
+                  {
+                    error: (err) => err.message,
+                    loading: 'Creating new worktree...',
+                    success: 'Worktree created successfully',
+                  },
+                );
+              }}
+            >
+              <Icon size={14} data={Plus} className='shrink-0' />
+              <Label>new worktree</Label>
+            </Dropdown.Item>
+          </Dropdown.Menu>
+          <Separator className='!ms-0 !w-[calc(100%+8px)] -translate-x-1' />
+        </div>
+        <div className='max-h-[min(190px,40vh)] scrollbar-thin overflow-y-auto'>
+          <Dropdown.Menu aria-label='List of worktrees'>
+            <Dropdown.Item
+              className='gap-1'
+              onPress={() => setSelectedWorktree(undefined)}
+            >
+              <Icon size={14} data={CircleTree} className='shrink-0' />
+              <Label>{git.currentBranch} (current)</Label>
+            </Dropdown.Item>
+            {worktrees.map((worktree) => {
+              return (
+                <Dropdown.Item
+                  key={worktree}
+                  className='gap-1'
+                  onPress={() => setSelectedWorktree(worktree)}
+                >
+                  <Icon size={14} data={CircleTree} className='shrink-0' />
+                  <Label>{getLastPathName(worktree)}</Label>
+                </Dropdown.Item>
+              );
+            })}
+          </Dropdown.Menu>
+        </div>
       </Dropdown.Popover>
     </Dropdown>
   );

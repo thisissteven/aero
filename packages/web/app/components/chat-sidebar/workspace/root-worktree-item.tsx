@@ -23,13 +23,12 @@ export const RootWorktreeItem = memo(function RootWorktreeItem({
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSessions({
     directory: worktree.directory,
-    initialSessions: worktree.sessions,
+    initialSessions: [],
     limit,
   });
 
   // Flatten infinite query pages and dedupe items safely
-  const rawSessions =
-    data?.pages.flatMap((page) => page.items) ?? worktree.sessions;
+  const rawSessions = data?.pages.flatMap((page) => page.items) ?? [];
   const sessions = useMemo(() => dedupeById(rawSessions), [rawSessions]);
 
   return (

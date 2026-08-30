@@ -30,10 +30,10 @@ export function ThemeSelect({
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>
-      <Select.Popover>
+      <Select.Popover className='rounded-xl'>
         <ListBox>
           {COLOR_THEMES.map((themeKey) => (
-            <ListBox.Item key={themeKey} id={themeKey}>
+            <ListBox.Item className='rounded-lg' key={themeKey} id={themeKey}>
               <Label>{THEME_LABELS[themeKey]}</Label>
             </ListBox.Item>
           ))}

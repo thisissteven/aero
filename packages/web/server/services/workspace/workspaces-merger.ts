@@ -3,7 +3,6 @@
 import { WORKSPACE_VISIBLE_SESSIONS_LIMIT } from '@/server/helper';
 
 import type {
-  AeroSessionSummary,
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
   HarnessAdapter,
@@ -37,27 +36,27 @@ export async function mergeWorkspaceAcrossAdapters(
       );
 
       // Flatten all returned sessions from all harnesses
-      const allSessions: AeroSessionSummary[] = [];
-      for (const res of results) {
-        if (res.status === 'fulfilled') {
-          allSessions.push(...res.value.items);
-        }
-      }
+      // const allSessions: AeroSessionSummary[] = [];
+      // for (const res of results) {
+      //   if (res.status === 'fulfilled') {
+      //     allSessions.push(...res.value.items);
+      //   }
+      // }
 
       // Sort combined sessions by most recent `updatedAt`
-      allSessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      // allSessions.sort((a, b) => b.updatedAt - a.updatedAt);
 
-      const hasMoreSessions =
-        allSessions.length > WORKSPACE_VISIBLE_SESSIONS_LIMIT;
-      const previewSessions = allSessions.slice(
-        0,
-        WORKSPACE_VISIBLE_SESSIONS_LIMIT,
-      );
+      // const hasMoreSessions =
+      //   allSessions.length > WORKSPACE_VISIBLE_SESSIONS_LIMIT;
+      // const previewSessions = allSessions.slice(
+      //   0,
+      //   WORKSPACE_VISIBLE_SESSIONS_LIMIT,
+      // );
 
       return {
         ...wt,
-        hasMoreSessions,
-        sessions: previewSessions,
+        hasMoreSessions: false,
+        // sessions: previewSessions,
       };
     }),
   );

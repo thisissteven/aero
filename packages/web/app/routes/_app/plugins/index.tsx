@@ -266,7 +266,7 @@ export function FolderPicker({
               </div>
 
               {/* Breadcrumbs */}
-              <div className='border-separator flex shrink-0 items-center gap-1 overflow-x-auto border-b px-4 py-2.5'>
+              <div className='border-separator flex shrink-0 scrollbar-thin items-center gap-1 overflow-x-auto border-b px-4 py-2.5'>
                 <button
                   type='button'
                   disabled={!parent || loading}
@@ -312,7 +312,7 @@ export function FolderPicker({
               </div>
 
               {/* Content */}
-              <div className='min-h-0 flex-1 overflow-y-auto'>
+              <div className='min-h-0 flex-1 scrollbar-thin overflow-y-auto'>
                 {error ? (
                   <div className='flex h-full items-center justify-center px-6'>
                     <div className='text-danger text-sm'>{error}</div>

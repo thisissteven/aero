@@ -14,6 +14,7 @@ const $individualWorkspace = honoClient.api.workspaces[':id'];
 
 export const workspaceKeys = {
   merged: () => ['workspaces', 'default'] as const,
+  compact: () => ['workspaces', 'compact'] as const,
   detail: (workspaceId: string) =>
     ['workspaces', workspaceId, 'detail'] as const,
 };
@@ -37,6 +38,37 @@ export function useWorkspaces(search?: string) {
           query: {
             cursor: pageParam,
             limit: PAGINATION_LIMIT.toString(),
+            search: search || undefined,
+          },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch workspaces');
+      }
+
+      return res.json();
+    },
+
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+}
+
+export function useWorkspacesCompact(search?: string) {
+  return useInfiniteQuery({
+    queryKey: [...workspaceKeys.compact(), search],
+
+    initialPageParam: undefined as string | undefined,
+
+    placeholderData: keepPreviousData,
+
+    queryFn: async ({ pageParam }) => {
+      const [res] = await Promise.all([
+        $workspaces.compact.$get({
+          query: {
+            cursor: pageParam,
+            limit: '50',
             search: search || undefined,
           },
         }),

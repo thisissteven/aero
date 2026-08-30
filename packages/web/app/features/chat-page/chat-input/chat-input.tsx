@@ -53,6 +53,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
         <PromptInput.Content>
           <PromptInput.TextArea
             ref={textareaRef}
+            className='@max-lg:min-h-18'
             placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
           />
         </PromptInput.Content>

@@ -1,14 +1,15 @@
-import { EllipsisVertical, Folder, Plus } from '@gravity-ui/icons';
+import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { memo, useId, useMemo } from 'react';
 
-import { Dropdown, Separator, Sidebar } from '@aero/ui';
+import { Sidebar } from '@aero/ui';
 
+import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/workspace/directory-not-found-indicator';
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
-import { DeleteWorkspace } from '@/app/components/chat-sidebar/workspace/workspace-actions';
-import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { WorkspaceItemDropdown } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown';
+import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
@@ -80,14 +81,6 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
     return { root: rootWorktree, otherWorktrees: others };
   }, [workspace]);
 
-  const setSelectedWorkspace = useNewSessionStore(
-    (state) => state.setSelectedWorkspace,
-  );
-
-  const setSelectedWorktree = useNewSessionStore(
-    (state) => state.setSelectedWorktree,
-  );
-
   const navigate = useNavigate();
 
   if (!root) return null;
@@ -112,53 +105,14 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
 
         <Sidebar.MenuLabel>{root.name}</Sidebar.MenuLabel>
 
-        <Sidebar.MenuActions className='ml-auto translate-x-1.5'>
-          <Sidebar.MenuAction
-            aria-label='Actions'
-            className='group'
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setSelectedWorkspace(workspace);
-              navigate({ to: '/new' });
-            }}
-          >
-            <Icon
-              data={Plus}
-              className='opacity-50 transition-opacity group-hover:opacity-80'
-              style={{ width: 12, height: 12 }}
-            />
-          </Sidebar.MenuAction>
-          <Dropdown size='sm'>
-            <Dropdown.Trigger
-              aria-label={`More actions for ${workspace.name}`}
-              className='sidebar__menu-action group'
-              data-slot='sidebar-menu-action'
-            >
-              <Icon
-                data={EllipsisVertical}
-                className='opacity-50 transition-opacity group-hover:opacity-80'
-                style={{
-                  width: 12,
-                  height: 12,
-                }}
-              />
-            </Dropdown.Trigger>
-            <Dropdown.Popover
-              className='w-44'
-              crossOffset={6}
-              placement='bottom end'
-            >
-              <Dropdown.Menu aria-label={`${workspace.name} actions`}>
-                <Separator className='my-0.5' />
+        <DirectoryNotFoundIndicator directory={workspace.directory} />
 
-                <DeleteWorkspace
-                  workspaceId={workspace.id}
-                  workspaceName={workspace.name}
-                />
-              </Dropdown.Menu>
-            </Dropdown.Popover>
-          </Dropdown>
+        <Sidebar.MenuActions className='ml-auto translate-x-1.5'>
+          <WorkspaceNewSessionButton
+            workspace={workspace}
+            worktree={undefined}
+          />
+          <WorkspaceItemDropdown workspace={workspace} />
         </Sidebar.MenuActions>
       </Sidebar.MenuItemContent>
 
@@ -170,11 +124,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
             key={worktree.id}
             idPrefix={workspaceIdPrefix}
             worktree={worktree}
-            onNewSessionClick={() => {
-              setSelectedWorkspace(workspace);
-              setSelectedWorktree(worktree.directory);
-              navigate({ to: '/new' });
-            }}
+            workspace={workspace}
           />
         ))}
       </Sidebar.Submenu>

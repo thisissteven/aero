@@ -56,7 +56,7 @@ export function ContextPanel() {
   if (isLoading) {
     return (
       <div className='relative h-full w-full scrollbar-thin overflow-y-auto'>
-        <div className='absolute inset-0 space-y-4 p-4'>
+        <div className='absolute inset-0 space-y-4 p-4 opacity-60 dark:opacity-50'>
           <div className='space-y-2'>
             <Skeleton className='h-8 w-full' />
             <Skeleton className='h-6 w-3/4' />
