@@ -3,7 +3,8 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
-import { initProxyConfig } from './proxy-loader';
+import { initProxyConfig } from '@/server/proxy-loader';
+
 import agentRoutes from './routes/agents';
 import configRoutes from './routes/config';
 import folderPickerRoutes from './routes/folder-picker';

@@ -26,6 +26,7 @@ import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { getLastPathName } from '@/app/lib/file';
+import { OfflineAlert } from '@/app/providers';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
 import { isWorktree } from '@/server/shared';
 
@@ -51,6 +52,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
+        <OfflineAlert />
         <div className='flex items-center gap-2 max-md:hidden'>
           <ContextUsagePreview />
           <OpenInActions />

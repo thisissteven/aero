@@ -8,13 +8,11 @@ import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-s
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import {
-  sessionKeys,
   useAbortSession,
   useCreateSession,
   useSendMessage,
   useSession,
 } from '@/app/hooks/api/sessions';
-import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
@@ -25,13 +23,12 @@ export function NewSessionPromptInputWrapper({
   onSubmit: () => void;
 }) {
   const [value, setValue] = useState('');
+  const [isPending, setIsPending] = useState(false);
 
   const navigate = useNavigate();
 
-  const { mutateAsync: createSession, isPending: isPendingCreateSession } =
-    useCreateSession();
-  const { mutateAsync: sendMessage, isPending: isPendingSendMessage } =
-    useSendMessage(undefined);
+  const { mutateAsync: createSession } = useCreateSession();
+  const { mutateAsync: sendMessage } = useSendMessage(undefined);
 
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
@@ -39,6 +36,7 @@ export function NewSessionPromptInputWrapper({
   const selectedWorkspace = useNewSessionStore(
     (state) => state.selectedWorkspace?.directory,
   );
+
   const selectedWorktree = useNewSessionStore(
     (state) => state.selectedWorktree,
   );
@@ -46,56 +44,72 @@ export function NewSessionPromptInputWrapper({
   const { data: error } = useGitErrorCode(selectedWorkspace);
 
   const addRunningSession = useChatStore((state) => state.addRunningSession);
+  const appendOptimisticUserMessage = useChatStore(
+    (state) => state.appendOptimisticUserMessage,
+  );
+  const removeOptimisticUserMessage = useChatStore(
+    (state) => state.removeOptimisticUserMessage,
+  );
 
   const handleSubmit = async (text: string) => {
-    const session = await createSession(
-      {
-        directory: selectedWorktree ?? selectedWorkspace,
-      },
-      {
-        onError: () => toast.danger('Failed to create session'),
-      },
-    );
+    try {
+      setIsPending(true);
 
-    await sessionStreamManager.ensure({
-      sessionId: session.id,
-      harnessId: undefined,
-    });
-
-    await sendMessage(
-      {
-        sessionId: session.id,
-        parts: [
-          {
-            type: 'text',
-            text,
-          },
-        ],
-        model: {
-          modelId: selectedModel?.id as string,
-          providerId: selectedModel?.providerId as string,
+      const session = await createSession(
+        {
+          directory: selectedWorktree ?? selectedWorkspace,
         },
-        agent: selectedAgent?.name,
-      },
-      {
-        onSuccess: () =>
-          navigate({
-            to: `/sessions/${session.id}`,
-          }),
-      },
-    );
+        {
+          onError: () => {
+            toast.danger('Failed to create session');
+          },
+        },
+      );
 
-    addRunningSession(session.id);
-    onSubmit();
+      await sessionStreamManager.ensure({
+        sessionId: session.id,
+        harnessId: undefined,
+      });
+
+      const localMessageId = appendOptimisticUserMessage(session.id, text);
+
+      await sendMessage(
+        {
+          sessionId: session.id,
+          parts: [
+            {
+              type: 'text',
+              text,
+            },
+          ],
+          model: {
+            modelId: selectedModel?.id as string,
+            providerId: selectedModel?.providerId as string,
+          },
+          agent: selectedAgent?.name,
+        },
+        {
+          onSuccess: () => {
+            navigate({
+              to: `/sessions/${session.id}`,
+            });
+          },
+          onError: () => {
+            removeOptimisticUserMessage(session.id, localMessageId);
+
+            toast.danger('Failed to send message');
+          },
+        },
+      );
+
+      addRunningSession(session.id);
+      onSubmit();
+    } catch {
+      setIsPending(false);
+    }
   };
 
-  const isPending = isPendingCreateSession || isPendingSendMessage;
-
-  const isDisabled =
-    isPending ||
-    !selectedModel?.providerId ||
-    !selectedModel?.id ||
-    (error && error?.code === 'DIRECTORY_NOT_FOUND');
+  const isDisabled = error && error?.code === 'DIRECTORY_NOT_FOUND';
 
   return (
     <PromptInput
@@ -104,6 +118,7 @@ export function NewSessionPromptInputWrapper({
       onValueChange={setValue}
       onSubmit={() => handleSubmit(value)}
       isDisabled={isDisabled}
+      status={isPending ? 'submitted' : undefined}
     >
       {children}
     </PromptInput>
@@ -122,6 +137,7 @@ export function ActiveSessionPromptInputWrapper({
   onSubmit,
 }: ActiveSessionPromptInputWrapperProps) {
   const [value, setValue] = useState('');
+  const [isAborting, setIsAborting] = useState(false);
 
   const { sessionId } = useParams({
     strict: false,
@@ -142,6 +158,14 @@ export function ActiveSessionPromptInputWrapper({
   );
 
   const isPending = status.type !== 'idle';
+
+  const appendOptimisticUserMessage = useChatStore(
+    (state) => state.appendOptimisticUserMessage,
+  );
+
+  const removeOptimisticUserMessage = useChatStore(
+    (state) => state.removeOptimisticUserMessage,
+  );
 
   const { mutate: sendMessage } = useSendMessage(undefined);
 
@@ -170,6 +194,8 @@ export function ActiveSessionPromptInputWrapper({
       return;
     }
 
+    const localMessageId = appendOptimisticUserMessage(sessionId, text);
+
     sendMessage(
       {
         sessionId,
@@ -189,20 +215,27 @@ export function ActiveSessionPromptInputWrapper({
         onSuccess: () => {
           setValue('');
         },
+
         onError: () => {
+          removeOptimisticUserMessage(sessionId, localMessageId);
+
           toast.danger('Failed to send message');
         },
       },
     );
 
     onSubmit();
-
-    queryClient.invalidateQueries({
-      queryKey: sessionKeys.toc(undefined, sessionId),
-    });
-  }, [value, isPending, sessionId, selectedModel, selectedAgent, sendMessage]);
-
-  const [isAborting, setIsAborting] = useState(false);
+  }, [
+    value,
+    isPending,
+    sessionId,
+    selectedModel,
+    selectedAgent,
+    sendMessage,
+    appendOptimisticUserMessage,
+    removeOptimisticUserMessage,
+    onSubmit,
+  ]);
 
   const handleAbort = useCallback(() => {
     if (!sessionId || !isPending || isAborting) {
@@ -215,6 +248,7 @@ export function ActiveSessionPromptInputWrapper({
       onSuccess: () => {
         setIsAborting(false);
       },
+
       onError: () => {
         setIsAborting(false);
 
@@ -223,12 +257,7 @@ export function ActiveSessionPromptInputWrapper({
     });
   }, [sessionId, isPending, isAborting, abortSession]);
 
-  const inputDisabled =
-    isDisabled ||
-    !sessionId ||
-    !selectedModel?.providerId ||
-    !selectedModel.id ||
-    (session && session.readOnly);
+  const inputDisabled = isDisabled || (session && session.readOnly);
 
   return (
     <PromptInput

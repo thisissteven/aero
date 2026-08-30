@@ -1,5 +1,9 @@
+import { Signal } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+
+import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
 interface QueryProviderProps {
   children: React.ReactNode;
@@ -22,5 +26,22 @@ export const queryClient = new QueryClient({
 export function QueryProvider({ children }: QueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
+export function OfflineAlert() {
+  const isOnline = useOnlineStatus();
+
+  if (isOnline) {
+    return null;
+  }
+
+  return (
+    <div className='relative' title='offline alert'>
+      <div className='bg-danger absolute -top-0.5 -right-1 size-1 rounded-full'></div>
+      <div className='text-muted animate-pulse'>
+        <Icon data={Signal} size={16} />
+      </div>
+    </div>
   );
 }

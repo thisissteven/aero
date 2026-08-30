@@ -8,7 +8,7 @@ import {
   PlanetEarth,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button, Command, Popover } from '@aero/ui';
 
@@ -63,6 +63,14 @@ export function AgentDropdown() {
         );
       });
   }, [agentsData, searchQuery]);
+
+  useEffect(() => {
+    if (selectedAgent) return;
+
+    if (agentsData && agentsData.length > 0) {
+      setSelectedAgent(agentsData[0]);
+    }
+  }, [selectedAgent, agentsData]);
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>

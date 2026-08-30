@@ -261,6 +261,8 @@ export function buildFlatConversationItems(
 
       hasRenderedTurn = true;
     } else {
+      if (isTurnStreaming && turn.role === 'assistant') continue;
+
       items.push({
         id: `${turn.id}-spacer-before`,
         type: 'spacer',
@@ -275,10 +277,11 @@ export function buildFlatConversationItems(
         forkMessageId: turn.id,
       });
 
-      continue;
-    }
+      items.push({
+        id: `${turn.id}-spacer-last-user-turn`,
+        type: 'spacer-footer',
+      });
 
-    if (turn.role !== 'assistant') {
       continue;
     }
 

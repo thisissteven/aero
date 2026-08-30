@@ -14,7 +14,7 @@ import { SendButton } from '@/app/features/chat-page/chat-input/send-button';
 import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
 import { HeroText } from '@/app/features/new-session-page/hero-text';
-import { WorkspaceWorktreeDropdowns } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
+import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
@@ -60,9 +60,7 @@ export function NewSessionPage() {
           <div className='mx-auto flex min-h-[520px] w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4'>
             <HeroText />
 
-            <div className='mx-auto w-full max-w-[720px] space-y-2'>
-              <WorkspaceWorktreeDropdowns />
-
+            <WorkspaceWorktreeDropdownWrapper>
               <NewSessionPromptInputWrapper
                 onSubmit={() => {
                   if (textareaRef.current) {
@@ -100,7 +98,7 @@ export function NewSessionPage() {
                   </PromptInput.Toolbar>
                 </PromptInput.Shell>
               </NewSessionPromptInputWrapper>
-            </div>
+            </WorkspaceWorktreeDropdownWrapper>
           </div>
         </div>
       </div>

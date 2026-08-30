@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@aero/ui';
 
-import { ScrollToBottomButton } from '@/app/components/scroll-to-bottom';
+import {
+  ScrollToBottomButton,
+  useRegisterScrollContainer,
+} from '@/app/components/scroll-to-bottom';
 import { ChatActivityIndicator } from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
 import {
   ChatFeed,
@@ -35,7 +38,7 @@ export function ChatPage({
     Math.max(groups.length - 1, 0),
   );
 
-  const feedRef = useRef<ChatFeedRef>(null);
+  const feedRef = useRef<ChatFeedRef | null>(null);
 
   const handleSelectTocItem = useCallback(
     (groupIndex: number) => {
@@ -62,6 +65,8 @@ export function ChatPage({
     (cb: () => void) => feedRef.current?.subscribeScroll(cb) ?? (() => {}),
     [],
   );
+
+  useRegisterScrollContainer(feedRef.current?.scrollRef ?? null);
 
   return (
     <div

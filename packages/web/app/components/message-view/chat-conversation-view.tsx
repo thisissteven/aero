@@ -86,7 +86,7 @@ export function ChatConversationView({
                 <div className='absolute top-0 left-0 h-full pt-2'>
                   <div className='bg-warning h-full w-1'></div>
                 </div>
-                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-2xl border px-4 py-2 text-sm'>
+                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
                   <div>
                     <b>{item.title}</b>
                   </div>
