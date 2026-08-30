@@ -1,6 +1,10 @@
+import fsSync from 'node:fs';
+import fs from 'node:fs/promises';
 import net from 'node:net';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import path from 'node:path';
+import simpleGit from 'simple-git';
 import z from 'zod';
 
 import {
@@ -133,5 +137,53 @@ export async function waitForMessagePersistence(
     const messages = await harness.listMessages(sessionId);
     if (messages.length > 0) return;
     await new Promise((res) => setTimeout(res, delayMs));
+  }
+}
+
+export async function ensureGitHead(directory: string) {
+  const git = simpleGit(directory);
+
+  if (!(await git.checkIsRepo())) {
+    await git.init();
+  }
+
+  try {
+    await git.revparse(['HEAD']);
+    return;
+  } catch {
+    const readme = path.join(directory, 'README.md');
+
+    try {
+      await fs.access(readme);
+    } catch {
+      await fs.writeFile(readme, '# Project\n', 'utf8');
+    }
+
+    await git.add('README.md');
+
+    await git.addConfig('user.name', 'Aero', false, 'local');
+    await git.addConfig('user.email', 'aero@localhost', false, 'local');
+
+    await git.commit('Initial commit');
+  }
+}
+
+export async function removeGitWorktree(
+  repoDirectory: string,
+  worktreeDirectory: string,
+) {
+  await simpleGit(repoDirectory).raw([
+    'worktree',
+    'remove',
+    '--force',
+    path.resolve(worktreeDirectory),
+  ]);
+}
+
+export function directoryExists(directory: string) {
+  try {
+    return fsSync.statSync(directory).isDirectory();
+  } catch {
+    return false;
   }
 }

@@ -3,7 +3,7 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
-import { cn, ScrollShadow, Skeleton, useAutoScroll } from '@aero/ui';
+import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -108,32 +108,6 @@ export const ChatFeed = forwardRef<
         paddingLeft: `${scrollbarWidth}px`,
       }}
     >
-      {!isReady && groups.length === 0 && (
-        <div className='animate-in fade-in absolute inset-0'>
-          <div className='mx-auto mt-12 w-full space-y-6 px-3 opacity-60 md:max-w-[720px] dark:opacity-50'>
-            <div className='flex w-full justify-end'>
-              <Skeleton className='h-8 w-2/5 rounded-xl' />
-            </div>
-            <div className='space-y-2'>
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-            </div>
-            <div className='flex w-full justify-end'>
-              <Skeleton className='h-24 w-3/5 rounded-xl' />
-            </div>
-            <div className='space-y-2'>
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-              <Skeleton className='h-8 w-4/5 rounded-xl' />
-            </div>
-            <div className='flex w-full justify-end'>
-              <Skeleton className='h-24 w-3/5 rounded-xl' />
-            </div>
-          </div>
-        </div>
-      )}
-
       <ScrollShadow
         ref={scrollRef}
         className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'

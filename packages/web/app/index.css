@@ -163,3 +163,19 @@ div[ref] canvas,
     animation: none !important;
   }
 }
+
+@keyframes marquee {
+  0%,
+  30% {
+    transform: translateX(0);
+  }
+
+  70%,
+  100% {
+    transform: translateX(-40px);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 3s ease-in-out infinite alternate;
+}

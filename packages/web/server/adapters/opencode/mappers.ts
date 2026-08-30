@@ -24,6 +24,7 @@ import type {
 
 import { withOpencodeClientV1 } from '@/server/adapters/opencode/client';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
+import { directoryExists } from '@/server/helper';
 import { normalizePath } from '@/server/shared';
 import type {
   ExtendedGlobalSession,
@@ -71,6 +72,7 @@ export function toAeroSession(s: ExtendedSessionV1): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
+    readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
   };
@@ -87,6 +89,7 @@ export function toAeroSessionExperimental(
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
+    readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
   };
@@ -101,6 +104,7 @@ export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.directory),
+    readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
   };
@@ -117,6 +121,7 @@ export function toAeroSessionV2Info(
     createdAt: s.time?.created ?? Date.now(),
     updatedAt: s.time?.updated ?? Date.now(),
     workspace: normalizePath(s.location.directory),
+    readOnly: !directoryExists(s.location.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
   };

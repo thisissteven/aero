@@ -13,11 +13,12 @@ const commonQuerySchema = z.object({
 
 const createWorktreeSchema = z.object({
   directory: z.string().min(1, 'Directory is required'),
-  name: z.string().min(1, 'Worktree name is required'),
+  name: z.string().optional(),
 });
 
 const removeWorktreeSchema = z.object({
   directory: z.string().min(1, 'Directory is required'),
+  worktreeDirectory: z.string().min(1, 'Worktree directory is required'),
 });
 
 const worktree = new Hono()
@@ -52,10 +53,10 @@ const worktree = new Hono()
     zValidator('json', removeWorktreeSchema),
     async (c) => {
       const { harnessId } = c.req.valid('query');
-      const { directory } = c.req.valid('json');
+      const { directory, worktreeDirectory } = c.req.valid('json');
 
       const harness = await getActiveAdapter(harnessId);
-      const ok = await harness.removeWorktreeItem(directory);
+      const ok = await harness.removeWorktreeItem(directory, worktreeDirectory);
       return c.json({ ok });
     },
   );

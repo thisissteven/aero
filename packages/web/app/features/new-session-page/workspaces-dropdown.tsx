@@ -1,4 +1,4 @@
-import { Folder, Plus } from '@gravity-ui/icons';
+import { Check, Folder, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 
@@ -64,11 +64,16 @@ export function WorkspacesDropdown() {
               return (
                 <Dropdown.Item
                   key={workspace.id}
-                  className='gap-1'
+                  className='justify-between gap-1'
                   onPress={() => setSelectedWorkspace(workspace)}
                 >
-                  <Icon size={14} data={Folder} className='shrink-0' />
-                  <Label>{workspace.name}</Label>
+                  <div className='flex items-center gap-1'>
+                    <Icon size={14} data={Folder} className='shrink-0' />
+                    <Label>{workspace.name}</Label>
+                  </div>
+                  {selectedWorkspace?.id === workspace.id && (
+                    <Icon size={14} data={Check} className='shrink-0' />
+                  )}
                 </Dropdown.Item>
               );
             })}

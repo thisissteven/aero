@@ -1,4 +1,4 @@
-import { CircleTree, Plus } from '@gravity-ui/icons';
+import { Check, CircleTree, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
 import { Dropdown, Label, Separator, toast } from '@aero/ui';
@@ -78,7 +78,6 @@ export function WorktreesDropdown() {
                 toast.promise(
                   createNewWorktree({
                     directory: selectedWorkspace,
-                    name: '123',
                   }),
                   {
                     error: (err) => err.message,
@@ -97,21 +96,31 @@ export function WorktreesDropdown() {
         <div className='max-h-[min(190px,40vh)] scrollbar-thin overflow-y-auto'>
           <Dropdown.Menu aria-label='List of worktrees'>
             <Dropdown.Item
-              className='gap-1'
+              className='justify-between gap-1'
               onPress={() => setSelectedWorktree(undefined)}
             >
-              <Icon size={14} data={CircleTree} className='shrink-0' />
-              <Label>{git.currentBranch} (current)</Label>
+              <div className='flex items-center gap-1'>
+                <Icon size={14} data={CircleTree} className='shrink-0' />
+                <Label>{git.currentBranch} (current)</Label>
+              </div>
+              {!selectedWorktree && (
+                <Icon size={14} data={Check} className='shrink-0' />
+              )}
             </Dropdown.Item>
             {worktrees.map((worktree) => {
               return (
                 <Dropdown.Item
                   key={worktree}
-                  className='gap-1'
+                  className='justify-between gap-1'
                   onPress={() => setSelectedWorktree(worktree)}
                 >
-                  <Icon size={14} data={CircleTree} className='shrink-0' />
-                  <Label>{getLastPathName(worktree)}</Label>
+                  <div className='flex items-center gap-1'>
+                    <Icon size={14} data={CircleTree} className='shrink-0' />
+                    <Label>{getLastPathName(worktree)}</Label>
+                  </div>
+                  {selectedWorktree === worktree && (
+                    <Icon size={14} data={Check} className='shrink-0' />
+                  )}
                 </Dropdown.Item>
               );
             })}

@@ -211,7 +211,7 @@
     flex-shrink: 0;
   }
 
-  .prompt-input[data-disabled='true'] {
+  .prompt-input[data-disabled='true'] .prompt-input__shell {
     opacity: 0.6;
   }
 

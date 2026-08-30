@@ -505,7 +505,11 @@ export function ModelDropdown() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button variant='ghost' size='sm' className='gap-1.5 rounded-lg text-xs'>
+      <Button
+        variant='ghost'
+        size='sm'
+        className='gap-1.5 rounded-lg text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
+      >
         {selectedModel && (
           <ProviderLogo
             providerId={selectedModel.providerId}

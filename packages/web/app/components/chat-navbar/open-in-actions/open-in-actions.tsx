@@ -90,7 +90,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
           <Dropdown.Menu className='flex flex-col gap-0.5'>
             <CopyPath path={projectPath} />
 
-            <Separator className='my-0.5' />
+            <Separator className='my-0.5 h-[0.5px]' />
 
             {/* Render items dynamically from detected apps */}
             {apps.length > 0 ? (

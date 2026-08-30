@@ -13,6 +13,7 @@ import {
   ExportMarkdown,
   RenameSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
+import { SessionItemMarquee } from '@/app/components/chat-sidebar/session/session-item-marquee';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { formatCompactRelativeTime } from '@/app/lib';
@@ -86,16 +87,11 @@ export function SessionItemSummary({
           ></div>
         )}
 
-        <Sidebar.MenuItemContent>
-          <Sidebar.MenuLabel
-            className={cn(
-              isWorktreeItem && 'text-foreground/50',
-              isCurrent && 'text-foreground',
-            )}
-          >
-            {session.title}
-          </Sidebar.MenuLabel>
-        </Sidebar.MenuItemContent>
+        <SessionItemMarquee
+          title={session.title}
+          isWorktreeItem={isWorktreeItem}
+          isCurrent={isCurrent}
+        />
 
         {isWorktree(session.workspace) ? (
           <Sidebar.MenuChip
@@ -152,7 +148,7 @@ export function SessionItemSummary({
                 <RenameSession sessionId={session.id} from={from} />
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
-                <Separator className='my-0.5' />
+                <Separator className='my-0.5 h-[0.5px]' />
                 <ArchiveSession
                   sessionId={session.id}
                   sessionTitle={session.title}

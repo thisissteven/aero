@@ -104,7 +104,7 @@ export function ModelAgentDropdownTrigger() {
     <Button
       variant='ghost'
       size='sm'
-      className='max-w-full gap-1.5 rounded-lg text-xs'
+      className='max-w-full gap-1.5 rounded-lg text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
       onPress={() => setIsOpen(true)}
     >
       <Icon data={getAgentIconData(selectedAgent?.name)} className='size-3.5' />

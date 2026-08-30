@@ -6,11 +6,13 @@ import { PromptInput, toast } from '@aero/ui';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { useGitErrorCode } from '@/app/hooks/api/git';
 import {
   sessionKeys,
   useAbortSession,
   useCreateSession,
   useSendMessage,
+  useSession,
 } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
@@ -40,6 +42,8 @@ export function NewSessionPromptInputWrapper({
   const selectedWorktree = useNewSessionStore(
     (state) => state.selectedWorktree,
   );
+
+  const { data: error } = useGitErrorCode(selectedWorkspace);
 
   const addRunningSession = useChatStore((state) => state.addRunningSession);
 
@@ -88,10 +92,14 @@ export function NewSessionPromptInputWrapper({
   const isPending = isPendingCreateSession || isPendingSendMessage;
 
   const isDisabled =
-    isPending || !selectedModel?.providerId || !selectedModel?.id;
+    isPending ||
+    !selectedModel?.providerId ||
+    !selectedModel?.id ||
+    (error && error?.code === 'DIRECTORY_NOT_FOUND');
 
   return (
     <PromptInput
+      className='group/prompt-input'
       value={value}
       onValueChange={setValue}
       onSubmit={() => handleSubmit(value)}
@@ -118,6 +126,8 @@ export function ActiveSessionPromptInputWrapper({
   const { sessionId } = useParams({
     strict: false,
   });
+
+  const { data: session } = useSession(undefined, sessionId);
 
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
 
@@ -214,11 +224,15 @@ export function ActiveSessionPromptInputWrapper({
   }, [sessionId, isPending, isAborting, abortSession]);
 
   const inputDisabled =
-    isDisabled || !sessionId || !selectedModel?.providerId || !selectedModel.id;
+    isDisabled ||
+    !sessionId ||
+    !selectedModel?.providerId ||
+    !selectedModel.id ||
+    (session && session.readOnly);
 
   return (
     <PromptInput
-      className='w-full max-w-[780px]'
+      className='group/prompt-input w-full max-w-[780px]'
       value={value}
       onValueChange={setValue}
       onSubmit={handleSend}

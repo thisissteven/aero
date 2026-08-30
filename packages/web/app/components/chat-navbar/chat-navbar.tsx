@@ -162,10 +162,15 @@ function SessionsNavbarContent() {
             {formatCompactRelativeTime(session.updatedAt, true)}
             {!isStandaloneSession && ` at `}
           </span>
-          {isStandaloneSession && <span>(Standalone session)</span>}
+          {isStandaloneSession && (
+            <span>
+              (Standalone session) {session.readOnly && ' (read only)'}
+            </span>
+          )}
           {!isStandaloneSession && !isWorktree(session.workspace) && (
             <span className='truncate font-bold'>
               {getLastPathName(session.workspace)}
+              {session.readOnly && ' (read only)'}
             </span>
           )}
           {!isStandaloneSession && isWorktree(session.workspace) && (
@@ -173,6 +178,7 @@ function SessionsNavbarContent() {
               <Icon data={CircleTree} size={12} />
               <span className='truncate font-bold'>
                 {getLastPathName(session.workspace)}
+                {session.readOnly && ' (read only)'}
               </span>
             </div>
           )}

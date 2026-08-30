@@ -40,6 +40,7 @@ export interface AeroSessionSummary {
   workspace: string;
   createdAt: number;
   updatedAt: number;
+  readOnly: boolean;
   revert?: {
     messageID?: string;
   };
@@ -516,8 +517,11 @@ export interface HarnessAdapter {
   ): Promise<string | undefined>;
 
   listWorktreeNames(directory?: string): Promise<string[]>;
-  createWorktree(directory: string, name: string): Promise<AeroWorktreeItem>;
-  removeWorktreeItem(directory: string): Promise<boolean>;
+  createWorktree(directory: string, name?: string): Promise<AeroWorktreeItem>;
+  removeWorktreeItem(
+    directory: string,
+    worktreeDirectory: string,
+  ): Promise<boolean>;
 
   listProviders(directory?: string): Promise<AeroProvider[]>;
   listConfiguredProviders(directory?: string): Promise<AeroProvider[]>;

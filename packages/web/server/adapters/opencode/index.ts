@@ -11,11 +11,14 @@ import {
 import { parseSseEventEnvelope } from '@/server/adapters/opencode/sse-envelope';
 import {
   AERO_DIR,
+  ensureGitHead,
   GET_ALL_LIMIT,
   PAGINATION_LIMIT,
+  removeGitWorktree,
   WORKSPACE_VISIBLE_SESSIONS_LIMIT,
 } from '@/server/helper';
 import { debugLog } from '@/server/lib/debug-log';
+import { resolveGitDir } from '@/server/routes/git';
 import type {
   AddWorktreeInput,
   AeroEvent,
@@ -595,6 +598,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async createWorktree(directory, name) {
+      await ensureGitHead(directory);
+
       const entry = unwrap(
         await withOpencodeClientV2((client) =>
           client.worktree.create({
@@ -611,21 +616,29 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroWorktreeItem(entry);
     },
 
-    async removeWorktreeItem(directory) {
-      const ok = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.worktree.remove({
-            directory,
-            worktreeRemoveInput: {
-              directory,
-            },
-          }),
-        ),
-      );
+    async removeWorktreeItem(directory, worktreeDirectory) {
+      try {
+        const ok = unwrap(
+          await withOpencodeClientV2((client) =>
+            client.worktree.remove({
+              directory: directory,
+              worktreeRemoveInput: {
+                directory: worktreeDirectory,
+              },
+            }),
+          ),
+        );
 
-      await scanAndSyncWorkspaces();
+        await scanAndSyncWorkspaces();
+        return ok;
+      } catch {
+        const repoDirectory = await resolveGitDir(directory);
 
-      return ok;
+        await removeGitWorktree(repoDirectory, worktreeDirectory);
+
+        await scanAndSyncWorkspaces();
+        return true;
+      }
     },
 
     async setApiKey(provider, apiKey) {

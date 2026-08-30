@@ -1,7 +1,7 @@
 import { Archive, Check, Copy, Pencil, TrashBin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { useRef } from 'react';
 
 import { Button, Checkbox, Dropdown, Label, Modal, toast } from '@aero/ui';
@@ -18,7 +18,7 @@ import { useDeleteWorkspace } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
-import { useGlobalModalStore, useTheme } from '@/app/providers';
+import { queryClient, useGlobalModalStore, useTheme } from '@/app/providers';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 export function WorkspacesToggleEditModeButton() {
@@ -256,13 +256,15 @@ export function DeleteWorkspace({
 function DeleteWorktreeConfirmationModal({
   worktreeDirectory,
   worktreeName,
+  workspaceDirectory,
 }: {
   worktreeDirectory: string;
   worktreeName: string;
+  workspaceDirectory: string;
 }) {
-  const { mutateAsync } = useDeleteWorktree();
+  const { sessionId } = useParams({ strict: false });
 
-  const navigate = useNavigate();
+  const { mutateAsync } = useDeleteWorktree();
 
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
@@ -274,7 +276,7 @@ function DeleteWorktreeConfirmationModal({
         <p>
           <span className='text-foreground'>"{worktreeName}"</span> will be
           permanently deleted. All sessions under this worktree will also be
-          archived.
+          read only.
         </p>
       </Modal.Body>
       <Modal.Footer>
@@ -284,16 +286,19 @@ function DeleteWorktreeConfirmationModal({
         <Button
           slot='close'
           onPress={() => {
-            toast.promise(mutateAsync({ directory: worktreeDirectory }), {
-              loading: 'Deleting worktree...',
-              error: (err) => err.message,
-              success: (_data) => {
-                navigate({
-                  to: '/new',
-                });
-                return 'Worktree deleted';
+            toast.promise(
+              mutateAsync({ directory: workspaceDirectory, worktreeDirectory }),
+              {
+                loading: 'Deleting worktree...',
+                error: (err) => err.message,
+                success: () => {
+                  queryClient.invalidateQueries({
+                    queryKey: sessionKeys.detail(undefined, sessionId),
+                  });
+                  return 'Worktree deleted';
+                },
               },
-            });
+            );
           }}
           variant='danger'
         >
@@ -307,9 +312,11 @@ function DeleteWorktreeConfirmationModal({
 export function DeleteWorktree({
   worktreeDirectory,
   worktreeName,
+  workspaceDirectory,
 }: {
   worktreeDirectory: string;
   worktreeName: string;
+  workspaceDirectory: string;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
 
@@ -323,6 +330,7 @@ export function DeleteWorktree({
             <DeleteWorktreeConfirmationModal
               worktreeDirectory={worktreeDirectory}
               worktreeName={worktreeName}
+              workspaceDirectory={workspaceDirectory}
             />
           ),
         });

@@ -2,10 +2,13 @@ import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo, useState } from 'react';
 
-import { Dropdown, Sidebar } from '@aero/ui';
+import { Dropdown, Separator, Sidebar } from '@aero/ui';
 
 import { WorkspaceSessionItem } from '@/app/components/chat-sidebar/session/session-item';
-import { DeleteWorktree } from '@/app/components/chat-sidebar/workspace/workspace-actions';
+import {
+  CopyDirectoryPath,
+  DeleteWorktree,
+} from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { dedupeById } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import { useSessions } from '@/app/hooks/api/sessions';
@@ -84,9 +87,12 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
               placement='bottom end'
             >
               <Dropdown.Menu aria-label={`${worktree.name} actions`}>
+                <CopyDirectoryPath directory={worktree.directory} />
+                <Separator className='my-0.5 h-[0.5px]' />
                 <DeleteWorktree
                   worktreeName={worktree.name}
                   worktreeDirectory={worktree.directory}
+                  workspaceDirectory={workspace.directory}
                 />
               </Dropdown.Menu>
             </Dropdown.Popover>
