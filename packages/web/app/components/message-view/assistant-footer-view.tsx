@@ -66,6 +66,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
             <MessageActionsCopy copyText={textResponse} />
           </div>
         </div>
+        <div className='h-4 w-full shrink-0' />
       </ChatMessage.Body>
     </ChatMessage.Assistant>
   );

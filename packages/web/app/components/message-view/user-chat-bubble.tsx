@@ -170,6 +170,8 @@ export const UserChatBubble = memo(
             <MessageActionsCopy copyText={text} />
           </div>
         </div>
+
+        <div className='h-2 w-full shrink-0' />
       </ChatMessage.User>
     );
   },

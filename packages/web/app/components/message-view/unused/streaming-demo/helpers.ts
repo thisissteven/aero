@@ -87,13 +87,6 @@ export function appendMessageToFlatList(
     );
 
     if (validParts.length > 0) {
-      // First part spacer
-      next.push({
-        id: `assistant-spacer-${turnId}`,
-        type: 'assistant-spacer',
-        turnId,
-      });
-
       // Part message details
       validParts.forEach((part) => {
         next.push({

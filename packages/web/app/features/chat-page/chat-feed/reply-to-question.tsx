@@ -16,11 +16,8 @@ import {
   toast,
 } from '@aero/ui';
 
-import type {
-  QuestionOption,
-  QuestionPart,
-} from '@/app/components/tool-call-view/tools/tool-types';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useChatStore } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
+import type { QuestionOption } from '@/app/components/tool-call-view/tools/tool-types';
 import {
   useRejectQuestion,
   useReplyToQuestion,
@@ -32,46 +29,12 @@ export function ReplyToQuestion() {
     strict: false,
   });
 
-  const isAwaitingQuestion = useChatStore((state) => {
+  const isAwaitingQuestion = useChatStore(activeSessionId, (state) => {
     if (!activeSessionId) {
       return false;
     }
 
-    return state.awaitingQuestions.includes(activeSessionId);
-  });
-
-  const questionPart = useChatStore((state) => {
-    if (!activeSessionId || !isAwaitingQuestion) {
-      return null;
-    }
-
-    const runtime = state.sessions[activeSessionId];
-
-    if (!runtime) {
-      return null;
-    }
-
-    for (
-      let turnIndex = runtime.turns.length - 1;
-      turnIndex >= 0;
-      turnIndex--
-    ) {
-      const turn = runtime.turns[turnIndex];
-
-      for (let partIndex = turn.parts.length - 1; partIndex >= 0; partIndex--) {
-        const part = turn.parts[partIndex];
-
-        if (
-          part.type === 'tool' &&
-          part.toolName === 'question' &&
-          part.status === 'running'
-        ) {
-          return part as QuestionPart;
-        }
-      }
-    }
-
-    return null;
+    return state.hasAwaitingQuestion;
   });
 
   const {
@@ -92,27 +55,15 @@ export function ReplyToQuestion() {
     }
 
     void refetchQuestions();
-  }, [
-    activeSessionId,
-    isAwaitingQuestion,
-    questionPart?.id,
-    questionPart?.callID,
-    refetchQuestions,
-  ]);
+  }, [activeSessionId, isAwaitingQuestion, refetchQuestions]);
 
   const questionRequest = useMemo(() => {
-    if (!questionPart) {
-      return null;
-    }
-
     return (
       sessionQuestions.find(
-        (question) =>
-          question.sessionID === questionPart.sessionID &&
-          question.tool?.callID === questionPart.callID,
+        (question) => question.sessionID === activeSessionId,
       ) ?? null
     );
-  }, [questionPart, sessionQuestions]);
+  }, [activeSessionId, sessionQuestions]);
 
   const questions = questionRequest?.questions ?? [];
 
@@ -122,7 +73,7 @@ export function ReplyToQuestion() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   useEffect(() => {
-    if (!questionPart || !questionRequest) {
+    if (!questionRequest) {
       return;
     }
 
@@ -135,7 +86,7 @@ export function ReplyToQuestion() {
     setCurrentQuestionIndex((current) =>
       Math.min(Math.max(current, 0), Math.max(questions.length - 1, 0)),
     );
-  }, [questionPart?.id, questionRequest?.id]);
+  }, [questionRequest?.id]);
 
   useEffect(() => {
     if (isAwaitingQuestion) {
@@ -192,7 +143,6 @@ export function ReplyToQuestion() {
 
   if (
     !isAwaitingQuestion ||
-    !questionPart ||
     !questionRequest ||
     isQuestionsLoading ||
     questions.length === 0 ||

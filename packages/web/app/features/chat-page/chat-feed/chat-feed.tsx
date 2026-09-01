@@ -15,7 +15,6 @@ import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
-import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatFeedRef {
   scrollToIndex: (index: number) => void;
@@ -27,10 +26,9 @@ export interface ChatFeedRef {
 export const ChatFeed = forwardRef<
   ChatFeedRef,
   {
-    groups: AeroConversationTurn[];
     onActiveGroupIndexChange: (index: number) => void;
   }
->(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
+>(function ChatFeed({ onActiveGroupIndexChange }, ref) {
   const virtualizerRef = useRef<VirtualizerHandle>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -53,7 +51,7 @@ export const ChatFeed = forwardRef<
 
   const { handleScroll, beginProgrammaticScroll, endProgrammaticScroll } =
     useTocScrollTracker(
-      groups,
+      flatItems,
       groupFlatIndex,
       virtualizerRef,
       onActiveGroupIndexChange,
@@ -109,7 +107,7 @@ export const ChatFeed = forwardRef<
     <div
       className={cn(
         'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-        !isReady && groups.length > 0
+        !isReady && flatItems.length > 0
           ? 'pointer-events-none opacity-0'
           : 'opacity-100',
       )}

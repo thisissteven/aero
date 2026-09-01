@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
-import type { AeroConversationTurn } from '@/server/services/harness/types';
+import { FlatItem } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-types';
 
 export function useTocScrollTracker(
-  groups: AeroConversationTurn[],
+  flatItems: FlatItem[],
   groupFlatIndex: Record<number, number>,
   virtualizerRef: React.RefObject<VirtualizerHandle | null>,
   onActiveGroupIndexChange: (index: number) => void,
@@ -16,10 +16,10 @@ export function useTocScrollTracker(
   const userTocAnchors = useMemo(() => {
     const anchors: { groupIndex: number; flatIndex: number }[] = [];
 
-    for (let i = 0; i < groups.length; i++) {
+    for (let i = 0; i < flatItems.length; i++) {
       const flatIndex = groupFlatIndex[i];
 
-      if (groups[i].role === 'user' && flatIndex !== undefined) {
+      if (flatItems[i].type === 'user' && flatIndex !== undefined) {
         anchors.push({
           groupIndex: i,
           flatIndex,
@@ -28,7 +28,7 @@ export function useTocScrollTracker(
     }
 
     return anchors;
-  }, [groups, groupFlatIndex]);
+  }, [flatItems, groupFlatIndex]);
 
   const resolveActiveIndex = useCallback(
     (flatIndex: number) => {

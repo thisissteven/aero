@@ -9,7 +9,6 @@ export type UserFooterStatus = 'optimistic' | 'actual' | 'error';
 
 export type FlatItem =
   | { id: string; type: 'user-spacer' }
-  | { id: string; type: 'assistant-spacer'; turnId: string }
   | {
       id: string;
       type: 'user';

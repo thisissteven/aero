@@ -38,6 +38,7 @@ export function ChatConversationView({
       keepMounted={keepMounted}
       data={flatItems}
       onScroll={onScroll}
+      bufferSize={1000}
       // set shift = true if loading older messages, shift = false if streaming
       // shift={isStreaming ? false : true}
     >

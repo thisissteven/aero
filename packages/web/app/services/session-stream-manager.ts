@@ -1,4 +1,4 @@
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { getSessionStore } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
 import type { AeroEvent } from '@/server/services/harness/types';
 
 interface StreamOptions {
@@ -82,10 +82,9 @@ class SessionStreamManager {
 
     this.pendingDeltas.clear();
 
-    const store = useChatStore.getState();
-
     for (const { sessionId, event } of pending) {
-      store.handleStreamEvent(sessionId, event);
+      const store = getSessionStore(sessionId).getState();
+      store.handleStreamEvent(event);
     }
   }
 
@@ -109,10 +108,9 @@ class SessionStreamManager {
       return;
     }
 
-    const store = useChatStore.getState();
-
     for (const { sessionId: pendingSessionId, event } of sessionPending) {
-      store.handleStreamEvent(pendingSessionId, event);
+      const store = getSessionStore(pendingSessionId).getState();
+      store.handleStreamEvent(event);
     }
   }
 
@@ -169,7 +167,7 @@ class SessionStreamManager {
          */
         this.flushSessionDeltas(sessionId);
 
-        useChatStore.getState().handleStreamEvent(sessionId, data);
+        getSessionStore(sessionId).getState().handleStreamEvent(data);
       } catch (error) {
         console.error(
           '[SessionStream] failed to parse event',

@@ -5,7 +5,6 @@ import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import type {
   AeroConversationTurn,
-  AeroPart,
   AeroTocItem,
 } from '@/server/services/harness/types';
 
@@ -44,9 +43,17 @@ function createSessionStore(sessionId: string): ChatStoreApi {
 
         for (let i = 0; i < messages.length; i++) {
           const msg = messages[i];
-          const cleanedParts = msg.parts.filter(
-            (p) => p.type !== 'step-start' && p.type !== 'step-finish',
-          );
+          const cleanedParts = msg.parts.filter((p) => {
+            if (p.type === 'step-start' || p.type === 'step-finish') {
+              return false;
+            }
+
+            if (p.type === 'text' && (!p.text || p.text.trim() === '')) {
+              return false;
+            }
+
+            return true;
+          });
 
           for (const part of cleanedParts) {
             if (part.type === 'tool' && part.toolName === 'question') {
@@ -324,29 +331,31 @@ function createSessionStore(sessionId: string): ChatStoreApi {
 
                 state.activeUserMessageId = realId;
               });
-            } else if (event.message.role === 'assistant') {
-              if (
-                event.message.parts?.some(
-                  (p: AeroPart) =>
-                    p.type === 'step-start' || p.type === 'step-finish',
-                )
-              ) {
-                return;
-              }
-
-              const turnId = event.message.id;
-
-              set((state) => {
-                if (state.lastAssistantTurnId !== turnId) {
-                  state.flatItems.push({
-                    id: `assistant-spacer-${turnId}`,
-                    type: 'assistant-spacer',
-                    turnId,
-                  });
-                  state.lastAssistantTurnId = turnId;
-                }
-              });
             }
+
+            // else if (event.message.role === 'assistant') {
+            //   if (
+            //     event.message.parts?.some(
+            //       (p: AeroPart) =>
+            //         p.type === 'step-start' || p.type === 'step-finish',
+            //     )
+            //   ) {
+            //     return;
+            //   }
+
+            //   const turnId = event.message.id;
+
+            //   set((state) => {
+            //     if (state.lastAssistantTurnId !== turnId) {
+            //       state.flatItems.push({
+            //         id: `assistant-spacer-${turnId}`,
+            //         type: 'assistant-spacer',
+            //         turnId,
+            //       });
+            //       state.lastAssistantTurnId = turnId;
+            //     }
+            //   });
+            // }
             break;
           }
 

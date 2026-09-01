@@ -25,6 +25,8 @@ export function RevertedMessages() {
     (state) => state.revertedMessages,
   );
 
+  console.log(revertedMessages);
+
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
   const { mutateAsync: restoreMessages } = useRestoreAllMessages(
     undefined,

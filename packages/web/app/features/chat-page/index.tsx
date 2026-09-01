@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@aero/ui';
 
+import { useChatStore } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
 import {
   ScrollToBottomButton,
   useRegisterScrollContainer,
@@ -18,24 +19,19 @@ import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
-import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
   sessionId: string;
-  groups: AeroConversationTurn[];
   notFound: boolean;
   revertMessageId?: string;
   workspace?: string;
 }
 
-export function ChatPage({
-  sessionId,
-  groups,
-  notFound,
-  workspace,
-}: ChatPageProps) {
+export function ChatPage({ sessionId, notFound, workspace }: ChatPageProps) {
+  const flatItems = useChatStore(sessionId, (state) => state.flatItems);
+
   const [activeGroupIndex, setActiveGroupIndex] = useState(() =>
-    Math.max(groups.length - 1, 0),
+    Math.max(flatItems.length - 1, 0),
   );
 
   const feedRef = useRef<ChatFeedRef | null>(null);
@@ -44,12 +40,12 @@ export function ChatPage({
     (groupIndex: number) => {
       const clamped = Math.min(
         Math.max(groupIndex, 0),
-        Math.max(groups.length - 1, 0),
+        Math.max(flatItems.length - 1, 0),
       );
 
       feedRef.current?.scrollToIndex(clamped);
     },
-    [groups.length],
+    [flatItems.length],
   );
 
   /**
@@ -58,8 +54,8 @@ export function ChatPage({
    * Also handles the initial async hydration.
    */
   useEffect(() => {
-    setActiveGroupIndex(Math.max(groups.length - 1, 0));
-  }, [sessionId, groups.length]);
+    setActiveGroupIndex(Math.max(flatItems.length - 1, 0));
+  }, [sessionId, flatItems.length]);
 
   const subscribeScroll = useCallback(
     (cb: () => void) => feedRef.current?.subscribeScroll(cb) ?? (() => {}),
@@ -85,7 +81,6 @@ export function ChatPage({
 
           <ChatFeed
             key={sessionId}
-            groups={groups}
             ref={feedRef}
             onActiveGroupIndexChange={setActiveGroupIndex}
           />
