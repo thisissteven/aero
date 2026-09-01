@@ -778,8 +778,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
         if (msg.role === 'user') {
           const userText = msg.parts
-            .filter((p) => p.type === 'text')
-            .map((p) => (p.type === 'text' ? p.text : ''))
+            .filter((p) => p.type === 'text' || p.type === 'compaction')
+            .map((p) =>
+              p.type === 'text'
+                ? p.text
+                : p.type === 'compaction'
+                  ? '/compact'
+                  : '',
+            )
             .join(' ')
             .trim();
 

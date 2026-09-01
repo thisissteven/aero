@@ -33,6 +33,8 @@ export function NewSessionPromptInputWrapper({
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
+  const state = useNewSessionStore((state) => state.state);
+
   const selectedWorkspace = useNewSessionStore(
     (state) => state.selectedWorkspace?.directory,
   );
@@ -44,20 +46,17 @@ export function NewSessionPromptInputWrapper({
   const { data: error } = useGitErrorCode(selectedWorkspace);
 
   const addRunningSession = useChatStore((state) => state.addRunningSession);
-  const appendOptimisticUserMessage = useChatStore(
-    (state) => state.appendOptimisticUserMessage,
-  );
-  const removeOptimisticUserMessage = useChatStore(
-    (state) => state.removeOptimisticUserMessage,
-  );
 
   const handleSubmit = async (text: string) => {
     try {
       setIsPending(true);
 
+      const directory =
+        state === 'chat' ? undefined : (selectedWorktree ?? selectedWorkspace);
+
       const session = await createSession(
         {
-          directory: selectedWorktree ?? selectedWorkspace,
+          directory,
         },
         {
           onError: () => {
@@ -70,8 +69,6 @@ export function NewSessionPromptInputWrapper({
         sessionId: session.id,
         harnessId: undefined,
       });
-
-      const localMessageId = appendOptimisticUserMessage(session.id, text);
 
       await sendMessage(
         {
@@ -95,8 +92,6 @@ export function NewSessionPromptInputWrapper({
             });
           },
           onError: () => {
-            removeOptimisticUserMessage(session.id, localMessageId);
-
             toast.danger('Failed to send message');
           },
         },
@@ -159,14 +154,6 @@ export function ActiveSessionPromptInputWrapper({
 
   const isPending = status.type !== 'idle';
 
-  const appendOptimisticUserMessage = useChatStore(
-    (state) => state.appendOptimisticUserMessage,
-  );
-
-  const removeOptimisticUserMessage = useChatStore(
-    (state) => state.removeOptimisticUserMessage,
-  );
-
   const { mutate: sendMessage } = useSendMessage(undefined);
 
   const { mutate: abortSession } = useAbortSession(undefined);
@@ -194,8 +181,6 @@ export function ActiveSessionPromptInputWrapper({
       return;
     }
 
-    const localMessageId = appendOptimisticUserMessage(sessionId, text);
-
     sendMessage(
       {
         sessionId,
@@ -217,8 +202,6 @@ export function ActiveSessionPromptInputWrapper({
         },
 
         onError: () => {
-          removeOptimisticUserMessage(sessionId, localMessageId);
-
           toast.danger('Failed to send message');
         },
       },
@@ -232,8 +215,6 @@ export function ActiveSessionPromptInputWrapper({
     selectedModel,
     selectedAgent,
     sendMessage,
-    appendOptimisticUserMessage,
-    removeOptimisticUserMessage,
     onSubmit,
   ]);
 

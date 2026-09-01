@@ -23,12 +23,6 @@ interface PendingDelta {
   delta: string;
 }
 
-interface PendingOptimisticMessage {
-  localMessageId: string;
-  localPartId: string;
-  text: string;
-}
-
 interface SessionRuntime {
   turns: AeroConversationTurn[];
   flatItems: FlatConversationVirtualItem[];
@@ -37,17 +31,6 @@ interface SessionRuntime {
     preview: string;
     messageId: string;
   }[];
-
-  /**
-   * True whenever `flatItems`/`groupFlatIndex`/`revertedMessages` were
-   * NOT recomputed on the last update because this session wasn't the
-   * active one (see `buildRuntime`). `turns` is always correct/fresh;
-   * only the flattened/virtualized projection can lag.
-   *
-   * `setActiveSession` always force-recomputes, so this flips back to
-   * false the moment a session becomes visible.
-   */
-  flatItemsStale: boolean;
 
   status: AeroSessionStatus;
   isStreaming: boolean;
@@ -99,13 +82,6 @@ interface ChatStore {
     sessionId: string,
     status: AeroSessionStatus,
     source?: 'query' | 'stream',
-  ) => void;
-
-  appendOptimisticUserMessage: (sessionId: string, text: string) => string;
-
-  removeOptimisticUserMessage: (
-    sessionId: string,
-    localMessageId: string,
   ) => void;
 
   handleStreamEvent: (
@@ -168,52 +144,15 @@ function buildMessageTurnIds(
   return map;
 }
 
-/**
- * Central chokepoint for (re)building the flattened/virtualized
- * conversation projection.
- *
- * `buildFlatConversationItems` is the expensive part of updating a
- * session — and only the currently active session is ever rendered.
- * Every call site passes `shouldComputeFlat` (= "is this the active
- * session right now"); when false we skip the rebuild entirely and
- * just carry over whatever flat items already existed (from `previous`),
- * marking them stale. `turns` itself is ALWAYS the fresh value passed
- * in — correctness of the underlying data never depends on this flag.
- *
- * `setActiveSession` always passes `shouldComputeFlat: true`, so a
- * session's flat items are guaranteed fresh the moment it becomes
- * active, regardless of how many updates it missed while backgrounded.
- */
 function buildRuntime(
   turns: AeroConversationTurn[],
   isStreaming: boolean,
-  revertMessageId: string | undefined,
-  usageExceeded: UsageExceeded | undefined,
-  shouldComputeFlat: boolean,
-  previous?: Pick<
-    SessionRuntime,
-    'flatItems' | 'groupFlatIndex' | 'revertedMessages'
-  >,
+  revertMessageId?: string,
+  usageExceeded?: UsageExceeded,
 ): Pick<
   SessionRuntime,
-  | 'turns'
-  | 'flatItems'
-  | 'groupFlatIndex'
-  | 'revertedMessages'
-  | 'isStreaming'
-  | 'flatItemsStale'
+  'turns' | 'flatItems' | 'groupFlatIndex' | 'revertedMessages' | 'isStreaming'
 > {
-  if (!shouldComputeFlat) {
-    return {
-      turns,
-      flatItems: previous?.flatItems ?? [],
-      groupFlatIndex: previous?.groupFlatIndex ?? [],
-      revertedMessages: previous?.revertedMessages ?? [],
-      isStreaming,
-      flatItemsStale: true,
-    };
-  }
-
   const { flatItems, groupFlatIndex, revertedMessages } =
     buildFlatConversationItems(
       turns,
@@ -228,13 +167,12 @@ function buildRuntime(
     groupFlatIndex,
     revertedMessages,
     isStreaming,
-    flatItemsStale: false,
   };
 }
 
 function createEmptyRuntime(): SessionRuntime {
   return {
-    ...buildRuntime([], false, undefined, undefined, true),
+    ...buildRuntime([], false),
 
     status: IDLE,
     streamStartedAt: null,
@@ -364,7 +302,6 @@ function updateFlatAssistantPart(
 function appendIncomingMessage(
   runtime: SessionRuntime,
   incoming: AeroMessage,
-  shouldComputeFlat: boolean,
 ): SessionRuntime {
   const existingTurnId = runtime.messageTurnIds[incoming.id];
 
@@ -414,8 +351,6 @@ function appendIncomingMessage(
           runtime.isStreaming,
           undefined,
           runtime.usageExceeded,
-          shouldComputeFlat,
-          runtime,
         ),
         messageTurnIds,
       };
@@ -456,8 +391,6 @@ function appendIncomingMessage(
         runtime.isStreaming,
         undefined,
         runtime.usageExceeded,
-        shouldComputeFlat,
-        runtime,
       ),
       messageTurnIds,
     };
@@ -494,8 +427,6 @@ function appendIncomingMessage(
       runtime.isStreaming,
       undefined,
       runtime.usageExceeded,
-      shouldComputeFlat,
-      runtime,
     ),
     messageTurnIds,
   };
@@ -572,52 +503,9 @@ const debouncedStateStorage = {
 
 export const useChatStore = create<ChatStore>()(
   persist(
-    (set, get) => {
+    (set) => {
       const pendingDeltas = new Map<string, PendingDelta[]>();
       const pendingPartUpdates = new Map<string, AeroPart[]>();
-
-      const pendingOptimisticMessages = new Map<
-        string,
-        PendingOptimisticMessage[]
-      >();
-
-      const getPendingOptimisticMessage = (
-        sessionId: string,
-        localMessageId?: string,
-      ) => {
-        const pending = pendingOptimisticMessages.get(sessionId) ?? [];
-
-        if (localMessageId) {
-          return pending.find((item) => item.localMessageId === localMessageId);
-        }
-
-        return pending[0];
-      };
-
-      const removePendingOptimisticMessage = (
-        sessionId: string,
-        localMessageId: string,
-      ) => {
-        const pending = pendingOptimisticMessages.get(sessionId);
-
-        queryClient.invalidateQueries({
-          queryKey: sessionKeys.toc(undefined, sessionId),
-        });
-
-        if (!pending?.length) {
-          return;
-        }
-
-        const nextPending = pending.filter(
-          (item) => item.localMessageId !== localMessageId,
-        );
-
-        if (nextPending.length === 0) {
-          pendingOptimisticMessages.delete(sessionId);
-        } else {
-          pendingOptimisticMessages.set(sessionId, nextPending);
-        }
-      };
 
       return {
         activeSessionId: null,
@@ -647,16 +535,11 @@ export const useChatStore = create<ChatStore>()(
 
             sessions[sessionId] = {
               ...runtime,
-              // Becoming the active session — always (re)compute flat
-              // items so whatever was missed while backgrounded is
-              // reflected immediately.
               ...buildRuntime(
                 runtime.turns,
                 runtime.isStreaming,
                 revertMessageId,
                 runtime.usageExceeded,
-                true,
-                runtime,
               ),
             };
 
@@ -677,7 +560,6 @@ export const useChatStore = create<ChatStore>()(
             }
 
             const isStreaming = current.status.type !== 'idle';
-            const isActiveSession = sessionId === state.activeSessionId;
 
             const runtime: SessionRuntime = {
               ...current,
@@ -687,8 +569,6 @@ export const useChatStore = create<ChatStore>()(
                 isStreaming,
                 revertMessageId,
                 current.usageExceeded,
-                isActiveSession,
-                current,
               ),
 
               status: current.status,
@@ -749,7 +629,6 @@ export const useChatStore = create<ChatStore>()(
             }
 
             const isStreaming = status.type !== 'idle';
-            const isActiveSession = sessionId === state.activeSessionId;
 
             const usageExceeded =
               status.type === 'idle' ? undefined : current.usageExceeded;
@@ -774,8 +653,6 @@ export const useChatStore = create<ChatStore>()(
                 isStreaming,
                 undefined,
                 usageExceeded,
-                isActiveSession,
-                current,
               ),
 
               isStreaming,
@@ -801,207 +678,6 @@ export const useChatStore = create<ChatStore>()(
               sessions,
               runningSessions,
               awaitingQuestions,
-              ...projectActiveSession(sessions, state.activeSessionId),
-            };
-          });
-        },
-
-        appendOptimisticUserMessage: (sessionId, text) => {
-          const localMessageId = `optimistic_message_${crypto.randomUUID()}`;
-          const localPartId = `optimistic_part_${crypto.randomUUID()}`;
-
-          const optimisticPart = {
-            id: localPartId,
-            sessionID: sessionId,
-            messageID: localMessageId,
-            type: 'text',
-            text,
-          } as AeroPart;
-
-          set((state) => {
-            const current = getRuntime(state.sessions, sessionId);
-            const previous = current.turns.at(-1);
-            const isActiveSession = sessionId === state.activeSessionId;
-
-            let nextTurns: AeroConversationTurn[];
-            let turnId: string;
-
-            if (previous?.role === 'user') {
-              turnId = previous.id;
-
-              nextTurns = [
-                ...current.turns.slice(0, -1),
-                {
-                  ...previous,
-                  parts: [...previous.parts, optimisticPart],
-                },
-              ];
-            } else {
-              turnId = localMessageId;
-
-              const optimisticTurn: AeroConversationTurn = {
-                id: localMessageId,
-                role: 'user',
-                parts: [optimisticPart],
-                createdAt: Date.now(),
-              };
-
-              nextTurns = [...current.turns, optimisticTurn];
-            }
-
-            const messageTurnIds = {
-              ...current.messageTurnIds,
-              [localMessageId]: turnId,
-              [localPartId]: turnId,
-            };
-
-            const status: AeroSessionStatus = {
-              type: 'busy',
-            };
-
-            const runtime: SessionRuntime = {
-              ...current,
-
-              status,
-
-              hasLiveStatus: true,
-
-              streamStartedAt:
-                current.streamStartedAt ??
-                getStreamStartTime(nextTurns, status, null),
-
-              ...buildRuntime(
-                nextTurns,
-                true,
-                undefined,
-                current.usageExceeded,
-                isActiveSession,
-                current,
-              ),
-
-              messageTurnIds,
-
-              isStreaming: true,
-            };
-
-            const sessions = {
-              ...state.sessions,
-              [sessionId]: runtime,
-            };
-
-            const pending = pendingOptimisticMessages.get(sessionId) ?? [];
-
-            pendingOptimisticMessages.set(sessionId, [
-              ...pending,
-              {
-                localMessageId,
-                localPartId,
-                text,
-              },
-            ]);
-
-            const runningSessions = state.runningSessions.includes(sessionId)
-              ? state.runningSessions
-              : [...state.runningSessions, sessionId];
-
-            return {
-              sessions,
-              runningSessions,
-              ...projectActiveSession(sessions, state.activeSessionId),
-            };
-          });
-
-          /**
-           * Scroll AFTER the state update has committed and the DOM/
-           * virtualizer has had a chance to paint + measure the new
-           * message — not synchronously inside the `set()` updater like
-           * before (which scrolled against the stale, pre-update DOM
-           * and produced a "cut off" message). Double rAF: one frame
-           * for React's commit to paint, one more for layout to settle.
-           *
-           * Only scroll if this session is actually the one on screen —
-           * `useScrollController` is global, so scrolling for a
-           * backgrounded session would yank whatever session the user
-           * is currently looking at.
-           */
-          if (get().activeSessionId === sessionId) {
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                useScrollController.getState().scrollToBottom();
-              });
-            });
-          }
-
-          return localMessageId;
-        },
-
-        removeOptimisticUserMessage: (sessionId, localMessageId) => {
-          const optimistic = getPendingOptimisticMessage(
-            sessionId,
-            localMessageId,
-          );
-
-          if (!optimistic) {
-            return;
-          }
-
-          removePendingOptimisticMessage(sessionId, localMessageId);
-
-          set((state) => {
-            const current = getRuntime(state.sessions, sessionId);
-            const isActiveSession = sessionId === state.activeSessionId;
-
-            const turnIndex = findTurnIndexByMessageId(current, localMessageId);
-
-            if (turnIndex === -1) {
-              return state;
-            }
-
-            const turn = current.turns[turnIndex];
-
-            const nextParts = turn.parts.filter(
-              (part) => part.id !== optimistic.localPartId,
-            );
-
-            const nextTurns =
-              nextParts.length > 0
-                ? current.turns.map((currentTurn, index) =>
-                    index === turnIndex
-                      ? {
-                          ...currentTurn,
-                          parts: nextParts,
-                        }
-                      : currentTurn,
-                  )
-                : current.turns.filter((_, index) => index !== turnIndex);
-
-            const nextMessageTurnIds = {
-              ...current.messageTurnIds,
-            };
-
-            delete nextMessageTurnIds[localMessageId];
-            delete nextMessageTurnIds[optimistic.localPartId];
-
-            const runtime: SessionRuntime = {
-              ...current,
-              ...buildRuntime(
-                nextTurns,
-                current.isStreaming,
-                undefined,
-                current.usageExceeded,
-                isActiveSession,
-                current,
-              ),
-              messageTurnIds: nextMessageTurnIds,
-            };
-
-            const sessions = {
-              ...state.sessions,
-              [sessionId]: runtime,
-            };
-
-            return {
-              sessions,
               ...projectActiveSession(sessions, state.activeSessionId),
             };
           });
@@ -1038,7 +714,6 @@ export const useChatStore = create<ChatStore>()(
         handleStreamEvent: (sessionId, event, revertMessageId) => {
           set((state) => {
             const current = getRuntime(state.sessions, sessionId);
-            const isActiveSession = sessionId === state.activeSessionId;
 
             switch (event.type) {
               case 'session.updated': {
@@ -1046,11 +721,9 @@ export const useChatStore = create<ChatStore>()(
                   sessionKeys.detail(event.session.harnessId, sessionId),
                   event.session,
                 );
-
                 queryClient.invalidateQueries({
                   queryKey: sessionKeys.context(undefined, sessionId),
                 });
-
                 return state;
               }
 
@@ -1090,8 +763,6 @@ export const useChatStore = create<ChatStore>()(
                     isStreaming,
                     revertMessageId,
                     nextUsageExceeded,
-                    isActiveSession,
-                    current,
                   ),
 
                   isStreaming,
@@ -1164,8 +835,6 @@ export const useChatStore = create<ChatStore>()(
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
-                    isActiveSession,
-                    current,
                   ),
                 };
 
@@ -1181,202 +850,7 @@ export const useChatStore = create<ChatStore>()(
               }
 
               case 'message.updated': {
-                /**
-                 * OpenCode emits:
-                 *
-                 *   1. message.updated (role=user, parts=[])
-                 *   2. message.part.updated (actual text part)
-                 *
-                 * If we already have an optimistic user message, reconcile
-                 * its local IDs to the real server IDs instead of appending
-                 * another message.
-                 */
-                const optimistic =
-                  event.message.role === 'user'
-                    ? getPendingOptimisticMessage(sessionId)
-                    : undefined;
-
-                if (optimistic) {
-                  const localTurnId =
-                    current.messageTurnIds[optimistic.localMessageId];
-
-                  const turnIndex = localTurnId
-                    ? current.turns.findIndex((turn) => turn.id === localTurnId)
-                    : -1;
-
-                  if (turnIndex !== -1) {
-                    const nextTurns = current.turns.map((turn, index) => {
-                      if (index !== turnIndex) {
-                        return turn;
-                      }
-
-                      const nextTurnId =
-                        turn.id === optimistic.localMessageId
-                          ? event.message.id
-                          : turn.id;
-
-                      const nextParts = turn.parts.map((part) => {
-                        if (part.messageID !== optimistic.localMessageId) {
-                          return part;
-                        }
-
-                        return {
-                          ...part,
-                          messageID: event.message.id,
-                        };
-                      });
-
-                      return {
-                        ...turn,
-                        id: nextTurnId,
-                        parts: nextParts,
-                        createdAt:
-                          turn.id === optimistic.localMessageId
-                            ? event.message.createdAt
-                            : turn.createdAt,
-                        error: event.message.error ?? turn.error,
-                      };
-                    });
-
-                    const reconciledTurnId = nextTurns[turnIndex].id;
-
-                    const messageTurnIds = {
-                      ...current.messageTurnIds,
-                      [event.message.id]: reconciledTurnId,
-                    };
-
-                    delete messageTurnIds[optimistic.localMessageId];
-
-                    for (const part of event.message.parts) {
-                      if (part.messageID) {
-                        messageTurnIds[part.messageID] = reconciledTurnId;
-                      }
-                    }
-
-                    /**
-                     * Keep the optimistic part mapped to the real message
-                     * until message.part.updated arrives and gives us the
-                     * real part ID.
-                     */
-                    messageTurnIds[optimistic.localPartId] = reconciledTurnId;
-
-                    removePendingOptimisticMessage(
-                      sessionId,
-                      optimistic.localMessageId,
-                    );
-
-                    let runtime: SessionRuntime = {
-                      ...current,
-                      ...buildRuntime(
-                        nextTurns,
-                        current.isStreaming,
-                        revertMessageId,
-                        current.usageExceeded,
-                        isActiveSession,
-                        current,
-                      ),
-                      messageTurnIds,
-                    };
-
-                    /**
-                     * Part.updated can theoretically arrive before
-                     * message.updated, so consume anything queued for the
-                     * real message here.
-                     */
-                    const pendingKey = `${sessionId}:${event.message.id}`;
-                    const pendingParts = pendingPartUpdates.get(pendingKey);
-
-                    if (pendingParts?.length) {
-                      pendingPartUpdates.delete(pendingKey);
-
-                      const updatedTurns = runtime.turns.map((turn, index) => {
-                        if (index !== turnIndex) {
-                          return turn;
-                        }
-
-                        let nextParts = turn.parts;
-
-                        for (const incomingPart of pendingParts) {
-                          const existingPartIndex = nextParts.findIndex(
-                            (existingPart) =>
-                              existingPart.id === incomingPart.id ||
-                              (existingPart.id === optimistic.localPartId &&
-                                existingPart.type === 'text' &&
-                                incomingPart.type === 'text'),
-                          );
-
-                          if (existingPartIndex === -1) {
-                            nextParts = [...nextParts, incomingPart];
-                          } else {
-                            nextParts = nextParts.map((existingPart, index) =>
-                              index === existingPartIndex
-                                ? incomingPart
-                                : existingPart,
-                            );
-                          }
-                        }
-
-                        return {
-                          ...turn,
-                          parts: nextParts,
-                        };
-                      });
-
-                      runtime = {
-                        ...runtime,
-                        ...buildRuntime(
-                          updatedTurns,
-                          runtime.isStreaming,
-                          revertMessageId,
-                          runtime.usageExceeded,
-                          isActiveSession,
-                          runtime,
-                        ),
-                        messageTurnIds,
-                      };
-                    }
-
-                    const hasAwaitingQuestion = runtime.turns.some((turn) =>
-                      turn.parts.some(
-                        (part) =>
-                          part.type === 'tool' &&
-                          part.toolName === 'question' &&
-                          part.status === 'running',
-                      ),
-                    );
-
-                    const sessions = {
-                      ...state.sessions,
-                      [sessionId]: runtime,
-                    };
-
-                    const awaitingQuestions = hasAwaitingQuestion
-                      ? state.awaitingQuestions.includes(sessionId)
-                        ? state.awaitingQuestions
-                        : [...state.awaitingQuestions, sessionId]
-                      : state.awaitingQuestions.filter(
-                          (id) => id !== sessionId,
-                        );
-
-                    return {
-                      sessions,
-                      awaitingQuestions,
-                      ...projectActiveSession(sessions, state.activeSessionId),
-                    };
-                  }
-                }
-
-                /**
-                 * Normal server message.
-                 *
-                 * This is also naturally idempotent because
-                 * appendIncomingMessage checks messageTurnIds first.
-                 */
-                let runtime = appendIncomingMessage(
-                  current,
-                  event.message,
-                  isActiveSession,
-                );
+                let runtime = appendIncomingMessage(current, event.message);
 
                 const pendingKey = `${sessionId}:${event.message.id}`;
                 const pendingParts = pendingPartUpdates.get(pendingKey);
@@ -1424,8 +898,6 @@ export const useChatStore = create<ChatStore>()(
                         runtime.isStreaming,
                         revertMessageId,
                         runtime.usageExceeded,
-                        isActiveSession,
-                        runtime,
                       ),
                     };
                   }
@@ -1466,6 +938,23 @@ export const useChatStore = create<ChatStore>()(
                 pendingDeltas.delete(key);
 
                 let part = event.part;
+
+                // Retrieve the latest turn directly from state
+                const lastTurn = current.turns[current.turns.length - 1];
+
+                // Trigger auto-scroll if the active session is receiving updates for the active/latest message
+                if (
+                  state.activeSessionId === sessionId &&
+                  part.type === 'text' &&
+                  (part.messageID === lastTurn?.id ||
+                    part.messageID === event.messageId)
+                ) {
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      useScrollController.getState().scrollToBottom();
+                    });
+                  });
+                }
 
                 if (part.type === 'text' || part.type === 'reasoning') {
                   const textDelta = pending
@@ -1514,61 +1003,9 @@ export const useChatStore = create<ChatStore>()(
 
                 const currentTurn = current.turns[turnIndex];
 
-                /**
-                 * Normal matching by real part ID.
-                 */
-                let partIndex = currentTurn.parts.findIndex(
+                const partIndex = currentTurn.parts.findIndex(
                   (currentPart) => currentPart.id === part.id,
                 );
-
-                /**
-                 * Optimistic reconciliation:
-                 *
-                 * The optimistic user part has a local part ID, while
-                 * OpenCode gives us a real part ID here.
-                 *
-                 * At this point message.updated has already reconciled
-                 * the message ID, so we can safely match the remaining
-                 * optimistic text part to the incoming real text part.
-                 */
-                if (
-                  partIndex === -1 &&
-                  currentTurn.role === 'user' &&
-                  part.type === 'text'
-                ) {
-                  const optimistic = [
-                    ...(pendingOptimisticMessages.get(sessionId) ?? []),
-                  ]
-                    .reverse()
-                    .find(
-                      (item) =>
-                        currentTurn.parts.some(
-                          (currentPart) => currentPart.id === item.localPartId,
-                        ) &&
-                        currentTurn.parts.some(
-                          (currentPart) =>
-                            currentPart.type === 'text' &&
-                            currentPart.id === item.localPartId &&
-                            (currentPart.messageID === event.messageId ||
-                              currentPart.text === part.text ||
-                              part.text.startsWith(currentPart.text)),
-                        ),
-                    );
-
-                  if (optimistic) {
-                    partIndex = currentTurn.parts.findIndex(
-                      (currentPart) =>
-                        currentPart.id === optimistic.localPartId,
-                    );
-
-                    if (partIndex !== -1) {
-                      removePendingOptimisticMessage(
-                        sessionId,
-                        optimistic.localMessageId,
-                      );
-                    }
-                  }
-                }
 
                 if (partIndex === -1) {
                   const nextTurns = current.turns.map((turn, index) =>
@@ -1587,8 +1024,6 @@ export const useChatStore = create<ChatStore>()(
                       current.isStreaming,
                       revertMessageId,
                       current.usageExceeded,
-                      isActiveSession,
-                      current,
                     ),
                   };
 
@@ -1621,24 +1056,6 @@ export const useChatStore = create<ChatStore>()(
                       },
                 );
 
-                const nextMessageTurnIds = {
-                  ...current.messageTurnIds,
-                  [part.id]: currentTurn.id,
-                };
-
-                /**
-                 * Remove the optimistic local part mapping after the real
-                 * part has replaced it.
-                 */
-                for (const pending of pendingOptimisticMessages.get(
-                  sessionId,
-                ) ?? []) {
-                  if (pending.localPartId === currentTurn.parts[partIndex].id) {
-                    delete nextMessageTurnIds[pending.localPartId];
-                    break;
-                  }
-                }
-
                 const runtime: SessionRuntime = {
                   ...current,
 
@@ -1647,11 +1064,7 @@ export const useChatStore = create<ChatStore>()(
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
-                    isActiveSession,
-                    current,
                   ),
-
-                  messageTurnIds: nextMessageTurnIds,
 
                   streamStartedAt:
                     current.streamStartedAt ??
@@ -1713,12 +1126,6 @@ export const useChatStore = create<ChatStore>()(
                   (currentPart) => currentPart.id === event.partId,
                 );
 
-                /**
-                 * A delta can theoretically target the real part before
-                 * its part.updated event arrives.
-                 *
-                 * Queue it until part.updated gives us the full part.
-                 */
                 if (partIndex === -1) {
                   const key = `${sessionId}:${event.partId}`;
 
@@ -1753,14 +1160,9 @@ export const useChatStore = create<ChatStore>()(
                  * Fast path:
                  *
                  * Only use the incremental update when the event is
-                 * updating the currently-streaming last part of the
-                 * ACTIVE session. Backgrounded sessions never have
-                 * fresh flatItems to patch in the first place — for
-                 * them we just fall through to the safe path below,
-                 * which (via buildRuntime's shouldComputeFlat=false)
-                 * updates `turns` only and skips the rebuild.
+                 * updating the currently-streaming last part.
                  *
-                 * When it does apply:
+                 * In that situation:
                  * - no item is added
                  * - no item is removed
                  * - no footer exists
@@ -1769,7 +1171,6 @@ export const useChatStore = create<ChatStore>()(
                  * This avoids rebuilding the whole conversation.
                  */
                 const isCurrentStreamingPart =
-                  isActiveSession &&
                   current.isStreaming &&
                   turnIndex === current.turns.length - 1 &&
                   partIndex === turn.parts.length - 1;
@@ -1819,10 +1220,8 @@ export const useChatStore = create<ChatStore>()(
                 }
 
                 /**
-                 * Safe fallback for unusual out-of-order events, deltas
-                 * targeting a non-current part, or a backgrounded
-                 * session (where shouldComputeFlat is false and this
-                 * just updates `turns`).
+                 * Safe fallback for unusual out-of-order events or
+                 * deltas targeting a non-current part.
                  */
                 const nextTurns = current.turns.map((runtimeTurn, index) =>
                   index !== turnIndex
@@ -1843,8 +1242,6 @@ export const useChatStore = create<ChatStore>()(
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
-                    isActiveSession,
-                    current,
                   ),
 
                   streamStartedAt:
@@ -1894,8 +1291,6 @@ export const useChatStore = create<ChatStore>()(
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
-                    isActiveSession,
-                    current,
                   ),
                 };
 
@@ -1933,19 +1328,6 @@ export const useChatStore = create<ChatStore>()(
                 );
 
                 pendingPartUpdates.delete(`${sessionId}:${event.messageId}`);
-
-                const optimistic = getPendingOptimisticMessage(sessionId);
-
-                if (
-                  optimistic &&
-                  current.messageTurnIds[optimistic.localMessageId] ===
-                    current.messageTurnIds[event.messageId]
-                ) {
-                  removePendingOptimisticMessage(
-                    sessionId,
-                    optimistic.localMessageId,
-                  );
-                }
 
                 if (turnIndex === -1) {
                   return state;
@@ -1993,8 +1375,6 @@ export const useChatStore = create<ChatStore>()(
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
-                    isActiveSession,
-                    current,
                   ),
 
                   messageTurnIds: nextMessageTurnIds,
@@ -2033,7 +1413,6 @@ export const useChatStore = create<ChatStore>()(
                 });
 
                 const lastTurn = current.turns[current.turns.length - 1];
-
                 const unreadStatus: 'success' | 'error' = lastTurn?.error?.data
                   ?.message
                   ? 'error'
@@ -2058,8 +1437,6 @@ export const useChatStore = create<ChatStore>()(
                     false,
                     revertMessageId,
                     undefined,
-                    isActiveSession,
-                    current,
                   ),
 
                   isStreaming: false,
@@ -2116,8 +1493,6 @@ export const useChatStore = create<ChatStore>()(
               pendingPartUpdates.delete(key);
             }
           });
-
-          pendingOptimisticMessages.delete(sessionId);
 
           set((state) => {
             const sessions = {

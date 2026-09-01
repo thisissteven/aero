@@ -38,8 +38,8 @@ export const UserChatBubble = memo(
     const text = useMemo(
       () =>
         turn.parts
-          .filter((part) => part.type === 'text')
-          .map((part) => part.text)
+          .filter((part) => part.type === 'text' || part.type === 'compaction')
+          .map((part) => (part.type === 'text' ? part.text : '/compact'))
           .join(''),
       [turn.parts],
     );

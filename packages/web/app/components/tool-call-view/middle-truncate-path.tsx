@@ -28,9 +28,7 @@ export function MiddleTruncatePath({
   const file = normalized.slice(lastSlashIndex); // Includes leading '/'
 
   return (
-    <span
-      className={cn('inline-flex max-w-full min-w-0 items-center', className)}
-    >
+    <div className={cn('flex max-w-full min-w-0 items-center', className)}>
       <span className='shrink truncate'>{dir}</span>
       <span className='shrink-0'>
         <span className={cn('text-foreground/80', fileClassName)}>
@@ -40,6 +38,6 @@ export function MiddleTruncatePath({
           {file.slice(1, file.length)}
         </span>
       </span>
-    </span>
+    </div>
   );
 }
