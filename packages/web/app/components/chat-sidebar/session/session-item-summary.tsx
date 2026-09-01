@@ -11,6 +11,7 @@ import {
   CopySessionId,
   DeleteSession,
   ExportMarkdown,
+  OpenIsolatedWorkspace,
   RenameSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionItemMarquee } from '@/app/components/chat-sidebar/session/session-item-marquee';
@@ -73,6 +74,8 @@ export function SessionItemSummary({
       };
     }),
   );
+
+  const isStandaloneSession = session.workspace.includes('.aero/workspaces');
 
   if (!isRenaming) {
     return (
@@ -146,6 +149,9 @@ export function SessionItemSummary({
             >
               <Dropdown.Menu aria-label={`${session.title} actions`}>
                 <RenameSession sessionId={session.id} from={from} />
+                {!isStandaloneSession && (
+                  <OpenIsolatedWorkspace directory={session.workspace} />
+                )}
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator className='my-0.5 h-[0.5px]' />

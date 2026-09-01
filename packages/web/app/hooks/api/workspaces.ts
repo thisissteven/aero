@@ -88,17 +88,32 @@ export function useWorkspacesCompact(search?: string) {
   });
 }
 
-export function useWorkspace(workspaceId: string) {
+export function useWorkspaceByDirectory(directory: string) {
   return useQuery({
-    queryKey: workspaceKeys.detail(workspaceId),
+    queryKey: workspaceKeys.detail(directory),
     queryFn: async () => {
-      const res = await $individualWorkspace.$get({
-        param: { id: workspaceId },
+      const res = await $workspaces.$get({
+        query: { directory },
       });
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: !!workspaceId,
+    enabled: !!directory,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useWorkspace(directory: string) {
+  return useQuery({
+    queryKey: workspaceKeys.detail(directory),
+    queryFn: async () => {
+      const res = await $workspaces.$get({
+        query: { directory },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!directory,
     placeholderData: keepPreviousData,
   });
 }

@@ -2,6 +2,7 @@ import {
   Archive,
   ArrowUpFromSquare,
   ArrowUpFromSquareSlash,
+  ArrowUpRight,
   Check,
   Copy,
   LogoMarkdown,
@@ -16,6 +17,7 @@ import { useRef } from 'react';
 import { Button, Checkbox, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
   sessionKeys,
@@ -249,7 +251,7 @@ export function CopySessionId({ sessionId }: { sessionId: string }) {
     <Dropdown.Item onPress={() => copy(sessionId)} shouldCloseOnSelect={false}>
       <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
 
-      <div ref={containerRef} className='t-text-swap items-center gap-1.25'>
+      <div ref={containerRef} className='t-text-swap items-center gap-1.5'>
         <div className='shrink-0'>
           {copied ? (
             <Icon size={14} data={Check} />
@@ -363,6 +365,32 @@ export function ShareUnshareSession({
   }
 
   return <ShareSession sessionId={sessionId} />;
+}
+
+export function OpenIsolatedWorkspace({ directory }: { directory: string }) {
+  const setIsolatedWorkspaceDirectory = useWorkspaceStore(
+    (state) => state.setIsolatedWorkspaceDirectory,
+  );
+
+  const setIsWorkspacesOpen = useWorkspaceStore(
+    (state) => state.setIsWorkspacesOpen,
+  );
+
+  const setState = useWorkspaceStore((state) => state.setState);
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      onPress={() => {
+        setState('isolated');
+        setIsolatedWorkspaceDirectory(directory);
+        setIsWorkspacesOpen(true);
+      }}
+    >
+      <Icon size={14} data={ArrowUpRight} className='shrink-0' />
+      <Label>Open Workspace</Label>
+    </Dropdown.Item>
+  );
 }
 
 export function ExportMarkdown({ sessionId }: { sessionId: string }) {

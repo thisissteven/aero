@@ -1,39 +1,28 @@
-import {
-  ArrowUturnCcwLeft,
-  Comment,
-  Folder,
-  Magnifier,
-  PlugWire,
-} from '@gravity-ui/icons';
+import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
 import { useLocation, useNavigate } from '@tanstack/react-router';
-import { memo, useState, useTransition } from 'react';
+import { memo, useTransition } from 'react';
 
 import { Kbd, Sidebar } from '@aero/ui';
 
+import { RightSidebarview } from '@/app/components/chat-sidebar/right-sidebar-view';
 import { RecentChats } from '@/app/components/chat-sidebar/session/recent-sessions';
+import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import {
-  useRecentsSidebarStore,
-  useWorkspacesSidebarStore,
-} from '@/app/components/chat-sidebar/sidebar-store';
-import { Workspaces } from '@/app/components/chat-sidebar/workspace/workspaces';
+  useWorkspaceStore,
+  WorkspacesView,
+} from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
-import { useSessions } from '@/app/hooks/api/sessions';
-import { useWorkspaces } from '@/app/hooks/api/workspaces';
 
 import { ChatSidebarProps } from './index';
 import { SidebarFooter } from './sidebar-footer';
 
 interface SidebarContentsProps extends ChatSidebarProps {
   idPrefix?: string;
-  sessionsQuery: ReturnType<typeof useSessions>;
-  workspacesQuery: ReturnType<typeof useWorkspaces>;
 }
 
 export const SidebarContents = memo(function SidebarContents({
   idPrefix = '',
-  sessionsQuery,
-  workspacesQuery,
   onSearch,
 }: SidebarContentsProps) {
   const [, startTransition] = useTransition();
@@ -47,13 +36,12 @@ export const SidebarContents = memo(function SidebarContents({
     });
   };
 
-  const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false);
-
-  const toggleIsEditModeRecents = useRecentsSidebarStore(
-    (state) => state.toggleisEditMode,
+  const isWorkspacesOpen = useWorkspaceStore((state) => state.isWorkspacesOpen);
+  const setIsWorkspacesOpen = useWorkspaceStore(
+    (state) => state.setIsWorkspacesOpen,
   );
 
-  const toggleIsEditModeWorkspaces = useWorkspacesSidebarStore(
+  const toggleIsEditModeRecents = useRecentsSidebarStore(
     (state) => state.toggleisEditMode,
   );
 
@@ -120,25 +108,11 @@ export const SidebarContents = memo(function SidebarContents({
             </Sidebar.Group>
           }
           right={
-            <Sidebar.Group className='px-3'>
-              <Sidebar.Menu aria-label='Chat actions'>
-                <Sidebar.MenuItem
-                  textValue='Back'
-                  onPress={() => {
-                    if (useWorkspacesSidebarStore.getState().isEditMode) {
-                      toggleIsEditModeWorkspaces();
-                    }
-                    setIsWorkspacesOpen(false);
-                  }}
-                  closeMobileOnAction={false}
-                >
-                  <Sidebar.MenuIcon>
-                    <ArrowUturnCcwLeft className='size-4' />
-                  </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>Back</Sidebar.MenuLabel>
-                </Sidebar.MenuItem>
-              </Sidebar.Menu>
-            </Sidebar.Group>
+            <RightSidebarview
+              closeWorkspace={() => {
+                setIsWorkspacesOpen(false);
+              }}
+            />
           }
         />
       </Sidebar.Header>
@@ -147,8 +121,8 @@ export const SidebarContents = memo(function SidebarContents({
 
       <TransitionInOut
         current={isWorkspacesOpen ? 'second' : 'first'}
-        first={<RecentChats sessionsQuery={sessionsQuery} />}
-        second={<Workspaces workspacesQuery={workspacesQuery} />}
+        first={<RecentChats />}
+        second={<WorkspacesView />}
       />
 
       <SidebarFooter />

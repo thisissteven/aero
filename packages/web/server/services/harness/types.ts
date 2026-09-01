@@ -417,6 +417,7 @@ export interface HarnessAdapter {
     params: BasePaginationParams,
   ): Promise<PaginatedResponse<AeroWorkspaceSummary>>;
   getWorkspace(workspaceId: string): Promise<AeroWorkspaceSummary>;
+  getWorkspaceByDirectory(directory: string): Promise<AeroWorkspaceSummary>;
   createWorkspace(input: CreateWorkspaceInput): Promise<AeroWorkspaceSummary>;
   updateWorkspace(
     workspaceId: string,

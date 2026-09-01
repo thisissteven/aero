@@ -1,13 +1,34 @@
 // server/services/harness/workspace-merger.ts
 
-import { WORKSPACE_VISIBLE_SESSIONS_LIMIT } from '@/server/helper';
-
 import type {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
   HarnessAdapter,
-  ListSessionsParams,
 } from '../harness/types';
+
+export async function mergeWorkspaceAcrossAdaptersByDirectory(
+  adapters: HarnessAdapter[],
+  directory: string,
+): Promise<AeroWorkspaceSummary> {
+  // 1. Fetch the workspace base definition from the primary adapter
+  const primaryAdapter = adapters[0];
+  const baseWorkspace = await primaryAdapter.getWorkspaceByDirectory(directory);
+
+  // 2. Aggregate preview sessions for each worktree across ALL adapters
+  const mergedWorktrees: AeroWorktreeSummary[] = await Promise.all(
+    baseWorkspace.worktrees.map(async (wt) => {
+      return {
+        ...wt,
+        hasMoreSessions: false,
+      };
+    }),
+  );
+
+  return {
+    ...baseWorkspace,
+    worktrees: mergedWorktrees,
+  };
+}
 
 /**
  * Merges workspace metadata and aggregates preview sessions from ALL harnesses
@@ -25,15 +46,15 @@ export async function mergeWorkspaceAcrossAdapters(
   const mergedWorktrees: AeroWorktreeSummary[] = await Promise.all(
     baseWorkspace.worktrees.map(async (wt) => {
       // Query every adapter's listSessions for this worktree directory
-      const results = await Promise.allSettled(
-        adapters.map((adapter) => {
-          const params: ListSessionsParams = {
-            directory: wt.directory,
-            limit: WORKSPACE_VISIBLE_SESSIONS_LIMIT + 1, // Fetch LIMIT + 1 to check if more sessions exist
-          };
-          return adapter.listSessions(params);
-        }),
-      );
+      // const results = await Promise.allSettled(
+      //   adapters.map((adapter) => {
+      //     const params: ListSessionsParams = {
+      //       directory: wt.directory,
+      //       limit: WORKSPACE_VISIBLE_SESSIONS_LIMIT + 1, // Fetch LIMIT + 1 to check if more sessions exist
+      //     };
+      //     return adapter.listSessions(params);
+      //   }),
+      // );
 
       // Flatten all returned sessions from all harnesses
       // const allSessions: AeroSessionSummary[] = [];

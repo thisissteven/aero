@@ -63,6 +63,18 @@ export async function getWorkspace(id: string): Promise<AeroWorkspace | null> {
   return (await readAll()).find((w) => w.id === id) ?? null;
 }
 
+export async function getWorkspaceByDirectory(
+  directory: string,
+): Promise<AeroWorkspace | null> {
+  return (
+    (await readAll()).find(
+      (w) =>
+        w.directory === directory ||
+        w.worktrees.some((wt) => wt.directory === directory),
+    ) ?? null
+  );
+}
+
 export async function createWorkspace(input: {
   name?: string;
   directory: string;

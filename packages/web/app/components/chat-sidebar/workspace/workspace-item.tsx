@@ -1,6 +1,6 @@
 import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { memo, useId, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { Sidebar } from '@aero/ui';
 
@@ -62,8 +62,6 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
   workspace,
   ...props
 }: ChatSidebarWorkspaceItemProps) {
-  const uniqueId = useId();
-
   const { root, otherWorktrees } = useMemo(() => {
     const cleanWorktrees = dedupeWorktreesByDirectory(workspace.worktrees);
 
@@ -82,7 +80,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
 
   if (!root) return null;
 
-  const workspaceIdPrefix = `${idPrefix}-${uniqueId}-${workspace.id}`;
+  const workspaceIdPrefix = `${idPrefix}-${workspace.id}`;
 
   return (
     <Sidebar.MenuItem

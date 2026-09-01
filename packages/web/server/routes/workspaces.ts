@@ -9,7 +9,12 @@ import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import {
   mergeAllWorkspacesAcrossAdapters,
   mergeWorkspaceAcrossAdapters,
+  mergeWorkspaceAcrossAdaptersByDirectory,
 } from '../services/workspace/workspaces-merger';
+
+const harnessQuerySchema = z.object({
+  harnessId: z.string().optional(),
+});
 
 const idParamSchema = z.object({
   id: z.string().min(1),
@@ -149,26 +154,17 @@ const workspaces = new Hono()
     },
   )
 
-  // GET /api/workspaces?workspaceId=...&cursor=...&limit=...&search=...
+  // GET /api/workspaces?harnessId=...&directory=...
   .get(
     '/',
-    zValidator(
-      'query',
-      withPagination(
-        z.object({
-          harnessId: z.string().optional(),
-        }),
-      ),
-    ),
+    zValidator('query', z.object({ directory: z.string() })),
     async (c) => {
-      const { harnessId, cursor, limit, search } = c.req.valid('query');
-      const harness = await getActiveAdapter(harnessId);
-
-      const result = await harness.listWorkspaces({
-        cursor,
-        limit,
-        search,
-      });
+      const { directory } = c.req.valid('query');
+      const adapters = await getAllAdapters();
+      const result = await mergeWorkspaceAcrossAdaptersByDirectory(
+        adapters,
+        directory,
+      );
 
       return c.json(result);
     },

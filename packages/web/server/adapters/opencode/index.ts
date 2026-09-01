@@ -39,6 +39,7 @@ import {
   createWorkspace,
   deleteWorkspace,
   getWorkspace,
+  getWorkspaceByDirectory,
   listWorkspaces as listStoredWorkspaces,
   removeWorktreeFromWorkspace,
   updateWorkspace,
@@ -243,6 +244,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
       if (!stored) {
         throw new Error(`Workspace not found: ${workspaceId}`);
+      }
+
+      return hydrateWorkspace(stored);
+    },
+
+    async getWorkspaceByDirectory(directory: string) {
+      const stored = await getWorkspaceByDirectory(directory);
+
+      if (!stored) {
+        throw new Error(`Workspace not found: ${directory}`);
       }
 
       return hydrateWorkspace(stored);

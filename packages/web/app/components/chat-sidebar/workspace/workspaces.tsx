@@ -17,7 +17,6 @@ import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 interface WorkspacesProps {
   idPrefix?: string;
-  workspacesQuery: ReturnType<typeof useWorkspaces>;
   rowHeight?: number;
 }
 
@@ -37,10 +36,22 @@ function WorkspacesLoader({ enabled }: { enabled: boolean }) {
   );
 }
 
+const STORAGE_KEY = 'aero-workspace-sidebar-expanded-keys';
+
+const getInitialKeys = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
 export const Workspaces = memo(function Workspaces({
-  workspacesQuery,
   rowHeight = 38,
 }: WorkspacesProps) {
+  const workspacesQuery = useWorkspaces();
   const {
     items: workspaces,
     loadMoreRef,
@@ -62,24 +73,33 @@ export const Workspaces = memo(function Workspaces({
         <Sidebar.Group>
           <WorkspacesLoader enabled={isLoading} />
 
-          <Virtualizer
-            layout={ListLayout}
-            layoutOptions={{ rowSize: rowHeight }}
-          >
-            <Sidebar.Menu<AeroWorkspaceSummary>
-              aria-label='Recent workspaces'
-              items={workspaces}
-              selectionMode='single'
+          {workspaces && (
+            <Virtualizer
+              layout={ListLayout}
+              layoutOptions={{ rowSize: rowHeight }}
             >
-              {(workspace) => (
-                <ChatSidebarWorkspaceItem
-                  key={workspace.id}
-                  idPrefix='workspaces'
-                  workspace={workspace}
-                />
-              )}
-            </Sidebar.Menu>
-          </Virtualizer>
+              <Sidebar.Menu<AeroWorkspaceSummary>
+                aria-label='Recent workspaces'
+                items={workspaces}
+                selectionMode='single'
+                defaultExpandedKeys={getInitialKeys()}
+                onExpandedChange={(keys) => {
+                  localStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify(Array.from(keys)),
+                  );
+                }}
+              >
+                {(workspace) => (
+                  <ChatSidebarWorkspaceItem
+                    key={workspace.id}
+                    idPrefix='workspaces'
+                    workspace={workspace}
+                  />
+                )}
+              </Sidebar.Menu>
+            </Virtualizer>
+          )}
 
           {/* Sentinel element for infinite scroll */}
           {hasNextPage && (

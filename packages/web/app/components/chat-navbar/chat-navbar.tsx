@@ -19,6 +19,7 @@ import {
   CopySessionId,
   DeleteSession,
   ExportMarkdown,
+  OpenIsolatedWorkspace,
   RenameSession,
   ShareUnshareSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
@@ -208,6 +209,9 @@ function SessionsNavbarContent() {
           >
             <Dropdown.Menu aria-label={`${session.title} actions`}>
               <RenameSession sessionId={session.id} from='navbar' />
+              {!isStandaloneSession && (
+                <OpenIsolatedWorkspace directory={session.workspace} />
+              )}
               <CopySessionId sessionId={session.id} />
               <Separator className='my-0.5' />
               <ShareUnshareSession

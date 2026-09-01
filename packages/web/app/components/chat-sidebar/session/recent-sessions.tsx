@@ -17,7 +17,6 @@ import { AeroSessionSummary } from '@/server/services/harness/types';
 
 interface RecentChatsProps {
   idPrefix?: string;
-  sessionsQuery: ReturnType<typeof useSessions>;
   /** Fixed row height for virtualizer calculations */
   rowHeight?: number;
 }
@@ -39,9 +38,10 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
 }
 
 export const RecentChats = memo(function Recents({
-  sessionsQuery,
   rowHeight = 38,
 }: RecentChatsProps) {
+  const sessionsQuery = useSessions();
+
   const {
     items: sessions,
     loadMoreRef,
