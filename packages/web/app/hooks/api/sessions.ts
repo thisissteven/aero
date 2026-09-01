@@ -427,6 +427,9 @@ export function useRevertSession(
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(harnessId, sessionId),
       });
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.toc(harnessId, sessionId),
+      });
     },
   });
 }

@@ -10,11 +10,7 @@ import type {
 
 import { useGlobalChatStore } from './global-chat-store';
 import { appendMessageToFlatList } from './helpers';
-import type {
-  ChatSessionState,
-  FlatItem,
-  RevertedMessage,
-} from './streaming-demo-types';
+import type { ChatSessionState, FlatItem } from './streaming-demo-types';
 
 type ChatStoreApi = UseBoundStore<StoreApi<ChatSessionState>>;
 const sessionMap = new Map<string, ChatStoreApi>();
@@ -28,6 +24,7 @@ function createSessionStore(sessionId: string): ChatStoreApi {
       status: { type: 'idle' },
       flatItems: [],
       revertedMessages: [],
+      revertedFlatItems: [],
       groupFlatIndex: [],
       hasAwaitingQuestion: false,
       activeUserMessageId: null,
@@ -84,42 +81,90 @@ function createSessionStore(sessionId: string): ChatStoreApi {
           state.hasAwaitingQuestion = hasPendingQuestion;
         });
 
-        if (revertMessageId) {
-          get().updateRevertedMessages(revertMessageId);
-        }
+        get().updateRevertedMessages(revertMessageId);
       },
 
-      updateRevertedMessages: (revertMessageId: string) => {
+      updateRevertedMessages: (revertMessageId) => {
         set((state) => {
-          const revertIndex = state.flatItems.findIndex(
+          // 1. FULL RESTORE (Un-revert everything)
+          if (!revertMessageId) {
+            if (state.revertedFlatItems?.length) {
+              state.flatItems.push(...[...state.revertedFlatItems].reverse());
+            }
+
+            state.revertedMessages = [];
+            state.revertedFlatItems = [];
+            return;
+          }
+
+          // 2. PARTIAL RESTORE
+          const boundaryUserIndex = state.revertedFlatItems.findIndex(
             (item) =>
               item.type === 'user' && item.messageId === revertMessageId,
           );
 
-          if (revertIndex === -1) {
-            state.revertedMessages = [];
-            return;
+          if (boundaryUserIndex !== -1) {
+            // Find the oldest user message (the one being restored).
+            let targetUserIndex = state.revertedFlatItems.length - 1;
+
+            while (
+              targetUserIndex >= 0 &&
+              state.revertedFlatItems[targetUserIndex].type !== 'user'
+            ) {
+              targetUserIndex--;
+            }
+
+            if (targetUserIndex >= 0) {
+              // Restore everything from the oldest reverted message up to
+              // (but not including) the boundary message.
+              const turnToRestore = state.revertedFlatItems.splice(
+                boundaryUserIndex + 1,
+                targetUserIndex - boundaryUserIndex,
+              );
+
+              state.flatItems.push(...turnToRestore.reverse());
+            }
+          } else {
+            let revertIndex = state.flatItems.findIndex(
+              (item) =>
+                item.type === 'user' && item.messageId === revertMessageId,
+            );
+
+            if (revertIndex === -1) return;
+
+            if (
+              revertIndex > 0 &&
+              state.flatItems[revertIndex - 1].type === 'user-spacer'
+            ) {
+              revertIndex--;
+            }
+
+            const newlyRemoved = state.flatItems.splice(revertIndex);
+
+            state.revertedFlatItems = [
+              ...state.revertedFlatItems,
+              ...newlyRemoved.reverse(),
+            ];
           }
 
-          const truncated: RevertedMessage[] = [];
-          for (let i = revertIndex; i < state.flatItems.length; i++) {
-            const item = state.flatItems[i];
-            if (item.type === 'user') {
-              // Extract text from user turn parts for the preview snippet
+          state.revertedMessages = [...state.revertedFlatItems]
+            .reverse()
+            .filter(
+              (item): item is Extract<FlatItem, { type: 'user' }> =>
+                item.type === 'user',
+            )
+            .map((item) => {
               const textContent =
                 item.turn.parts
                   ?.filter((p) => p.type === 'text')
                   .map((p) => ('text' in p ? p.text : ''))
                   .join('') || '';
 
-              truncated.push({
+              return {
                 messageId: item.messageId,
                 preview: textContent.slice(0, 100),
-              });
-            }
-          }
-
-          state.revertedMessages = truncated;
+              };
+            });
         });
       },
 
@@ -232,7 +277,7 @@ function createSessionStore(sessionId: string): ChatStoreApi {
         useGlobalChatStore.getState().addUnreadSession(sessionId, 'error');
       },
 
-      handleStreamEvent: (event, revertMessageId?: string) => {
+      handleStreamEvent: (event) => {
         const globalStore = useGlobalChatStore.getState();
 
         switch (event.type) {
@@ -410,6 +455,9 @@ function createSessionStore(sessionId: string): ChatStoreApi {
                     parts: [{ type: 'text', text: textContent }],
                   } as Extract<AeroConversationTurn, { type: 'user' }>;
                 }
+
+                state.revertedFlatItems = [];
+                state.revertedMessages = [];
               });
 
               return;
@@ -449,10 +497,6 @@ function createSessionStore(sessionId: string): ChatStoreApi {
             });
             break;
           }
-        }
-
-        if (revertMessageId) {
-          get().updateRevertedMessages(revertMessageId);
         }
       },
     })),

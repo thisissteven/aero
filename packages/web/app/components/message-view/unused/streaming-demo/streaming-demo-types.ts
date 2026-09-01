@@ -67,6 +67,7 @@ export interface ChatSessionState {
   flatItems: FlatItem[];
   groupFlatIndex: number[];
   revertedMessages: RevertedMessage[];
+  revertedFlatItems: FlatItem[];
   hasAwaitingQuestion: boolean;
 
   activeUserMessageId: string | null;
@@ -76,11 +77,11 @@ export interface ChatSessionState {
     messages: AeroConversationTurn[],
     revertMessageId?: string,
   ) => void;
-  updateRevertedMessages: (revertMessageId: string) => void;
+  updateRevertedMessages: (revertMessageId?: string) => void;
   setStatus: (status: AeroSessionStatus) => void;
   appendOptimisticUserMessage: (text: string) => string;
   removeOptimisticUserMessage: (localMessageId: string) => void;
-  handleStreamEvent: (event: AeroEvent, revertMessageId?: string) => void;
+  handleStreamEvent: (event: AeroEvent) => void;
   setStreaming: (isStreaming: boolean) => void;
   handleSendError: (errorMsg?: string) => void;
 }

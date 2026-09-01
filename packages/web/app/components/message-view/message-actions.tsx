@@ -11,13 +11,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { cn, toast, Tooltip } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
-import {
-  sessionKeys,
-  useForkSession,
-  useRevertSession,
-} from '@/app/hooks/api/sessions';
+import { useForkSession, useRevertSession } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
-import { queryClient } from '@/app/providers';
 import { Route } from '@/app/routes/_app/sessions/$sessionId';
 import { useSpeechStore } from '@/app/stores/speech';
 
@@ -32,12 +27,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
           toast.promise(() => mutateAsync(messageId), {
             loading: 'Reverting message',
             error: (err) => err.message,
-            success: () => {
-              queryClient.invalidateQueries({
-                queryKey: sessionKeys.toc(undefined, sessionId),
-              });
-              return 'Message reverted successfully';
-            },
+            success: 'Message reverted successfully',
           });
         }}
       >

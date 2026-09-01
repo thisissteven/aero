@@ -37,9 +37,9 @@ export function StreamingDemo() {
     if (isMessagesLoading || !session) return;
 
     const sessionStore = getSessionStore(sessionId);
-    sessionStore
-      .getState()
-      .initFromMessages(queriedTurns, session.revert?.messageID);
+    const revertMessageId = session.revert?.messageID;
+    sessionStore.getState().updateRevertedMessages(revertMessageId);
+    sessionStore.getState().initFromMessages(queriedTurns, revertMessageId);
   }, [session, queriedTurns, isMessagesLoading]);
 
   useSessionStream({
