@@ -1,12 +1,16 @@
 // chat-feed.tsx
 
+import { useParams } from '@tanstack/react-router';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
 import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  getSessionStore,
+  useChatStore,
+} from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
 import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
@@ -33,9 +37,15 @@ export const ChatFeed = forwardRef<
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const flatItems = useChatStore((state) => state.flatItems);
-  const groupFlatIndex = useChatStore((state) => state.groupFlatIndex);
-  const isStreaming = useChatStore((state) => state.isStreaming);
+  const { sessionId } = useParams({ strict: false });
+
+  const chatStore = getSessionStore(sessionId);
+  const flatItems = useChatStore(sessionId, (state) => state.flatItems);
+  const groupFlatIndex = useChatStore(
+    sessionId,
+    (state) => state.groupFlatIndex,
+  );
+  const isStreaming = useChatStore(sessionId, (state) => state.isStreaming);
 
   const { subscribeScroll } = useScrollSubscription(scrollRef);
 
@@ -64,8 +74,7 @@ export const ChatFeed = forwardRef<
       subscribeScroll,
 
       scrollToIndex: (groupIndex: number) => {
-        const targetFlatIndex =
-          useChatStore.getState().groupFlatIndex[groupIndex];
+        const targetFlatIndex = chatStore.getState().groupFlatIndex[groupIndex];
 
         const handle = virtualizerRef.current;
 

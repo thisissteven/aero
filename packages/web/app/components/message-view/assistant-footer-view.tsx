@@ -5,12 +5,12 @@ import { memo } from 'react';
 
 import { ChatMessage, Tooltip } from '@aero/ui';
 
-import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import {
   MessageActionsCopy,
   MessageActionsFork,
   MessageActionsReadAloud,
 } from '@/app/components/message-view/message-actions';
+import { FlatItem } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-types';
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { formatDateTime } from '@/app/lib/date';
@@ -19,16 +19,10 @@ import { toPascalCase } from '@/app/lib/file';
 export const AssistantFooterView = memo(function AssistantFooterView({
   item,
 }: {
-  item: Extract<FlatConversationVirtualItem, { type: 'assistant-footer' }>;
+  item: Extract<FlatItem, { type: 'assistant-footer' }>;
 }) {
-  const {
-    createdAt,
-    assistantTextResponse,
-    nextTurnId,
-    turnId,
-    providerID,
-    modelID,
-  } = item;
+  const { createdAt, textResponse, nextTurnId, turnId, providerID, modelID } =
+    item;
 
   return (
     <ChatMessage.Assistant className='group py-0'>
@@ -56,7 +50,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
           </div>
 
           <div>
-            <MessageActionsReadAloud id={turnId} text={assistantTextResponse} />
+            <MessageActionsReadAloud id={turnId} text={textResponse} />
 
             <MessageActionsFork messageId={nextTurnId} />
 
@@ -69,7 +63,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
               </Tooltip.Content>
             </Tooltip>
 
-            <MessageActionsCopy copyText={assistantTextResponse} />
+            <MessageActionsCopy copyText={textResponse} />
           </div>
         </div>
       </ChatMessage.Body>

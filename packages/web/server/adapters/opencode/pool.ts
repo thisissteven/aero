@@ -11,8 +11,14 @@ import {
 } from '@opencode-ai/sdk/v2';
 import { execFileSync } from 'node:child_process';
 
-import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { findAvailablePort } from '@/server/helper';
+
+import {
+  getSavedPort,
+  type OpencodePoolKey,
+  saveManagedPort,
+} from './port-config';
+import { unwrap } from './unwrap';
 
 export type OpencodeServerV1 = Awaited<ReturnType<typeof createServerV1>>;
 export type OpencodeClientV1 = ReturnType<typeof createClientV1>;
@@ -30,7 +36,6 @@ export interface PoolNode<TClient, TServer> {
 }
 
 export type PoolNodeV1 = PoolNode<OpencodeClientV1, OpencodeServerV1>;
-
 export type PoolNodeV2 = PoolNode<OpencodeClientV2, OpencodeServerV2>;
 
 export interface PoolStats {
@@ -61,13 +66,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === 'string') {
-    return error;
-  }
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
 
   try {
     return JSON.stringify(error);
@@ -76,7 +76,17 @@ function getErrorMessage(error: unknown): string {
   }
 }
 
+/*
+ * These are one-time environment facts, not per-spawn facts — memoize
+ * them instead of shelling out (execFileSync, which blocks the event
+ * loop) on every node startup and every recovery.
+ */
+let cachedExecutable: string | undefined | null = null;
+let cachedVersion: string | undefined | null = null;
+
 function resolveOpenCodeExecutable(): string | undefined {
+  if (cachedExecutable !== null) return cachedExecutable;
+
   try {
     if (process.platform === 'win32') {
       const output = execFileSync('where.exe', ['opencode'], {
@@ -85,49 +95,50 @@ function resolveOpenCodeExecutable(): string | undefined {
         timeout: 5000,
       });
 
-      return (
+      cachedExecutable =
         output
           .split(/\r?\n/)
           .map((line) => line.trim())
-          .find(Boolean) ?? undefined
-      );
+          .find(Boolean) ?? undefined;
+    } else {
+      cachedExecutable =
+        execFileSync('which', ['opencode'], {
+          encoding: 'utf8',
+          timeout: 5000,
+        }).trim() || undefined;
     }
-
-    return (
-      execFileSync('which', ['opencode'], {
-        encoding: 'utf8',
-        timeout: 5000,
-      }).trim() || undefined
-    );
   } catch {
-    return undefined;
+    cachedExecutable = undefined;
   }
+
+  return cachedExecutable;
 }
 
 function getOpenCodeVersion(): string | undefined {
+  if (cachedVersion !== null) return cachedVersion;
+
   try {
     const executable =
       process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
 
-    return (
+    cachedVersion =
       execFileSync(executable, ['--version'], {
         encoding: 'utf8',
         windowsHide: true,
         timeout: 10000,
-      }).trim() || undefined
-    );
+      }).trim() || undefined;
   } catch {
-    return undefined;
+    cachedVersion = undefined;
   }
+
+  return cachedVersion;
 }
 
 function isLikelyDaemonFailure(error: unknown): boolean {
   const message = getErrorMessage(error).toLowerCase();
 
-  /*
-   * These are generally provider/config/application failures.
-   * Do not kill a perfectly healthy local OpenCode daemon for them.
-   */
+  // Provider/config/application failures — don't kill a healthy local
+  // OpenCode daemon over these.
   if (
     message.includes('configinvaliderror') ||
     message.includes('invalid config') ||
@@ -162,6 +173,37 @@ function isLikelyDaemonFailure(error: unknown): boolean {
   );
 }
 
+/*
+ * Tiny FIFO mutex.
+ *
+ * Root cause of the "database is locked" boot failure: the V1 and V2
+ * pools each spawn a local `opencode` child process on boot, and both
+ * processes race to init/migrate the same on-disk OpenCode database.
+ * Whichever loses the race errors out; the existing retry loop just
+ * happened to paper over it once V1 finished.
+ *
+ * Serializing full node startup (spawn -> health check) across BOTH
+ * pools — not just retrying — removes the race instead of hoping the
+ * timing works out. This only affects boot/recovery latency, never
+ * request latency.
+ */
+class AsyncMutex {
+  private queue: Promise<void> = Promise.resolve();
+
+  run<T>(fn: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(fn, fn);
+
+    this.queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return result;
+  }
+}
+
+const spawnMutex = new AsyncMutex();
+
 export class OpencodeServerPool<
   TClient,
   TServer extends {
@@ -180,6 +222,7 @@ export class OpencodeServerPool<
   private readonly poolSize: number;
   private readonly basePort: number;
   private readonly versionLabel: string;
+  private readonly poolKey: OpencodePoolKey;
 
   constructor(
     private readonly createServerFn: (opts: {
@@ -191,52 +234,35 @@ export class OpencodeServerPool<
     poolSize = 1,
     basePort = 56789,
     versionLabel = 'SDK',
+    poolKey: OpencodePoolKey = 'v2',
   ) {
     this.poolSize = Math.max(1, Math.floor(poolSize));
-
     this.basePort = basePort;
     this.versionLabel = versionLabel;
+    this.poolKey = poolKey;
   }
 
   /**
-   * Starts initialization once.
-   *
-   * IMPORTANT:
-   * This promise represents the background startup operation.
-   * getNode() does NOT await it, so a broken OpenCode process can
-   * never freeze an HTTP request while startup/recovery is happening.
+   * Starts initialization once. getNode() never awaits this — a
+   * broken OpenCode process can never freeze an HTTP request while
+   * startup/recovery is happening in the background.
    */
   public init(): Promise<void> {
-    if (this.shuttingDown) {
-      return Promise.resolve();
-    }
-
-    if (this.hasHealthyNode()) {
-      return Promise.resolve();
-    }
-
-    if (this.initPromise) {
-      return this.initPromise;
-    }
+    if (this.shuttingDown) return Promise.resolve();
+    if (this.hasHealthyNode()) return Promise.resolve();
+    if (this.initPromise) return this.initPromise;
 
     const lifecycle = this.lifecycle;
 
     this.initPromise = this.initializePool(lifecycle)
       .catch((error) => {
-        /*
-         * Never allow startup failures to become unhandled
-         * rejections that can poison the rest of the application.
-         */
         console.error(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Background initialization failed:`,
+          `[OpenCode Pool ${this.versionLabel}] Background initialization failed:`,
           error,
         );
       })
       .finally(() => {
-        if (this.lifecycle === lifecycle) {
-          this.initPromise = null;
-        }
+        if (this.lifecycle === lifecycle) this.initPromise = null;
       });
 
     return this.initPromise;
@@ -261,74 +287,37 @@ export class OpencodeServerPool<
       }
 
       console.log(
-        `[OpenCode Pool ${this.versionLabel}] ` +
-          `Initializing ${this.poolSize} node(s) ` +
-          `(attempt ${attempt}/${STARTUP_ATTEMPTS})...`,
+        `[OpenCode Pool ${this.versionLabel}] Initializing ${this.poolSize} node(s) (attempt ${attempt}/${STARTUP_ATTEMPTS})...`,
       );
 
-      const spawns: Promise<PoolNode<TClient, TServer>>[] = [];
-
-      /*
-       * Every startup attempt gets fresh ports.
-       * Never assume a timed-out SDK startup immediately released
-       * the previous port/process.
-       */
-      let nextPort = this.basePort;
-
-      for (let id = 0; id < this.poolSize; id++) {
-        let port: number;
-
-        try {
-          port = await findAvailablePort(nextPort);
-        } catch (error) {
-          console.error(
-            `[OpenCode Pool ${this.versionLabel}] ` +
-              `Failed to find port for node ${id}:`,
-            error,
-          );
-
-          nextPort += 1;
-          continue;
-        }
-
-        spawns.push(this.spawnNode(id, port, lifecycle));
-
-        nextPort = port + 1;
-      }
-
-      const results = await Promise.allSettled(spawns);
+      const results = await Promise.allSettled(
+        Array.from({ length: this.poolSize }, (_, id) =>
+          this.spawnNodeWithPort(id, lifecycle),
+        ),
+      );
 
       if (this.shuttingDown || lifecycle !== this.lifecycle) {
         await this.closeSuccessfulNodes(results);
         return;
       }
 
-      const successfulNodes: PoolNode<TClient, TServer>[] = [];
-
       for (const [index, result] of results.entries()) {
         if (result.status === 'fulfilled') {
-          successfulNodes.push(result.value);
+          this.installNode(result.value);
         } else {
           console.error(
-            `[OpenCode Pool ${this.versionLabel}] ` +
-              `Node ${index} failed to start:`,
+            `[OpenCode Pool ${this.versionLabel}] Node ${index} failed to start:`,
             result.reason,
           );
         }
       }
 
-      for (const freshNode of successfulNodes) {
-        this.installNode(freshNode);
-      }
-
       if (this.hasHealthyNode()) {
         console.log(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Active nodes: ${this.healthyNodeCount()}/${this.poolSize} ` +
-            `on ports: [${this.nodes
-              .filter((node) => node.isHealthy && !node.isRecovering)
-              .map((node) => node.port)
-              .join(', ')}]`,
+          `[OpenCode Pool ${this.versionLabel}] Active nodes: ${this.healthyNodeCount()}/${this.poolSize} on ports: [${this.nodes
+            .filter((node) => node.isHealthy && !node.isRecovering)
+            .map((node) => node.port)
+            .join(', ')}]`,
         );
 
         return;
@@ -336,113 +325,114 @@ export class OpencodeServerPool<
 
       if (attempt < STARTUP_ATTEMPTS) {
         console.warn(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `No healthy nodes after startup attempt ${attempt}; ` +
-            `retrying...`,
+          `[OpenCode Pool ${this.versionLabel}] No healthy nodes after attempt ${attempt}; retrying...`,
         );
 
         await sleep(STARTUP_RETRY_DELAY * attempt);
       }
     }
 
-    /*
-     * Deliberately don't throw.
-     *
-     * The pool is allowed to be empty. The application itself
-     * remains alive and future getNode() calls can trigger another
-     * initialization cycle.
-     */
+    // Deliberately don't throw — the pool is allowed to be empty.
+    // Future getNode() calls trigger another initialization cycle.
     console.error(
-      `[OpenCode Pool ${this.versionLabel}] ` +
-        `Unable to initialize any healthy OpenCode nodes. ` +
-        `Will retry lazily.`,
+      `[OpenCode Pool ${this.versionLabel}] Unable to initialize any healthy OpenCode nodes. Will retry lazily.`,
     );
+  }
+
+  /**
+   * Resolves which port node `id` should use — the previously saved
+   * port if one exists (falling back to the next free port if that
+   * one's now busy), else basePort + id — spawns it, and persists the
+   * port to opencode.json if it changed.
+   */
+  private async spawnNodeWithPort(
+    id: number,
+    lifecycle: number,
+  ): Promise<PoolNode<TClient, TServer>> {
+    const savedPort = await getSavedPort(this.poolKey, id);
+    const preferredPort = savedPort ?? this.basePort + id;
+
+    const node = await this.spawnNode(id, preferredPort, lifecycle);
+
+    if (node.port !== savedPort) {
+      await saveManagedPort(this.poolKey, id, node.port);
+    }
+
+    return node;
   }
 
   private async spawnNode(
     id: number,
-    port: number,
+    preferredPort: number,
     lifecycle: number,
   ): Promise<PoolNode<TClient, TServer>> {
-    if (this.shuttingDown || lifecycle !== this.lifecycle) {
-      throw new Error(
-        `[OpenCode Pool ${this.versionLabel}] ` + `Node startup cancelled.`,
-      );
-    }
+    return spawnMutex.run(async () => {
+      if (this.shuttingDown || lifecycle !== this.lifecycle) {
+        throw new Error(
+          `[OpenCode Pool ${this.versionLabel}] Node startup cancelled.`,
+        );
+      }
 
-    console.log(`[OpenCode Pool ${this.versionLabel}] Spawning node`, {
-      id,
-      port,
-      executable: resolveOpenCodeExecutable(),
-      version: getOpenCodeVersion(),
-      HTTP_PROXY: process.env.HTTP_PROXY,
-      HTTPS_PROXY: process.env.HTTPS_PROXY,
-      ALL_PROXY: process.env.ALL_PROXY,
-      NO_PROXY: process.env.NO_PROXY,
-      NODE_ENV: process.env.NODE_ENV,
-    });
+      // Resolved *inside* the mutex so two nodes racing to find a
+      // free port can never both land on the same one.
+      const port = await findAvailablePort(preferredPort);
 
-    let server: TServer;
-
-    try {
-      server = await this.createServerFn({
-        hostname: '127.0.0.1',
+      console.log(`[OpenCode Pool ${this.versionLabel}] Spawning node`, {
+        id,
         port,
+        executable: resolveOpenCodeExecutable(),
+        version: getOpenCodeVersion(),
       });
-    } catch (error) {
-      console.error(
-        `[OpenCode Pool ${this.versionLabel}] ` +
-          `createOpencodeServer failed ` +
-          `(node ${id}, port ${port}):`,
-        error,
-      );
 
-      throw error;
-    }
+      let server: TServer;
 
-    /*
-     * If shutdown/restart happened while the SDK was
-     * creating the server, immediately close the newly
-     * created instance rather than leaving an orphan behind.
-     */
-    if (this.shuttingDown || lifecycle !== this.lifecycle) {
       try {
-        server.close?.();
-      } catch {
-        // Ignore cleanup errors.
+        server = await this.createServerFn({ hostname: '127.0.0.1', port });
+      } catch (error) {
+        console.error(
+          `[OpenCode Pool ${this.versionLabel}] createOpencodeServer failed (node ${id}, port ${port}):`,
+          error,
+        );
+
+        throw error;
       }
 
-      throw new Error(
-        `[OpenCode Pool ${this.versionLabel}] ` +
-          `Node startup cancelled after server creation.`,
-      );
-    }
+      if (this.shuttingDown || lifecycle !== this.lifecycle) {
+        try {
+          server.close?.();
+        } catch {
+          // Ignore cleanup errors.
+        }
 
-    const client = this.createClientFn({
-      baseUrl: server.url,
+        throw new Error(
+          `[OpenCode Pool ${this.versionLabel}] Node startup cancelled after server creation.`,
+        );
+      }
+
+      const client = this.createClientFn({ baseUrl: server.url });
+
+      try {
+        await this.waitForServerReady(client, port, lifecycle);
+      } catch (error) {
+        try {
+          server.close?.();
+        } catch {
+          // Ignore cleanup errors.
+        }
+
+        throw error;
+      }
+
+      return {
+        id,
+        port,
+        server,
+        client,
+        activeRequests: 0,
+        isHealthy: true,
+        isRecovering: false,
+      };
     });
-
-    try {
-      await this.waitForServerReady(client, port, lifecycle);
-    } catch (error) {
-      try {
-        server.close?.();
-      } catch {
-        // Ignore cleanup errors.
-      }
-
-      throw error;
-    }
-
-    return {
-      id,
-      port,
-      server,
-      client,
-      activeRequests: 0,
-      isHealthy: true,
-      isRecovering: false,
-    };
   }
 
   private async waitForServerReady(
@@ -457,29 +447,21 @@ export class OpencodeServerPool<
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (this.shuttingDown || lifecycle !== this.lifecycle) {
         throw new Error(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Health check cancelled for port ${port}.`,
+          `[OpenCode Pool ${this.versionLabel}] Health check cancelled for port ${port}.`,
         );
       }
 
       try {
         await this.healthCheckFn(client);
-
         return;
       } catch (error) {
         lastError = error;
-
-        if (attempt < maxRetries) {
-          await sleep(delayMs);
-        }
+        if (attempt < maxRetries) await sleep(delayMs);
       }
     }
 
     throw new Error(
-      `[OpenCode Pool ${this.versionLabel}] ` +
-        `Server failed health check on port ${port} ` +
-        `after ${maxRetries} attempts. ` +
-        `${getErrorMessage(lastError)}`,
+      `[OpenCode Pool ${this.versionLabel}] Server failed health check on port ${port} after ${maxRetries} attempts. ${getErrorMessage(lastError)}`,
     );
   }
 
@@ -494,10 +476,8 @@ export class OpencodeServerPool<
       return;
     }
 
-    const existing = this.nodes[existingIndex];
-
     try {
-      existing.server.close?.();
+      this.nodes[existingIndex].server.close?.();
     } catch {
       // Ignore cleanup errors.
     }
@@ -508,19 +488,21 @@ export class OpencodeServerPool<
   private async closeSuccessfulNodes(
     results: PromiseSettledResult<PoolNode<TClient, TServer>>[],
   ): Promise<void> {
-    const successful = results.filter(
-      (result): result is PromiseFulfilledResult<PoolNode<TClient, TServer>> =>
-        result.status === 'fulfilled',
-    );
-
     await Promise.allSettled(
-      successful.map(async (result) => {
-        try {
-          result.value.server.close?.();
-        } catch {
-          // Ignore cleanup errors.
-        }
-      }),
+      results
+        .filter(
+          (
+            result,
+          ): result is PromiseFulfilledResult<PoolNode<TClient, TServer>> =>
+            result.status === 'fulfilled',
+        )
+        .map(async (result) => {
+          try {
+            result.value.server.close?.();
+          } catch {
+            // Ignore cleanup errors.
+          }
+        }),
     );
   }
 
@@ -540,12 +522,9 @@ export class OpencodeServerPool<
   }
 
   /**
-   * IMPORTANT:
-   *
-   * Do not await initialization here.
-   *
-   * If OpenCode takes 5s, 10s, or fails completely, the caller gets
-   * a fast failure instead of freezing an HTTP request.
+   * Never awaits initialization directly — if OpenCode takes 5s,
+   * 10s, or fails outright, the caller gets a fast failure instead
+   * of freezing an HTTP request.
    */
   public async getNode(
     retries = NODE_RETRY_ATTEMPTS,
@@ -566,22 +545,15 @@ export class OpencodeServerPool<
         return existing;
       }
 
-      /*
-       * Kick startup/recovery into the background.
-       * NEVER await it here.
-       */
       void this.init().catch((error) => {
         console.error(
-          `[OpenCode Pool ${this.versionLabel}] ` + `Background init error:`,
+          `[OpenCode Pool ${this.versionLabel}] Background init error:`,
           error,
         );
       });
 
-      /*
-       * Give an already-in-flight startup a very small window
-       * to become ready. This is deliberately short so requests
-       * cannot hang behind OpenCode startup.
-       */
+      // Give an already-in-flight startup a small window to become
+      // ready, short enough that requests never hang behind it.
       const node = await this.waitForHealthyNode(
         Math.min(250, NODE_RETRY_DELAY),
       );
@@ -591,14 +563,11 @@ export class OpencodeServerPool<
         return node;
       }
 
-      if (attempt < attempts) {
-        await sleep(NODE_RETRY_DELAY);
-      }
+      if (attempt < attempts) await sleep(NODE_RETRY_DELAY);
     }
 
     throw new Error(
-      `[OpenCode Pool ${this.versionLabel}] ` +
-        `No healthy OpenCode server is currently available.`,
+      `[OpenCode Pool ${this.versionLabel}] No healthy OpenCode server is currently available.`,
     );
   }
 
@@ -609,15 +578,8 @@ export class OpencodeServerPool<
 
     while (Date.now() - started < timeoutMs) {
       const node = this.selectHealthyNode();
-
-      if (node) {
-        return node;
-      }
-
-      if (this.shuttingDown) {
-        return undefined;
-      }
-
+      if (node) return node;
+      if (this.shuttingDown) return undefined;
       await sleep(25);
     }
 
@@ -632,46 +594,11 @@ export class OpencodeServerPool<
     node.activeRequests = Math.max(0, node.activeRequests - 1);
   }
 
-  private async recoverUnhealthyNodes(): Promise<void> {
-    if (this.shuttingDown) {
-      return;
-    }
-
-    /*
-     * If the pool has no nodes at all, initialization handles
-     * creating them.
-     */
-    if (this.nodes.length === 0) {
-      void this.init().catch((error) => {
-        console.error(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Background initialization error:`,
-          error,
-        );
-      });
-
-      return;
-    }
-
-    const deadNodes = this.nodes.filter(
-      (node) => !node.isHealthy && !node.isRecovering,
-    );
-
-    for (const node of deadNodes) {
-      void this.recoverNode(node);
-    }
-  }
-
   public async recoverNode(node: PoolNode<TClient, TServer>): Promise<void> {
-    if (this.shuttingDown || node.isRecovering) {
-      return;
-    }
+    if (this.shuttingDown || node.isRecovering) return;
 
     const existingRecovery = this.recoveryPromises.get(node.id);
-
-    if (existingRecovery) {
-      return existingRecovery;
-    }
+    if (existingRecovery) return existingRecovery;
 
     node.isRecovering = true;
     node.isHealthy = false;
@@ -680,36 +607,22 @@ export class OpencodeServerPool<
 
     const recovery = (async () => {
       console.warn(
-        `[OpenCode Pool ${this.versionLabel}] ` +
-          `Recovering node ${node.id} ` +
-          `(old port ${node.port})...`,
+        `[OpenCode Pool ${this.versionLabel}] Recovering node ${node.id} (old port ${node.port})...`,
       );
 
       try {
-        /*
-         * Close the old server before allocating a replacement.
-         */
         try {
           node.server.close?.();
         } catch {
           // Ignore cleanup failures.
         }
 
-        /*
-         * Let the old OpenCode process/socket settle.
-         */
+        // Let the old OpenCode process/socket settle.
         await sleep(RECOVERY_DELAY);
 
-        if (this.shuttingDown || lifecycle !== this.lifecycle) {
-          return;
-        }
+        if (this.shuttingDown || lifecycle !== this.lifecycle) return;
 
-        /*
-         * Fresh port every time.
-         */
-        const freshPort = await findAvailablePort(this.basePort);
-
-        const freshNode = await this.spawnNode(node.id, freshPort, lifecycle);
+        const freshNode = await this.spawnNodeWithPort(node.id, lifecycle);
 
         if (this.shuttingDown || lifecycle !== this.lifecycle) {
           try {
@@ -721,26 +634,21 @@ export class OpencodeServerPool<
           return;
         }
 
-        /*
-         * Preserve the original PoolNode object so any code
-         * holding a reference to it doesn't suddenly point at
-         * a stale object.
-         */
+        // Preserve the original PoolNode object so any code holding
+        // a reference to it doesn't suddenly point at a stale object.
         Object.assign(node, freshNode, {
           isRecovering: false,
           isHealthy: true,
         });
 
         console.log(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Node ${node.id} recovered on port ${freshPort}.`,
+          `[OpenCode Pool ${this.versionLabel}] Node ${node.id} recovered on port ${freshNode.port}.`,
         );
       } catch (error) {
         node.isHealthy = false;
 
         console.error(
-          `[OpenCode Pool ${this.versionLabel}] ` +
-            `Recovery failed for node ${node.id}:`,
+          `[OpenCode Pool ${this.versionLabel}] Recovery failed for node ${node.id}:`,
           error,
         );
       } finally {
@@ -768,26 +676,19 @@ export class OpencodeServerPool<
       return await fn(node.client, node);
     } catch (error) {
       console.error(
-        `[OpenCode Pool ${this.versionLabel}] ` +
-          `Request failed on node ${node.id} ` +
-          `(port ${node.port}):`,
+        `[OpenCode Pool ${this.versionLabel}] Request failed on node ${node.id} (port ${node.port}):`,
         error,
       );
 
-      /*
-       * Only recover the local daemon for local-daemon failures.
-       *
-       * Provider errors such as "Cannot connect to API" are left
-       * alone because they do not imply the local OpenCode daemon
-       * is dead.
-       */
+      // Only recover the local daemon for local-daemon failures.
+      // Provider errors (e.g. "Cannot connect to API") don't imply
+      // the local OpenCode daemon is dead.
       if (isLikelyDaemonFailure(error)) {
         node.isHealthy = false;
 
         void this.recoverNode(node).catch((recoveryError) => {
           console.error(
-            `[OpenCode Pool ${this.versionLabel}] ` +
-              `Unhandled recovery error:`,
+            `[OpenCode Pool ${this.versionLabel}] Unhandled recovery error:`,
             recoveryError,
           );
         });
@@ -800,9 +701,7 @@ export class OpencodeServerPool<
   }
 
   /**
-   * Stats are always safe.
-   *
-   * This endpoint NEVER initializes or waits for OpenCode.
+   * Never initializes or waits for OpenCode — always safe to call.
    */
   public async getStats(): Promise<PoolStats> {
     const nodes = this.nodes.map((node) => ({
@@ -812,52 +711,36 @@ export class OpencodeServerPool<
       isHealthy: node.isHealthy && !node.isRecovering,
     }));
 
-    const totalActiveRequests = nodes.reduce(
-      (sum, node) => sum + node.activeRequests,
-      0,
-    );
-
-    const healthyNodesCount = nodes.filter((node) => node.isHealthy).length;
-
     return {
       poolSize: nodes.length,
-      totalActiveRequests,
-      healthyNodesCount,
+      totalActiveRequests: nodes.reduce(
+        (sum, node) => sum + node.activeRequests,
+        0,
+      ),
+      healthyNodesCount: nodes.filter((node) => node.isHealthy).length,
       nodes,
     };
   }
 
-  /**
-   * Public API unchanged.
-   */
-  public async getVersion(): Promise<{
-    version: string;
-    port: number;
-  }> {
+  public async getVersion(): Promise<{ version: string; port: number }> {
     return this.execute(async (client, node) => {
       const response = await (client as OpencodeClientV2).global.health();
-
       const health = unwrap(response);
 
-      return {
-        version: health.version,
-        port: node.port,
-      };
+      return { version: health.version, port: node.port };
     });
   }
 
   /**
-   * Forcefully tears down every node and invalidates all
-   * in-flight startup/recovery work.
+   * Tears down every node and invalidates all in-flight startup/
+   * recovery work.
    */
   public async shutdown(): Promise<void> {
     this.shuttingDown = true;
     this.lifecycle++;
 
     const nodes = this.nodes;
-
     this.nodes = [];
-
     this.initPromise = null;
     this.recoveryPromises.clear();
 
@@ -871,8 +754,7 @@ export class OpencodeServerPool<
           node.server.close?.();
         } catch (error) {
           console.warn(
-            `[OpenCode Pool ${this.versionLabel}] ` +
-              `Failed to close node ${node.id}:`,
+            `[OpenCode Pool ${this.versionLabel}] Failed to close node ${node.id}:`,
             error,
           );
         }
@@ -891,15 +773,11 @@ export const opencodePoolV1 = new OpencodeServerPool<
 >(
   createServerV1,
   createClientV1,
-  (client) =>
-    client.session.list({
-      query: {
-        limit: 1,
-      },
-    } as any),
+  (client) => client.session.list({ query: { limit: 1 } } as any),
   POOL_SIZE,
   50789,
   'V1',
+  'v1',
 );
 
 export const opencodePoolV2 = new OpencodeServerPool<
@@ -908,13 +786,11 @@ export const opencodePoolV2 = new OpencodeServerPool<
 >(
   createServerV2,
   createClientV2,
-  (client) =>
-    client.session.list({
-      limit: 1,
-    }),
+  (client) => client.session.list({ limit: 1 }),
   POOL_SIZE,
   56789,
   'V2',
+  'v2',
 );
 
 export const opencodePool = opencodePoolV2;

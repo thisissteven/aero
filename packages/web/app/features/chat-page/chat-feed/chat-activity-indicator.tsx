@@ -1,16 +1,15 @@
+import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useChatStore } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
+import { FlatItem } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-types';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
-import type {
-  AeroConversationTurn,
-  AeroSessionStatus,
-} from '@/server/services/harness/types';
+import type { AeroSessionStatus } from '@/server/services/harness/types';
 
-function getActivityLabel(
-  turns: AeroConversationTurn[],
+export function getActivityLabel(
+  flatItems: FlatItem[],
   status: AeroSessionStatus,
-) {
+): string | null {
   if (status.type === 'idle') {
     return null;
   }
@@ -19,40 +18,63 @@ function getActivityLabel(
     return `Retrying (attempt ${status.attempt})…`;
   }
 
-  const lastAssistant = [...turns]
-    .reverse()
-    .find((turn) => turn.role === 'assistant');
+  // Collect all assistant parts for the latest assistant turn
+  const lastAssistantParts = [];
+  let latestTurnId: string | null = null;
 
-  if (!lastAssistant) {
+  for (let i = flatItems.length - 1; i >= 0; i--) {
+    const item = flatItems[i];
+    if (item.type === 'assistant-part') {
+      if (latestTurnId === null) {
+        latestTurnId = item.turnId;
+      }
+
+      // Stop once we move past the latest assistant turn
+      if (item.turnId !== latestTurnId) {
+        break;
+      }
+
+      lastAssistantParts.push(item.part);
+    }
+  }
+
+  if (lastAssistantParts.length === 0) {
     return 'Assistant is thinking…';
   }
 
-  const activeTool = [...lastAssistant.parts]
-    .reverse()
-    .find(
-      (part) =>
-        part.type === 'tool' &&
-        (part.status === 'pending' || part.status === 'running'),
+  // 1. Check for active/pending tools or questions
+  const activeTool = lastAssistantParts.find((part) => {
+    return (
+      part.type === 'tool' &&
+      (part.status === 'pending' || part.status === 'running')
     );
+  });
 
   if (activeTool) {
-    if (activeTool.type === 'tool' && activeTool.toolName === 'question') {
+    const isQuestion =
+      activeTool.type === 'tool' && activeTool.toolName === 'question';
+
+    if (isQuestion) {
       return 'Assistant is waiting for an answer…';
     }
 
     return 'Assistant is calling a tool…';
   }
 
-  const hasReasoning = lastAssistant.parts.some(
-    (part) => part.type === 'reasoning' && part.text.length > 0,
+  // 2. Check for active reasoning/thinking
+  const hasReasoning = lastAssistantParts.some(
+    (part) =>
+      part.type === 'reasoning' && Boolean(part.text && part.text.length > 0),
   );
 
   if (hasReasoning) {
     return 'Assistant is thinking…';
   }
 
-  const hasText = lastAssistant.parts.some(
-    (part) => part.type === 'text' && part.text.length > 0,
+  // 3. Check for text generation response
+  const hasText = lastAssistantParts.some(
+    (part) =>
+      part.type === 'text' && Boolean(part.text && part.text.length > 0),
   );
 
   if (hasText) {
@@ -90,9 +112,11 @@ function PixelLoader() {
 }
 
 export function ChatActivityIndicator() {
-  const turns = useChatStore((state) => state.turns);
-  const status = useChatStore((state) => state.status);
-  const startedAt = useChatStore((state) => state.streamStartedAt);
+  const { sessionId } = useParams({ strict: false });
+
+  const turns = useChatStore(sessionId, (state) => state.flatItems);
+  const status = useChatStore(sessionId, (state) => state.status);
+  const startedAt = useChatStore(sessionId, (state) => state.streamStartedAt);
 
   const elapsed = useElapsedTime(startedAt, status.type !== 'idle');
 

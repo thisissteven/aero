@@ -5,8 +5,8 @@ import { useState } from 'react';
 
 import { cn, Disclosure, toast } from '@aero/ui';
 
+import { useChatStore } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
 import { IconButton } from '@/app/components/ui/icon-button';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   sessionKeys,
   useForkSession,
@@ -16,11 +16,14 @@ import {
 import { queryClient } from '@/app/providers';
 
 export function RevertedMessages() {
-  const revertedMessages = useChatStore((state) => state.revertedMessages);
-
   const { sessionId } = useParams({
     strict: false,
   });
+
+  const revertedMessages = useChatStore(
+    sessionId,
+    (state) => state.revertedMessages,
+  );
 
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
   const { mutateAsync: restoreMessages } = useRestoreAllMessages(

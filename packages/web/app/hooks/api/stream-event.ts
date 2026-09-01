@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useGlobalChatStore } from '@/app/components/message-view/unused/streaming-demo/global-chat-store';
+import {
+  getSessionStore,
+  useChatStore,
+} from '@/app/components/message-view/unused/streaming-demo/streaming-demo-store';
 import { $individualSession } from '@/app/hooks/api/sessions';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
@@ -10,9 +14,7 @@ interface Params {
 }
 
 export function useSessionStream({ sessionId, harnessId }: Params) {
-  const isStreaming = useChatStore((state) =>
-    sessionId ? (state.sessions[sessionId]?.isStreaming ?? false) : false,
-  );
+  const isStreaming = useChatStore(sessionId, (state) => state.isStreaming);
 
   useEffect(() => {
     if (!sessionId || !isStreaming) {
@@ -36,9 +38,10 @@ export function useRestoreSessionStreams() {
 
     hasRestored.current = true;
 
-    const runningSessions = useChatStore.getState().runningSessions;
-    const removeRunningSession = useChatStore.getState().removeRunningSession;
-    const addUnreadSession = useChatStore.getState().addUnreadSession;
+    const runningSessions = useGlobalChatStore.getState().runningSessions;
+    const removeRunningSession =
+      useGlobalChatStore.getState().removeRunningSession;
+    const addUnreadSession = useGlobalChatStore.getState().addUnreadSession;
 
     if (runningSessions.length === 0) {
       return;
@@ -117,17 +120,17 @@ export function useRestoreSessionStreams() {
           return;
         }
 
-        const store = useChatStore.getState();
+        const chatStore = getSessionStore(sessionId).getState();
 
         /**
          * Same hydration pipeline as SessionPage.
          */
-        store.setConversationData(sessionId, turns, session?.revert?.messageID);
+        chatStore.initFromMessages(turns, session?.revert?.messageID);
 
         /**
          * Same status pipeline as SessionPage.
          */
-        store.setStatus(sessionId, status, 'query');
+        chatStore.setStatus(status);
 
         /**
          * IMPORTANT:

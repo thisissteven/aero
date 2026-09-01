@@ -59,6 +59,9 @@ export async function findAvailablePort(
 // Linux:   /home/<username>/.aero
 export const AERO_DIR = normalizePath(join(homedir(), '.aero'));
 
+export const OPENCODE_CONFIG_PATH = normalizePath(
+  join(AERO_DIR, 'opencode.json'),
+);
 export const WORKSPACES_PATH = normalizePath(join(AERO_DIR, 'workspaces.json'));
 export const HARNESSES_CONFIG_PATH = normalizePath(
   join(AERO_DIR, 'harnesses.json'),

@@ -28,17 +28,15 @@ const handleIsWorktreeFile = (cleanText: string): boolean => {
 const handleOpenFileInEditor = (path: string) => path;
 
 export const AssistantPartView = memo(function AssistantPartView({
-  turnId,
   part,
-  partIndex,
+  partId,
   isPartStreaming,
 }: {
-  turnId: string;
   part: AeroPart;
-  partIndex: number;
+  partId: string;
   isPartStreaming: boolean;
 }) {
-  const blockId = `${turnId}-part-${partIndex}`;
+  const blockId = `part-${partId}`;
 
   switch (part.type) {
     case 'text': {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 
-import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
+import { FlatItem } from '@/app/components/message-view/unused/streaming-demo/streaming-demo-types';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
 import { AssistantFooterView } from './assistant-footer-view';
@@ -14,7 +14,7 @@ export function ChatConversationView({
   scrollRef,
   onScroll,
 }: {
-  flatItems: FlatConversationVirtualItem[];
+  flatItems: FlatItem[];
   virtualizerRef: React.RefObject<VirtualizerHandle | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (offset: number) => void;
@@ -32,7 +32,7 @@ export function ChatConversationView({
   }, [keepIds, flatItems]);
 
   return (
-    <Virtualizer<FlatConversationVirtualItem>
+    <Virtualizer<FlatItem>
       ref={virtualizerRef}
       scrollRef={scrollRef}
       keepMounted={keepMounted}
@@ -42,13 +42,7 @@ export function ChatConversationView({
       // shift={isStreaming ? false : true}
     >
       {(item) => {
-        if (item.type === 'spacer-first-item') {
-          return <div key={item.id} className='h-8 w-full shrink-0' />;
-        }
-        if (item.type === 'spacer') {
-          return <div key={item.id} className='h-2 w-full shrink-0' />;
-        }
-        if (item.type === 'spacer-footer') {
+        if (item.type === 'user-spacer') {
           return <div key={item.id} className='h-8 w-full shrink-0' />;
         }
 
@@ -65,35 +59,36 @@ export function ChatConversationView({
             )}
             {item.type === 'assistant-part' && (
               <AssistantPartView
-                turnId={item.turnId}
                 part={item.part}
-                partIndex={item.partIndex}
+                partId={item.partId}
                 isPartStreaming={item.isPartStreaming}
               />
             )}
-            {item.type === 'assistant-error' && (
-              <div className='relative pt-4'>
-                <div className='absolute top-0 left-0 h-full pt-4'>
-                  <div className='bg-danger h-full w-1'></div>
-                </div>
-                <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
-                  {item.message}
-                </div>
-              </div>
-            )}
-            {item.type === 'assistant-usage-exceeded' && (
-              <div className='relative pt-2'>
-                <div className='absolute top-0 left-0 h-full pt-2'>
-                  <div className='bg-warning h-full w-1'></div>
-                </div>
-                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
-                  <div>
-                    <b>{item.title}</b>
+            {item.type === 'assistant-error' &&
+              item.errorType === 'message_aborted' && (
+                <div className='relative pt-4'>
+                  <div className='absolute top-0 left-0 h-full pt-4'>
+                    <div className='bg-danger h-full w-1'></div>
                   </div>
-                  {item.message}
+                  <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
+                    {item.message}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            {item.type === 'assistant-error' &&
+              item.errorType === 'usage_exceeded' && (
+                <div className='relative pt-2'>
+                  <div className='absolute top-0 left-0 h-full pt-2'>
+                    <div className='bg-warning h-full w-1'></div>
+                  </div>
+                  <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
+                    <div>
+                      <b>Usage Exceeded Error</b>
+                    </div>
+                    {item.message}
+                  </div>
+                </div>
+              )}
             {item.type === 'assistant-footer' && (
               <AssistantFooterView item={item} />
             )}

@@ -149,7 +149,7 @@ const workspaces = new Hono()
     },
   )
 
-  // GET /api/workspaces?workspaceId=...&cursor=...&limit=...&search=...
+  // GET /api/workspaces?harnessId=...&cursor=...&limit=...&search=...
   .get(
     '/',
     zValidator(

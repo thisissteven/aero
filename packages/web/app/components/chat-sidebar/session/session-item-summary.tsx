@@ -14,8 +14,8 @@ import {
   RenameSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionItemMarquee } from '@/app/components/chat-sidebar/session/session-item-marquee';
+import { useGlobalChatStore } from '@/app/components/message-view/unused/streaming-demo/global-chat-store';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { formatCompactRelativeTime } from '@/app/lib';
 import {
   useRecentsSessionRenameStore,
@@ -49,7 +49,7 @@ export function SessionItemSummary({
     (state) => state.state,
   );
 
-  const isRunning = useChatStore(
+  const isRunning = useGlobalChatStore(
     useShallow((state) => state.runningSessions.includes(session.id)),
   );
 
@@ -61,7 +61,7 @@ export function SessionItemSummary({
       workspacesState.isRenaming &&
       workspacesState.sessionId === session.id);
 
-  const { isUnread, unreadStatus } = useChatStore(
+  const { isUnread, unreadStatus } = useGlobalChatStore(
     useShallow((state) => {
       const unread = state.unreadSessions.find(
         (item) => item.sessionId === session.id,
