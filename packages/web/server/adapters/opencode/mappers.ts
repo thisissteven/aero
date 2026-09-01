@@ -576,7 +576,7 @@ export function toAeroProvider(entry: Provider): AeroProvider {
  */
 export function toAeroWorktreeItem(entry: Worktree): AeroWorktreeItem {
   return {
-    directory: entry.directory,
+    directory: normalizePath(entry.directory),
     name: entry.name || entry.directory.split('/').pop(),
     branch: entry.branch,
   };

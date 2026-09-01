@@ -4,13 +4,22 @@ import { useRef } from 'react';
 
 import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
 
+import { FolderPicker } from '@/app/components/folder-picker';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
-import { useWorkspacesCompact } from '@/app/hooks/api/workspaces';
+import {
+  useCreateWorkspace,
+  useWorkspacesCompact,
+} from '@/app/hooks/api/workspaces';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
+import { getLastPathName } from '@/app/lib/file';
+import { useGlobalModalStore } from '@/app/providers';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
+import { normalizePath } from '@/server/shared';
 
 export function WorkspacesDropdown() {
   const workspacesQuery = useWorkspacesCompact();
+
+  const { mutateAsync: createWorkspace } = useCreateWorkspace();
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -29,6 +38,8 @@ export function WorkspacesDropdown() {
   const setSelectedWorkspace = useNewSessionStore(
     (state) => state.setSelectedWorkspace,
   );
+
+  const openModal = useGlobalModalStore((state) => state.openModal);
 
   if (!workspaces || workspaces.length === 0) return null;
 
@@ -52,7 +63,30 @@ export function WorkspacesDropdown() {
         placement='top start'
       >
         <Dropdown.Menu>
-          <Dropdown.Item onPress={() => {}}>
+          <Dropdown.Item
+            onPress={() => {
+              openModal({
+                children: (
+                  <FolderPicker
+                    onSelect={(path) => {
+                      setSelectedWorkspace({
+                        id: path,
+                        name: getLastPathName(path),
+                        directory: normalizePath(path),
+                        worktrees: [],
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                      });
+                      createWorkspace({
+                        name: getLastPathName(path),
+                        directory: normalizePath(path),
+                      });
+                    }}
+                  />
+                ),
+              });
+            }}
+          >
             <Icon size={14} data={Plus} className='shrink-0' />
             <Label>new project</Label>
           </Dropdown.Item>
@@ -71,7 +105,7 @@ export function WorkspacesDropdown() {
                     <Icon size={14} data={Folder} className='shrink-0' />
                     <Label>{workspace.name}</Label>
                   </div>
-                  {selectedWorkspace?.id === workspace.id && (
+                  {selectedWorkspace?.directory === workspace.directory && (
                     <Icon size={14} data={Check} className='shrink-0' />
                   )}
                 </Dropdown.Item>

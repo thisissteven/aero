@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { InferResponseType } from 'hono/client';
+import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 
@@ -18,6 +18,8 @@ export const workspaceKeys = {
   detail: (workspaceId: string) =>
     ['workspaces', workspaceId, 'detail'] as const,
 };
+
+type CreateWorkspaceInput = InferRequestType<typeof $workspaces.$post>['json'];
 
 export type WorkspacesPageResponse = InferResponseType<
   typeof $workspaces.merged.$get,
@@ -101,6 +103,27 @@ export function useWorkspace(workspaceId: string) {
   });
 }
 
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateWorkspaceInput) => {
+      const [res] = await Promise.all([
+        $workspaces.$post({
+          json: input,
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error('Failed to create workspace');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
+    },
+  });
+}
+
 export function useDeleteWorkspace() {
   const queryClient = useQueryClient();
 
@@ -117,6 +140,7 @@ export function useDeleteWorkspace() {
     },
     onSuccess: (_data, workspaceId) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
       queryClient.removeQueries({
         queryKey: workspaceKeys.detail(workspaceId),
       });

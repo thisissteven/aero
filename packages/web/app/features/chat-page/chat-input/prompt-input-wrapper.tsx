@@ -104,7 +104,8 @@ export function NewSessionPromptInputWrapper({
     }
   };
 
-  const isDisabled = error && error?.code === 'DIRECTORY_NOT_FOUND';
+  const isDisabled =
+    error && error?.code === 'DIRECTORY_NOT_FOUND' && state === 'work';
 
   return (
     <PromptInput

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
@@ -12,14 +13,24 @@ interface NewSessionState {
   setSelectedWorktree: (worktree?: string) => void;
 }
 
-export const useNewSessionStore = create<NewSessionState>((set) => ({
-  state: 'chat',
+export const useNewSessionStore = create<NewSessionState>()(
+  persist(
+    (set) => ({
+      state: 'chat',
 
-  setState: (state) => set(() => ({ state })),
+      setState: (state) => set(() => ({ state })),
 
-  setSelectedWorkspace: (workspace) =>
-    set(() => ({ selectedWorkspace: workspace, selectedWorktree: undefined })),
+      setSelectedWorkspace: (workspace) =>
+        set(() => ({
+          selectedWorkspace: workspace,
+          selectedWorktree: undefined,
+        })),
 
-  setSelectedWorktree: (worktree) =>
-    set(() => ({ selectedWorktree: worktree })),
-}));
+      setSelectedWorktree: (worktree) =>
+        set(() => ({ selectedWorktree: worktree })),
+    }),
+    {
+      name: 'aero-new-session-storage',
+    },
+  ),
+);

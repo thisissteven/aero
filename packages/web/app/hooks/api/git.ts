@@ -17,6 +17,8 @@ export const gitKeys = {
     [...gitKeys.all(directory), 'diff', filePath ?? 'all'] as const,
   branches: (directory?: string) =>
     [...gitKeys.all(directory), 'branches'] as const,
+  worktrees: (directory?: string) =>
+    [...gitKeys.all(directory), 'worktrees'] as const,
   errorCode: (directory?: string) =>
     [...gitKeys.all(directory), 'error-code'] as const,
 };
@@ -95,6 +97,21 @@ export function useGitBranches(directory?: string) {
         query: { directory },
       });
       if (!res.ok) throw new Error('Failed to fetch Git branches');
+      return res.json();
+    },
+    enabled: !!directory,
+  });
+}
+
+export function useGitWorktrees(directory?: string) {
+  return useQuery({
+    queryKey: gitKeys.worktrees(directory),
+    queryFn: async () => {
+      if (!directory) return null;
+      const res = await $git.worktrees.$get({
+        query: { directory },
+      });
+      if (!res.ok) throw new Error('Failed to fetch Git worktrees');
       return res.json();
     },
     enabled: !!directory,

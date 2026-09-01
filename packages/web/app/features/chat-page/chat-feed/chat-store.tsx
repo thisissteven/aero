@@ -110,7 +110,6 @@ function getLastUserMessageTime(turns: AeroConversationTurn[]) {
       return turns[i].createdAt;
     }
   }
-
   return null;
 }
 
@@ -122,7 +121,6 @@ function getStreamStartTime(
   if (status.type === 'idle') {
     return null;
   }
-
   return current ?? getLastUserMessageTime(turns) ?? Date.now();
 }
 
@@ -133,7 +131,6 @@ function buildMessageTurnIds(
 
   for (const turn of turns) {
     map[turn.id] = turn.id;
-
     for (const part of turn.parts) {
       if (part.messageID) {
         map[part.messageID] = turn.id;
@@ -149,16 +146,31 @@ function buildRuntime(
   isStreaming: boolean,
   revertMessageId?: string,
   usageExceeded?: UsageExceeded,
+  prevRuntime?: SessionRuntime,
 ): Pick<
   SessionRuntime,
   'turns' | 'flatItems' | 'groupFlatIndex' | 'revertedMessages' | 'isStreaming'
 > {
+  // Pass previous states into builder to enable partial array rebuilding
+  const prev = prevRuntime
+    ? {
+        turns: prevRuntime.turns,
+        flatItems: prevRuntime.flatItems,
+        groupFlatIndex: prevRuntime.groupFlatIndex,
+        revertedMessages: prevRuntime.revertedMessages,
+        isStreaming: prevRuntime.isStreaming,
+        revertMessageId,
+        usageExceeded: prevRuntime.usageExceeded,
+      }
+    : undefined;
+
   const { flatItems, groupFlatIndex, revertedMessages } =
     buildFlatConversationItems(
       turns,
       isStreaming,
       revertMessageId,
       usageExceeded,
+      prev,
     );
 
   return {
@@ -229,7 +241,6 @@ function findTurnIndexByMessageId(runtime: SessionRuntime, messageId: string) {
     const mappedIndex = runtime.turns.findIndex(
       (turn) => turn.id === mappedTurnId,
     );
-
     if (mappedIndex !== -1) {
       return mappedIndex;
     }
@@ -248,14 +259,12 @@ function replaceMessageParts(
   incomingParts: AeroPart[],
 ) {
   const incomingIds = new Set(incomingParts.map((part) => part.id));
-
   const nextParts = turn.parts.filter(
     (part) => part.messageID !== messageId || incomingIds.has(part.id),
   );
 
   for (const incomingPart of incomingParts) {
     const index = nextParts.findIndex((part) => part.id === incomingPart.id);
-
     if (index === -1) {
       nextParts.push(incomingPart);
     } else {
@@ -272,25 +281,26 @@ function updateFlatAssistantPart(
   partIndex: number,
   part: AeroPart,
 ): FlatConversationVirtualItem[] | null {
-  const itemIndex = flatItems.findIndex(
-    (item) =>
+  // Optimized: Streamed chunks hit the tail end. Use reverse lookup instead of O(N) from index 0.
+  let itemIndex = -1;
+  for (let i = flatItems.length - 1; i >= 0; i--) {
+    const item = flatItems[i];
+    if (
       item.type === 'assistant-part' &&
       item.turnId === turnId &&
-      item.partIndex === partIndex,
-  );
-
-  if (itemIndex === -1) {
-    return null;
+      item.partIndex === partIndex
+    ) {
+      itemIndex = i;
+      break;
+    }
   }
+
+  if (itemIndex === -1) return null;
 
   const currentItem = flatItems[itemIndex];
-
-  if (currentItem.type !== 'assistant-part') {
-    return null;
-  }
+  if (currentItem.type !== 'assistant-part') return null;
 
   const nextFlatItems = flatItems.slice();
-
   nextFlatItems[itemIndex] = {
     ...currentItem,
     part,
@@ -305,43 +315,29 @@ function appendIncomingMessage(
 ): SessionRuntime {
   const existingTurnId = runtime.messageTurnIds[incoming.id];
 
-  /**
-   * Existing message -> update that turn.
-   *
-   * Turn metadata is intentionally NOT touched here.
-   */
   if (existingTurnId) {
     const turnIndex = runtime.turns.findIndex(
       (turn) => turn.id === existingTurnId,
     );
 
     if (turnIndex !== -1) {
-      const nextTurns = runtime.turns.map((turn, index) =>
-        index !== turnIndex
-          ? turn
-          : {
-              ...turn,
+      const nextTurns = runtime.turns.slice();
+      const turn = nextTurns[turnIndex];
 
-              parts:
-                incoming.parts.length > 0
-                  ? replaceMessageParts(turn, incoming.id, incoming.parts)
-                  : turn.parts,
-
-              createdAt:
-                turn.id === incoming.id ? incoming.createdAt : turn.createdAt,
-
-              error: incoming.error ?? turn.error,
-            },
-      );
-
-      const messageTurnIds = {
-        ...runtime.messageTurnIds,
+      nextTurns[turnIndex] = {
+        ...turn,
+        parts:
+          incoming.parts.length > 0
+            ? replaceMessageParts(turn, incoming.id, incoming.parts)
+            : turn.parts,
+        createdAt:
+          turn.id === incoming.id ? incoming.createdAt : turn.createdAt,
+        error: incoming.error ?? turn.error,
       };
 
+      const messageTurnIds = { ...runtime.messageTurnIds };
       for (const part of incoming.parts) {
-        if (part.messageID) {
-          messageTurnIds[part.messageID] = existingTurnId;
-        }
+        if (part.messageID) messageTurnIds[part.messageID] = existingTurnId;
       }
 
       return {
@@ -351,6 +347,7 @@ function appendIncomingMessage(
           runtime.isStreaming,
           undefined,
           runtime.usageExceeded,
+          runtime,
         ),
         messageTurnIds,
       };
@@ -359,10 +356,6 @@ function appendIncomingMessage(
 
   const previous = runtime.turns.at(-1);
 
-  /**
-   * Consecutive messages with the same role are grouped
-   * into the existing turn.
-   */
   if (previous?.role === incoming.role) {
     const nextTurns = [
       ...runtime.turns.slice(0, -1),
@@ -379,9 +372,7 @@ function appendIncomingMessage(
     };
 
     for (const part of incoming.parts) {
-      if (part.messageID) {
-        messageTurnIds[part.messageID] = previous.id;
-      }
+      if (part.messageID) messageTurnIds[part.messageID] = previous.id;
     }
 
     return {
@@ -391,6 +382,7 @@ function appendIncomingMessage(
         runtime.isStreaming,
         undefined,
         runtime.usageExceeded,
+        runtime,
       ),
       messageTurnIds,
     };
@@ -402,7 +394,6 @@ function appendIncomingMessage(
     parts: [...incoming.parts],
     createdAt: incoming.createdAt,
     error: incoming.error,
-
     providerID: incoming.providerID,
     modelID: incoming.modelID,
     agent: incoming.agent,
@@ -415,9 +406,7 @@ function appendIncomingMessage(
   };
 
   for (const part of incoming.parts) {
-    if (part.messageID) {
-      messageTurnIds[part.messageID] = incoming.id;
-    }
+    if (part.messageID) messageTurnIds[part.messageID] = incoming.id;
   }
 
   return {
@@ -427,6 +416,7 @@ function appendIncomingMessage(
       runtime.isStreaming,
       undefined,
       runtime.usageExceeded,
+      runtime,
     ),
     messageTurnIds,
   };
@@ -448,35 +438,21 @@ const persistedValues = new Map<string, string>();
 
 const debouncedStateStorage = {
   getItem(name: string) {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
+    if (typeof window === 'undefined') return null;
     return window.localStorage.getItem(name);
   },
 
   setItem(name: string, value: string) {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     persistedValues.set(name, value);
-
     const existingTimer = persistedTimers.get(name);
-
-    if (existingTimer !== undefined) {
-      clearTimeout(existingTimer);
-    }
+    if (existingTimer !== undefined) clearTimeout(existingTimer);
 
     const timer = setTimeout(() => {
       persistedTimers.delete(name);
-
       const latest = persistedValues.get(name);
-
-      if (latest === undefined) {
-        return;
-      }
-
+      if (latest === undefined) return;
       persistedValues.delete(name);
       window.localStorage.setItem(name, latest);
     }, PERSIST_DELAY);
@@ -485,17 +461,12 @@ const debouncedStateStorage = {
   },
 
   removeItem(name: string) {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+    if (typeof window === 'undefined') return;
     const existingTimer = persistedTimers.get(name);
-
     if (existingTimer !== undefined) {
       clearTimeout(existingTimer);
       persistedTimers.delete(name);
     }
-
     persistedValues.delete(name);
     window.localStorage.removeItem(name);
   },
@@ -509,28 +480,21 @@ export const useChatStore = create<ChatStore>()(
 
       return {
         activeSessionId: null,
-
         sessions: {},
-
         runningSessions: [],
         awaitingQuestions: [],
         unreadSessions: [],
-
         turns: [],
         flatItems: [],
         groupFlatIndex: [],
         revertedMessages: [],
-
         status: IDLE,
         isStreaming: false,
         streamStartedAt: null,
 
         setActiveSession: (sessionId, revertMessageId) => {
           set((state) => {
-            const sessions = {
-              ...state.sessions,
-            };
-
+            const sessions = { ...state.sessions };
             const runtime = getRuntime(sessions, sessionId);
 
             sessions[sessionId] = {
@@ -540,6 +504,7 @@ export const useChatStore = create<ChatStore>()(
                 runtime.isStreaming,
                 revertMessageId,
                 runtime.usageExceeded,
+                runtime, // Opt: pass cache
               ),
             };
 
@@ -554,34 +519,26 @@ export const useChatStore = create<ChatStore>()(
         setConversationData: (sessionId, turns, revertMessageId) => {
           set((state) => {
             const current = getRuntime(state.sessions, sessionId);
-
-            if (current.hasHydrated) {
-              return state;
-            }
+            if (current.hasHydrated) return state;
 
             const isStreaming = current.status.type !== 'idle';
-
             const runtime: SessionRuntime = {
               ...current,
-
               ...buildRuntime(
                 turns,
                 isStreaming,
                 revertMessageId,
                 current.usageExceeded,
+                current,
               ),
-
               status: current.status,
               isStreaming,
-
               streamStartedAt: getStreamStartTime(
                 turns,
                 current.status,
                 current.streamStartedAt,
               ),
-
               hasHydrated: true,
-
               messageTurnIds: buildMessageTurnIds(turns),
             };
 
@@ -594,11 +551,7 @@ export const useChatStore = create<ChatStore>()(
               ),
             );
 
-            const sessions = {
-              ...state.sessions,
-              [sessionId]: runtime,
-            };
-
+            const sessions = { ...state.sessions, [sessionId]: runtime };
             const runningSessions = isStreaming
               ? state.runningSessions.includes(sessionId)
                 ? state.runningSessions
@@ -623,46 +576,33 @@ export const useChatStore = create<ChatStore>()(
         setStatus: (sessionId, status, source = 'stream') => {
           set((state) => {
             const current = getRuntime(state.sessions, sessionId);
-
-            if (source === 'query' && current.hasLiveStatus) {
-              return state;
-            }
+            if (source === 'query' && current.hasLiveStatus) return state;
 
             const isStreaming = status.type !== 'idle';
-
             const usageExceeded =
               status.type === 'idle' ? undefined : current.usageExceeded;
 
             const runtime: SessionRuntime = {
               ...current,
-
               status,
-
               usageExceeded,
-
               hasLiveStatus: source === 'stream' ? true : current.hasLiveStatus,
-
               streamStartedAt: getStreamStartTime(
                 current.turns,
                 status,
                 current.streamStartedAt,
               ),
-
               ...buildRuntime(
                 current.turns,
                 isStreaming,
                 undefined,
                 usageExceeded,
+                current,
               ),
-
               isStreaming,
             };
 
-            const sessions = {
-              ...state.sessions,
-              [sessionId]: runtime,
-            };
-
+            const sessions = { ...state.sessions, [sessionId]: runtime };
             const runningSessions = isStreaming
               ? state.runningSessions.includes(sessionId)
                 ? state.runningSessions
@@ -685,10 +625,7 @@ export const useChatStore = create<ChatStore>()(
 
         addAwaitingQuestion: (sessionId) => {
           set((state) => {
-            if (state.awaitingQuestions.includes(sessionId)) {
-              return state;
-            }
-
+            if (state.awaitingQuestions.includes(sessionId)) return state;
             return {
               awaitingQuestions: [...state.awaitingQuestions, sessionId],
             };
@@ -700,14 +637,9 @@ export const useChatStore = create<ChatStore>()(
             const awaitingQuestions = state.awaitingQuestions.filter(
               (id) => id !== sessionId,
             );
-
-            if (awaitingQuestions.length === state.awaitingQuestions.length) {
+            if (awaitingQuestions.length === state.awaitingQuestions.length)
               return state;
-            }
-
-            return {
-              awaitingQuestions,
-            };
+            return { awaitingQuestions };
           });
         },
 
@@ -729,7 +661,6 @@ export const useChatStore = create<ChatStore>()(
 
               case 'session.status': {
                 const isStreaming = event.status.type !== 'idle';
-
                 const nextUsageExceeded =
                   event.status.type === 'retry' &&
                   event.status.action?.reason === 'free_tier_limit'
@@ -745,34 +676,25 @@ export const useChatStore = create<ChatStore>()(
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   status: event.status,
-
                   usageExceeded: nextUsageExceeded,
-
                   hasLiveStatus: true,
-
                   streamStartedAt: getStreamStartTime(
                     current.turns,
                     event.status,
                     current.streamStartedAt,
                   ),
-
                   ...buildRuntime(
                     current.turns,
                     isStreaming,
                     revertMessageId,
                     nextUsageExceeded,
+                    current,
                   ),
-
                   isStreaming,
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 const runningSessions = isStreaming
                   ? state.runningSessions.includes(sessionId)
                     ? state.runningSessions
@@ -794,55 +716,35 @@ export const useChatStore = create<ChatStore>()(
 
               case 'session.error': {
                 const error = event.error;
-
-                if (!error) {
-                  return state;
-                }
+                if (!error) return state;
 
                 let turnIndex = -1;
-
                 for (let i = current.turns.length - 1; i >= 0; i--) {
                   if (current.turns[i].role === 'assistant') {
                     turnIndex = i;
                     break;
                   }
                 }
+                if (turnIndex === -1) return state;
 
-                if (turnIndex === -1) {
-                  return state;
-                }
-
-                /**
-                 * The original implementation intentionally preserved
-                 * an already-populated turn.error here.
-                 *
-                 * Keep that behavior intact.
-                 */
-                const nextTurns = current.turns.map((turn, index) =>
-                  index === turnIndex
-                    ? {
-                        ...turn,
-                        error: turn.error,
-                      }
-                    : turn,
-                );
+                const nextTurns = current.turns.slice();
+                nextTurns[turnIndex] = {
+                  ...nextTurns[turnIndex],
+                  error: nextTurns[turnIndex].error,
+                };
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   ...buildRuntime(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
+                    current,
                   ),
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 return {
                   sessions,
                   ...projectActiveSession(sessions, state.activeSessionId),
@@ -857,39 +759,25 @@ export const useChatStore = create<ChatStore>()(
 
                 if (pendingParts?.length) {
                   pendingPartUpdates.delete(pendingKey);
-
                   const turnIndex = findTurnIndexByMessageId(
                     runtime,
                     event.message.id,
                   );
 
                   if (turnIndex !== -1) {
-                    const nextTurns = runtime.turns.map((turn, index) => {
-                      if (index !== turnIndex) {
-                        return turn;
-                      }
+                    const nextTurns = runtime.turns.slice();
+                    const turn = nextTurns[turnIndex];
+                    const nextParts = turn.parts.slice();
 
-                      let nextParts = turn.parts;
+                    for (const part of pendingParts) {
+                      const partIndex = nextParts.findIndex(
+                        (p) => p.id === part.id,
+                      );
+                      if (partIndex === -1) nextParts.push(part);
+                      else nextParts[partIndex] = part;
+                    }
 
-                      for (const part of pendingParts) {
-                        const partIndex = nextParts.findIndex(
-                          (currentPart) => currentPart.id === part.id,
-                        );
-
-                        if (partIndex === -1) {
-                          nextParts = [...nextParts, part];
-                        } else {
-                          nextParts = nextParts.map((currentPart, index) =>
-                            index === partIndex ? part : currentPart,
-                          );
-                        }
-                      }
-
-                      return {
-                        ...turn,
-                        parts: nextParts,
-                      };
-                    });
+                    nextTurns[turnIndex] = { ...turn, parts: nextParts };
 
                     runtime = {
                       ...runtime,
@@ -898,6 +786,7 @@ export const useChatStore = create<ChatStore>()(
                         runtime.isStreaming,
                         revertMessageId,
                         runtime.usageExceeded,
+                        runtime,
                       ),
                     };
                   }
@@ -912,11 +801,7 @@ export const useChatStore = create<ChatStore>()(
                   ),
                 );
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 const awaitingQuestions = hasAwaitingQuestion
                   ? state.awaitingQuestions.includes(sessionId)
                     ? state.awaitingQuestions
@@ -932,17 +817,12 @@ export const useChatStore = create<ChatStore>()(
 
               case 'message.part.updated': {
                 const key = `${sessionId}:${event.part.id}`;
-
                 const pending = pendingDeltas.get(key) ?? [];
-
                 pendingDeltas.delete(key);
 
                 let part = event.part;
-
-                // Retrieve the latest turn directly from state
                 const lastTurn = current.turns[current.turns.length - 1];
 
-                // Trigger auto-scroll if the active session is receiving updates for the active/latest message
                 if (
                   state.activeSessionId === sessionId &&
                   part.type === 'text' &&
@@ -963,10 +843,7 @@ export const useChatStore = create<ChatStore>()(
                     .join('');
 
                   if (textDelta) {
-                    part = {
-                      ...part,
-                      text: part.text + textDelta,
-                    };
+                    part = { ...part, text: part.text + textDelta };
                   }
                 }
 
@@ -977,7 +854,6 @@ export const useChatStore = create<ChatStore>()(
 
                 if (turnIndex === -1) {
                   const pendingMessageKey = `${sessionId}:${event.messageId}`;
-
                   const pendingMessageParts =
                     pendingPartUpdates.get(pendingMessageKey) ?? [];
 
@@ -995,87 +871,41 @@ export const useChatStore = create<ChatStore>()(
                         : [...state.awaitingQuestions, sessionId]
                       : state.awaitingQuestions;
 
-                  return {
-                    ...state,
-                    awaitingQuestions,
-                  };
+                  return { ...state, awaitingQuestions };
                 }
 
-                const currentTurn = current.turns[turnIndex];
-
+                const nextTurns = current.turns.slice();
+                const currentTurn = nextTurns[turnIndex];
                 const partIndex = currentTurn.parts.findIndex(
                   (currentPart) => currentPart.id === part.id,
                 );
 
                 if (partIndex === -1) {
-                  const nextTurns = current.turns.map((turn, index) =>
-                    index !== turnIndex
-                      ? turn
-                      : {
-                          ...turn,
-                          parts: [...turn.parts, part],
-                        },
-                  );
-
-                  const runtime: SessionRuntime = {
-                    ...current,
-                    ...buildRuntime(
-                      nextTurns,
-                      current.isStreaming,
-                      revertMessageId,
-                      current.usageExceeded,
-                    ),
+                  nextTurns[turnIndex] = {
+                    ...currentTurn,
+                    parts: [...currentTurn.parts, part],
                   };
-
-                  const sessions = {
-                    ...state.sessions,
-                    [sessionId]: runtime,
-                  };
-
-                  return {
-                    sessions,
-                    ...projectActiveSession(sessions, state.activeSessionId),
-                  };
+                } else {
+                  const nextParts = currentTurn.parts.slice();
+                  nextParts[partIndex] = part;
+                  nextTurns[turnIndex] = { ...currentTurn, parts: nextParts };
                 }
-
-                /**
-                 * Part.updated can change rendering structure,
-                 * footer content, filtering of empty parts, etc.
-                 *
-                 * Keep the safe full rebuild here. The high-frequency
-                 * path is message.part.delta below.
-                 */
-                const nextTurns = current.turns.map((turn, index) =>
-                  index !== turnIndex
-                    ? turn
-                    : {
-                        ...turn,
-                        parts: turn.parts.map((currentPart, index) =>
-                          index === partIndex ? part : currentPart,
-                        ),
-                      },
-                );
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   ...buildRuntime(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
+                    current,
                   ),
-
                   streamStartedAt:
                     current.streamStartedAt ??
                     getStreamStartTime(nextTurns, current.status, null),
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 const hasAwaitingQuestion = runtime.turns.some((turn) =>
                   turn.parts.some(
                     (runtimePart) =>
@@ -1106,44 +936,30 @@ export const useChatStore = create<ChatStore>()(
 
                 if (turnIndex === -1) {
                   const key = `${sessionId}:${event.partId}`;
-
                   const pending = pendingDeltas.get(key) ?? [];
-
                   pendingDeltas.set(key, [
                     ...pending,
-                    {
-                      field: event.field,
-                      delta: event.delta,
-                    },
+                    { field: event.field, delta: event.delta },
                   ]);
-
                   return state;
                 }
 
                 const turn = current.turns[turnIndex];
-
                 const partIndex = turn.parts.findIndex(
                   (currentPart) => currentPart.id === event.partId,
                 );
 
                 if (partIndex === -1) {
                   const key = `${sessionId}:${event.partId}`;
-
                   const pending = pendingDeltas.get(key) ?? [];
-
                   pendingDeltas.set(key, [
                     ...pending,
-                    {
-                      field: event.field,
-                      delta: event.delta,
-                    },
+                    { field: event.field, delta: event.delta },
                   ]);
-
                   return state;
                 }
 
                 const part = turn.parts[partIndex];
-
                 if (
                   event.field !== 'text' ||
                   (part.type !== 'text' && part.type !== 'reasoning')
@@ -1156,20 +972,6 @@ export const useChatStore = create<ChatStore>()(
                   text: part.text + event.delta,
                 };
 
-                /**
-                 * Fast path:
-                 *
-                 * Only use the incremental update when the event is
-                 * updating the currently-streaming last part.
-                 *
-                 * In that situation:
-                 * - no item is added
-                 * - no item is removed
-                 * - no footer exists
-                 * - flat indices do not change
-                 *
-                 * This avoids rebuilding the whole conversation.
-                 */
                 const isCurrentStreamingPart =
                   current.isStreaming &&
                   turnIndex === current.turns.length - 1 &&
@@ -1184,24 +986,15 @@ export const useChatStore = create<ChatStore>()(
                   );
 
                   if (nextFlatItems) {
-                    const nextTurns = current.turns.map((runtimeTurn, index) =>
-                      index !== turnIndex
-                        ? runtimeTurn
-                        : {
-                            ...runtimeTurn,
-                            parts: runtimeTurn.parts.map(
-                              (runtimePart, index) =>
-                                index === partIndex ? updatedPart : runtimePart,
-                            ),
-                          },
-                    );
+                    const nextTurns = current.turns.slice();
+                    const nextParts = turn.parts.slice();
+                    nextParts[partIndex] = updatedPart;
+                    nextTurns[turnIndex] = { ...turn, parts: nextParts };
 
                     const runtime: SessionRuntime = {
                       ...current,
-
                       turns: nextTurns,
                       flatItems: nextFlatItems,
-
                       streamStartedAt:
                         current.streamStartedAt ??
                         getStreamStartTime(nextTurns, current.status, null),
@@ -1211,7 +1004,6 @@ export const useChatStore = create<ChatStore>()(
                       ...state.sessions,
                       [sessionId]: runtime,
                     };
-
                     return {
                       sessions,
                       ...projectActiveSession(sessions, state.activeSessionId),
@@ -1219,41 +1011,27 @@ export const useChatStore = create<ChatStore>()(
                   }
                 }
 
-                /**
-                 * Safe fallback for unusual out-of-order events or
-                 * deltas targeting a non-current part.
-                 */
-                const nextTurns = current.turns.map((runtimeTurn, index) =>
-                  index !== turnIndex
-                    ? runtimeTurn
-                    : {
-                        ...runtimeTurn,
-                        parts: runtimeTurn.parts.map((runtimePart, index) =>
-                          index === partIndex ? updatedPart : runtimePart,
-                        ),
-                      },
-                );
+                // Safe fallback bypasses full .map overhead
+                const nextTurns = current.turns.slice();
+                const nextParts = turn.parts.slice();
+                nextParts[partIndex] = updatedPart;
+                nextTurns[turnIndex] = { ...turn, parts: nextParts };
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   ...buildRuntime(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
+                    current,
                   ),
-
                   streamStartedAt:
                     current.streamStartedAt ??
                     getStreamStartTime(nextTurns, current.status, null),
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 return {
                   sessions,
                   ...projectActiveSession(sessions, state.activeSessionId),
@@ -1262,45 +1040,33 @@ export const useChatStore = create<ChatStore>()(
 
               case 'message.part.removed': {
                 pendingDeltas.delete(`${sessionId}:${event.partId}`);
-
                 const turnIndex = findTurnIndexByMessageId(
                   current,
                   event.messageId,
                 );
+                if (turnIndex === -1) return state;
 
-                if (turnIndex === -1) {
-                  return state;
-                }
-
-                const nextTurns = current.turns.map((turn, index) =>
-                  index !== turnIndex
-                    ? turn
-                    : {
-                        ...turn,
-                        parts: turn.parts.filter(
-                          (part) => part.id !== event.partId,
-                        ),
-                      },
-                );
+                const nextTurns = current.turns.slice();
+                const turn = nextTurns[turnIndex];
+                nextTurns[turnIndex] = {
+                  ...turn,
+                  parts: turn.parts.filter((p) => p.id !== event.partId),
+                };
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   ...buildRuntime(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
+                    current,
                   ),
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
-                const hasAwaitingQuestion = runtime.turns.some((turn) =>
-                  turn.parts.some(
+                const sessions = { ...state.sessions, [sessionId]: runtime };
+                const hasAwaitingQuestion = runtime.turns.some((t) =>
+                  t.parts.some(
                     (part) =>
                       part.type === 'tool' &&
                       part.toolName === 'question' &&
@@ -1326,15 +1092,11 @@ export const useChatStore = create<ChatStore>()(
                   current,
                   event.messageId,
                 );
-
                 pendingPartUpdates.delete(`${sessionId}:${event.messageId}`);
 
-                if (turnIndex === -1) {
-                  return state;
-                }
+                if (turnIndex === -1) return state;
 
                 const turn = current.turns[turnIndex];
-
                 const removedMessagePartIds = new Set(
                   turn.parts
                     .filter((part) => part.messageID === event.messageId)
@@ -1345,48 +1107,34 @@ export const useChatStore = create<ChatStore>()(
                   (part) => part.messageID !== event.messageId,
                 );
 
-                const nextTurns =
-                  nextParts.length > 0
-                    ? current.turns.map((currentTurn, index) =>
-                        index !== turnIndex
-                          ? currentTurn
-                          : {
-                              ...currentTurn,
-                              parts: nextParts,
-                            },
-                      )
-                    : current.turns.filter((_, index) => index !== turnIndex);
+                const nextTurns = current.turns.slice();
+                if (nextParts.length > 0) {
+                  nextTurns[turnIndex] = { ...turn, parts: nextParts };
+                } else {
+                  nextTurns.splice(turnIndex, 1);
+                }
 
-                const nextMessageTurnIds = {
-                  ...current.messageTurnIds,
-                };
-
+                const nextMessageTurnIds = { ...current.messageTurnIds };
                 delete nextMessageTurnIds[event.messageId];
-
                 for (const partId of removedMessagePartIds) {
                   delete nextMessageTurnIds[partId];
                 }
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   ...buildRuntime(
                     nextTurns,
                     current.isStreaming,
                     revertMessageId,
                     current.usageExceeded,
+                    current,
                   ),
-
                   messageTurnIds: nextMessageTurnIds,
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
-                const hasAwaitingQuestion = runtime.turns.some((turn) =>
-                  turn.parts.some(
+                const sessions = { ...state.sessions, [sessionId]: runtime };
+                const hasAwaitingQuestion = runtime.turns.some((t) =>
+                  t.parts.some(
                     (part) =>
                       part.type === 'tool' &&
                       part.toolName === 'question' &&
@@ -1419,58 +1167,43 @@ export const useChatStore = create<ChatStore>()(
                   : 'success';
 
                 const activeId = useActiveSessionStore.getState().activeId;
-
                 const shouldMarkUnread = activeId !== sessionId;
 
                 const runtime: SessionRuntime = {
                   ...current,
-
                   status: IDLE,
                   streamStartedAt: null,
-
                   hasLiveStatus: true,
-
                   usageExceeded: undefined,
-
                   ...buildRuntime(
                     current.turns,
                     false,
                     revertMessageId,
                     undefined,
+                    current,
                   ),
-
                   isStreaming: false,
                 };
 
-                const sessions = {
-                  ...state.sessions,
-                  [sessionId]: runtime,
-                };
-
+                const sessions = { ...state.sessions, [sessionId]: runtime };
                 const unreadSessions = shouldMarkUnread
                   ? [
                       ...state.unreadSessions.filter(
                         (item) => item.sessionId !== sessionId,
                       ),
-                      {
-                        sessionId,
-                        status: unreadStatus,
-                      },
+                      { sessionId, status: unreadStatus },
                     ]
                   : state.unreadSessions;
 
                 return {
                   sessions,
                   unreadSessions,
-
                   awaitingQuestions: state.awaitingQuestions.filter(
                     (id) => id !== sessionId,
                   ),
-
                   runningSessions: state.runningSessions.filter(
                     (id) => id !== sessionId,
                   ),
-
                   ...projectActiveSession(sessions, state.activeSessionId),
                 };
               }
@@ -1483,15 +1216,11 @@ export const useChatStore = create<ChatStore>()(
 
         resetSession: (sessionId) => {
           pendingDeltas.forEach((_value, key) => {
-            if (key.startsWith(`${sessionId}:`)) {
-              pendingDeltas.delete(key);
-            }
+            if (key.startsWith(`${sessionId}:`)) pendingDeltas.delete(key);
           });
 
           pendingPartUpdates.forEach((_value, key) => {
-            if (key.startsWith(`${sessionId}:`)) {
-              pendingPartUpdates.delete(key);
-            }
+            if (key.startsWith(`${sessionId}:`)) pendingPartUpdates.delete(key);
           });
 
           set((state) => {
@@ -1499,7 +1228,6 @@ export const useChatStore = create<ChatStore>()(
               ...state.sessions,
               [sessionId]: createEmptyRuntime(),
             };
-
             return {
               sessions,
               awaitingQuestions: state.awaitingQuestions.filter(
@@ -1515,13 +1243,8 @@ export const useChatStore = create<ChatStore>()(
 
         addRunningSession: (sessionId) => {
           set((state) => {
-            if (state.runningSessions.includes(sessionId)) {
-              return state;
-            }
-
-            return {
-              runningSessions: [...state.runningSessions, sessionId],
-            };
+            if (state.runningSessions.includes(sessionId)) return state;
+            return { runningSessions: [...state.runningSessions, sessionId] };
           });
         },
 
@@ -1530,14 +1253,9 @@ export const useChatStore = create<ChatStore>()(
             const runningSessions = state.runningSessions.filter(
               (id) => id !== sessionId,
             );
-
-            if (runningSessions.length === state.runningSessions.length) {
+            if (runningSessions.length === state.runningSessions.length)
               return state;
-            }
-
-            return {
-              runningSessions,
-            };
+            return { runningSessions };
           });
         },
 
@@ -1547,10 +1265,7 @@ export const useChatStore = create<ChatStore>()(
               ...state.unreadSessions.filter(
                 (item) => item.sessionId !== sessionId,
               ),
-              {
-                sessionId,
-                status,
-              },
+              { sessionId, status },
             ],
           }));
         },
@@ -1560,25 +1275,18 @@ export const useChatStore = create<ChatStore>()(
             const unreadSessions = state.unreadSessions.filter(
               (item) => item.sessionId !== sessionId,
             );
-
-            if (unreadSessions.length === state.unreadSessions.length) {
+            if (unreadSessions.length === state.unreadSessions.length)
               return state;
-            }
-
-            return {
-              unreadSessions,
-            };
+            return { unreadSessions };
           });
         },
       };
     },
     {
       name: 'aero-chat-store',
-
       storage: createJSONStorage<PersistedChatState>(
         () => debouncedStateStorage,
       ),
-
       partialize: (state) => ({
         runningSessions: state.runningSessions,
         awaitingQuestions: state.awaitingQuestions,

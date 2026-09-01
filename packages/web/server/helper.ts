@@ -187,3 +187,63 @@ export function directoryExists(directory: string) {
     return false;
   }
 }
+
+export function parseWorktreePorcelain(output: string) {
+  const blocks = output.trim().split(/\r?\n\r?\n/);
+
+  return blocks.filter(Boolean).map((block, index) => {
+    const lines = block.split(/\r?\n/);
+
+    const worktreeLine = lines.find((l) => l.startsWith('worktree '));
+    const headLine = lines.find((l) => l.startsWith('HEAD '));
+    const branchLine = lines.find((l) => l.startsWith('branch refs/heads/'));
+    const detachedLine = lines.some((l) => l === 'detached');
+    const lockedLine = lines.find((l) => l.startsWith('locked'));
+    const prunableLine = lines.find((l) => l.startsWith('prunable'));
+
+    return {
+      // Absolute file path to the worktree
+      directory: worktreeLine ? worktreeLine.replace(/^worktree\s+/, '') : '',
+
+      // Full SHA of current commit
+      commit: headLine ? headLine.replace(/^HEAD\s+/, '') : '',
+
+      // Short branch name (e.g. "feature-login"), or null if detached
+      branch: branchLine
+        ? branchLine.replace(/^branch\s+refs\/heads\//, '')
+        : null,
+
+      // State flags
+      detached: detachedLine,
+      isMain: index === 0, // Git always lists the primary repository first
+      locked: Boolean(lockedLine),
+      prunable: Boolean(prunableLine),
+
+      // Optional status details if prunable or locked
+      lockReason: lockedLine
+        ? lockedLine.replace(/^locked\s*/, '') || true
+        : null,
+      pruneReason: prunableLine
+        ? prunableLine.replace(/^prunable\s*/, '') || true
+        : null,
+    };
+  });
+}
+
+export function parseWorktreePorcelainBrief(output: string) {
+  const blocks = output.trim().split(/\r?\n\r?\n/);
+
+  return blocks.filter(Boolean).map((block) => {
+    const lines = block.split(/\r?\n/);
+
+    const worktreeLine = lines.find((l) => l.startsWith('worktree '));
+    const branchLine = lines.find((l) => l.startsWith('branch refs/heads/'));
+
+    return {
+      directory: worktreeLine ? worktreeLine.replace(/^worktree\s+/, '') : '',
+      branch: branchLine
+        ? branchLine.replace(/^branch\s+refs\/heads\//, '')
+        : null,
+    };
+  });
+}

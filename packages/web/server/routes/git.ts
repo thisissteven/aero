@@ -5,6 +5,8 @@ import path from 'node:path';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
 
+import { parseWorktreePorcelainBrief } from '@/server/helper';
+
 export const gitErrorCodeSchema = z.enum([
   'DIRECTORY_NOT_FOUND',
   'INVALID_GIT_REPOSITORY',
@@ -221,6 +223,27 @@ const git = new Hono()
       deleted: status.deleted,
     });
   })
+
+  // GET /api/git/worktrees?directory=/path/to/repo
+  .get(
+    '/worktrees',
+    zValidator('query', gitDirectoryQuerySchema),
+    async (c) => {
+      const { directory: inputDirectory } = c.req.valid('query');
+      const directory = await getGitDirectory(inputDirectory);
+
+      const gitClient = simpleGit(directory);
+      const rawWorktrees = await gitClient.raw([
+        'worktree',
+        'list',
+        '--porcelain',
+      ]);
+
+      const worktrees = parseWorktreePorcelainBrief(rawWorktrees);
+
+      return c.json(worktrees);
+    },
+  )
 
   // GET /api/git/diff?directory=/path/to/repo&filePath=src/index.ts
   .get(

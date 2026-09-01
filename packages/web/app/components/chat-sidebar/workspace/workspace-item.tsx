@@ -1,6 +1,5 @@
 import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate } from '@tanstack/react-router';
 import { memo, useId, useMemo } from 'react';
 
 import { Sidebar } from '@aero/ui';
@@ -80,8 +79,6 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
 
     return { root: rootWorktree, otherWorktrees: others };
   }, [workspace]);
-
-  const navigate = useNavigate();
 
   if (!root) return null;
 

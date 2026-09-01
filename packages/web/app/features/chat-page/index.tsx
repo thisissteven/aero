@@ -17,6 +17,7 @@ import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
+import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
@@ -78,6 +79,8 @@ export function ChatPage({
         <SessionNotFound sessionId={sessionId} />
       ) : (
         <>
+          <OpenParentSession sessionId={sessionId} />
+
           <ChatTocSection
             activeGroupIndex={activeGroupIndex}
             onSelectTocItem={handleSelectTocItem}

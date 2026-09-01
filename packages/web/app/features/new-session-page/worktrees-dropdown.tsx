@@ -4,8 +4,12 @@ import { Icon } from '@gravity-ui/uikit';
 import { Dropdown, Label, Separator, toast } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
-import { useGitCurrentBranch, useGitErrorCode } from '@/app/hooks/api/git';
-import { useCreateWorktree, useWorktrees } from '@/app/hooks/api/worktree';
+import {
+  useGitCurrentBranch,
+  useGitErrorCode,
+  useGitWorktrees,
+} from '@/app/hooks/api/git';
+import { useCreateWorktree } from '@/app/hooks/api/worktree';
 import { getLastPathName } from '@/app/lib/file';
 
 export function WorktreesDropdown() {
@@ -13,10 +17,7 @@ export function WorktreesDropdown() {
     (state) => state.selectedWorkspace?.directory,
   );
 
-  const { data: worktrees = [] } = useWorktrees({
-    harnessId: undefined,
-    directory: selectedWorkspace,
-  });
+  const { data: worktrees = [], refetch } = useGitWorktrees(selectedWorkspace);
 
   const { mutateAsync: createNewWorktree } = useCreateWorktree();
 
@@ -82,7 +83,11 @@ export function WorktreesDropdown() {
                   {
                     error: (err) => err.message,
                     loading: 'Creating new worktree...',
-                    success: 'Worktree created successfully',
+                    success: (data) => {
+                      setSelectedWorktree(data?.directory);
+                      refetch();
+                      return 'Worktree created successfully';
+                    },
                   },
                 );
               }}
@@ -107,18 +112,19 @@ export function WorktreesDropdown() {
                 <Icon size={14} data={Check} className='shrink-0' />
               )}
             </Dropdown.Item>
-            {worktrees.map((worktree) => {
+            {worktrees?.map((worktree) => {
+              if (worktree.branch === git.currentBranch) return null;
               return (
                 <Dropdown.Item
-                  key={worktree}
+                  key={worktree.directory}
                   className='justify-between gap-1'
-                  onPress={() => setSelectedWorktree(worktree)}
+                  onPress={() => setSelectedWorktree(worktree.directory)}
                 >
                   <div className='flex items-center gap-1'>
                     <Icon size={14} data={CircleTree} className='shrink-0' />
-                    <Label>{getLastPathName(worktree)}</Label>
+                    <Label>{getLastPathName(worktree.directory)}</Label>
                   </div>
-                  {selectedWorktree === worktree && (
+                  {selectedWorktree === worktree.directory && (
                     <Icon size={14} data={Check} className='shrink-0' />
                   )}
                 </Dropdown.Item>
