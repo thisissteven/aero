@@ -8,6 +8,7 @@ import { I18nProvider } from '@/app/hooks/i18n';
 import { translations } from '@/app/hooks/i18n/locales/translations';
 import {
   GlobalModal,
+  GlobalModalOuter,
   QueryProvider,
   SettingsModal,
   useTheme,
@@ -47,6 +48,7 @@ function AppLayout() {
       <I18nProvider translations={translations} defaultLanguage='en'>
         <ToastProvider placement='bottom end' width={280} />
         <GlobalModal />
+        <GlobalModalOuter />
         <SettingsModal />
         <KeyPressProvider />
         <PreloadProvider />

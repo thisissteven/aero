@@ -1,7 +1,6 @@
 import {
   Bulb,
   Check,
-  ChevronDown,
   FaceRobot,
   Magnifier,
   PersonWorker,
@@ -51,7 +50,7 @@ export function AgentDropdown() {
     }
 
     return agentsData
-      .filter((agent) => agent.native === true)
+      .filter((agent) => agent.native === true && agent.mode === 'primary')
       .filter((agent) => {
         if (!query) {
           return true;
@@ -77,7 +76,7 @@ export function AgentDropdown() {
       <Button
         variant='ghost'
         size='sm'
-        className='gap-1.5 rounded-lg text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
+        className='gap-1.5 rounded-lg px-2 text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
       >
         <Icon
           data={getAgentIconData(selectedAgent?.name)}
@@ -87,8 +86,6 @@ export function AgentDropdown() {
         {selectedAgent?.name
           ? capitalizeFirstLetter(selectedAgent.name)
           : 'Select Agent'}
-
-        <Icon data={ChevronDown} className='size-3' />
       </Button>
 
       <Popover.Content className='w-72 rounded-xl p-0' placement='top right'>

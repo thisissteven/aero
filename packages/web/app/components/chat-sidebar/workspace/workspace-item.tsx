@@ -5,6 +5,10 @@ import { memo, useMemo } from 'react';
 import { Sidebar } from '@aero/ui';
 
 import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/workspace/directory-not-found-indicator';
+import {
+  ACCENT_COLORS_MAP,
+  PROJECT_ICON_MAP,
+} from '@/app/components/chat-sidebar/workspace/edit-workspace-modal';
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
 import { WorkspaceItemDropdown } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown';
@@ -82,6 +86,9 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
 
   const workspaceIdPrefix = `${idPrefix}-${workspace.id}`;
 
+  const isCustomIcon =
+    !PROJECT_ICON_MAP[workspace.selectedIcon as keyof typeof PROJECT_ICON_MAP];
+
   return (
     <Sidebar.MenuItem
       {...props}
@@ -91,14 +98,37 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
     >
       <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent group-hover:bg-transparent'>
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
-          <Icon data={Folder} size={14} />
+          {!workspace.selectedIcon ? (
+            <Icon data={Folder} size={14} />
+          ) : isCustomIcon ? (
+            <img
+              src={workspace.selectedIcon}
+              alt={workspace.name}
+              className='size-3.5'
+            />
+          ) : (
+            <Icon
+              data={
+                PROJECT_ICON_MAP[
+                  workspace.selectedIcon as keyof typeof PROJECT_ICON_MAP
+                ]
+              }
+              style={{
+                color:
+                  ACCENT_COLORS_MAP[
+                    workspace.selectedColor as keyof typeof ACCENT_COLORS_MAP
+                  ],
+              }}
+              size={14}
+            />
+          )}
         </Sidebar.MenuIcon>
 
         <Sidebar.MenuTrigger className='absolute inset-0 flex h-full w-full items-center justify-start pl-3 opacity-0 transition group-hover:opacity-100'>
           <Sidebar.MenuIndicator />
         </Sidebar.MenuTrigger>
 
-        <Sidebar.MenuLabel>{root.name}</Sidebar.MenuLabel>
+        <Sidebar.MenuLabel>{workspace.name}</Sidebar.MenuLabel>
 
         <DirectoryNotFoundIndicator directory={workspace.directory} />
 

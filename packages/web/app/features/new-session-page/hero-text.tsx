@@ -25,7 +25,7 @@ export function HeroText() {
   return (
     <div className='flex flex-col items-center gap-2 text-center'>
       <h2 className='text-foreground text-3xl font-normal tracking-tight'>
-        Build something useful with{' '}
+        Build something fun with{' '}
         <TextShimmer className='shimmer-accent font-medium tracking-normal'>
           Aero
         </TextShimmer>

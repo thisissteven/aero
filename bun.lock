@@ -170,7 +170,7 @@
         "@hookform/resolvers": "^5.7.1",
         "@lydell/node-pty": "^1.2.0-beta.15",
         "@openai/codex-sdk": "^0.147.0",
-        "@opencode-ai/sdk": "^1.18.11",
+        "@opencode-ai/sdk": "^1.18.26",
         "@tanstack/react-query": "^5.101.4",
         "@tanstack/react-router": "^1.170.18",
         "cheerio": "^1.2.0",
@@ -678,7 +678,7 @@
 
     "@openai/codex-win32-x64": ["@openai/codex@0.147.0-win32-x64", "", { "os": "win32", "cpu": "x64" }, "sha512-oT7Ss5fAPf2fiWE9QNURqZcQGAAawSVxmIUdgPzckq4KFZAM+pRz9JbM4Rr498CjtbNgTOjWvDJ+DXvIBSfOPA=="],
 
-    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.18.18", "", { "dependencies": { "cross-spawn": "7.0.6" } }, "sha512-zJlwXskIR47V1dkPJqeKBgq7nejG1uU8lJaGIGqbX3MWRCT8vKn0fEotbxuPCKnTdmWsDyNGNg9q1qIliDSMDA=="],
+    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.18.26", "", { "dependencies": { "cross-spawn": "7.0.6" } }, "sha512-1TnlEZty7V2NTIZHbJOt2O+v6YsJ/Bt2pSYgXb98G/RkSVOjlDd/35+ewfYtM4fmMroaa6cEG6S58FihKO4K0w=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 

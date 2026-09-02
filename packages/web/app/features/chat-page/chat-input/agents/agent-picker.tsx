@@ -54,7 +54,7 @@ export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
     }
 
     return agentsData
-      .filter((agent) => agent.native === true)
+      .filter((agent) => agent.native === true && agent.mode === 'primary')
       .filter((agent) => {
         if (!query) {
           return true;

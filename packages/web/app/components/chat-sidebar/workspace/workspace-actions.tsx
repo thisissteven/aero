@@ -385,7 +385,12 @@ export function EditWorkspace({
     <Dropdown.Item
       onPress={() => {
         openModal({
-          children: <EditWorkspaceModal workspace={workspace} />,
+          children: (
+            <EditWorkspaceModal
+              workspace={workspace}
+              directoryNotFound={directoryNotFound}
+            />
+          ),
         });
       }}
     >

@@ -158,6 +158,7 @@ export function useUpdateWorkspace(id: string) {
       return res.json();
     },
     onSuccess: (_data) => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
     },

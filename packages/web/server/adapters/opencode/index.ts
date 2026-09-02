@@ -86,16 +86,12 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             .map(toAeroSessionV2Info);
 
           return {
-            id: wt.id,
-            name: wt.name,
-            directory: wt.directory,
+            ...wt,
             sessions: previewSessions,
           };
         } catch {
           return {
-            id: wt.id,
-            name: wt.name,
-            directory: wt.directory,
+            ...wt,
             sessions: [],
           };
         }
@@ -103,12 +99,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     );
 
     return {
-      id: stored.id,
-      name: stored.name,
-      directory: stored.directory,
+      ...stored,
       worktrees,
-      createdAt: stored.createdAt,
-      updatedAt: stored.updatedAt,
     };
   }
 
@@ -1033,6 +1025,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             : undefined,
           system: input.system,
           agent: input.agent,
+          variant: input.variant,
         }),
       );
 

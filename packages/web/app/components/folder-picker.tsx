@@ -41,6 +41,7 @@ interface RootResponse {
 interface FolderNavigatorProps {
   endpoint?: string;
   onSelect?: (path: string) => void;
+  onClose?: () => void;
 }
 
 interface FolderPickerStore {
@@ -63,6 +64,7 @@ export const useFolderPickerStore = create<FolderPickerStore>()(
 export function FolderPicker({
   endpoint = '/api/folder-picker',
   onSelect,
+  onClose = () => useGlobalModalStore.getState().closeModal(),
 }: FolderNavigatorProps) {
   const queryClient = useQueryClient();
 
@@ -247,13 +249,11 @@ export function FolderPicker({
   const activeError =
     rootsQuery.error?.message || listQuery.error?.message || createError;
 
-  const closeModal = useGlobalModalStore((state) => state.closeModal);
-
   const handleClose = () => {
     setIsCreatingFolder(false);
     setSearchQuery('');
     setSelectedPath(null);
-    closeModal();
+    onClose();
   };
 
   const handleSelectConfirm = () => {

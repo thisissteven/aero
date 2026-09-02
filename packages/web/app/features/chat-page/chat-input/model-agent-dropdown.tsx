@@ -1,4 +1,3 @@
-import { ChevronDown } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
 import { Button, Sheet } from '@aero/ui';
@@ -112,8 +111,6 @@ export function ModelAgentDropdownTrigger() {
       {selectedAgent?.name
         ? capitalizeFirstLetter(selectedAgent.name)
         : 'Select Agent'}
-
-      <Icon data={ChevronDown} className='size-3' />
     </Button>
   );
 }

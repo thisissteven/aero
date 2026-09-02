@@ -4,8 +4,6 @@ import {
   ChevronRight,
   Magnifier,
   Plus,
-  Star,
-  StarFill,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import {
@@ -17,7 +15,7 @@ import {
   useState,
 } from 'react';
 
-import { Button, Command, Kbd, Popover } from '@aero/ui';
+import { cn, Command, Kbd, Popover } from '@aero/ui';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { IconButton } from '@/app/components/ui/icon-button';
@@ -31,55 +29,39 @@ import {
   SearchableModel,
 } from '@/app/lib/model';
 
-import { useChatSettingsStore } from './chat-settings-store';
+export interface WorkspaceModelDropdownProps {
+  value?: string | null; // e.g., model ID stored in workspace config
+  onChange?: (model: string) => void;
+  disabled?: boolean;
+  onAddProviderClick?: () => void;
+}
 
-export function ModelDropdown() {
-  const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-
-  const setSelectedModel = useChatSettingsStore(
-    (state) => state.setSelectedModel,
-  );
-
-  const favoriteModelIds = useChatSettingsStore(
-    (state) => state.favoriteModelIds,
-  );
-
-  const toggleFavoriteModel = useChatSettingsStore(
-    (state) => state.toggleFavoriteModel,
-  );
-
-  const setFavoriteModelIds = useChatSettingsStore(
-    (state) => state.setFavoriteModelIds,
-  );
-
+export function WorkspaceModelDropdown({
+  value,
+  onChange,
+  disabled = false,
+  onAddProviderClick,
+}: WorkspaceModelDropdownProps) {
   const { data: providersData } = useConfiguredProviders();
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set(),
   );
-
   const [activeModel, setActiveModel] = useState<ModelItem | null>(null);
-
   const [hoverTop, setHoverTop] = useState(0);
-
   const [infoSide, setInfoSide] = useState<'left' | 'right'>('left');
 
   const activeItemRef = useRef<HTMLElement | null>(null);
-
   const popoverMenuRef = useRef<HTMLDivElement | null>(null);
-
   const itemElementsRef = useRef<Map<string, HTMLElement>>(new Map());
 
+  // Normalize model registry map
   const searchableModels = useMemo<SearchableModel[]>(() => {
-    if (!providersData) {
-      return [];
-    }
+    if (!providersData) return [];
 
     const byId = new Map<string, SearchableModel>();
-
     for (const provider of providersData) {
       for (const model of Object.values(provider.models) as ModelItem[]) {
         if (!byId.has(model.id)) {
@@ -91,16 +73,19 @@ export function ModelDropdown() {
         }
       }
     }
-
     return [...byId.values()];
   }, [providersData]);
+
+  // Derive current selection directly from props and provider data
+  const selectedModelEntry = useMemo<SearchableModel | null>(() => {
+    if (!value || searchableModels.length === 0) return null;
+    return searchableModels.find(({ model }) => model.id === value) ?? null;
+  }, [value, searchableModels]);
 
   const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const filteredModels = useMemo(() => {
-    if (!normalizedSearch) {
-      return searchableModels;
-    }
+    if (!normalizedSearch) return searchableModels;
 
     return searchableModels.filter(
       ({ model, providerName }) =>
@@ -110,22 +95,11 @@ export function ModelDropdown() {
     );
   }, [searchableModels, normalizedSearch]);
 
-  const favoriteModels = useMemo(() => {
-    return filteredModels.filter(({ model }) =>
-      favoriteModelIds.includes(model.id),
-    );
-  }, [filteredModels, favoriteModelIds]);
-
   const groupedProviders = useMemo<ProviderGroup[]>(() => {
     const groups = new Map<string, ProviderGroup>();
 
     for (const entry of filteredModels) {
-      if (favoriteModelIds.includes(entry.model.id)) {
-        continue;
-      }
-
       const existing = groups.get(entry.providerId);
-
       if (existing) {
         existing.models.push(entry);
       } else {
@@ -138,50 +112,14 @@ export function ModelDropdown() {
     }
 
     return [...groups.values()];
-  }, [filteredModels, favoriteModelIds]);
+  }, [filteredModels]);
 
-  const totalResults =
-    favoriteModels.length +
-    groupedProviders.reduce(
-      (total, provider) => total + provider.models.length,
-      0,
-    );
+  const totalResults = groupedProviders.reduce(
+    (acc, curr) => acc + curr.models.length,
+    0,
+  );
 
-  useEffect(() => {
-    if (searchableModels.length === 0) {
-      return;
-    }
-
-    const stillExists = selectedModel
-      ? searchableModels.some(({ model }) => model.id === selectedModel.id)
-      : false;
-
-    if (selectedModel && stillExists) {
-      return;
-    }
-
-    const first = searchableModels[0];
-
-    setSelectedModel({
-      id: first.model.id,
-      name: first.model.name,
-      providerId: first.providerId,
-    });
-  }, [selectedModel, searchableModels, setSelectedModel]);
-
-  useEffect(() => {
-    if (searchableModels.length === 0 || favoriteModelIds.length === 0) {
-      return;
-    }
-
-    const validIds = new Set(searchableModels.map(({ model }) => model.id));
-    const stillValid = favoriteModelIds.filter((id) => validIds.has(id));
-
-    if (stillValid.length !== favoriteModelIds.length) {
-      setFavoriteModelIds(stillValid);
-    }
-  }, [searchableModels, favoriteModelIds, setFavoriteModelIds]);
-
+  // Clear invalid hover target on query change
   useEffect(() => {
     if (
       activeModel &&
@@ -195,109 +133,64 @@ export function ModelDropdown() {
   const updateActiveItemPosition = useCallback(() => {
     const item = activeItemRef.current;
     const parent = popoverMenuRef.current;
-
-    if (!item || !parent) {
-      return;
-    }
+    if (!item || !parent) return;
 
     const parentRect = parent.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
 
     const panelWidth = 256;
     const gap = 8;
-
-    // Space available from the left viewport edge to the
-    // left edge of the model dropdown.
     const spaceLeft = parentRect.left;
 
-    // Default to left whenever the panel can fully fit there.
-    // Only move to the right when it cannot.
     const side = spaceLeft >= panelWidth + gap ? 'left' : 'right';
-
     setInfoSide(side);
-
     setHoverTop(itemRect.top + itemRect.height / 2 - parentRect.top);
   }, []);
 
   useLayoutEffect(() => {
-    if (!activeModel || !activeItemRef.current) {
-      return;
+    if (activeModel && activeItemRef.current) {
+      updateActiveItemPosition();
     }
-
-    updateActiveItemPosition();
   }, [activeModel, updateActiveItemPosition]);
 
   useEffect(() => {
-    if (!activeModel) {
-      return;
-    }
-
-    const handleResize = () => {
-      updateActiveItemPosition();
-    };
-
+    if (!activeModel) return;
+    const handleResize = () => updateActiveItemPosition();
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, [activeModel, updateActiveItemPosition]);
 
   const activateModel = useCallback((model: ModelItem) => {
     const element = itemElementsRef.current.get(model.id) ?? null;
-
     activeItemRef.current = element;
     setActiveModel(model);
 
-    if (!element) {
-      return;
-    }
-
+    if (!element) return;
     const parent = popoverMenuRef.current;
-
-    if (!parent) {
-      return;
-    }
+    if (!parent) return;
 
     const parentRect = parent.getBoundingClientRect();
     const itemRect = element.getBoundingClientRect();
 
     const panelWidth = 256;
     const gap = 8;
-
     const spaceLeft = parentRect.left;
 
     setInfoSide(spaceLeft >= panelWidth + gap ? 'left' : 'right');
-
     setHoverTop(itemRect.top + itemRect.height / 2 - parentRect.top);
   }, []);
 
-  const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
-    event.stopPropagation();
-    toggleFavoriteModel(modelId);
-  };
-
   const toggleGroupCollapse = (groupId: string) => {
-    setCollapsedGroups((previous) => {
-      const next = new Set(previous);
-
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
       return next;
     });
   };
 
-  const selectModel = (model: ModelItem) => {
-    setSelectedModel({
-      id: model.id,
-      name: model.name,
-      providerId: model.providerID,
-    });
-
+  const selectModel = (entry: SearchableModel) => {
+    onChange?.(entry.model.id);
     setIsOpen(false);
   };
 
@@ -307,8 +200,7 @@ export function ModelDropdown() {
     isGroupCollapsed: boolean,
   ) => {
     const { model, providerName } = entry;
-    const isSelected = selectedModel?.id === model.id;
-    const isFavorite = favoriteModelIds.includes(model.id);
+    const isSelected = selectedModelEntry?.model.id === model.id;
     const formattedLimit = formatContextLength(model.limit?.context);
 
     return (
@@ -324,7 +216,6 @@ export function ModelDropdown() {
 
           const innerElement =
             element.querySelector<HTMLElement>('[data-model-inner]');
-
           if (innerElement) {
             itemElementsRef.current.set(model.id, innerElement);
           }
@@ -344,10 +235,8 @@ export function ModelDropdown() {
                   mutation.attributeName === 'data-hovered')
               ) {
                 const target = mutation.target as HTMLElement;
-
                 const isFocused =
                   target.getAttribute('data-focused') === 'true';
-
                 const isHovered =
                   target.getAttribute('data-hovered') === 'true';
 
@@ -363,7 +252,7 @@ export function ModelDropdown() {
             attributeFilter: ['data-focused', 'data-hovered'],
           });
         }}
-        onAction={() => selectModel(model)}
+        onAction={() => selectModel(entry)}
         className={`flex items-center justify-between rounded-md px-2 py-1.5 ${
           isGroupCollapsed ? 'hidden' : 'cursor-pointer'
         }`}
@@ -389,22 +278,6 @@ export function ModelDropdown() {
 
         <div className='flex shrink-0 items-center gap-1.5'>
           {isSelected && <Icon data={Check} className='size-3.5' />}
-
-          <button
-            type='button'
-            tabIndex={-1}
-            className='text-muted hover:text-accent transition-colors'
-            onClick={(event) => toggleFavorite(event, model.id)}
-          >
-            <Icon
-              data={isFavorite ? StarFill : Star}
-              className={`size-3.5 ${
-                isFavorite
-                  ? '[&_path]:fill-[var(--accent)] [&_path]:stroke-[var(--accent)]'
-                  : ''
-              }`}
-            />
-          </button>
         </div>
       </Command.Item>
     );
@@ -412,23 +285,34 @@ export function ModelDropdown() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        variant='ghost'
-        size='sm'
-        className='gap-1.5 rounded-lg px-2 text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
-      >
-        {selectedModel && (
-          <ProviderLogo
-            providerId={selectedModel.providerId}
-            alt={selectedModel.name}
-            className='size-3.5'
-          />
-        )}
+      <Popover.Trigger className='flex-1'>
+        <button
+          disabled={disabled}
+          className='text-foreground bg-field hover:bg-field-hover shadow-field flex w-full items-center justify-between gap-1.5 rounded-xl p-2.25'
+        >
+          <div className='flex items-center gap-1.5'>
+            {selectedModelEntry && (
+              <ProviderLogo
+                providerId={selectedModelEntry.providerId}
+                alt={selectedModelEntry.model.name}
+                className='size-3.5'
+              />
+            )}
 
-        {selectedModel?.name ?? (
-          <span className='text-muted'>Select model</span>
-        )}
-      </Button>
+            {selectedModelEntry?.model.name ?? (
+              <span className='text-muted'>No default model selected</span>
+            )}
+          </div>
+
+          <Icon
+            data={ChevronDown}
+            className={cn(
+              'size-3.5 transition',
+              isOpen ? 'rotate-180' : 'rotate-0',
+            )}
+          />
+        </button>
+      </Popover.Trigger>
 
       <Popover.Content
         className='relative overflow-visible p-0'
@@ -436,16 +320,18 @@ export function ModelDropdown() {
       >
         <div ref={popoverMenuRef} className='relative flex items-start'>
           <div className='bg-overlay text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border'>
-            <div className='border-separator border-b p-1'>
-              <IconButton
-                isIconOnly={false}
-                className='w-full justify-start gap-3 px-2'
-              >
-                <Icon data={Plus} className='size-3.5' />
-
-                <span>Add new provider</span>
-              </IconButton>
-            </div>
+            {onAddProviderClick && (
+              <div className='border-separator border-b p-1'>
+                <IconButton
+                  isIconOnly={false}
+                  className='w-full justify-start gap-3 px-2'
+                  onClick={onAddProviderClick}
+                >
+                  <Icon data={Plus} className='size-3.5' />
+                  <span>Add new provider</span>
+                </IconButton>
+              </div>
+            )}
 
             <Command>
               <Command.Dialog
@@ -471,38 +357,6 @@ export function ModelDropdown() {
                   </div>
                 ) : (
                   <Command.List className='max-h-72 scroll-py-1 overflow-y-auto p-1 text-xs'>
-                    {favoriteModels.length > 0 && (
-                      <Command.Group
-                        headingClassName='px-2.5'
-                        heading={
-                          <button
-                            type='button'
-                            onClick={() => toggleGroupCollapse('favorites')}
-                            className='text-muted flex w-full items-center justify-between rounded text-sm font-semibold tracking-wider uppercase'
-                          >
-                            <span className='text-accent'>Favorites</span>
-
-                            <Icon
-                              data={
-                                collapsedGroups.has('favorites')
-                                  ? ChevronRight
-                                  : ChevronDown
-                              }
-                              className='size-3'
-                            />
-                          </button>
-                        }
-                      >
-                        {favoriteModels.map((entry) =>
-                          renderModelItem(
-                            entry,
-                            `favorite-${entry.model.id}`,
-                            collapsedGroups.has('favorites'),
-                          ),
-                        )}
-                      </Command.Group>
-                    )}
-
                     {groupedProviders.map((provider) => {
                       const isCollapsed = collapsedGroups.has(provider.id);
 
@@ -517,7 +371,6 @@ export function ModelDropdown() {
                               className='text-muted hover:bg-surface flex w-full items-center justify-between rounded text-sm font-semibold tracking-wider uppercase'
                             >
                               <span>{provider.name}</span>
-
                               <Icon
                                 data={isCollapsed ? ChevronRight : ChevronDown}
                                 className='size-3'
@@ -542,12 +395,10 @@ export function ModelDropdown() {
                   <Kbd className='text-xs'>
                     <Kbd.Abbr keyValue='up' />
                   </Kbd>
-
                   <Kbd className='text-xs'>
                     <Kbd.Abbr keyValue='down' />
                   </Kbd>
                 </div>
-
                 <span>Navigate</span>
               </div>
 
@@ -570,7 +421,6 @@ export function ModelDropdown() {
             >
               <div className='text-muted flex items-center justify-between gap-2'>
                 <span>Capabilities</span>
-
                 <span className='text-foreground truncate text-right font-medium'>
                   {formatCapabilities(activeModel.capabilities)}
                 </span>
@@ -578,7 +428,6 @@ export function ModelDropdown() {
 
               <div className='text-muted flex items-center justify-between'>
                 <span>Input</span>
-
                 <span className='text-foreground font-medium'>
                   {formatMediaTypes(activeModel.capabilities?.input)}
                 </span>
@@ -586,7 +435,6 @@ export function ModelDropdown() {
 
               <div className='text-muted flex items-center justify-between'>
                 <span>Output</span>
-
                 <span className='text-foreground font-medium'>
                   {formatMediaTypes(activeModel.capabilities?.output)}
                 </span>
@@ -594,7 +442,6 @@ export function ModelDropdown() {
 
               <div className='text-muted border-separator flex items-center justify-between border-t pt-1'>
                 <span>Cost ($/1M tokens)</span>
-
                 <span className='text-foreground font-medium'>
                   {`In $${activeModel.cost?.input ?? 0} · Out $${
                     activeModel.cost?.output ?? 0

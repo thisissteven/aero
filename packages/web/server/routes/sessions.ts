@@ -683,6 +683,7 @@ const sessions = new Hono()
           .optional(),
         system: z.string().optional(),
         agent: z.string().optional(),
+        variant: z.string().optional(),
       }),
     ),
     async (c) => {

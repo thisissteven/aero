@@ -7,6 +7,7 @@ import { initProxyConfig } from '@/server/proxy-loader';
 
 import agentRoutes from './routes/agents';
 import configRoutes from './routes/config';
+import discoveryRoutes from './routes/discovery';
 import folderPickerRoutes from './routes/folder-picker';
 import gitRoutes from './routes/git';
 import poolRoutes from './routes/pool';
@@ -33,7 +34,8 @@ const app = new Hono()
   .route('/providers', providerRoutes)
   .route('/worktrees', worktreeRoutes)
   .route('/config', configRoutes)
-  .route('/folder-picker', folderPickerRoutes);
+  .route('/folder-picker', folderPickerRoutes)
+  .route('/discovery', discoveryRoutes);
 
 app.onError((err, c) => {
   console.error(`[Error] ${c.req.method} ${c.req.url}:`, err);

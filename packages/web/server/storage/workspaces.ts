@@ -185,12 +185,23 @@ export async function updateWorkspace(
   if (index === -1) return null;
 
   const current = all[index];
+
+  const name = input.name ?? current.name;
+
+  const directory = input.directory
+    ? normalizePath(input.directory)
+    : current.directory;
+
   const updated: AeroWorkspace = {
     ...current,
     ...input,
-    directory: input.directory
-      ? normalizePath(input.directory)
-      : current.directory,
+    name,
+    directory: directory,
+    worktrees: current.worktrees.map((wt) => ({
+      ...wt,
+      name: wt.directory === current.directory ? name : wt.name,
+      directory: wt.directory === current.directory ? directory : wt.directory,
+    })),
     updatedAt: Date.now(),
   };
 

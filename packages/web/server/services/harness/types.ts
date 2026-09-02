@@ -347,6 +347,7 @@ export interface SendMessageInput {
   model?: { providerId: string; modelId: string };
   system?: string;
   agent?: string;
+  variant?: string;
 }
 
 export interface CreateWorkspaceInput {

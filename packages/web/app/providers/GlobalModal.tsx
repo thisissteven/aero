@@ -1,7 +1,7 @@
 import { Gear } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { ReactNode } from 'react';
-import { create } from 'zustand';
+import { create, StateCreator } from 'zustand';
 
 import { Button, Modal } from '@aero/ui';
 
@@ -41,7 +41,7 @@ interface ConfirmationStore {
   toggleOpen: (options: { children?: ReactNode }) => void;
 }
 
-export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
+const globalModalSlice: StateCreator<ConfirmationStore> = (set) => ({
   isOpen: false,
   options: {
     children: defaultChildren,
@@ -74,12 +74,30 @@ export const useGlobalModalStore = create<ConfirmationStore>((set) => ({
     set({
       isOpen,
     }),
-}));
+});
+
+export const useGlobalModalStore = create<ConfirmationStore>(globalModalSlice);
+export const useGlobalModalStoreOuter =
+  create<ConfirmationStore>(globalModalSlice);
 
 export function GlobalModal() {
   const isOpen = useGlobalModalStore((state) => state.isOpen);
   const setOpen = useGlobalModalStore((state) => state.setOpen);
   const options = useGlobalModalStore((state) => state.options);
+
+  return (
+    <Modal isOpen={isOpen} onOpenChange={setOpen}>
+      <Modal.Backdrop>
+        <Modal.Container>{options.children}</Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
+  );
+}
+
+export function GlobalModalOuter() {
+  const isOpen = useGlobalModalStoreOuter((state) => state.isOpen);
+  const setOpen = useGlobalModalStoreOuter((state) => state.setOpen);
+  const options = useGlobalModalStoreOuter((state) => state.options);
 
   return (
     <Modal isOpen={isOpen} onOpenChange={setOpen}>
