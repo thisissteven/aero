@@ -21,6 +21,10 @@ export interface AeroWorkspace {
   worktrees: AeroWorktree[];
   createdAt: number;
   updatedAt: number;
+
+  selectedColor?: string | null;
+  selectedIcon?: string | null;
+  defaultModel?: string | null;
 }
 
 async function readAll(): Promise<AeroWorkspace[]> {
@@ -169,7 +173,12 @@ export async function createWorkspace(input: {
 
 export async function updateWorkspace(
   id: string,
-  input: Partial<Pick<AeroWorkspace, 'name' | 'directory'>>,
+  input: Partial<
+    Pick<
+      AeroWorkspace,
+      'name' | 'directory' | 'selectedColor' | 'selectedIcon' | 'defaultModel'
+    >
+  >,
 ): Promise<AeroWorkspace | null> {
   const all = await readAll();
   const index = all.findIndex((w) => w.id === id);

@@ -17,6 +17,8 @@ import {
   AeroWorktreeSummary,
 } from '@/server/services/harness/types';
 
+import { OpenIsolatedWorkspace } from '../session/session-actions';
+
 export interface SubWorktreeItemProps {
   idPrefix: string;
   worktree: AeroWorktreeSummary;
@@ -88,6 +90,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
             >
               <Dropdown.Menu aria-label={`${worktree.name} actions`}>
                 <CopyDirectoryPath directory={worktree.directory} />
+                <OpenIsolatedWorkspace directory={worktree.directory} />
                 <Separator className='my-0.5 h-[0.5px]' />
                 <DeleteWorktree
                   worktreeName={worktree.name}

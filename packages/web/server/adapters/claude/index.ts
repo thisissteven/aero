@@ -64,14 +64,12 @@ export async function createClaudeAdapter(): Promise<HarnessAdapter> {
       stored.worktrees.map(async (wt) => {
         try {
           const sessions = await listClaudeSessions(wt.directory);
-          const hasMoreSessions = sessions.length > 3;
           const previewSessions = sessions.slice(0, 3);
 
           return {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions,
             sessions: previewSessions,
           };
         } catch {
@@ -79,7 +77,6 @@ export async function createClaudeAdapter(): Promise<HarnessAdapter> {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions: false,
             sessions: [],
           };
         }

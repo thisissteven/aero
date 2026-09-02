@@ -60,6 +60,9 @@ export async function findAvailablePort(
 export const AERO_DIR = normalizePath(join(homedir(), '.aero'));
 
 export const WORKSPACES_PATH = normalizePath(join(AERO_DIR, 'workspaces.json'));
+export const SYSTEM_APPS_ICONS_PATH = normalizePath(
+  join(AERO_DIR, 'system-apps.json'),
+);
 export const HARNESSES_CONFIG_PATH = normalizePath(
   join(AERO_DIR, 'harnesses.json'),
 );

@@ -30,7 +30,7 @@ export function ChatShell({ children }: ChatShellProps) {
   useRestoreSessionStreams();
 
   return (
-    <div className='bg-background text-foreground flex h-screen w-screen overflow-hidden'>
+    <div className='flex h-screen w-screen overflow-hidden'>
       <div className='h-full min-w-0 flex-1'>
         <AppLayout
           asideToggleShortcut={null}

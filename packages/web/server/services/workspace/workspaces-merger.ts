@@ -19,7 +19,6 @@ export async function mergeWorkspaceAcrossAdaptersByDirectory(
     baseWorkspace.worktrees.map(async (wt) => {
       return {
         ...wt,
-        hasMoreSessions: false,
       };
     }),
   );
@@ -76,7 +75,6 @@ export async function mergeWorkspaceAcrossAdapters(
 
       return {
         ...wt,
-        hasMoreSessions: false,
         // sessions: previewSessions,
       };
     }),

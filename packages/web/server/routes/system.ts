@@ -8,13 +8,12 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { z } from 'zod';
 
+import { SYSTEM_APPS_ICONS_PATH } from '@/server/helper';
+
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
-// Every subprocess call below MUST carry a timeout. Without one, a hung
-// child (macOS Automation permission dialog blocking osascript, a wedged
-// Spotlight/mdfind index, a terminal binary that never returns) hangs the
-// awaiting request forever — that's what was making the app unresponsive.
+// Every subprocess call below MUST carry a timeout.
 const QUICK_TIMEOUT_MS = 3_000; // which/where/test lookups
 const ICON_TIMEOUT_MS = 5_000; // osascript/powershell icon extraction
 const LAUNCH_TIMEOUT_MS = 8_000; // opening apps/terminals
@@ -246,6 +245,29 @@ function formatPath(inputPath: string): string {
   return os.platform() === 'win32' ? resolved.replace(/\//g, '\\') : resolved;
 }
 
+// Icon File Store Persistence Helpers
+async function readIconsCache(): Promise<Record<string, string>> {
+  try {
+    const raw = await fs.readFile(SYSTEM_APPS_ICONS_PATH, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function writeIconsCache(cache: Record<string, string>): Promise<void> {
+  try {
+    await fs.mkdir(path.dirname(SYSTEM_APPS_ICONS_PATH), { recursive: true });
+    await fs.writeFile(
+      SYSTEM_APPS_ICONS_PATH,
+      JSON.stringify(cache, null, 2),
+      'utf-8',
+    );
+  } catch (err) {
+    console.error('Failed to write app icon cache file:', err);
+  }
+}
+
 async function isBinaryAvailable(binary: string): Promise<boolean> {
   const isWin = os.platform() === 'win32';
   try {
@@ -299,7 +321,6 @@ async function extractNativeIconUrl(
   const platform = os.platform();
 
   if (platform === 'darwin') {
-    // Map specific macOS system apps to their full bundle paths
     let appPath = app.macAppNames?.[0] || app.appName;
     if (app.id === 'terminal') {
       appPath = '/System/Applications/Utilities/Terminal.app';
@@ -332,10 +353,9 @@ async function extractNativeIconUrl(
   }
 
   if (platform === 'win32') {
-    // Determine the executable for PowerShell lookup
     let binary = app.binaries?.[0] || `${app.id}.exe`;
     if (app.id === 'terminal') {
-      binary = 'cmd.exe'; // Default Windows command shell
+      binary = 'cmd.exe';
     } else if (app.id === 'finder') {
       binary = 'explorer.exe';
     }
@@ -408,6 +428,9 @@ const system = new Hono()
     const isMac = platform === 'darwin';
     const isWin = platform === 'win32';
 
+    const iconCache = await readIconsCache();
+    let cacheUpdated = false;
+
     const settled = await Promise.allSettled(
       OPEN_IN_APPS.map(async (app) => {
         let available = false;
@@ -453,15 +476,23 @@ const system = new Hono()
           available = results.some((r) => r.status === 'fulfilled' && r.value);
         }
 
-        // Extract native icon dynamically if available. Icon extraction
-        // is best-effort — never let a stuck/failed icon lookup take
-        // down the app's availability result.
         let appIconUrl = app.appIconUrl;
+
         if (available) {
-          try {
-            appIconUrl = (await extractNativeIconUrl(app)) || appIconUrl;
-          } catch {
-            // keep fallback appIconUrl
+          // Use cached icon if available; otherwise extract and store it
+          if (iconCache[app.id]) {
+            appIconUrl = iconCache[app.id];
+          } else {
+            try {
+              const extracted = await extractNativeIconUrl(app);
+              if (extracted) {
+                appIconUrl = extracted;
+                iconCache[app.id] = extracted;
+                cacheUpdated = true;
+              }
+            } catch {
+              // keep default appIconUrl
+            }
           }
         }
 
@@ -475,9 +506,10 @@ const system = new Hono()
       }),
     );
 
-    // Any single app check that rejected (shouldn't happen now that every
-    // subprocess call has a timeout, but belt-and-suspenders) degrades to
-    // "unavailable" instead of failing the whole endpoint.
+    if (cacheUpdated) {
+      await writeIconsCache(iconCache);
+    }
+
     const editors = settled.map((r, i) => {
       if (r.status === 'fulfilled') return r.value;
       const app = OPEN_IN_APPS[i];
@@ -485,7 +517,7 @@ const system = new Hono()
         id: app.id,
         label: app.label,
         appName: app.appName,
-        appIconUrl: app.appIconUrl,
+        appIconUrl: iconCache[app.id] || app.appIconUrl,
         available: false,
       };
     });
@@ -507,10 +539,6 @@ const system = new Hono()
       // 1. File Explorer Handler
       if (appId === 'finder') {
         if (platform === 'win32') {
-          // await execFileAsync('explorer', [targetPath], {
-          //   timeout: LAUNCH_TIMEOUT_MS,
-          //   ...killOpts,
-          // });
           exec(`explorer "${targetPath}"`, () => {});
         } else if (platform === 'darwin') {
           await execFileAsync('open', [targetPath], {

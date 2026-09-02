@@ -68,14 +68,12 @@ export async function createCodexAdapter(): Promise<HarnessAdapter> {
       stored.worktrees.map(async (wt) => {
         try {
           const sessions = await listCodexSessions(wt.directory);
-          const hasMoreSessions = sessions.length > 3;
           const previewSessions = sessions.slice(0, 3);
 
           return {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions,
             sessions: previewSessions,
           };
         } catch {
@@ -83,7 +81,6 @@ export async function createCodexAdapter(): Promise<HarnessAdapter> {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions: false,
             sessions: [],
           };
         }

@@ -95,7 +95,7 @@ export function ChatPage({
         </>
       )}
 
-      <div className='bg-background shrink-0 px-4 pb-2 md:pb-4'>
+      <div className='shrink-0 px-4 pb-2 md:pb-4'>
         <div className='relative mx-auto w-full max-w-[720px]'>
           <ReplyToQuestion />
 

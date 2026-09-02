@@ -1,13 +1,21 @@
 import {
   ArrowUp,
+  Check,
   ChevronLeft,
   ChevronRight,
   Folder,
+  FolderPlus,
   Magnifier,
+  Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -56,10 +64,17 @@ export function FolderPicker({
   endpoint = '/api/folder-picker',
   onSelect,
 }: FolderNavigatorProps) {
+  const queryClient = useQueryClient();
+
   const [currentPath, setCurrentPath] = useState('');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Inline Folder Creation State
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // History stack for Explorer Back/Forward navigation
   const [history, setHistory] = useState<string[]>([]);
@@ -87,7 +102,7 @@ export function FolderPicker({
 
   const roots = rootsQuery.data?.roots ?? [];
 
-  // Initialize initial path when modal opens and roots arrive (restores last persisted path if valid)
+  // Initialize initial path when modal opens and roots arrive
   useEffect(() => {
     if (!currentPath && roots.length > 0) {
       const initialPath =
@@ -125,7 +140,42 @@ export function FolderPicker({
     placeholderData: keepPreviousData,
   });
 
-  // 3. Local search filtering on active directory items
+  // 3. Create folder mutation
+  const createFolderMutation = useMutation({
+    mutationFn: async (folderName: string) => {
+      const response = await fetch(`${endpoint}/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentPath: currentPath,
+          name: folderName,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? 'Failed to create folder');
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      setCreateError(null);
+      setIsCreatingFolder(false);
+      setNewFolderName('');
+
+      // Refresh directory contents
+      queryClient.invalidateQueries({
+        queryKey: ['folder-picker', endpoint, 'list', currentPath],
+      });
+    },
+    onError: (err: Error) => {
+      setCreateError(err.message);
+    },
+  });
+
+  // 4. Local search filtering on active directory items
   const filteredDirectories = useMemo(() => {
     const directories = listQuery.data?.directories ?? [];
     const query = searchQuery.trim().toLowerCase();
@@ -139,6 +189,8 @@ export function FolderPicker({
         return;
       }
 
+      setIsCreatingFolder(false);
+      setCreateError(null);
       setSearchQuery('');
       setSelectedPath(null);
       setCurrentPath(targetPath);
@@ -161,6 +213,7 @@ export function FolderPicker({
       const prevIndex = historyIndex - 1;
       const targetPath = history[prevIndex];
       setHistoryIndex(prevIndex);
+      setIsCreatingFolder(false);
       setSearchQuery('');
       setSelectedPath(null);
       setCurrentPath(targetPath);
@@ -172,6 +225,7 @@ export function FolderPicker({
       const nextIndex = historyIndex + 1;
       const targetPath = history[nextIndex];
       setHistoryIndex(nextIndex);
+      setIsCreatingFolder(false);
       setSearchQuery('');
       setSelectedPath(null);
       setCurrentPath(targetPath);
@@ -190,11 +244,13 @@ export function FolderPicker({
     [currentPath],
   );
 
-  const activeError = rootsQuery.error?.message || listQuery.error?.message;
+  const activeError =
+    rootsQuery.error?.message || listQuery.error?.message || createError;
 
   const closeModal = useGlobalModalStore((state) => state.closeModal);
 
   const handleClose = () => {
+    setIsCreatingFolder(false);
     setSearchQuery('');
     setSelectedPath(null);
     closeModal();
@@ -207,6 +263,24 @@ export function FolderPicker({
     setLastSelectedPath(finalSelection);
     onSelect?.(finalSelection);
     handleClose();
+  };
+
+  const handleStartCreateFolder = () => {
+    setIsCreatingFolder(true);
+    setCreateError(null);
+    setNewFolderName('');
+  };
+
+  const handleCancelCreateFolder = () => {
+    setIsCreatingFolder(false);
+    setCreateError(null);
+    setNewFolderName('');
+  };
+
+  const handleConfirmCreateFolder = () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) return;
+    createFolderMutation.mutate(trimmed);
   };
 
   return (
@@ -283,10 +357,10 @@ export function FolderPicker({
             <SearchField
               value={searchQuery}
               onChange={setSearchQuery}
-              className='w-full'
+              className='h-7 w-full'
               variant='primary'
             >
-              <SearchField.Group>
+              <SearchField.Group className='border-separator rounded border'>
                 <Icon data={Magnifier} size={14} className='text-muted ml-3' />
                 <SearchField.Input
                   placeholder={`Search ${
@@ -321,6 +395,17 @@ export function FolderPicker({
           </Checkbox>
           <span>Show hidden items</span>
         </Label>
+
+        {/* Create Folder Button */}
+        <button
+          type='button'
+          onClick={handleStartCreateFolder}
+          disabled={!currentPath || isCreatingFolder}
+          className='text-muted hover:text-foreground hover:bg-surface-secondary flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors disabled:opacity-30'
+        >
+          <Icon data={FolderPlus} size={14} />
+          <span>New folder</span>
+        </button>
       </div>
 
       {/* Explorer Body */}
@@ -358,6 +443,12 @@ export function FolderPicker({
               directories={filteredDirectories}
               searchQuery={searchQuery}
               selectedPath={selectedPath}
+              isCreatingFolder={isCreatingFolder}
+              newFolderName={newFolderName}
+              isCreatingLoading={createFolderMutation.isPending}
+              onNewFolderNameChange={setNewFolderName}
+              onConfirmCreateFolder={handleConfirmCreateFolder}
+              onCancelCreateFolder={handleCancelCreateFolder}
               onSelect={(path) => setSelectedPath(path)}
               onOpen={(path) => navigateToPath(path)}
             />
@@ -402,6 +493,12 @@ interface DirectoryListProps {
   directories: DirectoryEntry[];
   searchQuery: string;
   selectedPath: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  isCreatingLoading: boolean;
+  onNewFolderNameChange: (value: string) => void;
+  onConfirmCreateFolder: () => void;
+  onCancelCreateFolder: () => void;
   onSelect: (path: string) => void;
   onOpen: (path: string) => void;
 }
@@ -410,10 +507,24 @@ function DirectoryList({
   directories,
   searchQuery,
   selectedPath,
+  isCreatingFolder,
+  newFolderName,
+  isCreatingLoading,
+  onNewFolderNameChange,
+  onConfirmCreateFolder,
+  onCancelCreateFolder,
   onSelect,
   onOpen,
 }: DirectoryListProps) {
-  if (directories.length === 0) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isCreatingFolder) {
+      inputRef.current?.focus();
+    }
+  }, [isCreatingFolder]);
+
+  if (directories.length === 0 && !isCreatingFolder) {
     return (
       <div className='text-muted flex min-h-40 items-center justify-center text-xs'>
         {searchQuery ? 'No matching folders found.' : 'This folder is empty.'}
@@ -429,6 +540,51 @@ function DirectoryList({
       </div>
 
       <div className='space-y-0.5'>
+        {/* Inline Folder Creation Row */}
+        {isCreatingFolder && (
+          <div className='bg-accent/10 border-accent/10 grid grid-cols-1 items-center gap-2 rounded border px-3 py-0.5 text-xs sm:grid-cols-[1fr_120px] sm:gap-3'>
+            <div className='flex min-w-0 items-center gap-2'>
+              <Icon data={Folder} size={16} className='text-warning shrink-0' />
+              <input
+                ref={inputRef}
+                type='text'
+                value={newFolderName}
+                disabled={isCreatingLoading}
+                placeholder='New folder name...'
+                onChange={(e) => onNewFolderNameChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onConfirmCreateFolder();
+                  if (e.key === 'Escape') onCancelCreateFolder();
+                }}
+                className='bg-surface border-separator text-foreground placeholder:text-muted focus:border-accent/30 w-full min-w-0 rounded border px-2 py-1 text-xs focus:outline-none'
+              />
+              <div className='flex items-center'>
+                <button
+                  type='button'
+                  onClick={onConfirmCreateFolder}
+                  disabled={isCreatingLoading || !newFolderName.trim()}
+                  className='text-muted hover:text-foreground hover:bg-surface-secondary rounded p-1 transition-colors disabled:opacity-30'
+                  title='Create'
+                >
+                  <Icon data={Check} size={14} />
+                </button>
+                <button
+                  type='button'
+                  onClick={onCancelCreateFolder}
+                  disabled={isCreatingLoading}
+                  className='text-muted hover:text-foreground hover:bg-surface-secondary rounded p-1 transition-colors'
+                  title='Cancel'
+                >
+                  <Icon data={Xmark} size={14} />
+                </button>
+              </div>
+            </div>
+            <span className='text-muted hidden truncate text-[11px] select-none sm:block'>
+              File folder
+            </span>
+          </div>
+        )}
+
         {directories.map((dir) => (
           <FolderRow
             key={dir.path}

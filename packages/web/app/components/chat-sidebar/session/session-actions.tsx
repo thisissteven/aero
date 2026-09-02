@@ -9,12 +9,20 @@ import {
   Pencil,
   TrashBin,
 } from '@gravity-ui/icons';
-import { Icon, Label } from '@gravity-ui/uikit';
+import { Icon } from '@gravity-ui/uikit';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import { Button, Checkbox, Dropdown, Modal, Sidebar, toast } from '@aero/ui';
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  Label,
+  Modal,
+  Sidebar,
+  toast,
+} from '@aero/ui';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';

@@ -80,8 +80,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           );
 
           const unarchived = res.data.filter((s) => !s.time.archived);
-          const hasMoreSessions =
-            unarchived.length > WORKSPACE_VISIBLE_SESSIONS_LIMIT;
 
           const previewSessions = unarchived
             .slice(0, WORKSPACE_VISIBLE_SESSIONS_LIMIT)
@@ -91,7 +89,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions,
             sessions: previewSessions,
           };
         } catch {
@@ -99,7 +96,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             id: wt.id,
             name: wt.name,
             directory: wt.directory,
-            hasMoreSessions: false,
             sessions: [],
           };
         }

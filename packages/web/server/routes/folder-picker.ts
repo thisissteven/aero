@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { readdir, realpath, stat } from 'node:fs/promises';
+import { mkdir, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const folderPicker = new Hono();
@@ -271,6 +271,64 @@ folderPicker.get('/search', async (c) => {
   } catch (error) {
     console.error(`Failed to search directory "${resolvedRoot}":`, error);
     return c.json({ error: 'Failed to search directories' }, 500);
+  }
+});
+
+/**
+ * POST /create
+ * Body: { parentPath: string, name: string }
+ */
+folderPicker.post('/create', async (c) => {
+  try {
+    const body = await c.req.json<{ parentPath?: string; name?: string }>();
+    const { parentPath, name } = body || {};
+
+    if (!parentPath || typeof parentPath !== 'string') {
+      return c.json({ error: 'Missing or invalid parentPath' }, 400);
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return c.json({ error: 'Missing or invalid folder name' }, 400);
+    }
+
+    const trimmedName = name.trim();
+
+    if (trimmedName.includes('/') || trimmedName.includes('\\')) {
+      return c.json(
+        { error: 'Folder name cannot contain path separators' },
+        400,
+      );
+    }
+
+    const resolvedParent = normalizeFilesystemPath(parentPath);
+    const targetPath = normalizeFilesystemPath(
+      path.join(resolvedParent, trimmedName),
+    );
+
+    await mkdir(targetPath, { recursive: false });
+
+    return c.json({
+      success: true,
+      name: trimmedName,
+      path: targetPath,
+    });
+  } catch (error) {
+    const code = getFsErrorCode(error);
+
+    if (code === 'EEXIST') {
+      return c.json({ error: 'A folder with that name already exists' }, 409);
+    }
+
+    if (code === 'ENOENT') {
+      return c.json({ error: 'Parent directory does not exist' }, 404);
+    }
+
+    if (code === 'EACCES' || code === 'EPERM') {
+      return c.json({ error: 'Permission denied' }, 403);
+    }
+
+    console.error(`Failed to create folder:`, error);
+    return c.json({ error: 'Failed to create folder' }, 500);
   }
 });
 

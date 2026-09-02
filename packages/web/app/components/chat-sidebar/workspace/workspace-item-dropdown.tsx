@@ -4,6 +4,7 @@ import { create } from 'zustand';
 
 import { Dropdown, Separator } from '@aero/ui';
 
+import { OpenIsolatedWorkspace } from '@/app/components/chat-sidebar/session/session-actions';
 import {
   CopyDirectoryPath,
   DeleteWorkspace,
@@ -73,6 +74,7 @@ export function WorkspaceItemDropdown({
             directoryNotFound={directoryNotFound}
           />
           <CopyDirectoryPath directory={workspace.directory} />
+          <OpenIsolatedWorkspace directory={workspace.directory} />
           <Separator className='my-0.5' />
           <DeleteWorkspace
             workspaceId={workspace.id}

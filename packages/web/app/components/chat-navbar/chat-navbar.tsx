@@ -43,7 +43,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
   const isSessions = activePage.kind === 'sessions';
 
   return (
-    <Navbar maxWidth='full' className='relative h-14'>
+    <Navbar maxWidth='full' className='relative h-14 bg-transparent'>
       {isAsideExpanded && (
         <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
       )}

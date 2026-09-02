@@ -20,6 +20,9 @@ export const workspaceKeys = {
 };
 
 type CreateWorkspaceInput = InferRequestType<typeof $workspaces.$post>['json'];
+type UpdateWorkspaceInput = InferRequestType<
+  typeof $individualWorkspace.$patch
+>['json'];
 
 export type WorkspacesPageResponse = InferResponseType<
   typeof $workspaces.merged.$get,
@@ -130,6 +133,28 @@ export function useCreateWorkspace() {
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
       if (!res.ok) throw new Error('Failed to create workspace');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
+    },
+  });
+}
+
+export function useUpdateWorkspace(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateWorkspaceInput) => {
+      const [res] = await Promise.all([
+        $individualWorkspace.$patch({
+          param: { id },
+          json: input,
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error('Failed to update workspace');
       return res.json();
     },
     onSuccess: (_data) => {

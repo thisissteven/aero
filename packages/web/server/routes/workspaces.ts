@@ -36,6 +36,9 @@ const createWorkspaceSchema = z.object({
 const updateWorkspaceSchema = z.object({
   name: z.string().optional(),
   directory: z.string().optional(),
+  selectedColor: z.string().nullable().optional(),
+  selectedIcon: z.string().nullable().optional(),
+  defaultModel: z.string().nullable().optional(),
 });
 
 const addWorktreeSchema = z.object({

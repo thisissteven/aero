@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import { Sidebar, Skeleton } from '@aero/ui';
+import { Sidebar } from '@aero/ui';
 
 import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useWorkspace } from '@/app/hooks/api/workspaces';
@@ -9,22 +9,6 @@ import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 interface IsolatedWorkspaceProp {
   idPrefix?: string;
   directory: string;
-}
-
-function WorkspacesLoader({ enabled }: { enabled: boolean }) {
-  if (!enabled) return null;
-
-  return (
-    <ul className='space-y-1'>
-      {Array.from({ length: 20 }, (_, i) => {
-        return (
-          <li key={i}>
-            <Skeleton className='h-[38px] w-full rounded-xl' />
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 const STORAGE_KEY = 'aero-isolated-workspace-sidebar-expanded-keys';
@@ -44,11 +28,11 @@ export const IsolatedWorkspace = memo(function IsolatedWorkspace({
 }: IsolatedWorkspaceProp) {
   const { data: workspace, isLoading } = useWorkspace(directory);
 
+  if (isLoading) return null;
+
   return (
     <Sidebar.Content offset={2} className='py-2'>
       <Sidebar.Group>
-        <WorkspacesLoader enabled={isLoading} />
-
         {workspace && (
           <Sidebar.Menu<AeroWorkspaceSummary>
             aria-label='Recent workspaces'

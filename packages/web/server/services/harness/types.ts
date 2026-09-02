@@ -18,8 +18,8 @@ export type ConversationRole = 'user' | 'assistant' | 'system';
 export interface AeroWorktreeSummary {
   id: string;
   name: string;
+  sessions: AeroSessionSummary[];
   directory: string;
-  hasMoreSessions: boolean;
 }
 
 export interface AeroWorkspaceSummary {
@@ -29,6 +29,10 @@ export interface AeroWorkspaceSummary {
   worktrees: AeroWorktreeSummary[];
   createdAt: number;
   updatedAt: number;
+
+  selectedColor?: string | null;
+  selectedIcon?: string | null;
+  defaultModel?: string | null;
 }
 
 export interface AeroSessionSummary {

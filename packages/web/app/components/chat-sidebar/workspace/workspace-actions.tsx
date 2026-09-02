@@ -21,6 +21,8 @@ import { copyButtonCss } from '@/app/lib/file';
 import { queryClient, useGlobalModalStore, useTheme } from '@/app/providers';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
+import { EditWorkspaceModal } from './edit-workspace-modal';
+
 export function WorkspacesToggleEditModeButton() {
   const isEditMode = useWorkspacesSidebarStore((state) => state.isEditMode);
   const toggleIsEditMode = useWorkspacesSidebarStore(
@@ -367,38 +369,6 @@ export function CopyDirectoryPath({ directory }: { directory: string }) {
         </Label>
       </div>
     </Dropdown.Item>
-  );
-}
-
-export function EditWorkspaceModal({
-  workspace,
-}: {
-  workspace: AeroWorkspaceSummary;
-}) {
-  const { mutateAsync } = useDeleteWorktree();
-
-  const navigate = useNavigate();
-
-  return (
-    <Modal.Dialog className='sm:max-w-[360px]'>
-      <Modal.CloseTrigger />
-      <Modal.Header>
-        <Modal.Heading>Delete worktree?</Modal.Heading>
-      </Modal.Header>
-      <Modal.Body>
-        <p>
-          <span className='text-foreground'>"{workspace.name}"</span> will be
-          permanently deleted. All sessions under this worktree will also be
-          archived.
-        </p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button slot='close' variant='tertiary'>
-          Cancel
-        </Button>
-        <Button slot='close'>Save Changes</Button>
-      </Modal.Footer>
-    </Modal.Dialog>
   );
 }
 
