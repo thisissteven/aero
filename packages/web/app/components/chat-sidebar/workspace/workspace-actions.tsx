@@ -14,7 +14,7 @@ import {
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
-import { useDeleteWorkspace } from '@/app/hooks/api/workspaces';
+import { useDeleteWorkspace, workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
@@ -258,10 +258,12 @@ export function DeleteWorkspace({
 function DeleteWorktreeConfirmationModal({
   worktreeDirectory,
   worktreeName,
+  workspaceId,
   workspaceDirectory,
 }: {
   worktreeDirectory: string;
   worktreeName: string;
+  workspaceId: string;
   workspaceDirectory: string;
 }) {
   const { sessionId } = useParams({ strict: false });
@@ -297,6 +299,9 @@ function DeleteWorktreeConfirmationModal({
                   queryClient.invalidateQueries({
                     queryKey: sessionKeys.detail(undefined, sessionId),
                   });
+                  queryClient.invalidateQueries({
+                    queryKey: workspaceKeys.detail(workspaceId),
+                  });
                   return 'Worktree deleted';
                 },
               },
@@ -314,10 +319,12 @@ function DeleteWorktreeConfirmationModal({
 export function DeleteWorktree({
   worktreeDirectory,
   worktreeName,
+  workspaceId,
   workspaceDirectory,
 }: {
   worktreeDirectory: string;
   worktreeName: string;
+  workspaceId: string;
   workspaceDirectory: string;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
@@ -332,6 +339,7 @@ export function DeleteWorktree({
             <DeleteWorktreeConfirmationModal
               worktreeDirectory={worktreeDirectory}
               worktreeName={worktreeName}
+              workspaceId={workspaceId}
               workspaceDirectory={workspaceDirectory}
             />
           ),

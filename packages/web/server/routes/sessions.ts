@@ -47,9 +47,18 @@ const sessions = new Hono()
   // GET /api/sessions/merged?directory=...&cursor=...&limit=...&search=...
   .get(
     '/merged',
-    zValidator('query', withPagination(z.object())),
+    zValidator(
+      'query',
+      withPagination(
+        z.object({
+          archived: z.stringbool().optional(),
+          childSessions: z.stringbool().optional(),
+        }),
+      ),
+    ),
     async (c) => {
-      const { cursor, limit, search, directory } = c.req.valid('query');
+      const { cursor, limit, search, directory, archived, childSessions } =
+        c.req.valid('query');
       const adapters = await getAllAdapters();
 
       const result = await listSessionsAcrossAdapters(adapters, {
@@ -57,6 +66,8 @@ const sessions = new Hono()
         limit,
         search,
         directory,
+        archived,
+        childSessions,
       });
 
       return c.json(result);

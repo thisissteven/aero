@@ -11,6 +11,7 @@ import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { getLastPathName } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
@@ -47,6 +48,7 @@ export function CommandPaletteList() {
 
   const sessionsQuery = useSessions({
     search: debouncedSearch || undefined,
+    childSessions: true,
   });
   const { isPlaceholderData } = sessionsQuery;
 
@@ -229,6 +231,8 @@ export function CommandPaletteList() {
               const updatedAtStr = formatCompactRelativeTime(
                 typedItem.session.updatedAt,
               );
+              const isStandaloneSession =
+                typedItem.session.workspace.includes('.aero/workspaces');
               return (
                 <Command.Item
                   key={typedItem.id}
@@ -247,7 +251,23 @@ export function CommandPaletteList() {
                       {typedItem.session.title}
                     </span>
                     <span className='text-muted truncate text-xs'>
-                      Recent chat
+                      {typedItem.session.parentId ? (
+                        <span>
+                          Subagent session at{' '}
+                          <span className='truncate font-bold'>
+                            {getLastPathName(typedItem.session.workspace)}
+                          </span>
+                        </span>
+                      ) : isStandaloneSession ? (
+                        'Standalone session'
+                      ) : (
+                        <span>
+                          at{' '}
+                          <span className='truncate font-bold'>
+                            {getLastPathName(typedItem.session.workspace)}
+                          </span>
+                        </span>
+                      )}
                     </span>
                   </div>
                   <span className='text-muted ml-auto shrink-0 text-[11px]'>

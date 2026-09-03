@@ -36,7 +36,14 @@ export async function listSessionsAcrossAdapters(
   adapters: HarnessAdapter[],
   params: ListSessionsParams,
 ): Promise<PaginatedResponse<AeroSessionSummary>> {
-  const { directory, limit = PAGINATION_LIMIT, cursor, search } = params;
+  const {
+    directory,
+    limit = PAGINATION_LIMIT,
+    cursor,
+    search,
+    childSessions,
+    archived,
+  } = params;
 
   const offset = decodeCursor(cursor);
 
@@ -46,6 +53,8 @@ export async function listSessionsAcrossAdapters(
     directory,
     search,
     limit: GET_ALL_LIMIT,
+    archived,
+    childSessions,
   };
 
   const results = await Promise.allSettled(

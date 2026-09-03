@@ -100,9 +100,7 @@ export const ChatFeed = forwardRef<
     <div
       className={cn(
         'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-        !isReady && groups.length > 0
-          ? 'pointer-events-none opacity-0'
-          : 'opacity-100',
+        !isReady ? 'pointer-events-none opacity-0' : 'opacity-100',
       )}
       style={{
         paddingLeft: `${scrollbarWidth}px`,

@@ -59,6 +59,8 @@ interface UseSessionsOptions {
   search?: string;
   limit?: number;
   initialSessions?: AeroSessionSummary[];
+  archived?: boolean;
+  childSessions?: boolean;
 }
 
 export function useSessions({
@@ -66,12 +68,15 @@ export function useSessions({
   search,
   initialSessions,
   limit,
+  archived,
+  childSessions,
 }: UseSessionsOptions = {}) {
   return useInfiniteQuery({
     queryKey: [
       ...sessionKeys.merged(),
       search,
       ...(directory ? ['directory', directory] : []),
+      childSessions,
     ],
     initialPageParam: undefined as string | undefined,
     placeholderData: keepPreviousData,
@@ -82,6 +87,8 @@ export function useSessions({
           limit: limit?.toString() || PAGINATION_LIMIT.toString(),
           search,
           directory,
+          archived: archived ? 'true' : 'false',
+          childSessions: childSessions ? 'true' : 'false',
         },
       });
 

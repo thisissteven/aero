@@ -95,6 +95,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
                 <DeleteWorktree
                   worktreeName={worktree.name}
                   worktreeDirectory={worktree.directory}
+                  workspaceId={workspace.id}
                   workspaceDirectory={workspace.directory}
                 />
               </Dropdown.Menu>

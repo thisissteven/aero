@@ -9,12 +9,18 @@ import {
   useGitErrorCode,
   useGitWorktrees,
 } from '@/app/hooks/api/git';
+import { workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useCreateWorktree } from '@/app/hooks/api/worktree';
 import { getLastPathName } from '@/app/lib/file';
+import { queryClient } from '@/app/providers';
 
 export function WorktreesDropdown() {
   const selectedWorkspace = useNewSessionStore(
     (state) => state.selectedWorkspace?.directory,
+  );
+
+  const selectedWorkspaceId = useNewSessionStore(
+    (state) => state.selectedWorkspace?.id,
   );
 
   const { data: worktrees = [], refetch } = useGitWorktrees(selectedWorkspace);
@@ -46,7 +52,8 @@ export function WorktreesDropdown() {
     );
   }
 
-  if (!git?.currentBranch || !selectedWorkspace) return null;
+  if (!git?.currentBranch || !selectedWorkspace || !selectedWorkspaceId)
+    return null;
 
   return (
     <Dropdown size='sm'>
@@ -85,6 +92,9 @@ export function WorktreesDropdown() {
                     loading: 'Creating new worktree...',
                     success: (data) => {
                       setSelectedWorktree(data?.directory);
+                      queryClient.invalidateQueries({
+                        queryKey: workspaceKeys.detail(selectedWorkspaceId),
+                      });
                       refetch();
                       return 'Worktree created successfully';
                     },

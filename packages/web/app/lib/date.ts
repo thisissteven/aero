@@ -1,10 +1,10 @@
 export function formatCompactRelativeTime(
-  value: string | number | Date,
+  value: DateValue,
   withAgo?: boolean,
-) {
-  const date = new Date(value);
+): string {
+  const date = parseDate(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     return '';
   }
 
@@ -19,20 +19,20 @@ export function formatCompactRelativeTime(
 
   const suffix = withAgo ? ' ago' : '';
 
-  if (years > 0) return `${years}y` + suffix;
-  if (months > 0) return `${months}mo` + suffix;
-  if (weeks > 0) return `${weeks}w` + suffix;
-  if (days > 0) return `${days}d` + suffix;
-  if (hours > 0) return `${hours}h` + suffix;
-  if (minutes > 0) return `${minutes}m` + suffix;
+  if (years > 0) return `${years}y${suffix}`;
+  if (months > 0) return `${months}mo${suffix}`;
+  if (weeks > 0) return `${weeks}w${suffix}`;
+  if (days > 0) return `${days}d${suffix}`;
+  if (hours > 0) return `${hours}h${suffix}`;
+  if (minutes > 0) return `${minutes}m${suffix}`;
 
   return withAgo ? 'Just now' : 'now';
 }
 
-export function formatDateTimeFull(value: string | number | Date): string {
-  const date = new Date(value);
+export function formatDateTimeFull(value: DateValue): string {
+  const date = parseDate(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     throw new Error('Invalid date value');
   }
 
@@ -46,18 +46,75 @@ export function formatDateTimeFull(value: string | number | Date): string {
   }).format(date);
 }
 
-export function formatDateTime(value: string | number | Date): string {
-  const date = new Date(value);
+export type DateValue = Date | string | number | null | undefined;
 
-  if (Number.isNaN(date.getTime())) {
-    throw new Error('Invalid date value');
+export function parseDate(value: DateValue): Date | null {
+  if (value == null) return null;
+
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date);
+  if (typeof value === 'number') {
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    // 1. Handle stringified Unix timestamps ("1788199985164")
+    const numericValue = Number(trimmed);
+    if (!isNaN(numericValue)) {
+      const date = new Date(numericValue);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    // 2. Handle standard parsing
+    const isoString = trimmed.includes(' ')
+      ? trimmed.replace(' ', 'T')
+      : trimmed;
+    let date = new Date(isoString);
+
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+
+    // 3. Fallback: Fix strings missing a year (e.g., "Sep 1, 2:13 AM")
+    const currentYear = new Date().getFullYear();
+    const dateWithYear = `${trimmed}, ${currentYear}`;
+    date = new Date(dateWithYear);
+
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return null;
+}
+export function formatDateTime(value: DateValue): string {
+  const date = parseDate(value);
+
+  if (!date) {
+    throw new Error(`Invalid date value: ${value}`);
+  }
+
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+  } catch {
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
 }

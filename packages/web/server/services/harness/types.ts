@@ -328,7 +328,7 @@ export type AeroEvent =
   | {
       type: 'session.error';
       sessionId?: string;
-      error: string;
+      error: AeroAssistantError;
     };
 
 export interface CreateSessionInput {
@@ -375,6 +375,7 @@ export interface BasePaginationParams {
 export interface ListSessionsParams extends BasePaginationParams {
   directory?: string;
   archived?: boolean;
+  childSessions?: boolean;
 }
 
 export interface PaginatedResponse<T> {

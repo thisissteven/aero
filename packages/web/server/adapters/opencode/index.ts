@@ -332,6 +332,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       cursor,
       limit = PAGINATION_LIMIT,
       search,
+      archived = true,
+      childSessions = false,
     }: ListSessionsParams) {
       const sessions = unwrap(
         await withOpencodeClientV2((client) =>
@@ -345,7 +347,11 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       const items = sessions.data
-        .filter((session) => !session.time.archived)
+        .filter((session) => {
+          if (!archived && session.time.archived) return false;
+          if (!childSessions && session.parentID) return false;
+          return true;
+        })
         .map(toAeroSessionV2Info);
 
       return {
@@ -1302,14 +1308,35 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
     }
 
     case 'session.error': {
-      const error = event.properties.error as { message?: string } | undefined;
+      const error = event.properties.error;
 
-      console.log('[OPENCODE RAW ERROR]', JSON.stringify(event, null, 2));
+      let errorMessage = 'An unexpected error occurred.';
+      const errorName = error?.name ?? 'UnknownError';
+
+      if (error) {
+        if (
+          error.data &&
+          'message' in error.data &&
+          typeof error.data.message === 'string' &&
+          error.data.message
+        ) {
+          errorMessage = error.data.message;
+        } else if (error.name === 'MessageOutputLengthError') {
+          errorMessage = 'Maximum output token length exceeded.';
+        } else {
+          errorMessage = error.name;
+        }
+      }
 
       return {
         type: 'session.error',
         sessionId: event.properties.sessionID,
-        error: error?.message ?? 'Unknown error',
+        error: {
+          name: errorName,
+          data: {
+            message: errorMessage,
+          },
+        },
       };
     }
 

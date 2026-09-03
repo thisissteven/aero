@@ -730,7 +730,7 @@ export const useChatStore = create<ChatStore>()(
                 const nextTurns = current.turns.slice();
                 nextTurns[turnIndex] = {
                   ...nextTurns[turnIndex],
-                  error: nextTurns[turnIndex].error,
+                  error,
                 };
 
                 const runtime: SessionRuntime = {
