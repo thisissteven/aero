@@ -748,6 +748,30 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return config.model;
     },
 
+    async listAwaitingPermissions(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.permission.list({
+            directory,
+          }),
+        ),
+      );
+      return entries;
+    },
+
+    async replyToPermission(requestID, directory, reply) {
+      const ok = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.permission.reply({
+            requestID,
+            directory,
+            reply,
+          }),
+        ),
+      );
+      return ok;
+    },
+
     async listQuestions(directory) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>
@@ -1233,6 +1257,30 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
 function mapOpencodeEvent(event: Event): AeroEvent | null {
   switch (event.type) {
+    case 'permission.asked': {
+      const { id, sessionID, permission, patterns, metadata, always, tool } =
+        event.properties;
+
+      return {
+        type: 'permission.asked',
+        sessionId: sessionID,
+        request: {
+          id,
+          sessionId: sessionID,
+          permission,
+          patterns: patterns ?? [],
+          metadata,
+          always,
+          tool: tool
+            ? {
+                messageId: tool.messageID,
+                callId: tool.callID,
+              }
+            : undefined,
+        },
+      };
+    }
+
     case 'message.updated': {
       const { info } = event.properties;
 
@@ -1360,6 +1408,7 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
     }
 
     default:
+      void debugLog('OPENCODE', `UNHANDLED EVENT: ${event.type}`, event);
       return null;
   }
 }

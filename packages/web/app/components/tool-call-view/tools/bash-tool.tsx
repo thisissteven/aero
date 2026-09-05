@@ -17,6 +17,7 @@ export const BashToolView = memo(
   }) => {
     const command = part.input.command ?? '';
     const rawOutput = formatToolOutput(part.output);
+
     return (
       <BaseTool
         blockId={blockId}
@@ -32,6 +33,7 @@ export const BashToolView = memo(
         copyText={command ? `$ ${command}\n\n${rawOutput}` : rawOutput}
         showLineNumbers={false}
         isStreaming={isStreaming}
+        useDuration
       />
     );
   },

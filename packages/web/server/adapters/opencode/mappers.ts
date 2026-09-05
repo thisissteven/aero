@@ -416,8 +416,7 @@ export function toAeroPart(p: Part): AeroPart {
         attachments:
           state.status === 'completed' ? state.attachments : undefined,
         duration,
-        metadata:
-          p.metadata ?? ('metadata' in state ? state.metadata : undefined),
+        metadata: 'metadata' in state ? state.metadata : p.metadata,
       };
     }
 

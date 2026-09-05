@@ -340,6 +340,13 @@ export function buildFlatConversationItems(
       )
         continue;
 
+      if (
+        part.type === 'tool' &&
+        part.toolName === 'question' &&
+        part.status === 'running'
+      )
+        continue;
+
       items.push({
         id: `${turn.id}-part-${partIndex}`,
         type: 'assistant-part',

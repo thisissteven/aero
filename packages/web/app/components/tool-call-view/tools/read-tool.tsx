@@ -7,6 +7,7 @@ import {
   formatReadToolOutput,
   getLanguageFromExtension,
 } from '@/app/lib/file-icons/tool-helpers';
+import { getBasename, normalizePath } from '@/server/shared';
 
 export const ReadToolView = memo(
   ({
@@ -18,7 +19,8 @@ export const ReadToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
-    const path = part.input.path || part.input.filePath || '';
+    const path = normalizePath(part.input.path || part.input.filePath || '');
+    const fileName = getBasename(path);
     const output = formatReadToolOutput(part.output);
 
     const language = getLanguageFromExtension(path);
@@ -33,7 +35,7 @@ export const ReadToolView = memo(
         codeTitle={path}
         code={output}
         language={language ?? 'text'}
-        preview={path}
+        preview={fileName}
         previewType='path'
         copyText={output}
         isStreaming={isStreaming}

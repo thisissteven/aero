@@ -751,6 +751,10 @@ export const useChatStore = create<ChatStore>()(
                 };
               }
 
+              case 'permission.asked': {
+                return state;
+              }
+
               case 'message.updated': {
                 let runtime = appendIncomingMessage(current, event.message);
 

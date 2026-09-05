@@ -1,5 +1,6 @@
 import { Icon } from '@gravity-ui/uikit';
 import { ReactNode, SVGProps, useRef } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
@@ -15,6 +16,66 @@ import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-trunc
 import { useTheme } from '@/app/providers';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
+
+const startTimeCache = new Map<string, number>();
+
+type TimerProps = {
+  id: string;
+  duration?: number;
+  isStreaming?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  decimals?: number;
+};
+
+export const Timer = memo(
+  ({
+    id,
+    duration,
+    isStreaming = false,
+    className,
+    style,
+    decimals = 1,
+  }: TimerProps) => {
+    let startTime = startTimeCache.get(id);
+    if (!startTime) {
+      startTime = Date.now();
+      startTimeCache.set(id, startTime);
+    }
+
+    const currentStartTime = startTime;
+
+    const [elapsed, setElapsed] = useState(() => {
+      if (typeof duration === 'number') return duration;
+      return (Date.now() - currentStartTime) / 1000;
+    });
+
+    useEffect(() => {
+      if (typeof duration === 'number' || !isStreaming) {
+        if (startTimeCache.has(id)) {
+          startTimeCache.delete(id);
+        }
+        return;
+      }
+
+      const interval = setInterval(() => {
+        setElapsed((Date.now() - currentStartTime) / 1000);
+      }, 100);
+
+      return () => clearInterval(interval);
+    }, [id, duration, isStreaming, currentStartTime]);
+
+    const displayValue = typeof duration === 'number' ? duration : elapsed;
+
+    return (
+      <span className={cn('tabular-nums', className)} style={style}>
+        {displayValue.toFixed(decimals)}s
+      </span>
+    );
+  },
+);
+
+Timer.displayName = 'Timer';
 
 type ToolAnimationStyle = React.CSSProperties & {
   '--tool-pop-index'?: number;
@@ -38,6 +99,7 @@ export function BaseTool({
   diff,
   children,
   isStreaming = false,
+  useDuration = false,
 }: {
   blockId: string;
   status: string;
@@ -59,6 +121,7 @@ export function BaseTool({
   };
   children?: ReactNode;
   isStreaming?: boolean;
+  useDuration?: boolean;
 }) {
   const hasCodeContent = Boolean(copyText && code);
   const hasContent = hasCodeContent || Boolean(children);
@@ -67,17 +130,16 @@ export function BaseTool({
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
   /*
-   * Capture the initial streaming state only once.
-   * If the tool starts while streaming, it gets the entrance animation.
-   * Later changes to isStreaming do not interrupt/restart it.
+   * Track if the component was initialized during an active stream.
+   * If streaming ends (isStreaming becomes false), activeAnimation turns off.
    */
-  const shouldAnimateOnMount = useRef(isStreaming).current;
+  const wasStreamingOnMount = useRef(isStreaming).current;
+  const isAnimating = wasStreamingOnMount && isStreaming;
 
-  const getAnimationClass = () =>
-    shouldAnimateOnMount ? 't-tool-pop-item' : undefined;
+  const getAnimationClass = () => (isAnimating ? 't-tool-pop-item' : undefined);
 
   const getAnimationStyle = (index: number): ToolAnimationStyle | undefined =>
-    shouldAnimateOnMount
+    isAnimating
       ? {
           '--tool-pop-index': index,
         }
@@ -95,7 +157,7 @@ export function BaseTool({
             status === 'error' && 'text-danger',
             status === 'completed' && 'text-muted/70',
           )}
-          isDisabled={(!hasContent && !error) || shouldAnimateOnMount}
+          isDisabled={(!hasContent && !error) || isAnimating}
         >
           <div className='flex min-w-0 flex-1 items-center gap-2'>
             <div
@@ -132,14 +194,15 @@ export function BaseTool({
                 </span>
               )}
 
-              {duration ? (
-                <span
+              {useDuration && (
+                <Timer
+                  id={blockId}
+                  duration={duration}
+                  isStreaming={isStreaming}
                   className={cn('text-muted/70', getAnimationClass())}
                   style={getAnimationStyle(3)}
-                >
-                  {duration}s
-                </span>
-              ) : null}
+                />
+              )}
 
               <div
                 className={cn(
@@ -218,7 +281,7 @@ export function BaseTool({
           {children}
 
           {/* Fallback to CodeBlock when code prop is passed */}
-          {hasCodeContent && !children && !shouldAnimateOnMount && (
+          {hasCodeContent && !children && !isAnimating && (
             <CodeBlock className='bg-transparent'>
               <CodeBlock.Header>
                 <div

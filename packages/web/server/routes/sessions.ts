@@ -159,6 +159,34 @@ const sessions = new Hono()
     },
   )
 
+  // POST /api/sessions/:id/reply-to-permission?harnessId=...
+  .post(
+    '/:id/reply-to-permission',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        requestId: z.string(),
+        reply: z.enum(['once', 'always', 'reject']).optional(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const { requestId, reply } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const ok = await harness.replyToPermission(
+        requestId,
+        session.workspace,
+        reply,
+      );
+      return c.json({ ok });
+    },
+  )
+
   // POST /api/sessions/:id/reply-to-question?harnessId=...
   .post(
     '/:id/reply-to-question',
@@ -207,6 +235,25 @@ const sessions = new Hono()
       const session = await harness.getSession(id);
       const ok = await harness.rejectQuestion(requestId, session.workspace);
       return c.json({ ok });
+    },
+  )
+
+  // GET /api/sessions/:id/permissions?harnessId=...
+  .get(
+    '/:id/permissions',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const permissions = await harness.listAwaitingPermissions(
+        session.workspace,
+      );
+
+      return c.json(permissions);
     },
   )
 

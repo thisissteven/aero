@@ -16,6 +16,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import {
+  AaeroPermissionReply,
   AeroQuestionAnswer,
   AeroSessionSummary,
   HarnessId,
@@ -42,6 +43,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'todos'] as const,
   questions: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'questions'] as const,
+  permissions: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'permissions'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -285,6 +288,24 @@ export function useSessionMessages(
   });
 }
 
+export function useSessionPermissions(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.permissions(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.permissions.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) throw new Error('Failed to fetch permission requests');
+      return res.json();
+    },
+    enabled: !!sessionId,
+  });
+}
+
 export function useSessionQuestions(
   harnessId: string | undefined,
   sessionId: string,
@@ -510,12 +531,41 @@ export function useAbortSession(harnessId: string | undefined) {
   });
 }
 
+export function useReplyToPermission(harnessId: string | undefined) {
+  return useMutation({
+    mutationFn: async (input: {
+      sessionId: string;
+      requestId: string;
+      reply: AaeroPermissionReply;
+    }) => {
+      const res = await $individualSession['reply-to-permission'].$post({
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
+        json: {
+          requestId: input.requestId,
+          reply: input.reply,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to reply to permission request');
+      }
+
+      return res.json();
+    },
+  });
+}
+
 export function useReplyToQuestion(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (input: {
       sessionId: string;
       requestId: string;
-      answers: AeroQuestionAnswer['answers'];
+      answers: AeroQuestionAnswer;
     }) => {
       const res = await $individualSession['reply-to-question'].$post({
         param: {

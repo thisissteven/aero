@@ -5,6 +5,7 @@ import {
   Config,
   FilePart,
   FilePartSource,
+  PermissionRequest,
   Provider,
   QuestionAnswer,
   QuestionRequest,
@@ -189,9 +190,8 @@ export interface AeroTodo {
   priority: string;
 }
 
-export interface AeroQuestions {
-  entries: QuestionRequest[];
-}
+export type AeroQuestions = QuestionRequest[];
+export type AeroPermissionRequest = PermissionRequest[];
 
 export interface AeroAssistantError {
   name?: string;
@@ -200,9 +200,8 @@ export interface AeroAssistantError {
   };
 }
 
-export interface AeroQuestionAnswer {
-  answers: QuestionAnswer[];
-}
+export type AeroQuestionAnswer = QuestionAnswer[];
+export type AaeroPermissionReply = 'once' | 'always' | 'reject' | undefined;
 
 export interface AeroSnapshotFileDiff {
   file?: string;
@@ -277,7 +276,25 @@ export type AeroSessionStatus =
       next: number;
     };
 
+export type AeroPermission = {
+  id: string;
+  sessionId: string;
+  permission: string;
+  patterns: string[];
+  metadata?: Record<string, unknown>;
+  always?: string[];
+  tool?: {
+    messageId: string;
+    callId: string;
+  };
+};
+
 export type AeroEvent =
+  | {
+      type: 'permission.asked';
+      sessionId: string;
+      request: AeroPermission;
+    }
   | {
       type: 'message.updated';
       sessionId: string;
@@ -498,11 +515,18 @@ export interface HarnessAdapter {
     messageId: string,
   ): Promise<AeroSessionSummary>;
   listTodos(sessionId: string): Promise<AeroTodo[]>;
-  listQuestions(directory: string): Promise<AeroQuestions['entries']>;
+  listAwaitingPermissions(directory: string): Promise<AeroPermissionRequest>;
+  replyToPermission(
+    requestId: string,
+    directory: string,
+    reply: AaeroPermissionReply,
+  ): Promise<boolean>;
+
+  listQuestions(directory: string): Promise<AeroQuestions>;
 
   replyToQuestion(
     requestId: string,
-    answers: AeroQuestionAnswer['answers'],
+    answers: AeroQuestionAnswer,
     directory: string,
   ): Promise<boolean>;
   rejectQuestion(requestId: string, directory: string): Promise<boolean>;
