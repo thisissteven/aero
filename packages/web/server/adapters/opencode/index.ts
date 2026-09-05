@@ -5,7 +5,6 @@ import pLimit from 'p-limit';
 
 import {
   getOpencodeStreamingClientV2,
-  withOpencodeClientV1,
   withOpencodeClientV2,
 } from '@/server/adapters/opencode/client';
 import { parseSseEventEnvelope } from '@/server/adapters/opencode/sse-envelope';
@@ -52,7 +51,6 @@ import {
   toAeroMessage,
   toAeroPart,
   toAeroProvider,
-  toAeroSession,
   toAeroSessionContextDetails,
   toAeroSessionExperimental,
   toAeroSessionV2,
@@ -111,11 +109,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       ),
     );
 
+    const sessions = sdkSessions.data.filter(
+      (session) => !session.time.archived,
+    );
+
     const excludePrefix = AERO_DIR;
 
     const sessionsByDir = new Map<string, string[]>();
 
-    for (const session of sdkSessions.data) {
+    for (const session of sessions) {
       const normDir = normalizePath(session.location.directory);
 
       if (normDir.startsWith(excludePrefix)) continue;
@@ -461,16 +463,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async getSession(sessionID) {
-      return withOpencodeClientV1(async (client) => {
+      return withOpencodeClientV2(async (client) => {
         const session = unwrap(
           await client.session.get({
-            path: {
-              id: sessionID,
-            },
+            sessionID,
           }),
         );
 
-        return toAeroSession(session);
+        return toAeroSessionV2(session);
       });
     },
 
@@ -623,7 +623,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         ),
       );
 
-      await scanAndSyncWorkspaces();
+      const workspace = await getWorkspaceByDirectory(directory);
+
+      if (!workspace) {
+        await createWorkspace({
+          name: getBasename(directory),
+          directory: directory,
+          worktrees: [
+            {
+              name: getBasename(entry.directory),
+              directory: entry.directory,
+            },
+          ],
+        });
+      } else {
+        await addWorktreeToWorkspace(workspace.id, {
+          name: getBasename(entry.directory),
+          directory: entry.directory,
+        });
+      }
 
       return toAeroWorktreeItem(entry);
     },
@@ -641,24 +659,27 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           ),
         );
 
-        await scanAndSyncWorkspaces();
         return ok;
       } catch {
         const repoDirectory = await resolveGitDir(directory);
 
         await removeGitWorktree(repoDirectory, worktreeDirectory);
 
-        await scanAndSyncWorkspaces();
         return true;
+      } finally {
+        const workspace = await getWorkspaceByDirectory(directory);
+        if (workspace) {
+          await removeWorktreeFromWorkspace(workspace.id, worktreeDirectory);
+        }
       }
     },
 
     async setApiKey(provider, apiKey) {
       return unwrap(
-        await withOpencodeClientV1((client) =>
+        await withOpencodeClientV2((client) =>
           client.auth.set({
-            path: { id: provider },
-            body: {
+            providerID: provider,
+            auth: {
               type: 'api',
               key: apiKey,
             },
@@ -765,7 +786,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async any() {
       return unwrap(
-        await withOpencodeClientV1((client) => client.config.get({})),
+        await withOpencodeClientV2((client) => client.config.get({})),
       );
     },
 
@@ -970,17 +991,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async forkSession(sessionID, messageID) {
       const session = unwrap(
-        await withOpencodeClientV1((client) =>
+        await withOpencodeClientV2((client) =>
           client.session.fork({
-            path: { id: sessionID },
-            body: {
-              messageID,
-            },
+            sessionID,
+            messageID,
           }),
         ),
       );
 
-      return toAeroSession(session);
+      return toAeroSessionV2(session);
     },
 
     async renameSession({ sessionId, title }) {

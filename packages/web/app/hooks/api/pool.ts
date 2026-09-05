@@ -28,12 +28,6 @@ export function useReloadOpencode() {
 import { useEffect, useState } from 'react';
 
 type PoolStatus = {
-  v1: {
-    poolSize: number;
-    totalActiveRequests: number;
-    healthyNodesCount: number;
-    nodes: unknown[];
-  };
   v2: {
     poolSize: number;
     totalActiveRequests: number;
@@ -74,10 +68,9 @@ export function usePoolReady() {
 
         const pool: PoolStatus = await response.json();
 
-        const v1Healthy = pool.v1.healthyNodesCount > 0;
         const v2Healthy = pool.v2.healthyNodesCount > 0;
 
-        if (v1Healthy || v2Healthy) {
+        if (v2Healthy) {
           if (!cancelled) {
             setIsPoolReady(true);
           }
@@ -87,11 +80,8 @@ export function usePoolReady() {
         // Only restart when the endpoint is reachable and
         // there are clearly no active pool nodes at all.
         const hasNoActivePools =
-          pool.v1.poolSize === 0 &&
           pool.v2.poolSize === 0 &&
-          pool.v1.healthyNodesCount === 0 &&
           pool.v2.healthyNodesCount === 0 &&
-          pool.v1.nodes.length === 0 &&
           pool.v2.nodes.length === 0 &&
           pool.combinedNodesCount === 0;
 

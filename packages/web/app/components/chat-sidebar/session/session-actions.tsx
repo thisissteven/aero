@@ -149,7 +149,7 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
     const queries = queryClient.getQueriesData<
       InfiniteData<SessionsPageResponse>
     >({
-      queryKey: [...sessionKeys.merged(), undefined],
+      queryKey: [...sessionKeys.merged(), undefined, undefined],
       exact: true,
     });
 

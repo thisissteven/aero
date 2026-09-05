@@ -8,7 +8,7 @@ import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/worksp
 import {
   ACCENT_COLORS_MAP,
   PROJECT_ICON_MAP,
-} from '@/app/components/chat-sidebar/workspace/edit-workspace-modal';
+} from '@/app/components/chat-sidebar/workspace/edit-workspace-modal/edit-workspace-constants';
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
 import { WorkspaceItemDropdown } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown';
@@ -99,7 +99,16 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
       <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent group-hover:bg-transparent'>
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
           {!workspace.selectedIcon ? (
-            <Icon data={Folder} size={14} />
+            <Icon
+              data={Folder}
+              size={14}
+              style={{
+                color:
+                  ACCENT_COLORS_MAP[
+                    workspace.selectedColor as keyof typeof ACCENT_COLORS_MAP
+                  ] ?? workspace.selectedColor,
+              }}
+            />
           ) : isCustomIcon ? (
             <img
               src={workspace.selectedIcon}
@@ -117,7 +126,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
                 color:
                   ACCENT_COLORS_MAP[
                     workspace.selectedColor as keyof typeof ACCENT_COLORS_MAP
-                  ],
+                  ] ?? workspace.selectedColor,
               }}
               size={14}
             />

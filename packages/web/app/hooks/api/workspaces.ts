@@ -7,7 +7,9 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
+import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 const $workspaces = honoClient.api.workspaces;
 const $individualWorkspace = honoClient.api.workspaces[':id'];
@@ -157,8 +159,12 @@ export function useUpdateWorkspace(id: string) {
       if (!res.ok) throw new Error('Failed to update workspace');
       return res.json();
     },
-    onSuccess: (_data) => {
-      queryClient.invalidateQueries({ queryKey: workspaceKeys.detail(id) });
+    onSuccess: (_data, input) => {
+      if (input.directory) {
+        queryClient.invalidateQueries({
+          queryKey: workspaceKeys.detail(input.directory),
+        });
+      }
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
     },
@@ -169,21 +175,28 @@ export function useDeleteWorkspace() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (workspaceId: string) => {
+    mutationFn: async (workspace: AeroWorkspaceSummary) => {
       const [res] = await Promise.all([
         $individualWorkspace.$delete({
-          param: { id: workspaceId },
+          param: { id: workspace.id },
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
       if (!res.ok) throw new Error('Failed to delete workspace');
       return res.json();
     },
-    onSuccess: (_data, workspaceId) => {
+    onSuccess: (_data, workspace) => {
+      const selectedWorkspace = useNewSessionStore.getState().selectedWorkspace;
+      if (
+        selectedWorkspace &&
+        selectedWorkspace.directory === workspace.directory
+      ) {
+        useNewSessionStore.getState().setSelectedWorkspace(undefined);
+      }
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
       queryClient.removeQueries({
-        queryKey: workspaceKeys.detail(workspaceId),
+        queryKey: workspaceKeys.detail(workspace.id),
       });
     },
   });

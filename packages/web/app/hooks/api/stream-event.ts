@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
-import { $individualSession } from '@/app/hooks/api/sessions';
+import { $individualSession, useSessionStatus } from '@/app/hooks/api/sessions';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 interface Params {
@@ -10,20 +10,20 @@ interface Params {
 }
 
 export function useSessionStream({ sessionId, harnessId }: Params) {
-  const isStreaming = useChatStore((state) =>
-    sessionId ? (state.sessions[sessionId]?.isStreaming ?? false) : false,
-  );
+  const { data: status } = useSessionStatus(harnessId, sessionId);
 
   useEffect(() => {
-    if (!sessionId || !isStreaming) {
+    if (!sessionId || !status) {
       return;
     }
+
+    if (status[sessionId] && status[sessionId].type === 'idle') return;
 
     void sessionStreamManager.ensure({
       sessionId,
       harnessId,
     });
-  }, [sessionId, harnessId, isStreaming]);
+  }, [sessionId, harnessId, status]);
 }
 
 export function useRestoreSessionStreams() {
@@ -83,6 +83,9 @@ export function useRestoreSessionStreams() {
         }
 
         if (!sessionRes.ok) {
+          if (sessionRes.status === 500) {
+            removeRunningSession(sessionId);
+          }
           throw new Error('Failed to load session');
         }
 

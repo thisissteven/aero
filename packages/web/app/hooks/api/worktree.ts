@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { gitKeys } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';
 import { honoClient } from '@/app/lib';
 
@@ -52,7 +54,7 @@ export function useCreateWorktree(harnessId?: string) {
     },
     onSuccess: (_, input) => {
       queryClient.invalidateQueries({
-        queryKey: ['worktrees', harnessId ?? 'default', input.directory],
+        queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
     },
@@ -72,8 +74,12 @@ export function useDeleteWorktree(harnessId?: string) {
       return res.json();
     },
     onSuccess: (_, input) => {
+      const selectedWorktree = useNewSessionStore.getState().selectedWorktree;
+      if (selectedWorktree && input.worktreeDirectory === selectedWorktree) {
+        useNewSessionStore.getState().setSelectedWorktree(undefined);
+      }
       queryClient.invalidateQueries({
-        queryKey: ['worktrees', harnessId ?? 'default', input.directory],
+        queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
     },

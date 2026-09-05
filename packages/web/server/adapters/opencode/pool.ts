@@ -1,10 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 
-import {
-  createOpencodeClient as createClientV1,
-  createOpencodeServer as createServerV1,
-} from '@opencode-ai/sdk';
 import {
   createOpencodeClient as createClientV2,
   createOpencodeServer as createServerV2,
@@ -14,8 +9,6 @@ import { execFileSync } from 'node:child_process';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { findAvailablePort } from '@/server/helper';
 
-export type OpencodeServerV1 = Awaited<ReturnType<typeof createServerV1>>;
-export type OpencodeClientV1 = ReturnType<typeof createClientV1>;
 export type OpencodeServerV2 = Awaited<ReturnType<typeof createServerV2>>;
 export type OpencodeClientV2 = ReturnType<typeof createClientV2>;
 
@@ -28,8 +21,6 @@ export interface PoolNode<TClient, TServer> {
   isHealthy: boolean;
   isRecovering: boolean;
 }
-
-export type PoolNodeV1 = PoolNode<OpencodeClientV1, OpencodeServerV1>;
 
 export type PoolNodeV2 = PoolNode<OpencodeClientV2, OpencodeServerV2>;
 
@@ -885,28 +876,15 @@ export class OpencodeServerPool<
 
 const POOL_SIZE = Number(process.env.OPENCODE_POOL_SIZE) || 1;
 
-export const opencodePoolV1 = new OpencodeServerPool<
-  OpencodeClientV1,
-  OpencodeServerV1
->(
-  createServerV1,
-  createClientV1,
-  (client) =>
-    client.session.list({
-      query: {
-        limit: 1,
-      },
-    } as any),
-  POOL_SIZE,
-  50789,
-  'V1',
-);
-
 export const opencodePoolV2 = new OpencodeServerPool<
   OpencodeClientV2,
   OpencodeServerV2
 >(
-  createServerV2,
+  async (options) => {
+    return createServerV2({
+      ...options,
+    });
+  },
   createClientV2,
   (client) =>
     client.session.list({

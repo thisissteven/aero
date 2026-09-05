@@ -22,7 +22,7 @@ import type {
   Worktree,
 } from '@opencode-ai/sdk/v2';
 
-import { withOpencodeClientV1 } from '@/server/adapters/opencode/client';
+import { withOpencodeClientV2 } from '@/server/adapters/opencode/client';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { directoryExists } from '@/server/helper';
 import { normalizePath } from '@/server/shared';
@@ -49,7 +49,7 @@ import type {
 
 async function getProviderModelInfo(providerId: string, modelId: string) {
   const { providers } = unwrap(
-    await withOpencodeClientV1((client) => client.config.providers()),
+    await withOpencodeClientV2((client) => client.config.providers()),
   );
 
   const foundProvider = providers.find((p) => p.id === providerId);

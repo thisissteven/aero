@@ -76,10 +76,7 @@ export function WorkspaceItemDropdown({
           <CopyDirectoryPath directory={workspace.directory} />
           <OpenIsolatedWorkspace directory={workspace.directory} />
           <Separator className='my-0.5' />
-          <DeleteWorkspace
-            workspaceId={workspace.id}
-            workspaceName={workspace.name}
-          />
+          <DeleteWorkspace workspace={workspace} />
         </Dropdown.Menu>
       </Dropdown.Popover>
     </Dropdown>

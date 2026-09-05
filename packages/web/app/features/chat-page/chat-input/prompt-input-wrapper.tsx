@@ -13,6 +13,7 @@ import {
   useSendMessage,
   useSession,
 } from '@/app/hooks/api/sessions';
+import { useDoubleKeyPress } from '@/app/hooks/useDoubleKeyPress';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
@@ -238,6 +239,8 @@ export function ActiveSessionPromptInputWrapper({
       },
     });
   }, [sessionId, isPending, isAborting, abortSession]);
+
+  useDoubleKeyPress('Escape', handleAbort, { threshold: 350 });
 
   const inputDisabled = isDisabled || (session && session.readOnly);
 

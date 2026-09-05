@@ -21,7 +21,7 @@ import { copyButtonCss } from '@/app/lib/file';
 import { queryClient, useGlobalModalStore, useTheme } from '@/app/providers';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
-import { EditWorkspaceModal } from './edit-workspace-modal';
+import { EditWorkspaceModal } from './edit-workspace-modal/edit-workspace-modal';
 
 export function WorkspacesToggleEditModeButton() {
   const isEditMode = useWorkspacesSidebarStore((state) => state.isEditMode);
@@ -175,11 +175,9 @@ export function SelectWorkspaceSession({ sessionId }: { sessionId: string }) {
 }
 
 function DeleteWorkspaceConfirmationModal({
-  workspaceId,
-  workspaceName,
+  workspace,
 }: {
-  workspaceId: string;
-  workspaceName: string;
+  workspace: AeroWorkspaceSummary;
 }) {
   const { mutateAsync } = useDeleteWorkspace();
 
@@ -193,7 +191,7 @@ function DeleteWorkspaceConfirmationModal({
       </Modal.Header>
       <Modal.Body>
         <p>
-          <span className='text-foreground'>"{workspaceName}"</span> will be
+          <span className='text-foreground'>"{workspace.name}"</span> will be
           permanently deleted. All sessions under this workspace will also be
           archived.
         </p>
@@ -205,7 +203,7 @@ function DeleteWorkspaceConfirmationModal({
         <Button
           slot='close'
           onPress={() => {
-            toast.promise(mutateAsync(workspaceId), {
+            toast.promise(mutateAsync(workspace), {
               loading: 'Deleting workspace...',
               error: (err) => err.message,
               success: (_data) => {
@@ -226,11 +224,9 @@ function DeleteWorkspaceConfirmationModal({
 }
 
 export function DeleteWorkspace({
-  workspaceId,
-  workspaceName,
+  workspace,
 }: {
-  workspaceId: string;
-  workspaceName: string;
+  workspace: AeroWorkspaceSummary;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
 
@@ -240,12 +236,7 @@ export function DeleteWorkspace({
       variant='danger'
       onPress={() => {
         openModal({
-          children: (
-            <DeleteWorkspaceConfirmationModal
-              workspaceId={workspaceId}
-              workspaceName={workspaceName}
-            />
-          ),
+          children: <DeleteWorkspaceConfirmationModal workspace={workspace} />,
         });
       }}
     >
