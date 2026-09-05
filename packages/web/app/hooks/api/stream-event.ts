@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
-import { $individualSession, useSessionStatus } from '@/app/hooks/api/sessions';
+import { $individualSession } from '@/app/hooks/api/sessions';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 interface Params {
@@ -10,20 +10,20 @@ interface Params {
 }
 
 export function useSessionStream({ sessionId, harnessId }: Params) {
-  const { data: status } = useSessionStatus(harnessId, sessionId);
+  const isStreaming = useChatStore((state) =>
+    sessionId ? (state.sessions[sessionId]?.isStreaming ?? false) : false,
+  );
 
   useEffect(() => {
-    if (!sessionId || !status) {
+    if (!sessionId || !isStreaming) {
       return;
     }
-
-    if (status[sessionId] && status[sessionId].type === 'idle') return;
 
     void sessionStreamManager.ensure({
       sessionId,
       harnessId,
     });
-  }, [sessionId, harnessId, status]);
+  }, [sessionId, harnessId, isStreaming]);
 }
 
 export function useRestoreSessionStreams() {

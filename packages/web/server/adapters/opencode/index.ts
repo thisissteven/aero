@@ -1085,19 +1085,19 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async abortSession(sessionID) {
       await withOpencodeClientV2(async (client) => {
-        const session = unwrap(
-          await client.session.get({
-            sessionID,
-          }),
-        );
+        // const session = unwrap(
+        //   await client.session.get({
+        //     sessionID,
+        //   }),
+        // );
 
         await client.session.abort({
           sessionID,
         });
 
-        await client.instance.dispose({
-          directory: session.directory,
-        });
+        // await client.instance.dispose({
+        //   directory: session.directory,
+        // });
       });
 
       return true;

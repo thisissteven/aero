@@ -72,13 +72,6 @@ export function useAutoScroll({
       return;
     }
 
-    const isAtBottom = () => {
-      const distanceFromBottom =
-        scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
-
-      return distanceFromBottom <= threshold;
-    };
-
     const scrollToBottom = () => {
       if (!shouldFollowBottomRef.current) {
         return false;

@@ -825,9 +825,9 @@ export const useChatStore = create<ChatStore>()(
 
                 if (
                   state.activeSessionId === sessionId &&
-                  part.type === 'text' &&
-                  (part.messageID === lastTurn?.id ||
-                    part.messageID === event.messageId)
+                  lastTurn.role === 'user' &&
+                  part.messageID === lastTurn.id &&
+                  part.type === 'text'
                 ) {
                   requestAnimationFrame(() => {
                     requestAnimationFrame(() => {

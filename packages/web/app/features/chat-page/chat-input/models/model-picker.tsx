@@ -3,7 +3,10 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { Command } from '@aero/ui';
 
-import { ModelGroups, useModelPicker } from './model-dropdown-shared';
+import {
+  ModelPickerList,
+  useModelPicker,
+} from '@/app/features/chat-page/chat-input/models/use-model-picker';
 
 interface ModelPickerProps {
   onModelSelect?: () => void;
@@ -49,21 +52,19 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
               No models found.
             </div>
           ) : (
-            <Command.List className='scroll-py-1 overflow-y-auto p-1 text-xs @md:max-h-72'>
-              <ModelGroups
-                favoriteModels={favoriteModels}
-                groupedProviders={groupedProviders}
-                selectedModelId={selectedModel?.id}
-                favoriteModelIds={favoriteModelIds}
-                collapsedGroups={collapsedGroups}
-                onToggleGroup={toggleGroupCollapse}
-                onSelect={(model) => {
-                  selectModel(model);
-                  onModelSelect?.();
-                }}
-                onFavorite={toggleFavorite}
-              />
-            </Command.List>
+            <ModelPickerList
+              favoriteModels={favoriteModels}
+              groupedProviders={groupedProviders}
+              selectedModelId={selectedModel?.id}
+              favoriteModelIds={favoriteModelIds}
+              collapsedGroups={collapsedGroups}
+              onToggleGroup={toggleGroupCollapse}
+              onSelect={(model) => {
+                selectModel(model);
+                onModelSelect?.();
+              }}
+              onFavorite={toggleFavorite}
+            />
           )}
         </Command.Dialog>
       </Command>
