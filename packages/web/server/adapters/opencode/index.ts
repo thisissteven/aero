@@ -935,7 +935,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           client.session.update({
             sessionID,
             time: {
-              archived: undefined,
+              archived: 0,
             },
           }),
         ),

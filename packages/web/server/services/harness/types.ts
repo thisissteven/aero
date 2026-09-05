@@ -48,6 +48,7 @@ export interface AeroSessionSummary {
   revert?: {
     messageID?: string;
   };
+  archived: boolean;
 }
 
 export type AeroPartRequest =

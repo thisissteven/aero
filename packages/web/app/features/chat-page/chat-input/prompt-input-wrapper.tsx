@@ -31,6 +31,9 @@ export function NewSessionPromptInputWrapper({
   const { mutateAsync: createSession } = useCreateSession();
   const { mutateAsync: sendMessage } = useSendMessage(undefined);
 
+  const selectedVariant = useChatSettingsStore(
+    (state) => state.selectedVariant,
+  );
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
@@ -81,10 +84,11 @@ export function NewSessionPromptInputWrapper({
             },
           ],
           model: {
-            modelId: selectedModel?.id as string,
+            modelId: selectedModel?.model.id as string,
             providerId: selectedModel?.providerId as string,
           },
           agent: selectedAgent?.name,
+          variant: selectedVariant,
         },
         {
           onSuccess: () => {
@@ -142,8 +146,10 @@ export function ActiveSessionPromptInputWrapper({
 
   const { data: session } = useSession(undefined, sessionId);
 
+  const selectedVariant = useChatSettingsStore(
+    (state) => state.selectedVariant,
+  );
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
   const status = useChatStore((state) =>
@@ -168,7 +174,7 @@ export function ActiveSessionPromptInputWrapper({
       isPending ||
       !sessionId ||
       !selectedModel?.providerId ||
-      !selectedModel.id
+      !selectedModel.model.id
     ) {
       return;
     }
@@ -193,10 +199,11 @@ export function ActiveSessionPromptInputWrapper({
           },
         ],
         model: {
-          modelId: selectedModel.id,
+          modelId: selectedModel.model.id,
           providerId: selectedModel.providerId,
         },
         agent: selectedAgent?.name,
+        variant: selectedVariant,
       },
       {
         onSuccess: () => {

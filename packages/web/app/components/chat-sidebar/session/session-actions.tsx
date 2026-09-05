@@ -36,6 +36,7 @@ import {
   useDeleteSession,
   useSessionMarkdown,
   useShareSession,
+  useUnarchiveSession,
   useUnshareSession,
 } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
@@ -557,6 +558,28 @@ export function ArchiveSessionIconButton({
         }}
       />
     </Sidebar.MenuAction>
+  );
+}
+
+export function UnarchiveSession({ sessionId }: { sessionId: string }) {
+  const { mutateAsync: unarchiveSession } = useUnarchiveSession();
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      onPress={async () => {
+        toast.promise(unarchiveSession(sessionId), {
+          loading: 'Restoring session...',
+          error: (err) => err.message,
+          success: (_data) => {
+            return 'Session restored';
+          },
+        });
+      }}
+    >
+      <Icon size={14} data={Archive} />
+      <Label>Restore</Label>
+    </Dropdown.Item>
   );
 }
 

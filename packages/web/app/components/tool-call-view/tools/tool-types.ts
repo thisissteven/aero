@@ -27,22 +27,26 @@ export type StructuredOutputNames = 'structuredoutput' | 'structured_output';
 export type PlanToolNames = 'plan_enter' | 'plan_exit';
 
 export type EditPart = ToolPartBase & {
-  toolName: EditToolNames | WriteToolNames;
+  toolName: EditToolNames;
+  title?: string;
+  duration?: number;
   input: {
-    path?: string;
-    filePath?: string;
-    content?: string;
-    newString?: string;
-    oldString?: string;
+    filePath: string;
+    oldString: string;
+    newString: string;
   };
-  metadata?: {
-    filediff?: {
-      file?: string;
-      patch?: string;
-      additions?: number;
-      deletions?: number;
-    };
+  output?: string;
+};
+
+export type WritePart = ToolPartBase & {
+  toolName: WriteToolNames;
+  title?: string;
+  duration?: number;
+  input: {
+    filePath: string;
+    content: string;
   };
+  output?: string;
 };
 
 export type ReadPart = ToolPartBase & {

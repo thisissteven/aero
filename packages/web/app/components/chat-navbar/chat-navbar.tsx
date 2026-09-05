@@ -22,6 +22,7 @@ import {
   OpenIsolatedWorkspace,
   RenameSession,
   ShareUnshareSession,
+  UnarchiveSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
@@ -166,7 +167,7 @@ function SessionsNavbarContent() {
             {!isStandaloneSession && ` at `}
           </span>
           {isStandaloneSession && (
-            <span>
+            <span className='truncate font-bold'>
               (Standalone session) {session.readOnly && ' (read only)'}
             </span>
           )}
@@ -184,6 +185,9 @@ function SessionsNavbarContent() {
                 {session.readOnly && ' (read only)'}
               </span>
             </div>
+          )}
+          {session.archived && (
+            <span className='truncate font-bold'>{' (archived)'}</span>
           )}
         </div>
       </div>
@@ -220,10 +224,14 @@ function SessionsNavbarContent() {
               />
               <ExportMarkdown sessionId={session.id} />
               <Separator className='my-0.5' />
-              <ArchiveSession
-                sessionId={session.id}
-                sessionTitle={session.title}
-              />
+              {session.archived ? (
+                <UnarchiveSession sessionId={session.id} />
+              ) : (
+                <ArchiveSession
+                  sessionId={session.id}
+                  sessionTitle={session.title}
+                />
+              )}
               <DeleteSession
                 sessionId={session.id}
                 sessionTitle={session.title}

@@ -5,7 +5,7 @@ import {
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelSelectionSync } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
-import { ModelItem, ProviderGroup, SearchableModel } from '@/app/lib/model';
+import { ProviderGroup, SearchableModel } from '@/app/lib/model';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 
@@ -42,12 +42,8 @@ export function useModelPicker() {
     setFavoriteModelIds,
   });
 
-  const selectModel = (model: ModelItem) => {
-    setSelectedModel({
-      id: model.id,
-      name: model.name,
-      providerId: model.providerID,
-    });
+  const selectModel = (model: SearchableModel) => {
+    setSelectedModel(model);
   };
 
   const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
@@ -82,7 +78,7 @@ export interface ModelPickerListProps {
   favoriteModelIds: string[];
   collapsedGroups: Set<string>;
   onToggleGroup: (groupId: string) => void;
-  onSelect: (model: ModelItem) => void;
+  onSelect: (model: SearchableModel) => void;
   onFavorite: (event: React.MouseEvent, modelId: string) => void;
 }
 
@@ -126,7 +122,7 @@ export function ModelPickerList({
       favoriteModelIds={favoriteModelIds}
       collapsedGroups={collapsedGroups}
       onToggleGroup={onToggleGroup}
-      onSelect={(entry) => onSelect(entry.model)}
+      onSelect={(entry) => onSelect(entry)}
       onToggleFavorite={onFavorite}
     />
   );

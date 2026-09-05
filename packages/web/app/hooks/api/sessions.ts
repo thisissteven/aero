@@ -577,7 +577,10 @@ export function useArchiveSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to archive session');
       return res.json();
     },
-    onSuccess: (_data) => {
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
       queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
     },
   });
@@ -620,7 +623,10 @@ export function useUnarchiveSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to unarchive session');
       return res.json();
     },
-    onSuccess: (_data) => {
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(harnessId, sessionId),
+      });
       queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
     },
   });

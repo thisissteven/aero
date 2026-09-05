@@ -2,15 +2,9 @@ import { useEffect } from 'react';
 
 import { SearchableModel } from '@/app/lib/model';
 
-export interface SelectedModelRef {
-  id: string;
-  name: string;
-  providerId: string;
-}
-
 export interface UseModelSelectionSyncOptions {
-  selectedModel: SelectedModelRef | null;
-  setSelectedModel: (model: SelectedModelRef) => void;
+  selectedModel: SearchableModel | null;
+  setSelectedModel: (model: SearchableModel) => void;
   favoriteModelIds?: string[];
   setFavoriteModelIds?: (ids: string[]) => void;
 }
@@ -39,17 +33,15 @@ export function useModelSelectionSync(
     if (searchableModels.length === 0) return;
 
     const stillExists = selectedModel
-      ? searchableModels.some(({ model }) => model.id === selectedModel.id)
+      ? searchableModels.some(
+          ({ model }) => model.id === selectedModel.model.id,
+        )
       : false;
 
     if (selectedModel && stillExists) return;
 
     const first = searchableModels[0];
-    setSelectedModel({
-      id: first.model.id,
-      name: first.model.name,
-      providerId: first.providerId,
-    });
+    setSelectedModel(first);
   }, [selectedModel, searchableModels, setSelectedModel]);
 
   useEffect(() => {

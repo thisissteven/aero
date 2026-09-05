@@ -13,6 +13,7 @@ import {
   ExportMarkdown,
   OpenIsolatedWorkspace,
   RenameSession,
+  UnarchiveSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { SessionItemMarquee } from '@/app/components/chat-sidebar/session/session-item-marquee';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
@@ -155,10 +156,14 @@ export function SessionItemSummary({
                 <CopySessionId sessionId={session.id} />
                 <ExportMarkdown sessionId={session.id} />
                 <Separator className='my-0.5 h-[0.5px]' />
-                <ArchiveSession
-                  sessionId={session.id}
-                  sessionTitle={session.title}
-                />
+                {session.archived ? (
+                  <UnarchiveSession sessionId={session.id} />
+                ) : (
+                  <ArchiveSession
+                    sessionId={session.id}
+                    sessionTitle={session.title}
+                  />
+                )}
                 <DeleteSession
                   sessionId={session.id}
                   sessionTitle={session.title}

@@ -34,7 +34,7 @@ export const ReadToolView = memo(
         code={output}
         language={language ?? 'text'}
         preview={path}
-        previewType='read-path'
+        previewType='path'
         copyText={output}
         isStreaming={isStreaming}
         showLineNumbers

@@ -75,6 +75,7 @@ export function toAeroSession(s: ExtendedSessionV1): AeroSessionSummary {
     readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
+    archived: false,
   };
 }
 
@@ -92,6 +93,7 @@ export function toAeroSessionExperimental(
     readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
+    archived: Boolean(s.time.archived),
   };
 }
 
@@ -107,6 +109,7 @@ export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
     readOnly: !directoryExists(s.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
+    archived: Boolean(s.time.archived),
   };
 }
 
@@ -124,6 +127,7 @@ export function toAeroSessionV2Info(
     readOnly: !directoryExists(s.location.directory),
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
+    archived: Boolean(s.time.archived),
   };
 }
 

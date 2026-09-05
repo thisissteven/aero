@@ -4,6 +4,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { WebSearchPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { formatDateTime } from '@/app/lib/date';
 
 type SearchResult = {
   url: string;
@@ -34,12 +35,46 @@ function getExcerpt(result: SearchResult) {
   return excerpt.length > 180 ? `${excerpt.slice(0, 180)}…` : excerpt;
 }
 
+function parseTextOutput(text: string): SearchOutput {
+  const blocks = text.split('\n---\n');
+  const results: SearchResult[] = [];
+
+  for (const block of blocks) {
+    const titleMatch = block.match(/^Title:\s*(.+)$/m);
+    const urlMatch = block.match(/^URL:\s*(.+)$/m);
+    const dateMatch = block.match(/^Published:\s*(.+)$/m);
+
+    if (urlMatch) {
+      const url = urlMatch[1].trim();
+      const title = titleMatch ? titleMatch[1].trim() : url;
+      const publishDate =
+        dateMatch && dateMatch[1].trim() !== 'N/A' ? dateMatch[1].trim() : null;
+
+      // Extract excerpt after Highlights or content
+      const highlightsIndex = block.indexOf('Highlights:');
+      const excerpt =
+        highlightsIndex !== -1
+          ? block.slice(highlightsIndex + 11).trim()
+          : block;
+
+      results.push({
+        url,
+        title,
+        publish_date: publishDate,
+        excerpts: [excerpt],
+      });
+    }
+  }
+
+  return { results };
+}
+
 function SearchResults({
   query,
   output,
 }: {
   query: string;
-  output: SearchOutput | null;
+  output: SearchOutput | undefined;
 }) {
   const results = output?.results ?? [];
 
@@ -59,7 +94,7 @@ function SearchResults({
 
         {results.length > 0 && (
           <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
-            {results.length}
+            {results.length} results
           </span>
         )}
       </div>
@@ -112,7 +147,7 @@ function SearchResults({
                         <>
                           <span className='text-muted/50'>·</span>
                           <span className='shrink-0'>
-                            {result.publish_date}
+                            {formatDateTime(result.publish_date)}
                           </span>
                         </>
                       )}
@@ -156,13 +191,16 @@ export const WebSearchToolView = memo(
   }) => {
     const query = part.input.query || '';
 
-    let output: SearchOutput | null = null;
+    let output: SearchOutput | undefined;
 
-    try {
-      output =
-        typeof part.output === 'string' ? JSON.parse(part.output) : part.output;
-    } catch {
-      output = null;
+    if (typeof part.output === 'string') {
+      try {
+        output = JSON.parse(part.output);
+      } catch {
+        output = parseTextOutput(part.output);
+      }
+    } else {
+      output = part.output;
     }
 
     return (

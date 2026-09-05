@@ -1,5 +1,6 @@
 import { memo } from 'react';
 
+import { WriteToolView } from '@/app/components/tool-call-view/tools/write-tool';
 import type { AeroPart } from '@/server/services/harness/types';
 
 import {
@@ -30,6 +31,7 @@ import type {
   TodoWritePart,
   WebFetchPart,
   WebSearchPart,
+  WritePart,
 } from './tools/tool-types';
 
 type ToolPart = Extract<AeroPart, { type: 'tool' }>;
@@ -48,10 +50,12 @@ export const ToolCallView = memo(function ToolCallView({
     case 'multiedit':
     case 'str_replace':
     case 'str_replace_based_edit_tool':
+      return <EditToolView part={part as EditPart} {...props} />;
+
     case 'write':
     case 'create':
     case 'file_write':
-      return <EditToolView part={part as EditPart} {...props} />;
+      return <WriteToolView part={part as WritePart} {...props} />;
 
     case 'apply_patch':
       return <PatchToolView part={part as PatchPart} {...props} />;

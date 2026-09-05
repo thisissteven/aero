@@ -45,7 +45,7 @@ export function BaseTool({
   icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
   title: string;
   preview?: ReactNode;
-  previewType?: 'text' | 'path' | 'read-path';
+  previewType?: 'text' | 'path';
   codeTitle?: string;
   code?: string;
   language?: string;
@@ -123,7 +123,7 @@ export function BaseTool({
                 {title}
               </span>
 
-              {previewType === 'read-path' && typeof preview === 'string' && (
+              {previewType === 'path' && typeof preview === 'string' && (
                 <span
                   className={getAnimationClass()}
                   style={getAnimationStyle(2)}
@@ -149,8 +149,7 @@ export function BaseTool({
                 style={getAnimationStyle(4)}
               >
                 {preview ? (
-                  (previewType === 'path' || previewType === 'read-path') &&
-                  typeof preview === 'string' ? (
+                  previewType === 'path' && typeof preview === 'string' ? (
                     <MiddleTruncatePath path={preview} />
                   ) : typeof preview === 'string' ? (
                     <span className='inline-block w-full truncate align-middle'>

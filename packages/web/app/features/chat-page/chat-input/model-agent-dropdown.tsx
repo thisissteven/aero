@@ -2,6 +2,7 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { Button, Sheet } from '@aero/ui';
 
+import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';
 import { capitalizeFirstLetter } from '@/app/lib/file';
 
 import { AgentPicker, getAgentIconData } from './agents/agent-picker';
@@ -69,20 +70,22 @@ export function ModelAgentDropdownSheet({
                 >
                   Model
                 </Button>
+
+                <Button
+                  variant={selection === 'variant' ? 'secondary' : 'outline'}
+                  className='w-fit rounded-lg text-sm'
+                  onPress={() => setSelection('variant')}
+                >
+                  Variant
+                </Button>
               </div>
 
               {selection === 'model' ? (
-                <ModelPicker
-                  onModelSelect={() => {
-                    setIsOpen(false);
-                  }}
-                />
+                <ModelPicker />
+              ) : selection === 'agent' ? (
+                <AgentPicker />
               ) : (
-                <AgentPicker
-                  onAgentSelect={() => {
-                    setIsOpen(false);
-                  }}
-                />
+                <VariantsPicker />
               )}
             </Sheet.Body>
           </Sheet.Dialog>

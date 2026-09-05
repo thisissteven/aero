@@ -5,6 +5,7 @@ import { PromptInput } from '@aero/ui';
 
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
+import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
@@ -71,6 +72,7 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
                     <ModelAgentDropdownTrigger />
                   </div>
                   <div className='flex @max-md:hidden'>
+                    <VariantsDropdown />
                     <ModelDropdown />
                     <AgentDropdown />
                   </div>

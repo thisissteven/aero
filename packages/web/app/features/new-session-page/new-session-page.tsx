@@ -11,6 +11,7 @@ import {
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
 import { NewSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { SendButton } from '@/app/features/chat-page/chat-input/send-button';
+import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
 import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
 import { HeroText } from '@/app/features/new-session-page/hero-text';
@@ -88,6 +89,7 @@ export function NewSessionPage() {
                           <ModelAgentDropdownTrigger />
                         </div>
                         <div className='flex @max-md:hidden'>
+                          <VariantsDropdown />
                           <ModelDropdown />
                           <AgentDropdown />
                         </div>

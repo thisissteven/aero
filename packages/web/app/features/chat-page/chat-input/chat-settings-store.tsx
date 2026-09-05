@@ -1,21 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface SelectedModel {
-  id: string;
-  name: string;
-  providerId: string;
-}
+import { SearchableModel } from '@/app/lib/model';
 
 export interface SelectedAgent {
   name: string;
   description?: string;
 }
 
-export type ModelAgentSheetSelection = 'model' | 'agent';
+export type ModelAgentSheetSelection = 'model' | 'agent' | 'variant';
 
 interface ChatSettingsState {
-  selectedModel: SelectedModel | null;
+  selectedVariant: string | undefined;
+
+  selectedModel: SearchableModel | null;
   selectedAgent: SelectedAgent | null;
 
   favoriteModelIds: string[];
@@ -23,7 +21,8 @@ interface ChatSettingsState {
   modelAgentSheetOpen: boolean;
   modelAgentSheetSelection: ModelAgentSheetSelection;
 
-  setSelectedModel: (model: SelectedModel) => void;
+  setSelectedVariant: (selectedVariant: string) => void;
+  setSelectedModel: (model: SearchableModel) => void;
   setSelectedAgent: (agent: SelectedAgent) => void;
 
   toggleFavoriteModel: (modelId: string) => void;
@@ -38,6 +37,7 @@ interface ChatSettingsState {
 export const useChatSettingsStore = create<ChatSettingsState>()(
   persist(
     (set, get) => ({
+      selectedVariant: undefined,
       selectedModel: null,
       selectedAgent: null,
 
@@ -46,7 +46,16 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       modelAgentSheetOpen: false,
       modelAgentSheetSelection: 'agent',
 
-      setSelectedModel: (selectedModel) => set({ selectedModel }),
+      setSelectedVariant: (selectedVariant) => set({ selectedVariant }),
+
+      setSelectedModel: (selectedModel) => {
+        const variants = Object.keys(selectedModel.model.variants ?? {});
+        const selectedVariant =
+          variants.length > 0
+            ? variants[Math.floor((variants.length - 1) / 2)]
+            : undefined;
+        return set({ selectedModel, selectedVariant });
+      },
 
       setSelectedAgent: (selectedAgent) => set({ selectedAgent }),
 
@@ -79,6 +88,7 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       name: 'chat-input-settings-storage',
 
       partialize: (state) => ({
+        selectedVariant: state.selectedVariant,
         selectedModel: state.selectedModel,
         selectedAgent: state.selectedAgent,
         favoriteModelIds: state.favoriteModelIds,

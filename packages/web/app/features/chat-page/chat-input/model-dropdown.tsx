@@ -69,11 +69,7 @@ export function ModelDropdown() {
   }, [clearIfStale, isModelVisible]);
 
   const selectModel = (entry: SearchableModel) => {
-    setSelectedModel({
-      id: entry.model.id,
-      name: entry.model.name,
-      providerId: entry.model.providerID,
-    });
+    setSelectedModel(entry);
     setIsOpen(false);
   };
 
@@ -93,17 +89,17 @@ export function ModelDropdown() {
       <Button
         variant='ghost'
         size='sm'
-        className='gap-1.5 rounded-lg px-2 text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
+        className='gap-1 rounded-lg pr-2 pl-1.5 text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
       >
         {selectedModel && (
           <ProviderLogo
             providerId={selectedModel.providerId}
-            alt={selectedModel.name}
+            alt={selectedModel.model.name}
             className='size-3.5'
           />
         )}
 
-        {selectedModel?.name ?? (
+        {selectedModel?.model.name ?? (
           <span className='text-muted'>Select model</span>
         )}
       </Button>
@@ -134,7 +130,7 @@ export function ModelDropdown() {
                 ) : (
                   <ModelVirtualList
                     items={items}
-                    selectedModelId={selectedModel?.id}
+                    selectedModelId={selectedModel?.model.id}
                     favoriteModelIds={favoriteModelIds}
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroupCollapse}

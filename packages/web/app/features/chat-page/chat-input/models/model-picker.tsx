@@ -55,7 +55,7 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
             <ModelPickerList
               favoriteModels={favoriteModels}
               groupedProviders={groupedProviders}
-              selectedModelId={selectedModel?.id}
+              selectedModelId={selectedModel?.model.id}
               favoriteModelIds={favoriteModelIds}
               collapsedGroups={collapsedGroups}
               onToggleGroup={toggleGroupCollapse}
