@@ -18,6 +18,7 @@ import {
 } from '@/server/helper';
 import { debugLog } from '@/server/lib/debug-log';
 import { resolveGitDir } from '@/server/routes/git';
+import { getAdapter } from '@/server/services/harness/registry';
 import type {
   AddWorktreeInput,
   AeroEvent,
@@ -31,6 +32,7 @@ import type {
   ListSessionsParams,
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
+import { isPermissionAutoAcceptEnabled } from '@/server/services/settings';
 import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
 import {
   addWorktreeToWorkspace,
@@ -708,14 +710,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return entries.all.map(toAeroProvider);
     },
 
-    async getConfig(directory) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.config.get({ directory }),
-        ),
-      );
-    },
-
     async listMessages(sessionID) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>
@@ -1053,21 +1047,12 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return diff;
     },
 
-    async setAutoAcceptPermissions(allowAll, directory) {
-      const ok = unwrap(
+    async getConfig(directory) {
+      return unwrap(
         await withOpencodeClientV2((client) =>
-          client.config.update({
-            directory,
-            config: {
-              permission: {
-                '*': 'allow',
-              },
-            },
-          }),
+          client.config.get({ directory }),
         ),
       );
-
-      return true;
     },
 
     sendMessage(sessionID, input, directory) {
@@ -1234,7 +1219,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
               continue;
             }
 
-            const mapped = mapOpencodeEvent(payload as Event);
+            const mapped = await mapOpencodeEvent(payload as Event);
 
             if (!mapped) {
               separatorIndex = buffer.indexOf('\n\n');
@@ -1272,11 +1257,20 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   };
 }
 
-function mapOpencodeEvent(event: Event): AeroEvent | null {
+async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
   switch (event.type) {
     case 'permission.asked': {
       const { id, sessionID, permission, patterns, metadata, always, tool } =
         event.properties;
+
+      const skipPermissions = await isPermissionAutoAcceptEnabled(sessionID);
+
+      if (skipPermissions) {
+        const harness = await getAdapter('opencode');
+        const session = await harness.getSession(sessionID);
+        await harness.replyToPermission(id, session.workspace, 'once');
+        return null;
+      }
 
       return {
         type: 'permission.asked',

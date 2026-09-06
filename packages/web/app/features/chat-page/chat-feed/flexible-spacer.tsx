@@ -36,7 +36,7 @@ export function FlexibleSpacer({
   // When new messages stream in or signal changes, decay the reserved height toward 0
   useLayoutEffect(() => {
     if (reservedHeight > 0) {
-      setReservedHeight((prev) => Math.max(0, prev - 24)); // Smooth step reduction per chunk
+      setReservedHeight((prev) => Math.max(0, prev - 40)); // Smooth step reduction per chunk
     }
   }, [streamSignal]);
 
@@ -46,7 +46,7 @@ export function FlexibleSpacer({
         minHeight: `${reservedHeight}px`,
         transition: 'min-height 300px cubic-bezier(0.4, 0, 0.2, 1)',
       }}
-      className='w-full'
+      className='-mt-5 w-full'
     >
       <div ref={contentRef}>{children}</div>
     </div>

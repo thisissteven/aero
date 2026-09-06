@@ -48,14 +48,6 @@ export const ReplyToPermission = React.memo(() => {
   const { mutateAsync: reply, isPending: isPendingReply } =
     useReplyToPermission(undefined);
 
-  useEffect(() => {
-    if (!activeSessionId || !storePermission) {
-      return;
-    }
-
-    void refetchPermissions();
-  }, [activeSessionId, storePermission?.id, refetchPermissions]);
-
   // 3. Resolve active permission request
   const currentPermissionRequest = useMemo(() => {
     if (storePermission) {
@@ -144,7 +136,7 @@ export const ReplyToPermission = React.memo(() => {
           success: isReject ? 'Permission denied' : 'Permission granted',
         },
       );
-    }, 200);
+    }, 500);
   };
 
   // Keyboard shortcut handler

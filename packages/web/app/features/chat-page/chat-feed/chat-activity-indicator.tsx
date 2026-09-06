@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useChatInputExpanded } from '@/app/hooks/api/config';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
 import type {
   AeroConversationTurn,
@@ -90,6 +91,7 @@ function PixelLoader() {
 }
 
 export function ChatActivityIndicator() {
+  const sessionId = useChatStore((state) => state.activeSessionId);
   const turns = useChatStore((state) => state.activeSession.turns);
   const status = useChatStore((state) => state.activeSession.status);
   const startedAt = useChatStore(
@@ -100,7 +102,11 @@ export function ChatActivityIndicator() {
 
   const label = useMemo(() => getActivityLabel(turns, status), [turns, status]);
 
-  if (!label) {
+  const { data } = useChatInputExpanded(sessionId as string);
+
+  const isChatInputExpanded = data?.value ?? false;
+
+  if (!label || isChatInputExpanded) {
     return null;
   }
 

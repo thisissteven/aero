@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cn, PromptInput } from '@aero/ui';
 
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
+import { ChatInputTextArea } from '@/app/features/chat-page/chat-input/chat-input';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
 import {
   ModelAgentDropdownSheet,
@@ -11,6 +12,9 @@ import {
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
 import { NewSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { SendButton } from '@/app/features/chat-page/chat-input/send-button';
+import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/auto-accept-permissions';
+import { ChatInputExpandedToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/chat-input-expanded';
+import { GoalModeToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/goal-mode';
 import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
 import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
@@ -19,6 +23,7 @@ import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-pag
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
+import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function NewSessionPage() {
   const isMounted = useIsMounted();
@@ -69,18 +74,30 @@ export function NewSessionPage() {
                   }
                 }}
               >
-                <PromptInput.Shell className='@container shadow'>
+                <PromptInput.Shell className='@container relative'>
+                  <div className='absolute top-2 right-2'>
+                    <ChatInputExpandedToggleButton
+                      sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                    />
+                  </div>
+
                   <PromptInput.Content>
-                    <PromptInput.TextArea
+                    <ChatInputTextArea
                       ref={textareaRef}
-                      className='@max-lg:min-h-18'
-                      placeholder='@ for files/agents; / for commands and skills; ! for shell; # for snippets'
+                      sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                      enabledClassName='min-h-[calc(100svh-320px)]'
                     />
                   </PromptInput.Content>
 
                   <PromptInput.Toolbar>
-                    <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
+                    <PromptInput.ToolbarStart className='items-end justify-start gap-1'>
                       <FileAttachmentsButton isMobile={isMobile} />
+                      <AutoAcceptPermissionsToggleButton
+                        sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                      />
+                      <GoalModeToggleButton
+                        sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                      />
                     </PromptInput.ToolbarStart>
 
                     <PromptInput.ToolbarEnd>

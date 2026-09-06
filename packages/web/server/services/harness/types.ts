@@ -566,8 +566,4 @@ export interface HarnessAdapter {
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
 
   getConfig(directory?: string): Promise<AeroConfig>;
-  setAutoAcceptPermissions(
-    allowAll: boolean,
-    directory?: string,
-  ): Promise<boolean>;
 }

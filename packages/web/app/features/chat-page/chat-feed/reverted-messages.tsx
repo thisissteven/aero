@@ -1,12 +1,13 @@
 import { ArrowUturnCcwRight, ChevronDown, CodeFork } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { cn, Disclosure, toast } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useChatInputExpanded } from '@/app/hooks/api/config';
 import {
   sessionKeys,
   useForkSession,
@@ -15,14 +16,10 @@ import {
 } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 
-export function RevertedMessages() {
+export function RevertedMessages({ sessionId }: { sessionId: string }) {
   const revertedMessages = useChatStore(
     (state) => state.activeSession.revertedMessages,
   );
-
-  const { sessionId } = useParams({
-    strict: false,
-  });
 
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
   const { mutateAsync: restoreMessages } = useRestoreAllMessages(
@@ -35,7 +32,11 @@ export function RevertedMessages() {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (revertedMessages.length === 0) return null;
+  const { data } = useChatInputExpanded(sessionId);
+
+  const isChatInputExpanded = data?.value ?? false;
+
+  if (revertedMessages.length === 0 || isChatInputExpanded) return null;
 
   return (
     <div className='@container relative mx-auto w-full max-w-[720px]'>

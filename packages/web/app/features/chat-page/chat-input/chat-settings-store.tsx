@@ -22,6 +22,7 @@ interface ChatSettingsState {
   modelAgentSheetSelection: ModelAgentSheetSelection;
 
   setSelectedVariant: (selectedVariant: string) => void;
+  cycleVariant: (direction?: 1 | -1) => void;
   setSelectedModel: (model: SearchableModel) => void;
   setSelectedAgent: (agent: SelectedAgent) => void;
 
@@ -47,6 +48,23 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       modelAgentSheetSelection: 'agent',
 
       setSelectedVariant: (selectedVariant) => set({ selectedVariant }),
+
+      cycleVariant: (direction = 1) => {
+        const { selectedModel, selectedVariant } = get();
+        if (!selectedModel) return;
+        const variants = Object.keys(selectedModel.model.variants ?? {});
+        if (variants.length === 0) return;
+        const currentIndex = selectedVariant
+          ? variants.indexOf(selectedVariant)
+          : -1;
+        const nextIndex =
+          currentIndex === -1
+            ? direction === 1
+              ? 0
+              : variants.length - 1
+            : (currentIndex + direction + variants.length) % variants.length;
+        set({ selectedVariant: variants[nextIndex] });
+      },
 
       setSelectedModel: (selectedModel) => {
         const variants = Object.keys(selectedModel.model.variants ?? {});

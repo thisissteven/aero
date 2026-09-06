@@ -28,3 +28,5 @@ export function isWorktree(path: string) {
     normalized.includes(WORKTREE_PATH.claude)
   );
 }
+
+export const NEW_SESSION_PAGE_SESSION_ID = 'new-session-page';

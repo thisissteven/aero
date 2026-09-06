@@ -14,6 +14,7 @@ import {
   useSession,
 } from '@/app/hooks/api/sessions';
 import { useDoubleKeyPress } from '@/app/hooks/useDoubleKeyPress';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
@@ -36,6 +37,28 @@ export function NewSessionPromptInputWrapper({
   );
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
+
+  const cycleVariant = useChatSettingsStore((state) => state.cycleVariant);
+
+  useKeyPress(
+    'ArrowRight',
+    () => {
+      cycleVariant(1);
+    },
+    {
+      ignoreInputs: value.length === 0 ? false : true,
+    },
+  );
+
+  useKeyPress(
+    'ArrowLeft',
+    () => {
+      cycleVariant(-1);
+    },
+    {
+      ignoreInputs: value.length === 0 ? false : true,
+    },
+  );
 
   const state = useNewSessionStore((state) => state.state);
 
@@ -151,6 +174,28 @@ export function ActiveSessionPromptInputWrapper({
   );
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
+
+  const cycleVariant = useChatSettingsStore((state) => state.cycleVariant);
+
+  useKeyPress(
+    'ArrowRight',
+    () => {
+      cycleVariant(1);
+    },
+    {
+      ignoreInputs: value.length === 0 ? false : true,
+    },
+  );
+
+  useKeyPress(
+    'ArrowLeft',
+    () => {
+      cycleVariant(-1);
+    },
+    {
+      ignoreInputs: value.length === 0 ? false : true,
+    },
+  );
 
   const status = useChatStore((state) =>
     sessionId

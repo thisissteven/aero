@@ -110,14 +110,14 @@ export function ChatPage({
             />
           </div>
 
-          <RevertedMessages />
+          <RevertedMessages sessionId={sessionId} />
 
           <div className='@container flex items-center justify-between'>
-            <SessionDiff workspace={workspace} />
-            <SessionTodos />
+            <SessionDiff workspace={workspace} sessionId={sessionId} />
+            <SessionTodos sessionId={sessionId} />
           </div>
 
-          <ChatInput isDisabled={notFound} />
+          <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>
     </div>

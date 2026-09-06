@@ -6,13 +6,24 @@ import { cn, Popover } from '@aero/ui';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
+import { useChatInputExpanded } from '@/app/hooks/api/config';
 import { useGitDiff } from '@/app/hooks/api/git';
 
-export function SessionDiff({ workspace }: { workspace?: string }) {
+export function SessionDiff({
+  workspace,
+  sessionId,
+}: {
+  workspace?: string;
+  sessionId: string;
+}) {
   const { data: diffData, isLoading } = useGitDiff(workspace);
   const [isOpen, setIsOpen] = useState(false);
 
-  if (isLoading || !diffData?.summary?.length) {
+  const { data } = useChatInputExpanded(sessionId);
+
+  const isChatInputExpanded = data?.value ?? false;
+
+  if (isLoading || !diffData?.summary?.length || isChatInputExpanded) {
     return null;
   }
 

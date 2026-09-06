@@ -7,7 +7,7 @@ export function ChatWorkToggle() {
   const setState = useNewSessionStore((state) => state.setState);
 
   return (
-    <div className='mx-auto mt-4 w-fit'>
+    <div className='mx-auto my-4 w-fit'>
       <Segment
         selectedKey={state}
         onSelectionChange={(key) => setState(key as 'chat' | 'work')}

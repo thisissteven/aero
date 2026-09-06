@@ -292,7 +292,7 @@ export const ReplyToQuestion = React.memo(() => {
           success: 'Answers submitted',
         },
       );
-    }, 200);
+    }, 500);
   };
 
   const handleReject = () => {
@@ -320,7 +320,7 @@ export const ReplyToQuestion = React.memo(() => {
           success: 'Question rejected',
         },
       );
-    }, 200);
+    }, 500);
   };
 
   const isMultiple = Boolean(

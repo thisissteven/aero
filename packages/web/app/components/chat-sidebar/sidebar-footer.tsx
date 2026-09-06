@@ -268,7 +268,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       },
       {
         label: 'Create New Worktree Draft',
-        keys: ['Ctrl', 'Shift', 'N'],
+        keys: ['Ctrl', 'Shift', 'Q'],
         icon: <Icon data={CircleTree} size={14} />,
       },
       {

@@ -1,19 +1,22 @@
 import { ChevronDown, CircleCheck, CircleStop, Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { cn, Popover } from '@aero/ui';
 
+import { useChatInputExpanded } from '@/app/hooks/api/config';
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 
-export function SessionTodos() {
-  const { sessionId } = useParams({ strict: false });
+export function SessionTodos({ sessionId }: { sessionId: string }) {
   const { data: todos } = useSessionTodos(undefined, sessionId);
 
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!todos || todos.length === 0) return null;
+  const { data } = useChatInputExpanded(sessionId);
+
+  const isChatInputExpanded = data?.value ?? false;
+
+  if (!todos || todos.length === 0 || isChatInputExpanded) return null;
 
   const inProgress = todos.filter((todo) => todo.status === 'in_progress');
 

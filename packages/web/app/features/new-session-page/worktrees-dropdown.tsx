@@ -11,6 +11,7 @@ import {
 } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useCreateWorktree } from '@/app/hooks/api/worktree';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { getLastPathName } from '@/app/lib/file';
 import { queryClient } from '@/app/providers';
 
@@ -36,6 +37,40 @@ export function WorktreesDropdown() {
 
   const setSelectedWorktree = useNewSessionStore(
     (state) => state.setSelectedWorktree,
+  );
+
+  useKeyPress(
+    'Q',
+    () => {
+      if (selectedWorkspace && selectedWorkspaceId) {
+        toast.promise(
+          createNewWorktree({
+            directory: selectedWorkspace,
+          }),
+          {
+            error: (err) => err.message,
+            loading: 'Creating new worktree...',
+            success: (data) => {
+              setSelectedWorktree(data?.directory);
+              queryClient.invalidateQueries({
+                queryKey: workspaceKeys.detail(selectedWorkspaceId),
+              });
+              refetch();
+              return 'Worktree created successfully';
+            },
+          },
+        );
+      }
+    },
+    {
+      preventDefault: true,
+      stopPropagation: true,
+      ignoreInputs: false,
+      modifiers: {
+        mod: true,
+        shift: true,
+      },
+    },
   );
 
   if (error?.code === 'INVALID_GIT_REPOSITORY') {
