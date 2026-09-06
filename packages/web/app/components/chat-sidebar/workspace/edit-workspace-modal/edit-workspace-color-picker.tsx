@@ -37,7 +37,7 @@ export function EditWorkspaceAccentColorPicker() {
         //
       }
     }
-    return parseColor('#555000');
+    return parseColor('#D4DEC8');
   };
 
   const isCustomColor = Boolean(selectedColor && selectedColor.startsWith('#'));

@@ -6,6 +6,7 @@ import { type VirtualizerHandle } from 'virtua';
 import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
+import { SelectionPopover } from '@/app/components/selection-popover';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
 import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
@@ -125,6 +126,7 @@ export const ChatFeed = forwardRef<
             <ReplyToQuestion />
             <ReplyToPermission />
           </div>
+          <SelectionPopover containerRef={contentRef} />
         </div>
       </ScrollShadow>
     </div>

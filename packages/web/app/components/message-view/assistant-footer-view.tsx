@@ -34,7 +34,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
     <ChatMessage.Assistant className='group py-0'>
       <ChatMessage.Body className='pe-0 pt-2 pb-1'>
         <div className='flex w-full flex-wrap items-center justify-start gap-2 pr-3'>
-          <div className='flex h-7 items-center gap-2'>
+          <div className='flex h-7 items-center gap-2 select-none'>
             {providerID && (
               <ProviderLogo
                 className='size-4 shrink-0'
@@ -50,7 +50,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
             )}
           </div>
 
-          <div className='text-muted flex items-center gap-1 text-xs opacity-100'>
+          <div className='text-muted flex items-center gap-1 text-xs opacity-100 select-none'>
             <Icon data={Clock} size={12} className='opacity-80' />
             {formatDateTime(createdAt)}
           </div>
