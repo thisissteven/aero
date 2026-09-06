@@ -16,7 +16,9 @@ import {
 import { queryClient } from '@/app/providers';
 
 export function RevertedMessages() {
-  const revertedMessages = useChatStore((state) => state.revertedMessages);
+  const revertedMessages = useChatStore(
+    (state) => state.activeSession.revertedMessages,
+  );
 
   const { sessionId } = useParams({
     strict: false,

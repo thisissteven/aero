@@ -257,7 +257,7 @@ export function BaseTool({
       </Disclosure.Heading>
 
       <Disclosure.Content className='mt-2 pl-0'>
-        <div className='border-default ml-2 border-l pl-5'>
+        <div className='border-default ml-2 space-y-2 border-l pl-5'>
           {error && (
             <div>
               {typeof preview === 'string' && (

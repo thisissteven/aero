@@ -1053,9 +1053,26 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return diff;
     },
 
-    async sendMessage(sessionID, input, directory) {
-      await withOpencodeClientV2((client) =>
-        client.session.promptAsync({
+    async setAutoAcceptPermissions(allowAll, directory) {
+      const ok = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.config.update({
+            directory,
+            config: {
+              permission: {
+                '*': 'allow',
+              },
+            },
+          }),
+        ),
+      );
+
+      return true;
+    },
+
+    sendMessage(sessionID, input, directory) {
+      withOpencodeClientV2((client) =>
+        client.session.prompt({
           sessionID,
           directory,
           parts: input.parts.map((p) =>
@@ -1274,10 +1291,21 @@ function mapOpencodeEvent(event: Event): AeroEvent | null {
           tool: tool
             ? {
                 messageId: tool.messageID,
-                callId: tool.callID,
+                callID: tool.callID,
               }
             : undefined,
         },
+      };
+    }
+
+    case 'permission.replied': {
+      const { reply, requestID, sessionID } = event.properties;
+
+      return {
+        type: 'permission.replied',
+        sessionId: sessionID,
+        requestId: requestID,
+        reply,
       };
     }
 

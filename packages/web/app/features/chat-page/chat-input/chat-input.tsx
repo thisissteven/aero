@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { PromptInput } from '@aero/ui';
 
+import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/auto-accept-permissions-toggle-button';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
@@ -60,8 +61,9 @@ export function ChatInput({ isDisabled }: { isDisabled: boolean }) {
         </PromptInput.Content>
 
         <PromptInput.Toolbar>
-          <PromptInput.ToolbarStart className='items-end justify-start gap-2'>
+          <PromptInput.ToolbarStart className='items-end justify-start gap-0'>
             <FileAttachmentsButton isMobile={isMobile} />
+            <AutoAcceptPermissionsToggleButton />
           </PromptInput.ToolbarStart>
 
           <PromptInput.ToolbarEnd>

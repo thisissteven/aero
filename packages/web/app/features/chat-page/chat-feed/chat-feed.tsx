@@ -7,6 +7,8 @@ import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
+import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
 import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
@@ -33,9 +35,11 @@ export const ChatFeed = forwardRef<
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const flatItems = useChatStore((state) => state.flatItems);
-  const groupFlatIndex = useChatStore((state) => state.groupFlatIndex);
-  const isStreaming = useChatStore((state) => state.isStreaming);
+  const flatItems = useChatStore((state) => state.activeSession.flatItems);
+  const groupFlatIndex = useChatStore(
+    (state) => state.activeSession.groupFlatIndex,
+  );
+  const isStreaming = useChatStore((state) => state.activeSession.isStreaming);
 
   const { subscribeScroll } = useScrollSubscription(scrollRef);
 
@@ -65,7 +69,7 @@ export const ChatFeed = forwardRef<
 
       scrollToIndex: (groupIndex: number) => {
         const targetFlatIndex =
-          useChatStore.getState().groupFlatIndex[groupIndex];
+          useChatStore.getState().activeSession.groupFlatIndex[groupIndex];
 
         const handle = virtualizerRef.current;
 
@@ -110,13 +114,17 @@ export const ChatFeed = forwardRef<
         ref={scrollRef}
         className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
       >
-        <div ref={contentRef} className='pb-4'>
+        <div ref={contentRef} className='pb-9'>
           <ChatConversationView
             virtualizerRef={virtualizerRef}
             scrollRef={scrollRef}
             flatItems={flatItems}
             onScroll={handleScroll}
           />
+          <div className='-mt-5'>
+            <ReplyToQuestion />
+            <ReplyToPermission />
+          </div>
         </div>
       </ScrollShadow>
     </div>

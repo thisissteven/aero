@@ -16,7 +16,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import {
-  AaeroPermissionReply,
+  AeroPermissionReply,
   AeroQuestionAnswer,
   AeroSessionSummary,
   HarnessId,
@@ -536,7 +536,7 @@ export function useReplyToPermission(harnessId: string | undefined) {
     mutationFn: async (input: {
       sessionId: string;
       requestId: string;
-      reply: AaeroPermissionReply;
+      reply: AeroPermissionReply;
     }) => {
       const res = await $individualSession['reply-to-permission'].$post({
         param: {

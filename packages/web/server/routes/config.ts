@@ -19,7 +19,29 @@ const config = new Hono()
 
     const result = await harness.getConfig(directory);
     return c.json(result);
-  });
+  })
 
+  // GET /api/config?harnessId=...&directory=...
+  .post(
+    '/',
+    zValidator('query', commonQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        allowAll: z.boolean(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, directory } = c.req.valid('query');
+      const { allowAll } = c.req.valid('json');
+      const harness = await getActiveAdapter(harnessId);
+
+      const result = await harness.setAutoAcceptPermissions(
+        allowAll,
+        directory,
+      );
+      return c.json(result);
+    },
+  );
 export default config;
 export type ConfigRoutes = typeof config;

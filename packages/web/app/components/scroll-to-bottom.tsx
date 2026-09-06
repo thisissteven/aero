@@ -1,6 +1,5 @@
-// scroll-to-bottom-button.tsx
 import type { RefObject } from 'react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 
 import { Button, cn, IconChevronDown, Tooltip } from '@aero/ui';
@@ -54,6 +53,7 @@ export function useRegisterScrollContainer(
     };
   }, [scrollRef]);
 }
+
 interface ScrollToBottomButtonProps {
   scrollRef: RefObject<HTMLElement | null>;
   subscribeScroll: (cb: () => void) => () => void;
@@ -67,10 +67,22 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
 }: ScrollToBottomButtonProps) {
   const [isReady, setIsReady] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showButton, setShowButton] = useState(false);
+
+  const showButtonTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const scrollToBottom = useScrollToBottom();
 
   const threshold = 100;
+
+  const clearShowButtonTimeout = useCallback(() => {
+    if (showButtonTimeoutRef.current !== null) {
+      clearTimeout(showButtonTimeoutRef.current);
+      showButtonTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => setIsReady(true), 1000);
@@ -82,15 +94,25 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
     const scrollEl = scrollRef.current;
 
     if (!scrollEl) {
+      clearShowButtonTimeout();
       setIsAtBottom(true);
+      setShowButton(false);
       return;
     }
 
     const distanceToBottom =
       scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
 
-    setIsAtBottom(distanceToBottom <= threshold);
-  }, [scrollRef]);
+    const atBottom = distanceToBottom <= threshold;
+
+    if (atBottom) {
+      // Cancel immediately, before React gets another render.
+      clearShowButtonTimeout();
+      setShowButton(false);
+    }
+
+    setIsAtBottom(atBottom);
+  }, [scrollRef, clearShowButtonTimeout]);
 
   useEffect(() => {
     checkIsAtBottom();
@@ -98,7 +120,41 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
     return subscribeScroll(checkIsAtBottom);
   }, [subscribeScroll, checkIsAtBottom]);
 
-  if (isAtBottom) return null;
+  useEffect(() => {
+    if (isAtBottom) {
+      clearShowButtonTimeout();
+      return;
+    }
+
+    // Don't create another timer if one is already pending.
+    if (showButtonTimeoutRef.current !== null) {
+      return;
+    }
+
+    showButtonTimeoutRef.current = setTimeout(() => {
+      showButtonTimeoutRef.current = null;
+
+      // Check the actual DOM position again before showing.
+      const scrollEl = scrollRef.current;
+
+      if (!scrollEl) return;
+
+      const distanceToBottom =
+        scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+
+      if (distanceToBottom > threshold) {
+        setShowButton(true);
+      }
+    }, 300);
+
+    return clearShowButtonTimeout;
+  }, [isAtBottom, scrollRef, clearShowButtonTimeout]);
+
+  useEffect(() => {
+    return clearShowButtonTimeout;
+  }, [clearShowButtonTimeout]);
+
+  if (!showButton) return null;
 
   const buttonElement = (
     <Button
@@ -107,7 +163,8 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
       variant='secondary'
       aria-label='Scroll to bottom'
       className={cn(
-        'pointer-events-auto shadow-md transition-all duration-200',
+        'pointer-events-auto shadow-md',
+        'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
         isReady ? 'opacity-100' : 'opacity-0',
       )}
       onPress={scrollToBottom}

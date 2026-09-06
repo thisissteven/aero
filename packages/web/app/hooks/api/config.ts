@@ -1,8 +1,9 @@
 // app/hooks/config.ts
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 
 import { honoClient } from '@/app/lib';
+import { queryClient } from '@/app/providers';
 
 const $config = honoClient.api.config;
 
@@ -27,5 +28,26 @@ export function useConfig({ harnessId, directory }: UseConfigOptions = {}) {
       return res.json();
     },
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useSetAutoAcceptPermissions({
+  harnessId,
+  directory,
+}: UseConfigOptions = {}) {
+  return useMutation({
+    mutationFn: async (allowAll: boolean) => {
+      const res = await $config.$post({
+        query: { harnessId, directory },
+        json: { allowAll },
+      });
+      if (!res.ok) throw new Error('Failed to set auto accept permissions');
+      return res.json();
+    },
+    onSuccess: (_data) => {
+      queryClient.invalidateQueries({
+        queryKey: configKeys.detail(harnessId, directory),
+      });
+    },
   });
 }

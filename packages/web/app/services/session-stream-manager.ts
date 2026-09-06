@@ -216,6 +216,8 @@ class SessionStreamManager {
     source.addEventListener('session.status', handle);
     source.addEventListener('session.idle', handleIdle);
     source.addEventListener('session.error', handle);
+    source.addEventListener('permission.asked', handle);
+    source.addEventListener('permission.replied', handle);
 
     source.onerror = () => {
       if (!isCurrent()) {

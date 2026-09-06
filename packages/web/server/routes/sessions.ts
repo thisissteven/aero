@@ -751,7 +751,7 @@ const sessions = new Hono()
 
       const harness = await getActiveAdapter(harnessId);
       const session = await harness.getSession(id);
-      const ok = await harness.sendMessage(id, body, session.workspace);
+      const ok = harness.sendMessage(id, body, session.workspace);
       return c.json(ok);
     },
   )

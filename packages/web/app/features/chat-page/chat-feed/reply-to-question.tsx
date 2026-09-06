@@ -6,7 +6,7 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   Button,
@@ -27,10 +27,12 @@ import {
   useSessionQuestions,
 } from '@/app/hooks/api/sessions';
 
-export function ReplyToQuestion() {
+export const ReplyToQuestion = React.memo(() => {
   const { sessionId: activeSessionId } = useParams({
     strict: false,
   });
+
+  const [isExiting, setIsExiting] = useState(false);
 
   const isAwaitingQuestion = useChatStore((state) => {
     if (!activeSessionId) {
@@ -146,6 +148,7 @@ export function ReplyToQuestion() {
     setCustomAnswers([]);
     setCurrentQuestionIndex(0);
     setIsExpanded(true);
+    setIsExiting(false);
   }, [isAwaitingQuestion]);
 
   const isSubmitting = isPendingReply || isPendingReject;
@@ -202,7 +205,7 @@ export function ReplyToQuestion() {
   }
 
   const handleAnswerChange = (values: string[]) => {
-    if (isSubmitting) {
+    if (isSubmitting || isExiting) {
       return;
     }
 
@@ -222,7 +225,7 @@ export function ReplyToQuestion() {
   };
 
   const handleCustomAnswerChange = (value: string) => {
-    if (isSubmitting) {
+    if (isSubmitting || isExiting) {
       return;
     }
 
@@ -248,7 +251,7 @@ export function ReplyToQuestion() {
   };
 
   const handlePrevious = () => {
-    if (isSubmitting || isFirstQuestion) {
+    if (isSubmitting || isFirstQuestion || isExiting) {
       return;
     }
 
@@ -256,7 +259,7 @@ export function ReplyToQuestion() {
   };
 
   const handleNext = () => {
-    if (isSubmitting || isLastQuestion || !currentAnswered) {
+    if (isSubmitting || isLastQuestion || !currentAnswered || isExiting) {
       return;
     }
 
@@ -264,40 +267,60 @@ export function ReplyToQuestion() {
   };
 
   const handleSubmit = () => {
-    if (!allAnswered || isSubmitting) {
+    if (!allAnswered || isSubmitting || isExiting) {
       return;
     }
 
-    toast.promise(
-      reply({
-        sessionId: questionRequest.sessionID,
-        requestId: questionRequest.id,
-        answers: normalizedAnswers,
-      }),
-      {
-        error: (err) => err.message,
-        loading: 'Submitting answers...',
-        success: 'Answers submitted',
-      },
-    );
+    setIsExiting(true);
+
+    setTimeout(() => {
+      toast.promise(
+        reply({
+          sessionId: questionRequest.sessionID,
+          requestId: questionRequest.id,
+          answers: normalizedAnswers,
+        }).finally(() => {
+          setIsExiting(false);
+          void refetchQuestions();
+        }),
+        {
+          error: (err) => {
+            setIsExiting(false);
+            return err.message;
+          },
+          loading: 'Submitting answers...',
+          success: 'Answers submitted',
+        },
+      );
+    }, 200);
   };
 
   const handleReject = () => {
-    if (isSubmitting) {
+    if (isSubmitting || isExiting) {
       return;
     }
 
-    toast.promise(
-      reject({
-        sessionId: questionRequest.sessionID,
-        requestId: questionRequest.id,
-      }),
-      {
-        error: (err) => err.message,
-        loading: 'Rejecting question...',
-        success: 'Question rejected',
-      },
-    );
+    setIsExiting(true);
+
+    setTimeout(() => {
+      toast.promise(
+        reject({
+          sessionId: questionRequest.sessionID,
+          requestId: questionRequest.id,
+        }).finally(() => {
+          setIsExiting(false);
+          void refetchQuestions();
+        }),
+        {
+          error: (err) => {
+            setIsExiting(false);
+            return err.message;
+          },
+          loading: 'Rejecting question...',
+          success: 'Question rejected',
+        },
+      );
+    }, 200);
   };
 
   const isMultiple = Boolean(
@@ -309,181 +332,191 @@ export function ReplyToQuestion() {
   const currentCustomAnswer = customAnswers[currentQuestionIndex] ?? '';
 
   return (
-    <div className='@container pb-2'>
-      <Disclosure
-        isExpanded={isExpanded}
-        onExpandedChange={setIsExpanded}
-        className='border-separator bg-surface text-surface-foreground w-full overflow-hidden rounded-xl border'
-      >
-        <Disclosure.Heading>
-          <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2.5 text-sm transition-colors'>
-            <div className='flex items-center justify-between gap-3'>
-              <div className='flex min-w-0 items-center gap-2.5'>
-                <div
-                  className={[
-                    'flex size-7 shrink-0 items-center justify-center rounded-lg',
-                    allAnswered
-                      ? 'bg-success-soft text-success'
-                      : 'bg-accent-soft text-accent',
-                  ].join(' ')}
-                >
-                  {allAnswered ? (
-                    <CircleCheck className='size-4' />
-                  ) : (
-                    <span className='text-xs font-semibold'>?</span>
-                  )}
-                </div>
-
-                <div className='min-w-0 text-left'>
-                  <div className='truncate font-medium'>
-                    Agent question{questions.length > 1 ? 's' : ''}
+    <div
+      className={`@container mx-auto grid w-full px-3 transition-[grid-template-rows,opacity] duration-200 ease-in-out md:max-w-[720px] ${
+        isExiting
+          ? 'grid-rows-[0fr] opacity-0'
+          : 'animate-in fade-in slide-in-from-bottom-2 grid-rows-[1fr] opacity-100 duration-200'
+      }`}
+    >
+      <div className='overflow-hidden pb-3'>
+        <Disclosure
+          isExpanded={isExpanded}
+          onExpandedChange={setIsExpanded}
+          className='border-separator bg-surface text-surface-foreground w-full overflow-hidden rounded-xl border'
+        >
+          <Disclosure.Heading>
+            <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2.5 text-sm transition-colors'>
+              <div className='flex items-center justify-between gap-3'>
+                <div className='flex min-w-0 items-center gap-2.5'>
+                  <div
+                    className={[
+                      'flex size-7 shrink-0 items-center justify-center rounded-lg',
+                      allAnswered
+                        ? 'bg-success-soft text-success'
+                        : 'bg-accent-soft text-accent',
+                    ].join(' ')}
+                  >
+                    {allAnswered ? (
+                      <CircleCheck className='size-4' />
+                    ) : (
+                      <span className='text-xs font-semibold'>?</span>
+                    )}
                   </div>
 
-                  <div className='text-muted truncate text-[11px]'>
-                    {allAnswered
-                      ? 'All questions answered'
-                      : `${answeredCount}/${questions.length} answered`}
-                  </div>
-                </div>
-              </div>
-
-              <Icon
-                data={ChevronDown}
-                className={[
-                  'text-foreground/50 shrink-0 transition-transform',
-                  'group-hover:text-foreground',
-                  isExpanded && 'rotate-180',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              />
-            </div>
-          </Disclosure.Trigger>
-        </Disclosure.Heading>
-
-        <Disclosure.Content>
-          <div className='border-separator border-t'>
-            <div className='space-y-3 p-2 pb-3'>
-              <div className='flex items-center justify-between px-2 pt-1'>
-                <div className='min-w-0'>
-                  {currentQuestion.header && (
-                    <div className='text-muted mb-0.5 text-[11px] font-medium tracking-wider uppercase'>
-                      {currentQuestion.header}
+                  <div className='min-w-0 text-left'>
+                    <div className='truncate font-medium'>
+                      Agent question{questions.length > 1 ? 's' : ''}
                     </div>
-                  )}
 
-                  <div className='text-foreground text-sm leading-5 font-medium'>
-                    {currentQuestion.question}
+                    <div className='text-muted truncate text-[11px]'>
+                      {allAnswered
+                        ? 'All questions answered'
+                        : `${answeredCount}/${questions.length} answered`}
+                    </div>
                   </div>
                 </div>
 
-                <span className='text-muted shrink-0 text-[11px] tabular-nums'>
-                  {currentQuestionIndex + 1}/{questions.length}
-                </span>
-              </div>
-
-              {isMultiple && (
-                <div className='text-muted px-2 text-[11px]'>
-                  Select one or more options.
-                </div>
-              )}
-
-              <div className='max-h-[min(200px,40vh)] scrollbar-thin overflow-y-auto'>
-                <CheckboxButtonGroup
-                  layout='grid'
-                  value={answers[currentQuestionIndex] ?? []}
-                  onChange={(values) =>
-                    handleAnswerChange(Array.from(values).map(String))
-                  }
-                  isDisabled={isSubmitting}
-                  className='grid grid-cols-1 gap-2 px-2 py-1 @sm:grid-cols-2'
-                >
-                  {options.map((option) => (
-                    <CheckboxButtonGroup.Item
-                      key={option.label}
-                      value={option.label}
-                      className='min-h-0'
-                      variant='secondary'
-                    >
-                      <CheckboxButtonGroup.ItemContent>
-                        <div className='min-w-0'>
-                          <div className='text-foreground text-sm leading-4 font-medium'>
-                            {option.label}
-                          </div>
-
-                          {option.description && (
-                            <div className='text-muted mt-1 line-clamp-2 text-[11px] leading-4'>
-                              {option.description}
-                            </div>
-                          )}
-                        </div>
-                      </CheckboxButtonGroup.ItemContent>
-
-                      <CheckboxButtonGroup.Indicator />
-                    </CheckboxButtonGroup.Item>
-                  ))}
-                </CheckboxButtonGroup>
-              </div>
-
-              <div className='px-3'>
-                <Input
-                  variant='secondary'
-                  className='w-full'
-                  value={currentCustomAnswer}
-                  onChange={(event) =>
-                    handleCustomAnswerChange(event.target.value)
-                  }
-                  disabled={isSubmitting}
-                  placeholder='Or type your own answer'
+                <Icon
+                  data={ChevronDown}
+                  className={[
+                    'text-foreground/50 shrink-0 transition-transform',
+                    'group-hover:text-foreground',
+                    isExpanded && 'rotate-180',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                 />
               </div>
+            </Disclosure.Trigger>
+          </Disclosure.Heading>
 
-              <div className='flex items-center justify-between gap-2 px-2 pt-1'>
-                <Button
-                  variant='danger-soft'
-                  size='sm'
-                  isDisabled={isSubmitting}
-                  onPress={handleReject}
-                >
-                  Reject
-                </Button>
+          <Disclosure.Content>
+            <div className='border-separator border-t'>
+              <div className='space-y-3 p-2 pb-3'>
+                <div className='flex items-center justify-between px-2 pt-1'>
+                  <div className='min-w-0'>
+                    {currentQuestion.header && (
+                      <div className='text-muted mb-0.5 text-[11px] font-medium tracking-wider uppercase'>
+                        {currentQuestion.header}
+                      </div>
+                    )}
 
-                <div className='flex items-center gap-1'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    isIconOnly
-                    aria-label='Previous question'
-                    isDisabled={isFirstQuestion || isSubmitting}
-                    onPress={handlePrevious}
+                    <div className='text-foreground text-sm leading-5 font-medium'>
+                      {currentQuestion.question}
+                    </div>
+                  </div>
+
+                  <span className='text-muted shrink-0 text-[11px] tabular-nums'>
+                    {currentQuestionIndex + 1}/{questions.length}
+                  </span>
+                </div>
+
+                {isMultiple && (
+                  <div className='text-muted px-2 text-[11px]'>
+                    Select one or more options.
+                  </div>
+                )}
+
+                <div className='max-h-[min(200px,40vh)] scrollbar-thin overflow-y-auto'>
+                  <CheckboxButtonGroup
+                    layout='grid'
+                    value={answers[currentQuestionIndex] ?? []}
+                    onChange={(values) =>
+                      handleAnswerChange(Array.from(values).map(String))
+                    }
+                    isDisabled={isSubmitting || isExiting}
+                    className='grid grid-cols-1 gap-2 px-2 py-1 @sm:grid-cols-2'
                   >
-                    <Icon data={ChevronLeft} />
+                    {options.map((option) => (
+                      <CheckboxButtonGroup.Item
+                        key={option.label}
+                        value={option.label}
+                        className='min-h-0'
+                        variant='secondary'
+                      >
+                        <CheckboxButtonGroup.ItemContent>
+                          <div className='min-w-0'>
+                            <div className='text-foreground text-sm leading-4 font-medium'>
+                              {option.label}
+                            </div>
+
+                            {option.description && (
+                              <div className='text-muted mt-1 line-clamp-2 text-[11px] leading-4'>
+                                {option.description}
+                              </div>
+                            )}
+                          </div>
+                        </CheckboxButtonGroup.ItemContent>
+
+                        <CheckboxButtonGroup.Indicator />
+                      </CheckboxButtonGroup.Item>
+                    ))}
+                  </CheckboxButtonGroup>
+                </div>
+
+                <div className='px-3'>
+                  <Input
+                    variant='secondary'
+                    className='w-full'
+                    value={currentCustomAnswer}
+                    onChange={(event) =>
+                      handleCustomAnswerChange(event.target.value)
+                    }
+                    disabled={isSubmitting || isExiting}
+                    placeholder='Or type your own answer'
+                  />
+                </div>
+
+                <div className='flex items-center justify-between gap-2 px-2 pt-1'>
+                  <Button
+                    variant='danger-soft'
+                    size='sm'
+                    isDisabled={isSubmitting || isExiting}
+                    onPress={handleReject}
+                  >
+                    Reject
                   </Button>
 
-                  {!isLastQuestion ? (
+                  <div className='flex items-center gap-1'>
                     <Button
+                      variant='ghost'
                       size='sm'
-                      isDisabled={!currentAnswered || isSubmitting}
-                      onPress={handleNext}
+                      isIconOnly
+                      aria-label='Previous question'
+                      isDisabled={isFirstQuestion || isSubmitting || isExiting}
+                      onPress={handlePrevious}
                     >
-                      Next
-                      <Icon data={ChevronRight} />
+                      <Icon data={ChevronLeft} />
                     </Button>
-                  ) : (
-                    <Button
-                      size='sm'
-                      isDisabled={!allAnswered || isSubmitting}
-                      onPress={handleSubmit}
-                    >
-                      {isPendingReply ? 'Submitting…' : 'Continue'}
-                    </Button>
-                  )}
+
+                    {!isLastQuestion ? (
+                      <Button
+                        size='sm'
+                        isDisabled={
+                          !currentAnswered || isSubmitting || isExiting
+                        }
+                        onPress={handleNext}
+                      >
+                        Next
+                        <Icon data={ChevronRight} />
+                      </Button>
+                    ) : (
+                      <Button
+                        size='sm'
+                        isDisabled={!allAnswered || isSubmitting || isExiting}
+                        onPress={handleSubmit}
+                      >
+                        {isPendingReply ? 'Submitting…' : 'Continue'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Disclosure.Content>
-      </Disclosure>
+          </Disclosure.Content>
+        </Disclosure>
+      </div>
     </div>
   );
-}
+});

@@ -90,9 +90,11 @@ function PixelLoader() {
 }
 
 export function ChatActivityIndicator() {
-  const turns = useChatStore((state) => state.turns);
-  const status = useChatStore((state) => state.status);
-  const startedAt = useChatStore((state) => state.streamStartedAt);
+  const turns = useChatStore((state) => state.activeSession.turns);
+  const status = useChatStore((state) => state.activeSession.status);
+  const startedAt = useChatStore(
+    (state) => state.activeSession.streamStartedAt,
+  );
 
   const elapsed = useElapsedTime(startedAt, status.type !== 'idle');
 

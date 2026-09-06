@@ -3,6 +3,8 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
+const SAFE_OFFSET = 8888;
+
 export function useInitialScrollToBottom(
   virtualizerRef: React.RefObject<VirtualizerHandle | null>,
   totalItems: number,
@@ -30,21 +32,21 @@ export function useInitialScrollToBottom(
 
       virtualizer.scrollToIndex(totalItems - 1, {
         align: 'end',
-        offset: 48,
+        offset: SAFE_OFFSET,
         smooth: false,
       });
 
       raf2Ref.current = requestAnimationFrame(() => {
         virtualizer.scrollToIndex(totalItems - 1, {
           align: 'end',
-          offset: 48,
+          offset: SAFE_OFFSET,
           smooth: false,
         });
 
         raf3Ref.current = requestAnimationFrame(() => {
           virtualizer.scrollToIndex(totalItems - 1, {
             align: 'end',
-            offset: 48,
+            offset: SAFE_OFFSET,
             smooth: false,
           });
 

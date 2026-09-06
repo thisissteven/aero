@@ -38,7 +38,7 @@ function SessionPage() {
 
   const setStatus = useChatStore((state) => state.setStatus);
 
-  const turns = useChatStore((state) => state.turns);
+  const turns = useChatStore((state) => state.activeSession.turns);
 
   /**
    * This replaces the old reset().

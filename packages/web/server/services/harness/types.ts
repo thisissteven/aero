@@ -201,7 +201,7 @@ export interface AeroAssistantError {
 }
 
 export type AeroQuestionAnswer = QuestionAnswer[];
-export type AaeroPermissionReply = 'once' | 'always' | 'reject' | undefined;
+export type AeroPermissionReply = 'once' | 'always' | 'reject' | undefined;
 
 export interface AeroSnapshotFileDiff {
   file?: string;
@@ -285,11 +285,17 @@ export type AeroPermission = {
   always?: string[];
   tool?: {
     messageId: string;
-    callId: string;
+    callID: string;
   };
 };
 
 export type AeroEvent =
+  | {
+      type: 'permission.replied';
+      sessionId: string;
+      requestId: string;
+      reply: string;
+    }
   | {
       type: 'permission.asked';
       sessionId: string;
@@ -466,7 +472,7 @@ export interface HarnessAdapter {
     sessionId: string,
     input: SendMessageInput,
     directory: string,
-  ): Promise<boolean>;
+  ): boolean;
   sendMessageSync(
     sessionId: string,
     input: SendMessageInput,
@@ -519,7 +525,7 @@ export interface HarnessAdapter {
   replyToPermission(
     requestId: string,
     directory: string,
-    reply: AaeroPermissionReply,
+    reply: AeroPermissionReply,
   ): Promise<boolean>;
 
   listQuestions(directory: string): Promise<AeroQuestions>;
@@ -560,4 +566,8 @@ export interface HarnessAdapter {
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
 
   getConfig(directory?: string): Promise<AeroConfig>;
+  setAutoAcceptPermissions(
+    allowAll: boolean,
+    directory?: string,
+  ): Promise<boolean>;
 }
