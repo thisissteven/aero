@@ -20,7 +20,7 @@ export function EditWorkspaceModelDefaults() {
           <Tooltip.Trigger className='inline-flex cursor-pointer'>
             <Icon data={CircleQuestion} size={16} />
           </Tooltip.Trigger>
-          <Tooltip.Content className='break-normal'>
+          <Tooltip.Content>
             Default AI settings for new conversations in this workspace
           </Tooltip.Content>
         </Tooltip>

@@ -26,7 +26,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
   const { mutateAsync } = useRevertSession(undefined, sessionId);
 
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <IconButton
         onPress={async () => {
           toast.promise(() => mutateAsync(messageId), {
@@ -58,7 +58,7 @@ export function MessageActionsFork({ messageId }: { messageId: string }) {
   const navigate = useNavigate();
 
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <IconButton
         onPress={async () => {
           toast.promise(() => forkSession(messageId), {
@@ -85,7 +85,7 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
   const { copied, copy } = useCopyToClipboard();
 
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <IconButton onPress={() => copy(copyText)}>
         <span className='relative flex size-3.5 items-center justify-center'>
           <span
@@ -139,7 +139,7 @@ export function MessageActionsReadAloud({
   }
 
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <IconButton onPress={() => toggle(id, text)}>
         <Icon data={Volume} className={cn(isThisPlaying && 'text-accent')} />
       </IconButton>

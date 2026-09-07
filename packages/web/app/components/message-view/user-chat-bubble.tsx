@@ -158,7 +158,7 @@ export const UserChatBubble = memo(
           <div>
             <MessageActionsRevert messageId={forkMessageId} />
             <MessageActionsFork messageId={forkMessageId} />
-            <Tooltip delay={300}>
+            <Tooltip>
               <IconButton>
                 <Icon data={Pin} />
               </IconButton>

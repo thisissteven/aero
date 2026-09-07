@@ -70,7 +70,7 @@ export function ContextUsagePreview() {
   }
 
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <IconButton
         onPress={() => toggleOpenRightPanel('context')}
         isIconOnly={false}

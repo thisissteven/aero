@@ -130,7 +130,11 @@ export function SettingsModal() {
         if (!open) handleClose();
       }}
     >
-      <Modal.Backdrop>
+      <Modal.Backdrop
+        onWheelCapture={(event) => {
+          event.stopPropagation();
+        }}
+      >
         <Modal.Container size='cover'>
           <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none'>
             <div className='text-foreground relative flex h-full w-full'>

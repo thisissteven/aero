@@ -60,7 +60,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
 
             <MessageActionsFork messageId={nextTurnId} />
 
-            <Tooltip delay={300}>
+            <Tooltip>
               <IconButton>
                 <Icon data={Pin} />
               </IconButton>

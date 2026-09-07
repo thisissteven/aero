@@ -89,7 +89,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
         {collapsibleNav.map((item) => {
           const isActive = activeItem === item.id;
           return (
-            <Tooltip key={item.id} delay={300}>
+            <Tooltip key={item.id}>
               <Tooltip.Trigger aria-label={item.label}>
                 <button
                   type='button'
@@ -111,7 +111,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
                 >
                   {item.label}
                 </Typography>
-                <Typography type='body-xs' className='leading-4 break-normal'>
+                <Typography type='body-xs' className='leading-4'>
                   {item.description}
                 </Typography>
               </Tooltip.Content>

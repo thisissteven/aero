@@ -87,7 +87,11 @@ export function GlobalModal() {
 
   return (
     <Modal isOpen={isOpen} onOpenChange={setOpen}>
-      <Modal.Backdrop>
+      <Modal.Backdrop
+        onWheelCapture={(event) => {
+          event.stopPropagation();
+        }}
+      >
         <Modal.Container>{options.children}</Modal.Container>
       </Modal.Backdrop>
     </Modal>
@@ -101,7 +105,11 @@ export function GlobalModalOuter() {
 
   return (
     <Modal isOpen={isOpen} onOpenChange={setOpen}>
-      <Modal.Backdrop>
+      <Modal.Backdrop
+        onWheelCapture={(event) => {
+          event.stopPropagation();
+        }}
+      >
         <Modal.Container>{options.children}</Modal.Container>
       </Modal.Backdrop>
     </Modal>

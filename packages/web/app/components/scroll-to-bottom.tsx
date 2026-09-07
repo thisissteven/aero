@@ -174,7 +174,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
   );
 
   return tooltip ? (
-    <Tooltip delay={0}>
+    <Tooltip>
       <Tooltip.Trigger>{buttonElement}</Tooltip.Trigger>
       <Tooltip.Content>{tooltip}</Tooltip.Content>
     </Tooltip>

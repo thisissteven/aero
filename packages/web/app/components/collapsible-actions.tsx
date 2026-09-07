@@ -261,7 +261,6 @@ export function CollapsibleActions({
 
         .speed-dial-trigger-wrapper {
           position: relative;
-          z-index: 2;
           display: inline-flex;
         }
 

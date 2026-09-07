@@ -54,7 +54,7 @@ export function SidebarFooter() {
   return (
     <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-1 pb-3'>
       <div className='mt-1.5 space-x-1 px-4'>
-        <Tooltip delay={0}>
+        <Tooltip>
           <IconButton
             onPress={() => openSettingsModal()}
             slot='close'
@@ -68,7 +68,7 @@ export function SidebarFooter() {
           </Tooltip.Content>
         </Tooltip>
 
-        <Tooltip delay={0}>
+        <Tooltip>
           <IconButton
             onPress={() =>
               openShortcutsModal({
@@ -86,7 +86,7 @@ export function SidebarFooter() {
           </Tooltip.Content>
         </Tooltip>
 
-        <Tooltip delay={0}>
+        <Tooltip>
           <IconButton
             onPress={() =>
               openAboutModal({

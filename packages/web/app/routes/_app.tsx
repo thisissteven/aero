@@ -46,16 +46,16 @@ function AppLayout() {
   return (
     <QueryProvider>
       <I18nProvider translations={translations} defaultLanguage='en'>
-        <ToastProvider placement='bottom end' width={280} />
-        <GlobalModal />
-        <GlobalModalOuter />
-        <SettingsModal />
         <KeyPressProvider />
         <PreloadProvider />
         <PathnameHandler />
         <ChatShell>
           <Outlet />
         </ChatShell>
+        <ToastProvider placement='bottom end' width={280} />
+        <GlobalModal />
+        <GlobalModalOuter />
+        <SettingsModal />
       </I18nProvider>
     </QueryProvider>
   );

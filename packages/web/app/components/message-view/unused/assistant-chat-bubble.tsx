@@ -128,7 +128,7 @@ export const AssistantChatBubble = memo(
                 id={turn.id}
                 text={assistantTextResponse}
               />
-              <Tooltip delay={300}>
+              <Tooltip>
                 <Tooltip.Trigger>
                   <Icon
                     data={CodeFork}
@@ -141,7 +141,7 @@ export const AssistantChatBubble = memo(
                   <span>Fork from here</span>
                 </Tooltip.Content>
               </Tooltip>
-              <Tooltip delay={300}>
+              <Tooltip>
                 <Tooltip.Trigger>
                   <Icon
                     data={Pin}

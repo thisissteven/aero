@@ -20,7 +20,7 @@ export function BooleanSettingToggleButton({
   className,
 }: BooleanSettingToggleButtonProps) {
   return (
-    <Tooltip delay={300}>
+    <Tooltip>
       <Tooltip.Trigger>
         <ToggleButton
           isIconOnly

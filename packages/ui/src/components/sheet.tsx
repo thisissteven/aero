@@ -1,6 +1,7 @@
 'use client';
 
 import { CloseButton, cn } from '@heroui/react';
+import { UNSAFE_PortalProvider } from '@react-aria/overlays';
 import type {
   ComponentProps,
   ComponentPropsWithRef,
@@ -314,6 +315,16 @@ export const SheetContent: ForwardRefExoticComponent<SheetContentProps> =
     const { close, isDetached, isDismissable, placement, snapPoints } =
       useSheetContext();
 
+    const [overlayContainer, setOverlayContainer] =
+      useState<HTMLDivElement | null>(null);
+
+    const setOverlayContainerRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        setOverlayContainer(node);
+      },
+      [],
+    );
+
     return (
       <Vaul.Content
         {...props}
@@ -334,7 +345,17 @@ export const SheetContent: ForwardRefExoticComponent<SheetContentProps> =
         {isDismissable ? (
           <button aria-label='Dismiss' className='sr-only' onClick={close} />
         ) : null}
-        {children}
+
+        <UNSAFE_PortalProvider getContainer={() => overlayContainer}>
+          {children}
+        </UNSAFE_PortalProvider>
+
+        <div
+          ref={setOverlayContainerRef}
+          className='sheet__overlay-container'
+          data-sheet-no-drag='true'
+          data-slot='sheet-overlay-container'
+        />
       </Vaul.Content>
     );
   });
