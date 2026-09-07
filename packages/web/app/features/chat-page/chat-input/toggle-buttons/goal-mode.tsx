@@ -1,13 +1,12 @@
 import { Target } from '@gravity-ui/icons';
 
-import { useGoalMode, useToggleGoalMode } from '@/app/hooks/api/config';
+import { useGoalMode, useUpdateSetting } from '@/app/hooks/api/config';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
 
 export function GoalModeToggleButton({ sessionId }: { sessionId: string }) {
   const { data } = useGoalMode(sessionId);
-
-  const { mutate: toggleGoalMode } = useToggleGoalMode();
+  const { mutate: updateSetting } = useUpdateSetting();
 
   const enabled = data?.value ?? false;
 
@@ -16,7 +15,12 @@ export function GoalModeToggleButton({ sessionId }: { sessionId: string }) {
       enabled={enabled}
       label='Goal mode'
       icon={<Target />}
-      onPress={() => toggleGoalMode(sessionId)}
+      onPress={() =>
+        updateSetting({
+          path: ['goalMode', sessionId],
+          value: !enabled,
+        })
+      }
     />
   );
 }

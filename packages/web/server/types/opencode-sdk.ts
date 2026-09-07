@@ -7,6 +7,7 @@ import type {
 
 export interface SessionMetadata {
   sharedUrl?: string;
+  workspaceTitle?: string;
   [key: string]: unknown;
 }
 

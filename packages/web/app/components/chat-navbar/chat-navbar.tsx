@@ -173,7 +173,7 @@ function SessionsNavbarContent() {
           )}
           {!isStandaloneSession && !isWorktree(session.workspace) && (
             <span className='truncate font-bold'>
-              {getLastPathName(session.workspace)}
+              {getLastPathName(session.workspaceTitle ?? session.workspace)}
               {session.readOnly && ' (read only)'}
             </span>
           )}
@@ -181,7 +181,7 @@ function SessionsNavbarContent() {
             <div className='flex items-center gap-1'>
               <Icon data={CircleTree} size={12} />
               <span className='truncate font-bold'>
-                {getLastPathName(session.workspace)}
+                {getLastPathName(session.workspaceTitle ?? session.workspace)}
                 {session.readOnly && ' (read only)'}
               </span>
             </div>

@@ -3,14 +3,20 @@ import {
   Check,
   CodeFork,
   Copy,
+  Pin,
+  PinFill,
   Volume,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { cn, toast, Tooltip } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
+import {
+  usePinnedSessionMessage,
+  useUpdateSetting,
+} from '@/app/hooks/api/config';
 import {
   sessionKeys,
   useForkSession,
@@ -20,6 +26,40 @@ import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { queryClient } from '@/app/providers';
 import { Route } from '@/app/routes/_app/sessions/$sessionId';
 import { useSpeechStore } from '@/app/stores/speech';
+
+export function MessageActionsPin({ messageId }: { messageId: string }) {
+  const { sessionId } = useParams({ strict: false });
+  const { data } = usePinnedSessionMessage(sessionId, messageId);
+  const { mutateAsync: updateSetting } = useUpdateSetting();
+
+  const pinned = data?.value ?? false;
+
+  return (
+    <Tooltip>
+      <IconButton
+        onPress={() => {
+          updateSetting({
+            path: ['pinnedSessionMessages', sessionId, messageId],
+            value: !pinned,
+          });
+        }}
+      >
+        <Icon
+          data={pinned ? PinFill : Pin}
+          className={cn(pinned && 'text-foreground')}
+        />
+      </IconButton>
+
+      <Tooltip.Content placement='bottom' offset={8}>
+        <span>
+          {pinned
+            ? 'Remove from context'
+            : 'Pin into context (survives compaction)'}
+        </span>
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
 
 export function MessageActionsRevert({ messageId }: { messageId: string }) {
   const { sessionId } = Route.useParams();

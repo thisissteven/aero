@@ -19,7 +19,6 @@ export type ConversationRole = 'user' | 'assistant' | 'system';
 export interface AeroWorktreeSummary {
   id: string;
   name: string;
-  sessions: AeroSessionSummary[];
   directory: string;
 }
 
@@ -50,6 +49,7 @@ export interface AeroSessionSummary {
     messageID?: string;
   };
   archived: boolean;
+  workspaceTitle?: string;
 }
 
 export type AeroPartRequest =

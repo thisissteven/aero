@@ -2,7 +2,7 @@ import { ShieldCheck } from '@gravity-ui/icons';
 
 import {
   usePermissionAutoAccept,
-  useTogglePermissionAutoAccept,
+  useUpdateSetting,
 } from '@/app/hooks/api/config';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
@@ -14,7 +14,7 @@ export function AutoAcceptPermissionsToggleButton({
 }) {
   const { data } = usePermissionAutoAccept(sessionId);
 
-  const { mutate: toggleAutoAccept } = useTogglePermissionAutoAccept();
+  const { mutate: updateSetting } = useUpdateSetting();
 
   const enabled = data?.value ?? false;
 
@@ -23,7 +23,12 @@ export function AutoAcceptPermissionsToggleButton({
       enabled={enabled}
       label='Auto accept permissions'
       icon={<ShieldCheck />}
-      onPress={() => toggleAutoAccept(sessionId)}
+      onPress={() =>
+        updateSetting({
+          path: ['permissionAutoAcceptSessions', sessionId],
+          value: !enabled,
+        })
+      }
     />
   );
 }

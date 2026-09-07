@@ -57,6 +57,9 @@ export function useCreateWorktree(harnessId?: string) {
         queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(input.directory),
+      });
     },
   });
 }
@@ -82,6 +85,9 @@ export function useDeleteWorktree(harnessId?: string) {
         queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(input.directory),
+      });
     },
   });
 }

@@ -2,76 +2,110 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
+import type {
+  AeroSettingPath,
+  AeroSettingUpdate,
+  AeroSettingValue,
+} from '@/server/services/settings';
 
 const $config = honoClient.api.config;
 
-export const configKeys = {
-  booleanSetting: (setting: BooleanSetting, sessionId: string) =>
-    ['config', 'settings', setting, sessionId] as const,
-};
+export type SettingPath = AeroSettingPath;
+export type SettingUpdate = AeroSettingUpdate;
 
-export type BooleanSetting =
-  'goalMode' | 'chatInputExpanded' | 'permissionAutoAcceptSessions';
-
-export interface BooleanSettingData {
-  sessionId: string;
-  value: boolean;
+export interface SettingData<T> {
+  path: AeroSettingPath;
+  value: T | undefined;
 }
 
-export function useBooleanSetting(setting: BooleanSetting, sessionId: string) {
-  return useQuery({
-    queryKey: configKeys.booleanSetting(setting, sessionId),
-    enabled: Boolean(sessionId),
+export const configKeys = {
+  setting: (path: SettingPath) => ['config', 'settings', ...path] as const,
+};
+
+export function useSetting<const P extends AeroSettingPath>(path: P) {
+  const normalizedPath = [...path];
+
+  return useQuery<SettingData<AeroSettingValue<P>>>({
+    queryKey: configKeys.setting(path),
+
+    enabled: normalizedPath.length > 0,
 
     queryFn: async () => {
-      const res = await $config.settings[':setting'][':id'].$get({
-        param: {
-          setting,
-          id: sessionId,
+      const res = await $config.settings.$get({
+        query: {
+          path: normalizedPath.join('.'),
         },
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to fetch ${setting}`);
+        throw new Error(`Failed to fetch setting: ${normalizedPath.join('.')}`);
       }
 
-      return res.json();
+      const data = await res.json();
+
+      return {
+        path: data.path as P,
+        value: data.value as AeroSettingValue<P> | undefined,
+      };
     },
   });
 }
 
-export function useToggleBooleanSetting(setting: BooleanSetting) {
+export function useUpdateSetting() {
   return useMutation({
-    mutationFn: async (sessionId: string) => {
-      const res = await $config.settings[':setting'][':id'].toggle.$post({
-        param: {
-          setting,
-          id: sessionId,
+    mutationFn: async ({ path, value }: SettingUpdate) => {
+      const normalizedPath = [...path];
+
+      const res = await $config.settings.$patch({
+        json: {
+          path: normalizedPath,
+          value,
         },
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to toggle ${setting}`);
+        throw new Error(
+          `Failed to update setting: ${normalizedPath.join('.')}`,
+        );
       }
 
-      return res.json();
+      const data = await res.json();
+
+      return {
+        path: data.path as typeof path,
+        value: data.value as typeof value,
+      };
     },
 
-    onMutate: async (sessionId) => {
-      const queryKey = configKeys.booleanSetting(setting, sessionId);
+    onMutate: async ({ path, value }) => {
+      const normalizedPath = [...path];
+      const queryKey = configKeys.setting(path);
 
-      await queryClient.cancelQueries({ queryKey });
-
-      const previous = queryClient.getQueryData<BooleanSettingData>(queryKey);
-
-      queryClient.setQueryData<BooleanSettingData>(queryKey, (current) => {
-        if (!current) return current;
-
-        return {
-          ...current,
-          value: !current.value,
-        };
+      await queryClient.cancelQueries({
+        queryKey,
       });
+
+      const previous =
+        queryClient.getQueryData<SettingData<AeroSettingValue<typeof path>>>(
+          queryKey,
+        );
+
+      queryClient.setQueryData(
+        queryKey,
+        (current: SettingData<AeroSettingValue<typeof path>> | undefined) => {
+          if (!current) {
+            return {
+              path: normalizedPath,
+              value,
+            };
+          }
+
+          return {
+            ...current,
+            value,
+          };
+        },
+      );
 
       return {
         previous,
@@ -79,41 +113,30 @@ export function useToggleBooleanSetting(setting: BooleanSetting) {
       };
     },
 
-    onError: (_error, _sessionId, context) => {
+    onError: (_error, _variables, context) => {
       if (!context) return;
 
       queryClient.setQueryData(context.queryKey, context.previous);
     },
 
-    onSuccess: (data, sessionId) => {
-      queryClient.setQueryData(
-        configKeys.booleanSetting(setting, sessionId),
-        data,
-      );
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(configKeys.setting(variables.path), data);
     },
   });
 }
 
-export function usePermissionAutoAccept(sessionId: string) {
-  return useBooleanSetting('permissionAutoAcceptSessions', sessionId);
+export function usePinnedSessionMessage(sessionId: string, messageId: string) {
+  return useSetting(['pinnedSessionMessages', sessionId, messageId]);
 }
 
-export function useTogglePermissionAutoAccept() {
-  return useToggleBooleanSetting('permissionAutoAcceptSessions');
+export function usePermissionAutoAccept(sessionId: string) {
+  return useSetting(['permissionAutoAcceptSessions', sessionId]);
 }
 
 export function useGoalMode(sessionId: string) {
-  return useBooleanSetting('goalMode', sessionId);
-}
-
-export function useToggleGoalMode() {
-  return useToggleBooleanSetting('goalMode');
+  return useSetting(['goalMode', sessionId]);
 }
 
 export function useChatInputExpanded(sessionId: string) {
-  return useBooleanSetting('chatInputExpanded', sessionId);
-}
-
-export function useToggleChatInputExpanded() {
-  return useToggleBooleanSetting('chatInputExpanded');
+  return useSetting(['chatInputExpanded', sessionId]);
 }

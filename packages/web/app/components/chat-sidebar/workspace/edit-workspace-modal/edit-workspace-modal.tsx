@@ -1,9 +1,11 @@
+import { useParams } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { Button, Modal, Separator, toast } from '@aero/ui';
 
+import { sessionKeys } from '@/app/hooks/api/sessions';
 import { useUpdateWorkspace } from '@/app/hooks/api/workspaces';
-import { useGlobalModalStore } from '@/app/providers';
+import { queryClient, useGlobalModalStore } from '@/app/providers';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 import { EditWorkspaceActions } from './edit-workspace-actions';
@@ -31,6 +33,8 @@ export function EditWorkspaceModal({
     workspace.id,
   );
 
+  const { sessionId } = useParams({ strict: false });
+
   const handleSave = () => {
     const { name, selectedColor, selectedIcon, defaultModel, directory } =
       useEditWorkspaceStore.getState();
@@ -46,7 +50,12 @@ export function EditWorkspaceModal({
       {
         error: 'Failed to save changes',
         loading: 'Saving changes...',
-        success: 'Changes saved successfully',
+        success: () => {
+          queryClient.invalidateQueries({
+            queryKey: sessionKeys.detail(undefined, sessionId),
+          });
+          return 'Changes saved successfully';
+        },
       },
     );
   };
@@ -58,7 +67,15 @@ export function EditWorkspaceModal({
         <Modal.Heading>Edit Workspace</Modal.Heading>
       </Modal.Header>
 
-      <Modal.Body className='flex flex-col gap-5 px-5 sm:px-6'>
+      <Modal.Body
+        className='flex flex-col gap-5 px-5 sm:px-6'
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey && !isPending) {
+            e.preventDefault();
+            handleSave();
+          }
+        }}
+      >
         <EditWorkspaceNameInput />
         <EditWorkspaceDirectoryInput directoryNotFound={directoryNotFound} />
 

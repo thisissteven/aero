@@ -1,4 +1,4 @@
-import { Clock, Pin } from '@gravity-ui/icons';
+import { Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import {
   memo,
@@ -9,14 +9,14 @@ import {
   useState,
 } from 'react';
 
-import { ChatMessage, cn, Tooltip } from '@aero/ui';
+import { ChatMessage, cn } from '@aero/ui';
 
 import {
   MessageActionsCopy,
   MessageActionsFork,
+  MessageActionsPin,
   MessageActionsRevert,
 } from '@/app/components/message-view/message-actions';
-import { IconButton } from '@/app/components/ui/icon-button';
 import { formatDateTime } from '@/app/lib/date';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { AeroConversationTurn } from '@/server/services/harness/types';
@@ -158,15 +158,7 @@ export const UserChatBubble = memo(
           <div>
             <MessageActionsRevert messageId={forkMessageId} />
             <MessageActionsFork messageId={forkMessageId} />
-            <Tooltip>
-              <IconButton>
-                <Icon data={Pin} />
-              </IconButton>
-
-              <Tooltip.Content placement='bottom' offset={8}>
-                <span>Pin into context (survives compaction)</span>
-              </Tooltip.Content>
-            </Tooltip>
+            <MessageActionsPin messageId={turn.id} />
             <MessageActionsCopy copyText={text} />
           </div>
         </div>

@@ -43,7 +43,11 @@ async function readAll(): Promise<AeroWorkspace[]> {
           })),
         }))
         // exclude standalone sessions
-        .filter((item) => !item.directory.includes('.aero/workspaces'))
+        .filter(
+          (item) =>
+            !item.directory.includes('.aero/workspaces') &&
+            !item.directory.includes('.config/openchamber'),
+        )
     );
   } catch {
     return [];

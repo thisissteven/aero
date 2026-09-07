@@ -2,7 +2,12 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { getSetting, toggleSetting } from '@/server/services/settings';
+import {
+  type AeroSettingPath,
+  type AeroSettingUpdate,
+  getSetting,
+  updateSetting,
+} from '@/server/services/settings';
 
 import { getActiveAdapter } from '../services/harness/registry';
 
@@ -11,16 +16,21 @@ const commonQuerySchema = z.object({
   directory: z.string().optional(),
 });
 
-const booleanSettingSchema = z.enum([
-  'goalMode',
-  'chatInputExpanded',
-  'permissionAutoAcceptSessions',
-]);
-
-const settingParamsSchema = z.object({
-  setting: booleanSettingSchema,
-  id: z.string().min(1),
+const getSettingQuerySchema = z.object({
+  path: z.string().transform((value) => {
+    return value
+      .split('.')
+      .map((part) => part.trim())
+      .filter(Boolean) as AeroSettingPath;
+  }),
 });
+
+const updateSettingSchema = z
+  .object({
+    path: z.array(z.string().min(1)).min(1),
+    value: z.unknown(),
+  })
+  .transform((value): AeroSettingUpdate => value as AeroSettingUpdate);
 
 const config = new Hono()
   // GET /api/config?harnessId=...&directory=...
@@ -33,37 +43,29 @@ const config = new Hono()
     return c.json(result);
   })
 
-  // GET /api/config/settings/:setting/:id
-  .get(
-    '/settings/:setting/:id',
-    zValidator('param', settingParamsSchema),
-    async (c) => {
-      const { setting, id } = c.req.valid('param');
+  // GET /api/config/settings?path=goalMode.sessionId
+  .get('/settings', zValidator('query', getSettingQuerySchema), async (c) => {
+    const { path } = c.req.valid('query');
 
-      const value = await getSetting(setting, id);
+    const value = await getSetting(path);
 
-      return c.json({
-        sessionId: id,
-        value: value === true,
-      });
-    },
-  )
+    return c.json({
+      path,
+      value,
+    });
+  })
 
-  // POST /api/config/settings/:setting/:id/toggle
-  .post(
-    '/settings/:setting/:id/toggle',
-    zValidator('param', settingParamsSchema),
-    async (c) => {
-      const { setting, id } = c.req.valid('param');
+  // PATCH /api/config/settings
+  .patch('/settings', zValidator('json', updateSettingSchema), async (c) => {
+    const { path, value } = c.req.valid('json');
 
-      const value = await toggleSetting(setting, id);
+    const updated = await updateSetting(path, value);
 
-      return c.json({
-        sessionId: id,
-        value,
-      });
-    },
-  );
+    return c.json({
+      path,
+      value: updated,
+    });
+  });
 
 export default config;
 export type ConfigRoutes = typeof config;

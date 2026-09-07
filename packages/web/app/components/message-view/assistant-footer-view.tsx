@@ -1,18 +1,18 @@
 // assistant-footer-view.tsx
-import { Clock, Pin } from '@gravity-ui/icons';
+import { Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo } from 'react';
 
-import { ChatMessage, Tooltip } from '@aero/ui';
+import { ChatMessage } from '@aero/ui';
 
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import {
   MessageActionsCopy,
   MessageActionsFork,
+  MessageActionsPin,
   MessageActionsReadAloud,
 } from '@/app/components/message-view/message-actions';
 import { ProviderLogo } from '@/app/components/provider-logo';
-import { IconButton } from '@/app/components/ui/icon-button';
 import { formatDateTime } from '@/app/lib/date';
 import { toPascalCase } from '@/app/lib/file';
 
@@ -60,14 +60,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
 
             <MessageActionsFork messageId={nextTurnId} />
 
-            <Tooltip>
-              <IconButton>
-                <Icon data={Pin} />
-              </IconButton>
-              <Tooltip.Content placement='bottom' offset={8}>
-                <span>Pin into context (survives compaction)</span>
-              </Tooltip.Content>
-            </Tooltip>
+            <MessageActionsPin messageId={turnId} />
 
             <MessageActionsCopy copyText={assistantTextResponse} />
           </div>

@@ -3,10 +3,7 @@ import {
   ChevronsExpandUpRight,
 } from '@gravity-ui/icons';
 
-import {
-  useChatInputExpanded,
-  useToggleChatInputExpanded,
-} from '@/app/hooks/api/config';
+import { useChatInputExpanded, useUpdateSetting } from '@/app/hooks/api/config';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
 
@@ -16,8 +13,7 @@ export function ChatInputExpandedToggleButton({
   sessionId: string;
 }) {
   const { data } = useChatInputExpanded(sessionId);
-
-  const { mutate: toggleChatInputExpanded } = useToggleChatInputExpanded();
+  const { mutate: updateSetting } = useUpdateSetting();
 
   const enabled = data?.value ?? false;
 
@@ -26,7 +22,12 @@ export function ChatInputExpandedToggleButton({
       enabled={enabled}
       label='Expanded chat input'
       icon={enabled ? <ChevronsCollapseUpRight /> : <ChevronsExpandUpRight />}
-      onPress={() => toggleChatInputExpanded(sessionId)}
+      onPress={() =>
+        updateSetting({
+          path: ['chatInputExpanded', sessionId],
+          value: !enabled,
+        })
+      }
       className='bg-transparent hover:bg-transparent'
     />
   );

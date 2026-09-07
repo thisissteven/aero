@@ -14,7 +14,6 @@ import {
   GET_ALL_LIMIT,
   PAGINATION_LIMIT,
   removeGitWorktree,
-  WORKSPACE_VISIBLE_SESSIONS_LIMIT,
 } from '@/server/helper';
 import { debugLog } from '@/server/lib/debug-log';
 import { resolveGitDir } from '@/server/routes/git';
@@ -25,18 +24,17 @@ import type {
   AeroPart,
   AeroTocItem,
   AeroWorkspaceSummary,
-  AeroWorktreeSummary,
   BasePaginationParams,
   CreateWorkspaceInput,
   HarnessAdapter,
   ListSessionsParams,
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
-import { isPermissionAutoAcceptEnabled } from '@/server/services/settings';
+import { getSetting } from '@/server/services/settings';
 import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
 import {
   addWorktreeToWorkspace,
-  type AeroWorkspace as StoredWorkspace,
+  AeroWorktree,
   createWorkspace,
   deleteWorkspace,
   getWorkspace,
@@ -64,50 +62,10 @@ import {
 import { unwrap } from './unwrap';
 
 export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
-  async function hydrateWorkspace(
-    stored: StoredWorkspace,
-  ): Promise<AeroWorkspaceSummary> {
-    const worktrees: AeroWorktreeSummary[] = await Promise.all(
-      stored.worktrees.map(async (wt) => {
-        try {
-          const res = unwrap(
-            await withOpencodeClientV2((client) =>
-              client.v2.session.list({
-                directory: wt.directory,
-                limit: WORKSPACE_VISIBLE_SESSIONS_LIMIT + 1,
-              }),
-            ),
-          );
-
-          const unarchived = res.data.filter((s) => !s.time.archived);
-
-          const previewSessions = unarchived
-            .slice(0, WORKSPACE_VISIBLE_SESSIONS_LIMIT)
-            .map(toAeroSessionV2Info);
-
-          return {
-            ...wt,
-            sessions: previewSessions,
-          };
-        } catch {
-          return {
-            ...wt,
-            sessions: [],
-          };
-        }
-      }),
-    );
-
-    return {
-      ...stored,
-      worktrees,
-    };
-  }
-
   async function scanAndSyncWorkspaces(): Promise<AeroWorkspaceSummary[]> {
     const sdkSessions = unwrap(
       await withOpencodeClientV2((client) =>
-        client.v2.session.list({ limit: GET_ALL_LIMIT }),
+        client.v2.session.list({ limit: GET_ALL_LIMIT, order: 'asc' }),
       ),
     );
 
@@ -167,9 +125,42 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       });
     }
 
-    const allStored = await listStoredWorkspaces();
+    const stored = await listStoredWorkspaces();
 
-    return Promise.all(allStored.map(hydrateWorkspace));
+    return stored;
+  }
+
+  async function updateSessionsInDirectory(input: AeroWorktree) {
+    try {
+      const directory = input.directory;
+
+      if (typeof directory !== 'string') {
+        return;
+      }
+
+      await withOpencodeClientV2(async (client) => {
+        const sessions = unwrap(
+          await client.v2.session.list({
+            directory: normalizePath(directory),
+            limit: GET_ALL_LIMIT,
+            order: 'asc',
+          }),
+        );
+
+        await Promise.allSettled(
+          sessions.data.map((s) =>
+            client.session.update({
+              sessionID: s.id,
+              metadata: {
+                workspaceTitle: input.name,
+              },
+            }),
+          ),
+        );
+      });
+    } catch {
+      //
+    }
   }
 
   async function archiveSessionsInDirectory(directoryPath: string) {
@@ -179,6 +170,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           await client.v2.session.list({
             directory: normalizePath(directoryPath),
             limit: GET_ALL_LIMIT,
+            order: 'asc',
           }),
         );
 
@@ -223,10 +215,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         ? pageItems[pageItems.length - 1]?.id
         : undefined;
 
-      const items = await Promise.all(pageItems.map(hydrateWorkspace));
-
       return {
-        items,
+        items: pageItems,
         nextCursor,
       };
     },
@@ -238,7 +228,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace not found: ${workspaceId}`);
       }
 
-      return hydrateWorkspace(stored);
+      return stored;
     },
 
     async getWorkspaceByDirectory(directory: string) {
@@ -248,12 +238,12 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace not found: ${directory}`);
       }
 
-      return hydrateWorkspace(stored);
+      return stored;
     },
 
     async createWorkspace(input: CreateWorkspaceInput) {
       const stored = await createWorkspace(input);
-      return hydrateWorkspace(stored);
+      return stored;
     },
 
     async updateWorkspace(workspaceId: string, input: UpdateWorkspaceInput) {
@@ -263,7 +253,13 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace not found: ${workspaceId}`);
       }
 
-      return hydrateWorkspace(updated);
+      if (updated) {
+        await Promise.allSettled(
+          updated.worktrees.map((wt) => updateSessionsInDirectory(wt)),
+        );
+      }
+
+      return updated;
     },
 
     async deleteWorkspace(workspaceId: string) {
@@ -287,7 +283,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace not found: ${workspaceId}`);
       }
 
-      return hydrateWorkspace(updated);
+      return updated;
     },
 
     async removeWorktree(workspaceId: string, worktreeIdOrDir: string) {
@@ -314,16 +310,10 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace or worktree not found: ${workspaceId}`);
       }
 
-      return hydrateWorkspace(updated);
+      return updated;
     },
 
     async initWorkspaces() {
-      const existing = await listStoredWorkspaces();
-
-      if (existing.length > 0) {
-        return Promise.all(existing.map(hydrateWorkspace));
-      }
-
       return scanAndSyncWorkspaces();
     },
 
@@ -1263,7 +1253,10 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
       const { id, sessionID, permission, patterns, metadata, always, tool } =
         event.properties;
 
-      const skipPermissions = await isPermissionAutoAcceptEnabled(sessionID);
+      const skipPermissions = await getSetting([
+        'permissionAutoAcceptSessions',
+        sessionID,
+      ]);
 
       if (skipPermissions) {
         const harness = await getAdapter('opencode');

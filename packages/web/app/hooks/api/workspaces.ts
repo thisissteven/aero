@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
@@ -198,6 +199,7 @@ export function useDeleteWorkspace() {
       queryClient.removeQueries({
         queryKey: workspaceKeys.detail(workspace.id),
       });
+      useWorkspaceStore.getState().setState('all');
     },
   });
 }

@@ -1,39 +1,150 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { z } from 'zod';
 
 import { SETTINGS_PATH } from '@/server/helper';
 
-export interface AeroSettings {
-  goalMode: Record<string, boolean>;
-  chatInputExpanded: Record<string, boolean>;
-  permissionAutoAcceptSessions: Record<string, boolean>;
-}
+export const settingsSchema = z.object({
+  goalMode: z.record(z.string(), z.boolean()),
+  chatInputExpanded: z.record(z.string(), z.boolean()),
+  permissionAutoAcceptSessions: z.record(z.string(), z.boolean()),
+  pinnedSessionMessages: z.record(
+    z.string(),
+    z.record(z.string(), z.boolean()),
+  ),
 
-const DEFAULT_SETTINGS: AeroSettings = {
+  // Future examples:
+  // theme: z.enum(['light', 'dark', 'system']),
+  // recentModels: z.array(z.string()),
+});
+
+export type AeroSettings = z.infer<typeof settingsSchema>;
+
+export const DEFAULT_SETTINGS: AeroSettings = {
   goalMode: {},
   chatInputExpanded: {},
   permissionAutoAcceptSessions: {},
+  pinnedSessionMessages: {},
 };
 
-export type BooleanSetting =
-  'goalMode' | 'chatInputExpanded' | 'permissionAutoAcceptSessions';
+type SettingsObject = Record<string, unknown>;
 
-function parseRecord<T extends Record<string, boolean>>(value: unknown): T {
-  return value && typeof value === 'object' ? (value as T) : ({} as T);
+type SettingPath<T> = T extends readonly unknown[]
+  ? []
+  : T extends object
+    ? {
+        [K in keyof T & string]: [K, ...SettingPath<T[K]>];
+      }[keyof T & string]
+    : [];
+
+export type AeroSettingPath = SettingPath<AeroSettings>;
+
+type SettingValueAtPath<T, P extends readonly string[]> = P extends [
+  infer K extends keyof T,
+  ...infer Rest extends string[],
+]
+  ? Rest extends []
+    ? T[K]
+    : SettingValueAtPath<T[K], Rest>
+  : never;
+
+export type AeroSettingValue<P extends AeroSettingPath> = SettingValueAtPath<
+  AeroSettings,
+  P
+>;
+
+type SettingUpdate<P extends AeroSettingPath> = {
+  path: P;
+  value: AeroSettingValue<P> | undefined;
+};
+
+export type AeroSettingUpdate = AeroSettingPath extends infer P
+  ? P extends AeroSettingPath
+    ? SettingUpdate<P>
+    : never
+  : never;
+
+function isObject(value: unknown): value is SettingsObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export async function getSettings(): Promise<AeroSettings> {
+function getAtPath(root: unknown, path: readonly string[]): unknown {
+  let current = root;
+
+  for (const key of path) {
+    if (!isObject(current)) {
+      return undefined;
+    }
+
+    current = current[key];
+  }
+
+  return current;
+}
+
+function setAtPath(
+  root: SettingsObject,
+  path: readonly string[],
+  value: unknown,
+): void {
+  let current = root;
+
+  for (let index = 0; index < path.length - 1; index++) {
+    const key = path[index];
+
+    if (!isObject(current[key])) {
+      current[key] = {};
+    }
+
+    current = current[key] as SettingsObject;
+  }
+
+  current[path[path.length - 1]] = value;
+}
+
+function deleteAtPath(root: SettingsObject, path: readonly string[]): void {
+  let current = root;
+
+  for (let index = 0; index < path.length - 1; index++) {
+    const next = current[path[index]];
+
+    if (!isObject(next)) {
+      return;
+    }
+
+    current = next;
+  }
+
+  delete current[path[path.length - 1]];
+}
+
+function pruneEmptyObjects(value: unknown): void {
+  if (!isObject(value)) {
+    return;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    if (!isObject(child)) {
+      continue;
+    }
+
+    pruneEmptyObjects(child);
+
+    if (Object.keys(child).length === 0) {
+      delete value[key];
+    }
+  }
+}
+
+async function readSettings(): Promise<AeroSettings> {
   try {
     const raw = await readFile(SETTINGS_PATH, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<AeroSettings>;
+    const parsed: unknown = JSON.parse(raw);
 
-    return {
-      goalMode: parseRecord(parsed.goalMode),
-      chatInputExpanded: parseRecord(parsed.chatInputExpanded),
-      permissionAutoAcceptSessions: parseRecord(
-        parsed.permissionAutoAcceptSessions,
-      ),
-    };
+    return settingsSchema.parse({
+      ...DEFAULT_SETTINGS,
+      ...(isObject(parsed) ? parsed : {}),
+    });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return structuredClone(DEFAULT_SETTINGS);
@@ -43,100 +154,47 @@ export async function getSettings(): Promise<AeroSettings> {
   }
 }
 
-export async function toggleSetting(
-  setting: BooleanSetting,
-  key: string,
-): Promise<boolean> {
-  const current = await getSetting(setting, key);
-  const enabled = current !== true;
+async function saveSettings(settings: AeroSettings): Promise<void> {
+  const validated = settingsSchema.parse(settings);
 
-  await updateSetting(setting, key, enabled ? true : undefined);
-
-  return enabled;
-}
-
-async function saveSettings(settings: AeroSettings) {
   await mkdir(dirname(SETTINGS_PATH), { recursive: true });
 
   const tempPath = `${SETTINGS_PATH}.tmp`;
 
-  await writeFile(tempPath, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  await writeFile(tempPath, `${JSON.stringify(validated, null, 2)}\n`, 'utf8');
 
   await rename(tempPath, SETTINGS_PATH);
 }
 
-type RecordSettingKey = {
-  [K in keyof AeroSettings]: AeroSettings[K] extends Record<string, boolean>
-    ? K
-    : never;
-}[keyof AeroSettings];
-
-function getRecordSetting(
-  settings: AeroSettings,
-  setting: RecordSettingKey,
-): Record<string, boolean> {
-  return settings[setting] as Record<string, boolean>;
+export async function getSettings(): Promise<AeroSettings> {
+  return readSettings();
 }
 
-export async function updateSetting<K extends RecordSettingKey>(
-  setting: K,
-  key: string,
-  value: boolean | undefined,
-): Promise<boolean | undefined> {
-  const settings = await getSettings();
-  const record = getRecordSetting(settings, setting);
+export async function getSetting<const P extends AeroSettingPath>(
+  path: P,
+): Promise<AeroSettingValue<P> | undefined> {
+  const settings = await readSettings();
+
+  return getAtPath(settings, path) as AeroSettingValue<P> | undefined;
+}
+
+export async function updateSetting<const P extends AeroSettingPath>(
+  path: P,
+  value: AeroSettingValue<P> | undefined,
+): Promise<AeroSettingValue<P> | undefined> {
+  const settings = await readSettings();
+  const root = settings as unknown as SettingsObject;
 
   if (value === undefined) {
-    delete record[key];
+    deleteAtPath(root, path);
+    pruneEmptyObjects(root);
   } else {
-    record[key] = value;
+    setAtPath(root, path, value);
   }
 
-  await saveSettings(settings);
+  const validated = settingsSchema.parse(settings);
 
-  return value;
-}
+  await saveSettings(validated);
 
-export async function getSetting<K extends RecordSettingKey>(
-  setting: K,
-  key: string,
-): Promise<boolean | undefined> {
-  const settings = await getSettings();
-
-  return getRecordSetting(settings, setting)[key];
-}
-
-export async function isPermissionAutoAcceptEnabled(
-  sessionId: string,
-): Promise<boolean> {
-  return (await getSetting('permissionAutoAcceptSessions', sessionId)) === true;
-}
-
-export async function setPermissionAutoAccept(
-  sessionId: string,
-  enabled: boolean,
-): Promise<boolean> {
-  await updateSetting(
-    'permissionAutoAcceptSessions',
-    sessionId,
-    enabled ? true : undefined,
-  );
-
-  return enabled;
-}
-
-export async function togglePermissionAutoAccept(
-  sessionId: string,
-): Promise<boolean> {
-  const current = await getSetting('permissionAutoAcceptSessions', sessionId);
-
-  const enabled = current !== true;
-
-  await updateSetting(
-    'permissionAutoAcceptSessions',
-    sessionId,
-    enabled ? true : undefined,
-  );
-
-  return enabled;
+  return getAtPath(validated, path) as AeroSettingValue<P> | undefined;
 }
