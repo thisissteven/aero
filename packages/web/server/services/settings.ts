@@ -142,7 +142,7 @@ async function readSettings(): Promise<AeroSettings> {
     const parsed: unknown = JSON.parse(raw);
 
     return settingsSchema.parse({
-      ...DEFAULT_SETTINGS,
+      ...structuredClone(DEFAULT_SETTINGS),
       ...(isObject(parsed) ? parsed : {}),
     });
   } catch (error) {
@@ -166,14 +166,65 @@ async function saveSettings(settings: AeroSettings): Promise<void> {
   await rename(tempPath, SETTINGS_PATH);
 }
 
+/**
+ * In-memory settings cache.
+ *
+ * The settings file is only read once per process.
+ */
+let settingsCache: AeroSettings | null = null;
+
+/**
+ * Prevent multiple concurrent initial reads.
+ *
+ * Without this, several requests arriving at startup could all call
+ * readFile() before the first one populates the cache.
+ */
+let settingsLoadPromise: Promise<AeroSettings> | null = null;
+
+/**
+ * Serialize writes so concurrent updates cannot overwrite one another.
+ */
+let writeQueue: Promise<void> = Promise.resolve();
+
+async function ensureSettings(): Promise<AeroSettings> {
+  if (settingsCache) {
+    return settingsCache;
+  }
+
+  if (!settingsLoadPromise) {
+    settingsLoadPromise = readSettings().then((settings) => {
+      settingsCache = settings;
+      return settings;
+    });
+  }
+
+  try {
+    return await settingsLoadPromise;
+  } finally {
+    settingsLoadPromise = null;
+  }
+}
+
+function enqueueSave(settings: AeroSettings): Promise<void> {
+  const snapshot = structuredClone(settings);
+
+  const savePromise = writeQueue.then(() => saveSettings(snapshot));
+
+  // Keep the queue alive after a failure so one failed write doesn't
+  // permanently block all future writes.
+  writeQueue = savePromise.catch(() => {});
+
+  return savePromise;
+}
+
 export async function getSettings(): Promise<AeroSettings> {
-  return readSettings();
+  return ensureSettings();
 }
 
 export async function getSetting<const P extends AeroSettingPath>(
   path: P,
 ): Promise<AeroSettingValue<P> | undefined> {
-  const settings = await readSettings();
+  const settings = await ensureSettings();
 
   return getAtPath(settings, path) as AeroSettingValue<P> | undefined;
 }
@@ -182,7 +233,7 @@ export async function updateSetting<const P extends AeroSettingPath>(
   path: P,
   value: AeroSettingValue<P> | undefined,
 ): Promise<AeroSettingValue<P> | undefined> {
-  const settings = await readSettings();
+  const settings = await ensureSettings();
   const root = settings as unknown as SettingsObject;
 
   if (value === undefined) {
@@ -194,7 +245,12 @@ export async function updateSetting<const P extends AeroSettingPath>(
 
   const validated = settingsSchema.parse(settings);
 
-  await saveSettings(validated);
+  // Keep all reads fast by updating the in-memory cache immediately.
+  settingsCache = validated;
+
+  // Persist updates sequentially so rapid concurrent updates cannot
+  // clobber each other on disk.
+  await enqueueSave(validated);
 
   return getAtPath(validated, path) as AeroSettingValue<P> | undefined;
 }

@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { Button, cn, Popover, Separator, TextArea } from '@aero/ui';
 
+import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
+
 const VIEWPORT_MARGIN = 12;
 const OFFSET = 8;
 
@@ -25,6 +28,22 @@ export const SelectionPopover = React.memo(function SelectionPopover({
 
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [mode, setMode] = useState<'actions' | 'comment'>('actions');
+
+  const { copy } = useCopyToClipboard();
+
+  useKeyPress(
+    'C',
+    () => {
+      if (selection) {
+        copy(selection.text);
+      }
+    },
+    {
+      modifiers: {
+        mod: true,
+      },
+    },
+  );
 
   useEffect(() => {
     const clearSelection = () => {
