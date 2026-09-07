@@ -57,6 +57,11 @@ export default defineConfig({
     tsconfigPaths: true,
   },
 
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['localhost', '127.0.0.1'],
+  },
+
   plugins: [
     tanstackRouter({
       target: 'react',

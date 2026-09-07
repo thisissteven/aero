@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { cn, PromptInput } from '@aero/ui';
 
 import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
+import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
 import {
@@ -30,6 +31,8 @@ export function NewSessionPage() {
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
+  const isShellMode = useComposerStore((state) => state.mode === 'shell');
+
   return (
     <div ref={setContainer} className='relative h-full overflow-hidden'>
       {container && <ModelAgentDropdownSheet container={container} />}
@@ -47,7 +50,12 @@ export function NewSessionPage() {
 
             <WorkspaceWorktreeDropdownWrapper>
               <NewSessionPromptInputWrapper>
-                <PromptInput.Shell className='@container relative'>
+                <PromptInput.Shell
+                  className={cn(
+                    '@container relative',
+                    isShellMode && 'ring-accent/50 ring',
+                  )}
+                >
                   <div className='absolute top-2 right-2'>
                     <ChatInputExpandedToggleButton
                       sessionId={NEW_SESSION_PAGE_SESSION_ID}

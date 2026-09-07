@@ -24,7 +24,7 @@ import type {
 
 import { withOpencodeClientV2 } from '@/server/adapters/opencode/client';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
-import { directoryExists } from '@/server/helper';
+import { directoryExists, getSkillScope } from '@/server/helper';
 import { normalizePath } from '@/server/shared';
 import type {
   ExtendedGlobalSession,
@@ -37,12 +37,14 @@ import type {
   AeroAgent,
   AeroAgentCompact,
   AeroCommand,
+  AeroCommandCompact,
   AeroMessage,
   AeroPart,
   AeroProvider,
   AeroSessionContextDetails,
   AeroSessionSummary,
   AeroSkill,
+  AeroSkillCompact,
   AeroTool,
   AeroWorktreeItem,
 } from '../../services/harness/types';
@@ -553,11 +555,33 @@ export function toAeroSkill(entry: {
   };
 }
 
+export function toAeroSkillCompact(entry: {
+  name: string;
+  description?: string | undefined;
+  location: string;
+  content: string;
+}): AeroSkillCompact {
+  return {
+    name: entry.name ?? 'Unnamed Skill',
+    description: entry.description,
+    scope: getSkillScope(entry.location),
+  };
+}
+
 /**
  * Maps raw Command configuration objects to AeroCommand.
  */
 export function toAeroCommand(entry: Command): AeroCommand {
   return { ...entry };
+}
+
+export function toAeroCommandCompact(entry: Command): AeroCommandCompact {
+  return {
+    name: entry.name,
+    description: entry.description,
+    hints: entry.hints,
+    source: entry.source,
+  };
 }
 
 /**

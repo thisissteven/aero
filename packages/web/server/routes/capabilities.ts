@@ -17,8 +17,22 @@ const toolsQuerySchema = commonQuerySchema.extend({
 });
 
 const agents = new Hono()
-  // GET /api/agents?harnessId=...&directory=...
+  // GET /api/capabilities?harnessId=...&directory=...
   .get('/', zValidator('query', commonQuerySchema), async (c) => {
+    const { harnessId, directory } = c.req.valid('query');
+    const harness = await getActiveAdapter(harnessId);
+
+    const [agents, commands, skills] = await Promise.all([
+      harness.listAgentsCompact(directory),
+      harness.listCommandsCompact(directory),
+      harness.listSkillsCompact(directory),
+    ]);
+
+    return c.json({ agents, commands, skills });
+  })
+
+  // GET /api/capabilities/agents?harnessId=...&directory=...
+  .get('/agents', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');
     const harness = await getActiveAdapter(harnessId);
 
@@ -26,8 +40,8 @@ const agents = new Hono()
     return c.json(agents);
   })
 
-  // GET /api/agents/compact?harnessId=...&directory=...
-  .get('/compact', zValidator('query', commonQuerySchema), async (c) => {
+  // GET /api/capabilities/agents/compact?harnessId=...&directory=...
+  .get('/agents/compact', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');
     const harness = await getActiveAdapter(harnessId);
 
@@ -35,7 +49,7 @@ const agents = new Hono()
     return c.json(agents);
   })
 
-  // GET /api/agents/skills?harnessId=...&directory=...
+  // GET /api/capabilities/skills?harnessId=...&directory=...
   .get('/skills', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');
     const harness = await getActiveAdapter(harnessId);
@@ -44,7 +58,16 @@ const agents = new Hono()
     return c.json(skills);
   })
 
-  // GET /api/agents/commands?harnessId=...&directory=...
+  // GET /api/capabilities/skills/compact?harnessId=...&directory=...
+  .get('/skills/compact', zValidator('query', commonQuerySchema), async (c) => {
+    const { harnessId, directory } = c.req.valid('query');
+    const harness = await getActiveAdapter(harnessId);
+
+    const skills = await harness.listSkillsCompact(directory);
+    return c.json(skills);
+  })
+
+  // GET /api/capabilities/commands?harnessId=...&directory=...
   .get('/commands', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');
     const harness = await getActiveAdapter(harnessId);
@@ -53,7 +76,20 @@ const agents = new Hono()
     return c.json(commands);
   })
 
-  // GET /api/agents/tools?provider=...&model=...&harnessId=...&directory=...
+  // GET /api/capabilities/commands/compact?harnessId=...&directory=...
+  .get(
+    '/commands/compact',
+    zValidator('query', commonQuerySchema),
+    async (c) => {
+      const { harnessId, directory } = c.req.valid('query');
+      const harness = await getActiveAdapter(harnessId);
+
+      const commands = await harness.listCommandsCompact(directory);
+      return c.json(commands);
+    },
+  )
+
+  // GET /api/capabilities/tools?provider=...&model=...&harnessId=...&directory=...
   .get('/tools', zValidator('query', toolsQuerySchema), async (c) => {
     const { harnessId, provider, model, directory } = c.req.valid('query');
     const harness = await getActiveAdapter(harnessId);

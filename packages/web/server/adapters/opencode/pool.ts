@@ -4,11 +4,12 @@ import {
   createOpencodeClient as createClientV2,
   createOpencodeServer as createServerV2,
 } from '@opencode-ai/sdk/v2';
-import { ChildProcess, execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createServer as createNetServer } from 'node:net';
 
+import { installAeroPlugin } from '@/server/adapters/opencode/plugin';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
-import { findAvailablePort } from '@/server/helper';
+import { AERO_PLUGIN_PATH, findAvailablePort } from '@/server/helper';
 
 export type OpencodeServerV2 = Awaited<ReturnType<typeof createServerV2>>;
 export type OpencodeClientV2 = ReturnType<typeof createClientV2>;
@@ -75,6 +76,7 @@ export class OpencodeServerPool<
   private node: PoolNode<TClient, TServer> | null = null;
   private initPromise: Promise<void> | null = null;
   private shuttingDown = false;
+  private activeToken = crypto.randomUUID();
 
   constructor(
     private readonly createServerFn: (opts: {
@@ -100,6 +102,9 @@ export class OpencodeServerPool<
     this.initPromise = (async () => {
       try {
         const port = await findAvailablePort(this.basePort);
+        process.env.AERO_AGENT_TOOL_URL = `http://127.0.0.1:${port}/api/aero/agent-tool`;
+        process.env.AERO_AGENT_TOOL_TOKEN = this.activeToken;
+
         const server = await this.createServerFn({
           hostname: '127.0.0.1',
           port,
@@ -194,6 +199,10 @@ export class OpencodeServerPool<
     }
   }
 
+  public async authorize(token: string): Promise<boolean> {
+    return token === this.activeToken;
+  }
+
   public async getStats(): Promise<PoolStats> {
     const isHealthy = Boolean(this.node?.isHealthy && !this.node?.isRecovering);
     return {
@@ -235,8 +244,6 @@ export class OpencodeServerPool<
   }
 }
 
-type SpawnedServer = OpencodeServerV2 & { process?: ChildProcess };
-
 export const opencodePoolV2 = new OpencodeServerPool<
   OpencodeClientV2,
   OpencodeServerV2
@@ -246,71 +253,12 @@ export const opencodePoolV2 = new OpencodeServerPool<
       ? `${process.env.NO_PROXY},127.0.0.1,localhost`
       : '127.0.0.1,localhost';
 
-    const env = {
-      ...process.env,
-      OPENCODE_ENABLE_EXA: '1',
-      NO_PROXY: noProxy,
-      no_proxy: noProxy,
-    };
-
-    let executablePath = resolveOpenCodeExecutable();
-
-    if (executablePath) {
-      try {
-        const url = `http://${hostname}:${port}`;
-        let command = executablePath;
-        let args = ['serve', '--hostname', hostname, '--port', String(port)];
-
-        if (process.platform === 'win32') {
-          if (
-            !executablePath.endsWith('.cmd') &&
-            !executablePath.endsWith('.exe')
-          ) {
-            executablePath = `${executablePath}.cmd`;
-          }
-          command = process.env.ComSpec || 'cmd.exe';
-          args = ['/d', '/s', '/c', `"${executablePath}"`, ...args];
-        }
-
-        const child = spawn(command, args, {
-          env,
-          shell: false,
-          windowsVerbatimArguments: process.platform === 'win32',
-          stdio: ['ignore', 'pipe', 'pipe'],
-        });
-
-        let hasExited = false;
-        child.on('exit', () => {
-          hasExited = true;
-        });
-
-        const started = Date.now();
-        while (Date.now() - started < 5000) {
-          if (hasExited) throw new Error('Process exited during startup.');
-          if (!(await isPortOpen(port, hostname))) break;
-          await sleep(100);
-        }
-
-        const spawnedServer: SpawnedServer = {
-          url,
-          process: child,
-          close: () => {
-            if (!child.killed) child.kill();
-          },
-        };
-
-        return spawnedServer;
-      } catch (error) {
-        console.warn(
-          `[OpenCode Pool V2] Direct process spawn failed, falling back to createServerV2:`,
-          error,
-        );
-      }
-    }
-
     process.env.OPENCODE_ENABLE_EXA = '1';
     process.env.NO_PROXY = noProxy;
     process.env.no_proxy = noProxy;
+    process.env.OPENCODE_CONFIG_CONTENT = '';
+
+    await installAeroPlugin();
 
     return createServerV2({
       hostname,
@@ -319,6 +267,7 @@ export const opencodePoolV2 = new OpencodeServerPool<
         permission: {
           websearch: 'allow',
         },
+        plugin: [AERO_PLUGIN_PATH],
       },
     });
   },

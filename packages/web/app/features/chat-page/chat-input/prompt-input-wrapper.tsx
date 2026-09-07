@@ -27,41 +27,12 @@ export function NewSessionPromptInputWrapper({
 }: {
   children: ReactNode;
 }) {
-  const [value, setValue] = useState('');
+  const { text, handleSend } = usePromptInput({ isDisabled: false });
   const [isPending, setIsPending] = useState(false);
 
   const navigate = useNavigate();
 
   const { mutateAsync: createSession } = useCreateSession();
-  const { mutateAsync: sendMessage } = useSendMessage(undefined);
-
-  const selectedVariant = useChatSettingsStore(
-    (state) => state.selectedVariant,
-  );
-  const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-  const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
-
-  const cycleVariant = useChatSettingsStore((state) => state.cycleVariant);
-
-  useKeyPress(
-    'ArrowRight',
-    () => {
-      cycleVariant(1);
-    },
-    {
-      ignoreInputs: value.length === 0 ? false : true,
-    },
-  );
-
-  useKeyPress(
-    'ArrowLeft',
-    () => {
-      cycleVariant(-1);
-    },
-    {
-      ignoreInputs: value.length === 0 ? false : true,
-    },
-  );
 
   const state = useNewSessionStore((state) => state.state);
 
@@ -77,7 +48,7 @@ export function NewSessionPromptInputWrapper({
 
   const addRunningSession = useChatStore((state) => state.addRunningSession);
 
-  const handleSubmit = async (text: string) => {
+  const handleSubmit = async () => {
     try {
       setIsPending(true);
 
@@ -95,54 +66,30 @@ export function NewSessionPromptInputWrapper({
         },
       );
 
-      await sessionStreamManager.ensure({
-        sessionId: session.id,
-        harnessId: undefined,
-      });
-
-      await sendMessage(
-        {
-          sessionId: session.id,
-          parts: [
-            {
-              type: 'text',
-              text,
-            },
-          ],
-          model: {
-            modelId: selectedModel?.model.id as string,
-            providerId: selectedModel?.providerId as string,
-          },
-          agent: selectedAgent?.name,
-          variant: selectedVariant,
-        },
-        {
-          onSuccess: () => {
-            navigate({
-              to: `/sessions/${session.id}`,
-            });
-          },
-          onError: () => {
-            toast.danger('Failed to send message');
-          },
-        },
-      );
+      await handleSend(session.id);
 
       addRunningSession(session.id);
+      navigate({
+        to: `/sessions/${session.id}`,
+      });
     } catch {
       setIsPending(false);
+      toast.danger('Failed to send message');
     }
   };
 
   const isDisabled =
     error && error?.code === 'DIRECTORY_NOT_FOUND' && state === 'work';
 
+  useKeyPress('Enter', handleSubmit, {
+    ignoreInputs: false,
+  });
+
   return (
     <PromptInput
       className='group/prompt-input'
-      value={value}
-      onValueChange={setValue}
-      onSubmit={() => handleSubmit(value)}
+      value={text}
+      onSubmit={handleSubmit}
       isDisabled={isDisabled}
       status={isPending ? 'submitted' : undefined}
     >
@@ -169,11 +116,17 @@ export function ActiveSessionPromptInputWrapper({
     isPending,
   } = usePromptInput({ isDisabled });
 
+  const { sessionId } = useParams({ strict: false });
+
+  useKeyPress('Enter', () => handleSend(sessionId), {
+    ignoreInputs: false,
+  });
+
   return (
     <PromptInput
       className='group/prompt-input w-full max-w-[780px]'
       value={text}
-      onSubmit={handleSend}
+      onSubmit={() => handleSend(sessionId)}
       onStop={handleAbort}
       isDisabled={inputDisabled}
       status={isAborting ? 'submitted' : undefined}
@@ -206,71 +159,70 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const { data: session } = useSession(undefined, sessionId);
 
   const status = useChatStore((state) =>
-    sessionId
-      ? (state.sessions[sessionId]?.status ?? {
-          type: 'idle',
-        })
-      : { type: 'idle' },
+    sessionId ? (state.sessions[sessionId]?.status?.type ?? 'idle') : 'idle',
   );
 
-  const isPending = status.type !== 'idle';
+  const isPending = status !== 'idle';
 
   const inputDisabled = isDisabled || (session && session.readOnly);
 
-  const handleSend = useCallback(async () => {
-    composerSubmitBefore();
-    const text = useComposerStore.getState().payload?.text;
+  const handleSend = useCallback(
+    async (sessionId: string) => {
+      composerSubmitBefore();
+      const text = useComposerStore.getState().payload?.text;
 
-    const { selectedModel, selectedAgent, selectedVariant } =
-      useChatSettingsStore.getState();
+      const { selectedModel, selectedAgent, selectedVariant } =
+        useChatSettingsStore.getState();
 
-    if (
-      !text ||
-      isPending ||
-      !sessionId ||
-      !selectedModel?.providerId ||
-      !selectedModel.model.id
-    ) {
-      return;
-    }
+      if (
+        !text ||
+        isPending ||
+        !sessionId ||
+        !selectedModel?.providerId ||
+        !selectedModel.model.id
+      ) {
+        return;
+      }
 
-    try {
-      await sessionStreamManager.ensure({
-        sessionId,
-        harnessId: undefined,
-      });
-    } catch {
-      toast.danger('Failed to connect to session stream');
-      return;
-    }
+      try {
+        await sessionStreamManager.ensure({
+          sessionId,
+          harnessId: undefined,
+        });
+      } catch {
+        toast.danger('Failed to connect to session stream');
+        return;
+      }
 
-    sendMessage(
-      {
-        sessionId,
-        parts: [
-          {
-            type: 'text',
-            text,
+      sendMessage(
+        {
+          sessionId,
+          parts: [
+            {
+              type: 'text',
+              text,
+            },
+          ],
+          model: {
+            modelId: selectedModel.model.id,
+            providerId: selectedModel.providerId,
           },
-        ],
-        model: {
-          modelId: selectedModel.model.id,
-          providerId: selectedModel.providerId,
+          agent: selectedAgent?.name,
+          variant: selectedVariant,
         },
-        agent: selectedAgent?.name,
-        variant: selectedVariant,
-      },
-      {
-        onSuccess: () => {
-          composerSubmitAfter();
-        },
+        {
+          onSuccess: () => {
+            composerSubmitAfter();
+          },
 
-        onError: () => {
-          toast.danger('Failed to send message');
+          onError: () => {
+            toast.danger('Failed to send message');
+          },
         },
-      },
-    );
-  }, [isPending, sessionId, sendMessage]);
+      );
+    },
+    [isPending, sendMessage],
+  );
 
   const handleAbort = useCallback(() => {
     if (!sessionId || !isPending || isAborting) {
@@ -292,7 +244,10 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
     });
   }, [sessionId, isPending, isAborting, abortSession]);
 
-  useDoubleKeyPress('Escape', handleAbort, { threshold: 350 });
+  useDoubleKeyPress('Escape', handleAbort, {
+    threshold: 350,
+    ignoreInputs: false,
+  });
 
   return {
     text: segments.length ? 'text' : '',

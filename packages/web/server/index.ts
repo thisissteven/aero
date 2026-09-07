@@ -5,7 +5,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { initProxyConfig } from '@/server/proxy-loader';
 
-import agentRoutes from './routes/agents';
+import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
 import discoveryRoutes from './routes/discovery';
 import folderPickerRoutes from './routes/folder-picker';
@@ -30,7 +30,7 @@ const app = new Hono()
   .route('/preview', previewRoutes)
   .route('/system', systemRoutes)
   .route('/git', gitRoutes)
-  .route('/agents', agentRoutes)
+  .route('/capabilities', capabilityRoutes)
   .route('/providers', providerRoutes)
   .route('/worktrees', worktreeRoutes)
   .route('/config', configRoutes)

@@ -17,6 +17,8 @@ import {
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
 
+import { SkillScope } from '@/server/helper';
+
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 export type ConversationRole = 'user' | 'assistant' | 'system';
 
@@ -424,6 +426,10 @@ export type AeroAgentCompact = Pick<
 >;
 
 export type AeroCommand = Command;
+export type AeroCommandCompact = Pick<
+  AeroCommand,
+  'name' | 'description' | 'hints' | 'source'
+>;
 
 export interface AeroWorktreeItem {
   directory: string;
@@ -438,6 +444,10 @@ export interface AeroSkill {
   location: string;
   content: string;
 }
+
+export type AeroSkillCompact = Omit<AeroSkill, 'content' | 'location'> & {
+  scope: SkillScope;
+};
 
 export type AeroTool = ToolListItem;
 
@@ -550,7 +560,9 @@ export interface HarnessAdapter {
   listAgents(directory?: string): Promise<AeroAgent[]>;
   listAgentsCompact(directory?: string): Promise<AeroAgentCompact[]>;
   listSkills(directory?: string): Promise<AeroSkill[]>;
+  listSkillsCompact(directory?: string): Promise<AeroSkillCompact[]>;
   listCommands(directory?: string): Promise<AeroCommand[]>;
+  listCommandsCompact(directory?: string): Promise<AeroCommandCompact[]>;
   listTools(
     provider: string,
     model: string,

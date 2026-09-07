@@ -203,6 +203,8 @@ export const WebSearchToolView = memo(
       output = part.output;
     }
 
+    const isEmpty = output?.results && output.results.length === 0;
+
     return (
       <BaseTool
         blockId={blockId}
@@ -210,7 +212,29 @@ export const WebSearchToolView = memo(
         error={part.error}
         icon={Globe}
         title='Web Search'
-        preview={part.input.query}
+        preview={
+          output?.results ? (
+            <div className='-mt-0.5 space-x-1'>
+              {isEmpty && (
+                <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                  Found no results
+                </span>
+              )}
+              {!isEmpty && (
+                <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                  {getDomain(output.results[0].url)}
+                </span>
+              )}
+              {!isEmpty && output.results.length - 1 > 0 && (
+                <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                  +{output.results.length - 1}
+                </span>
+              )}
+            </div>
+          ) : (
+            part.input.query
+          )
+        }
         code=''
         copyText=''
         isStreaming={isStreaming}

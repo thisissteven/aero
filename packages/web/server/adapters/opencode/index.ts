@@ -48,6 +48,7 @@ import {
   toAeroAgent,
   toAeroAgentCompact,
   toAeroCommand,
+  toAeroCommandCompact,
   toAeroMessage,
   toAeroPart,
   toAeroProvider,
@@ -56,6 +57,7 @@ import {
   toAeroSessionV2,
   toAeroSessionV2Info,
   toAeroSkill,
+  toAeroSkillCompact,
   toAeroTool,
   toAeroWorktreeItem,
 } from './mappers';
@@ -573,6 +575,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return entries.map(toAeroSkill);
     },
 
+    async listSkillsCompact(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.app.skills({ directory }),
+        ),
+      );
+
+      return entries.map(toAeroSkillCompact);
+    },
+
     async listCommands(directory) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>
@@ -580,7 +592,21 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         ),
       );
 
-      return entries.map(toAeroCommand);
+      return entries
+        .filter((entry) => entry.source === 'command')
+        .map(toAeroCommand);
+    },
+
+    async listCommandsCompact(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.command.list({ directory }),
+        ),
+      );
+
+      return entries
+        .filter((entry) => entry.source === 'command')
+        .map(toAeroCommandCompact);
     },
 
     async listConfiguredProviders(directory) {

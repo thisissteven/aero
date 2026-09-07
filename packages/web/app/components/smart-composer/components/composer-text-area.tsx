@@ -163,6 +163,10 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
         return;
       }
     }
+
+    if (event.key === 'Enter' && !event.shiftKey && !paletteOpen) {
+      event.preventDefault();
+    }
   };
 
   useEffect(() => {

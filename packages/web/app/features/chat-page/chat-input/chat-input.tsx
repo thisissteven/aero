@@ -1,6 +1,7 @@
-import { PromptInput } from '@aero/ui';
+import { cn, PromptInput } from '@aero/ui';
 
 import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
+import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/auto-accept-permissions';
@@ -20,9 +21,16 @@ export function ChatInput({
   isDisabled: boolean;
   sessionId: string;
 }) {
+  const isShellMode = useComposerStore((state) => state.mode === 'shell');
+
   return (
     <ActiveSessionPromptInputWrapper isDisabled={isDisabled}>
-      <PromptInput.Shell className='@container relative'>
+      <PromptInput.Shell
+        className={cn(
+          '@container relative',
+          isShellMode && 'ring-accent/50 ring',
+        )}
+      >
         <div className='absolute top-2 right-2'>
           <ChatInputExpandedToggleButton sessionId={sessionId} />
         </div>

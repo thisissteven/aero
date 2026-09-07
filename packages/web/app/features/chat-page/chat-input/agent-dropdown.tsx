@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Button, Command, Popover } from '@aero/ui';
 
-import { useAgentsCompact } from '@/app/hooks/api/agents';
+import { useAgentsCompact } from '@/app/hooks/api/capabilities';
 import { capitalizeFirstLetter } from '@/app/lib/file';
 
 import { useChatSettingsStore } from './chat-settings-store';
