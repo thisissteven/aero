@@ -1,6 +1,8 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { cn } from '@aero/ui';
+
+import { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
 
 import type { SearchItem } from '../smart-composer-helpers';
 
@@ -8,7 +10,7 @@ interface CommandPaletteProps {
   open: boolean;
   results: SearchItem[];
   selectedIndex: number;
-  editorRef: React.RefObject<HTMLDivElement | null>;
+  caretRect: CaretRect | null;
   onSelect: (item: SearchItem) => void;
 }
 
@@ -16,64 +18,35 @@ export function ComposerCommandPalette({
   open,
   results,
   selectedIndex,
-  editorRef,
+  caretRect,
   onSelect,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
 
-  const position = () => {
-    const editor = editorRef.current;
-
+  const position = useCallback(() => {
     const palette = paletteRef.current;
 
-    if (!editor || !palette || !open) {
+    if (!palette || !open || !caretRect) {
       return;
     }
 
-    const selection = window.getSelection();
+    const rect = palette.getBoundingClientRect();
 
-    if (!selection || !selection.rangeCount) {
-      return;
-    }
-
-    const range = selection.getRangeAt(0);
-
-    let caretRect = range.getBoundingClientRect();
-
-    if (!caretRect.width && !caretRect.height) {
-      caretRect = editor.getBoundingClientRect();
-    }
-
-    palette.style.visibility = 'hidden';
-
-    const paletteRect = palette.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
 
     const gap = 6;
     const margin = 8;
 
-    const editorRect = editor.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - caretRect.bottom - margin;
 
-    const height = paletteRect.height || 320;
-
-    const width = paletteRect.width || 320;
-
-    const aboveEditor = editorRect.top - margin;
-
-    const belowEditor = window.innerHeight - editorRect.bottom - margin;
-
-    const aboveCaret = caretRect.top - margin;
-
-    const belowCaret = window.innerHeight - caretRect.bottom - margin;
+    const spaceAbove = caretRect.top - margin;
 
     let top: number;
 
-    if (aboveEditor >= height + gap) {
-      top = editorRect.top - height - gap;
-    } else if (belowEditor >= height + gap) {
-      top = editorRect.bottom + gap;
-    } else if (belowCaret >= height + gap) {
+    if (spaceBelow >= height + gap) {
       top = caretRect.bottom + gap;
-    } else if (aboveCaret >= height + gap) {
+    } else if (spaceAbove >= height + gap) {
       top = caretRect.top - height - gap;
     } else {
       top = Math.max(
@@ -88,24 +61,29 @@ export function ComposerCommandPalette({
     );
 
     palette.style.top = `${top}px`;
-
     palette.style.left = `${left}px`;
-
-    palette.style.visibility = 'visible';
-  };
+  }, [caretRect, open]);
 
   useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+
     position();
-  }, [open, results, selectedIndex]);
+  }, [open, results, selectedIndex, caretRect, position]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    const handleResize = () => position();
+    const handleResize = () => {
+      position();
+    };
 
-    const handleScroll = () => position();
+    const handleScroll = () => {
+      position();
+    };
 
     window.addEventListener('resize', handleResize);
 
@@ -116,7 +94,7 @@ export function ComposerCommandPalette({
 
       window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [open]);
+  }, [open, position]);
 
   useEffect(() => {
     const palette = paletteRef.current;
@@ -146,13 +124,12 @@ export function ComposerCommandPalette({
     <div
       ref={paletteRef}
       className={cn(
-        'fixed z-[1000]',
+        'fixed z-[1]',
         'max-w-[min(480px,calc(100vw-16px))] min-w-80',
-        'max-h-80 overflow-y-auto',
-        'border-border rounded-md border',
+        'max-h-80 scrollbar-thin overflow-y-auto',
+        'border-separator rounded-xl border',
         'bg-overlay text-overlay-foreground',
         'p-1',
-        'shadow-[var(--overlay-shadow)]',
       )}
       role='listbox'
       aria-label='Composer suggestions'
@@ -190,7 +167,7 @@ export function ComposerCommandPalette({
                   aria-selected={active}
                   className={cn(
                     'flex cursor-pointer items-center gap-2',
-                    'border-separator/20 border-b',
+                    'border-separator/20 rounded-md border-b',
                     'px-3 py-2 text-sm',
                     active ? 'bg-surface-hover' : 'hover:bg-surface-hover',
                   )}

@@ -1,15 +1,19 @@
 import { ApiError, ToolState } from '@opencode-ai/sdk';
 import {
   Agent,
+  AgentPartInput,
   Command,
   Config,
   FilePart,
+  FilePartInput,
   FilePartSource,
   PermissionRequest,
   Provider,
   QuestionAnswer,
   QuestionRequest,
   SessionStatus,
+  SubtaskPartInput,
+  TextPartInput,
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
 
@@ -51,6 +55,9 @@ export interface AeroSessionSummary {
   archived: boolean;
   workspaceTitle?: string;
 }
+
+export type AeroPartUserMessage =
+  TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput;
 
 export type AeroPartRequest =
   | {
@@ -367,7 +374,7 @@ export interface RenameSessionInput {
 }
 
 export interface SendMessageInput {
-  parts: AeroPartRequest[];
+  parts: AeroPartUserMessage[];
   model?: { providerId: string; modelId: string };
   system?: string;
   agent?: string;
@@ -566,4 +573,9 @@ export interface HarnessAdapter {
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
 
   getConfig(directory?: string): Promise<AeroConfig>;
+  listFilesInDirectory(input: {
+    query: string;
+    limit: string;
+    directory: string;
+  }): Promise<string[]>;
 }

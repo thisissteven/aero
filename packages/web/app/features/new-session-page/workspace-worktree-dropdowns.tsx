@@ -31,14 +31,7 @@ export function WorkspaceWorktreeDropdownWrapper({
         </div>
       </div>
 
-      <div
-        className={cn(
-          'transition-transform duration-200 ease-out',
-          isChat ? '-translate-y-3' : 'translate-y-0',
-        )}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

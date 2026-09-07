@@ -14,11 +14,26 @@ const FILES = [
     label: '@src/services/search.ts',
     value: 'src/services/search.ts',
   },
+  {
+    id: 'f4',
+    label: '@src/components/file.tsx',
+    value: 'src/components/file.tsx',
+  },
+  {
+    id: 'f5',
+    label: '@src/components/chat-button.tsx',
+    value: 'src/components/chat-button.tsx',
+  },
+  {
+    id: 'f6',
+    label: '@src/services/settings.ts',
+    value: 'src/services/settings.ts',
+  },
 ];
 
 const AGENTS = [
-  { id: 'a1', label: '/build', value: 'build' },
-  { id: 'a2', label: '/planner', value: 'planner' },
+  { id: 'a1', label: '@build', value: 'build' },
+  { id: 'a2', label: '@planner', value: 'planner' },
 ];
 
 const COMMANDS = [

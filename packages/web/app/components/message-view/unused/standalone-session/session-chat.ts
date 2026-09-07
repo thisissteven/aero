@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import type {
   AeroEvent,
   AeroMessage,
-  AeroPartRequest,
+  AeroPartUserMessage,
   AeroSessionStatus,
 } from '@/server/services/harness/types';
 
@@ -92,7 +92,7 @@ export function useSessionStatusQuery(
 export function useSendMessage({ sessionId, harnessId }: Params) {
   return useMutation({
     mutationFn: async (input: {
-      parts: AeroPartRequest[];
+      parts: AeroPartUserMessage[];
       model?: {
         providerId: string;
         modelId: string;

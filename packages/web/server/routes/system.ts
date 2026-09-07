@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import { z } from 'zod';
 
 import { SYSTEM_APPS_ICONS_PATH } from '@/server/helper';
+import { getActiveAdapter } from '@/server/services/harness/registry';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -690,6 +691,32 @@ const system = new Hono()
         message: `Failed to open ${appConfig.label}`,
       });
     }
-  });
+  })
+
+  // GET /api/system/files?harnessId=...&query=...&directory=...
+  .get(
+    '/files',
+    zValidator(
+      'query',
+      z.object({
+        harnessId: z.string().optional(),
+        directory: z.string(),
+        query: z.string().optional(),
+        limit: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, query, directory, limit } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const files = await harness.listFilesInDirectory({
+        query: query ?? '',
+        directory,
+        limit: limit ?? '5',
+      });
+
+      return c.json(files);
+    },
+  );
 
 export default system;

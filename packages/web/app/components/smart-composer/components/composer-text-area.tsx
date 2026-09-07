@@ -1,14 +1,20 @@
+import { useLocation, useParams } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 
 import { cn } from '@aero/ui';
 
-import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/message-view/unused/smart-composer/components/composer-placeholder';
+import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/components/composer-placeholder';
+import { useChatInputExpanded } from '@/app/hooks/api/config';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { useWindowSize } from '@/app/hooks/useWindowSize';
+import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 import { findTokenImmediatelyBeforeCaret } from '../smart-composer-dom';
 import { buildText, SearchItem } from '../smart-composer-helpers';
 import { useComposerStore } from '../smart-composer-store';
 
 interface ComposerTextareaProps {
+  enabledClassName?: string;
   editorRef: React.RefObject<HTMLDivElement | null>;
 
   paletteOpen: boolean;
@@ -17,7 +23,6 @@ interface ComposerTextareaProps {
   onInput: () => void;
   onCopy: (event: React.ClipboardEvent<HTMLDivElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLDivElement>) => void;
-  onSubmit: () => void;
 
   onUndo: () => void;
   onRedo: () => void;
@@ -31,14 +36,16 @@ interface ComposerTextareaProps {
   onPaletteMove: (direction: 1 | -1) => void;
 }
 
-export function ComposerTextarea({
+export const COMPOSER_TEXTAREA_ID = 'aero-composer-textarea';
+
+export const ComposerTextarea = React.memo(function ComposerTextarea({
+  enabledClassName,
   editorRef,
   paletteOpen,
   selectedItem,
   onInput,
   onCopy,
   onPaste,
-  onSubmit,
   onUndo,
   onRedo,
   onShellEnter,
@@ -81,15 +88,6 @@ export function ComposerTextarea({
     ) {
       event.preventDefault();
       onShellExit();
-      return;
-    }
-
-    if (mode === 'shell') {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        onSubmit();
-      }
-
       return;
     }
 
@@ -165,11 +163,6 @@ export function ComposerTextarea({
         return;
       }
     }
-
-    if (event.key === 'Enter' && !event.shiftKey && !paletteOpen) {
-      event.preventDefault();
-      onSubmit();
-    }
   };
 
   useEffect(() => {
@@ -180,31 +173,65 @@ export function ComposerTextarea({
     editorRef.current.spellcheck = false;
   }, [editorRef]);
 
-  return (
-    <div className='relative'>
-      <div
-        ref={editorRef}
-        className={cn(
-          'max-h-[min(60vh,520px)] min-h-[140px]',
-          'overflow-wrap-anywhere overflow-y-auto whitespace-pre-wrap',
-          'border-border rounded-[var(--radius)] border',
-          'bg-surface px-[1.1rem] py-4',
-          'font-sans text-[15px] leading-[1.6]',
-          'tracking-[-0.011em]',
-          'caret-accent outline-none',
-          'shadow-[var(--surface-shadow)]',
-          mode === 'shell' &&
-            'border-accent/50 font-mono text-base tracking-[-0.013em] shadow-[var(--overlay-shadow)]',
-        )}
-        contentEditable
-        role='textbox'
-        aria-multiline='true'
-        data-placeholder={SMART_COMPOSER_PLACEHOLDER}
-        onKeyDown={handleKeyDown}
-        onInput={onInput}
-        onCopy={onCopy}
-        onPaste={onPaste}
-      />
-    </div>
+  const { sessionId } = useParams({ strict: false });
+  const { data } = useChatInputExpanded(
+    sessionId ?? NEW_SESSION_PAGE_SESSION_ID,
   );
-}
+  const enabled = data?.value ?? false;
+
+  useEffect(() => {
+    if (
+      !enabled &&
+      editorRef.current &&
+      editorRef.current.innerHTML.trim().length === 0
+    ) {
+      editorRef.current.style.removeProperty('height');
+    }
+  }, [enabled]);
+
+  const { pathname } = useLocation();
+  const isMobile = useWindowSize((size) => size.width < 768);
+
+  useEffect(() => {
+    if (editorRef.current && !isMobile) {
+      editorRef.current.focus();
+    }
+  }, [pathname, isMobile]);
+
+  useKeyPress(
+    'i',
+    () => {
+      editorRef.current?.focus();
+    },
+    {
+      modifiers: {
+        mod: true,
+      },
+    },
+  );
+
+  return (
+    <div
+      id={COMPOSER_TEXTAREA_ID}
+      ref={editorRef}
+      className={cn(
+        enabled
+          ? (enabledClassName ?? 'min-h-[calc(100svh-156px)]')
+          : '@max-lg:min-h-18',
+        'text-sm transition-none',
+        'overflow-wrap-anywhere overflow-y-auto whitespace-pre-wrap',
+        'outline-none',
+        'prompt-input__textarea',
+        mode === 'shell' && 'border-accent/50 font-mono',
+      )}
+      contentEditable
+      role='textbox'
+      aria-multiline='true'
+      data-placeholder={SMART_COMPOSER_PLACEHOLDER}
+      onKeyDown={handleKeyDown}
+      onInput={onInput}
+      onCopy={onCopy}
+      onPaste={onPaste}
+    />
+  );
+});

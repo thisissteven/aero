@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { cn, PromptInput } from '@aero/ui';
 
+import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
-import { ChatInputTextArea } from '@/app/features/chat-page/chat-input/chat-input';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
 import {
   ModelAgentDropdownSheet,
@@ -21,33 +21,12 @@ import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle
 import { HeroText } from '@/app/features/new-session-page/hero-text';
 import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
-import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function NewSessionPage() {
   const isMounted = useIsMounted();
   const isMobile = useWindowSize((size) => size.width < 768);
-
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useKeyPress(
-    'i',
-    () => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    },
-    {
-      modifiers: { mod: true },
-    },
-  );
-
-  useEffect(() => {
-    if (textareaRef.current && !isMobile) {
-      textareaRef.current.focus();
-    }
-  }, [isMobile]);
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
@@ -67,13 +46,7 @@ export function NewSessionPage() {
             <HeroText />
 
             <WorkspaceWorktreeDropdownWrapper>
-              <NewSessionPromptInputWrapper
-                onSubmit={() => {
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = '';
-                  }
-                }}
-              >
+              <NewSessionPromptInputWrapper>
                 <PromptInput.Shell className='@container relative'>
                   <div className='absolute top-2 right-2'>
                     <ChatInputExpandedToggleButton
@@ -82,11 +55,7 @@ export function NewSessionPage() {
                   </div>
 
                   <PromptInput.Content>
-                    <ChatInputTextArea
-                      ref={textareaRef}
-                      sessionId={NEW_SESSION_PAGE_SESSION_ID}
-                      enabledClassName='min-h-[calc(100svh-320px)]'
-                    />
+                    <SmartComposer enabledClassName='min-h-[calc(100svh-320px)]' />
                   </PromptInput.Content>
 
                   <PromptInput.Toolbar>

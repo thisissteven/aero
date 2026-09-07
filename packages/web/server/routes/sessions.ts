@@ -14,7 +14,10 @@ import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 
 import { groupMessages, withPagination } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
-import type { AeroPartRequest, AeroTocItem } from '../services/harness/types';
+import type {
+  AeroPartUserMessage,
+  AeroTocItem,
+} from '../services/harness/types';
 
 const harnessQuerySchema = z.object({
   harnessId: z.string().optional(),
@@ -729,7 +732,7 @@ const sessions = new Hono()
     zValidator(
       'json',
       z.object({
-        parts: z.custom<AeroPartRequest[]>(
+        parts: z.custom<AeroPartUserMessage[]>(
           (val) => Array.isArray(val),
           'parts must be an array',
         ),

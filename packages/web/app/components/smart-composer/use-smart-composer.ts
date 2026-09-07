@@ -10,12 +10,8 @@ import {
   textOffsetToPointEditable,
 } from './smart-composer-dom';
 import type { ComposerSegment, SearchItem } from './smart-composer-helpers';
-import { buildText, cloneSegments } from './smart-composer-helpers';
-import {
-  ComposerMode,
-  ComposerPayload,
-  useComposerStore,
-} from './smart-composer-store';
+import { cloneSegments } from './smart-composer-helpers';
+import { ComposerMode, useComposerStore } from './smart-composer-store';
 
 interface UseSmartComposerOptions {
   editorRef: React.RefObject<HTMLDivElement | null>;
@@ -256,59 +252,6 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
     [captureSnapshot, commitFromDom],
   );
 
-  const setPayload = useComposerStore((state) => state.setPayload);
-
-  const submit = useCallback(
-    (onSubmit?: (payload: ComposerPayload) => void) => {
-      const editor = editorRef.current;
-
-      if (!editor) {
-        return;
-      }
-
-      const state = useComposerStore.getState();
-
-      const segments = serializeEditor(editor);
-      const text = buildText(segments);
-
-      const payload: ComposerPayload =
-        state.mode === 'shell'
-          ? {
-              text,
-              segments: [
-                {
-                  type: 'shell',
-                  text,
-                },
-              ],
-            }
-          : {
-              text,
-              segments,
-            };
-
-      setPayload(payload);
-
-      onSubmit?.(payload);
-
-      editor.innerHTML = '';
-
-      setSegments([]);
-      setMode('normal');
-
-      initializeHistory({
-        segments: [],
-        caret: 0,
-        mode: 'normal',
-      });
-
-      editor.focus();
-
-      return payload;
-    },
-    [editorRef, initializeHistory, setMode, setPayload, setSegments],
-  );
-
   return {
     captureSnapshot,
     syncFromDom,
@@ -328,7 +271,5 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
       return editor ? findTokenImmediatelyBeforeCaret(editor) : null;
     },
-
-    submit,
   };
 }

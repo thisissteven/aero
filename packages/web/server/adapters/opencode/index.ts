@@ -1050,14 +1050,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         client.session.prompt({
           sessionID,
           directory,
-          parts: input.parts.map((p) =>
-            p.type === 'text'
-              ? {
-                  type: 'text',
-                  text: p.text,
-                }
-              : (p as never),
-          ),
+          parts: input.parts,
           model: input.model
             ? {
                 providerID: input.model.providerId,
@@ -1067,6 +1060,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           system: input.system,
           agent: input.agent,
           variant: input.variant,
+          // tools:
         }),
       );
 
@@ -1097,6 +1091,23 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       return toAeroMessage({ info, parts });
+    },
+
+    async listFilesInDirectory(input) {
+      const files = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.v2.fs.find({
+            query: input.query,
+            limit: input.limit,
+            location: {
+              directory: input.directory,
+            },
+            type: 'file',
+          }),
+        ),
+      );
+
+      return files.data.map((file) => file.path);
     },
 
     async abortSession(sessionID) {

@@ -1,8 +1,8 @@
 import { composerSelectors, useComposerStore } from '../smart-composer-store';
 
 export const SMART_COMPOSER_PLACEHOLDER =
-  'Type a message using @, /, # or ! ...';
-const shellPlaceholder = 'You are now in shell mode';
+  '@ for files/agents; / for commands and skills; ! for shell; # for snippets';
+const shellPlaceholder = 'Press Esc/Backspace to exit shell mode';
 
 export function ComposerPlaceholder() {
   const isEmpty = useComposerStore(composerSelectors.isEmpty);
@@ -14,14 +14,14 @@ export function ComposerPlaceholder() {
 
   if (state === 'shell') {
     return (
-      <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-4 font-mono'>
+      <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 font-mono text-sm'>
         {shellPlaceholder}
       </div>
     );
   }
 
   return (
-    <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-4'>
+    <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 text-sm'>
       {SMART_COMPOSER_PLACEHOLDER}
     </div>
   );

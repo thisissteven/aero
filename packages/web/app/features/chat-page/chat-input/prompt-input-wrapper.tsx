@@ -3,6 +3,11 @@ import { ReactNode, useCallback, useState } from 'react';
 
 import { PromptInput, toast } from '@aero/ui';
 
+import {
+  composerSubmitAfter,
+  composerSubmitBefore,
+} from '@/app/components/smart-composer/components/composer-submit';
+import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
@@ -19,10 +24,8 @@ import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function NewSessionPromptInputWrapper({
   children,
-  onSubmit,
 }: {
   children: ReactNode;
-  onSubmit: () => void;
 }) {
   const [value, setValue] = useState('');
   const [isPending, setIsPending] = useState(false);
@@ -126,7 +129,6 @@ export function NewSessionPromptInputWrapper({
       );
 
       addRunningSession(session.id);
-      onSubmit();
     } catch {
       setIsPending(false);
     }
@@ -152,50 +154,56 @@ export function NewSessionPromptInputWrapper({
 interface ActiveSessionPromptInputWrapperProps {
   children: ReactNode;
   isDisabled: boolean;
-  onSubmit: () => void;
 }
 
 export function ActiveSessionPromptInputWrapper({
   children,
   isDisabled,
-  onSubmit,
 }: ActiveSessionPromptInputWrapperProps) {
-  const [value, setValue] = useState('');
-  const [isAborting, setIsAborting] = useState(false);
+  const {
+    text,
+    handleSend,
+    handleAbort,
+    inputDisabled,
+    isAborting,
+    isPending,
+  } = usePromptInput({ isDisabled });
 
-  const { sessionId } = useParams({
-    strict: false,
-  });
-
-  const { data: session } = useSession(undefined, sessionId);
-
-  const selectedVariant = useChatSettingsStore(
-    (state) => state.selectedVariant,
+  return (
+    <PromptInput
+      className='group/prompt-input w-full max-w-[780px]'
+      value={text}
+      onSubmit={handleSend}
+      onStop={handleAbort}
+      isDisabled={inputDisabled}
+      status={isAborting ? 'submitted' : undefined}
+      isPending={isPending}
+    >
+      {children}
+    </PromptInput>
   );
-  const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-  const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
+}
 
-  const cycleVariant = useChatSettingsStore((state) => state.cycleVariant);
+export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
+  const segments = useComposerStore((state) => state.segments);
 
   useKeyPress(
     'ArrowRight',
-    () => {
-      cycleVariant(1);
-    },
-    {
-      ignoreInputs: value.length === 0 ? false : true,
-    },
+    () => useChatSettingsStore.getState().cycleVariant(1),
+    { ignoreInputs: segments.length > 0 },
   );
 
   useKeyPress(
     'ArrowLeft',
-    () => {
-      cycleVariant(-1);
-    },
-    {
-      ignoreInputs: value.length === 0 ? false : true,
-    },
+    () => useChatSettingsStore.getState().cycleVariant(-1),
+    { ignoreInputs: segments.length > 0 },
   );
+
+  const [isAborting, setIsAborting] = useState(false);
+  const { sessionId } = useParams({ strict: false });
+  const { mutate: sendMessage } = useSendMessage(undefined);
+  const { mutate: abortSession } = useAbortSession(undefined);
+  const { data: session } = useSession(undefined, sessionId);
 
   const status = useChatStore((state) =>
     sessionId
@@ -207,12 +215,14 @@ export function ActiveSessionPromptInputWrapper({
 
   const isPending = status.type !== 'idle';
 
-  const { mutate: sendMessage } = useSendMessage(undefined);
-
-  const { mutate: abortSession } = useAbortSession(undefined);
+  const inputDisabled = isDisabled || (session && session.readOnly);
 
   const handleSend = useCallback(async () => {
-    const text = value.trim();
+    composerSubmitBefore();
+    const text = useComposerStore.getState().payload?.text;
+
+    const { selectedModel, selectedAgent, selectedVariant } =
+      useChatSettingsStore.getState();
 
     if (
       !text ||
@@ -252,7 +262,7 @@ export function ActiveSessionPromptInputWrapper({
       },
       {
         onSuccess: () => {
-          setValue('');
+          composerSubmitAfter();
         },
 
         onError: () => {
@@ -260,17 +270,7 @@ export function ActiveSessionPromptInputWrapper({
         },
       },
     );
-
-    onSubmit();
-  }, [
-    value,
-    isPending,
-    sessionId,
-    selectedModel,
-    selectedAgent,
-    sendMessage,
-    onSubmit,
-  ]);
+  }, [isPending, sessionId, sendMessage]);
 
   const handleAbort = useCallback(() => {
     if (!sessionId || !isPending || isAborting) {
@@ -294,20 +294,12 @@ export function ActiveSessionPromptInputWrapper({
 
   useDoubleKeyPress('Escape', handleAbort, { threshold: 350 });
 
-  const inputDisabled = isDisabled || (session && session.readOnly);
-
-  return (
-    <PromptInput
-      className='group/prompt-input w-full max-w-[780px]'
-      value={value}
-      onValueChange={setValue}
-      onSubmit={handleSend}
-      onStop={handleAbort}
-      isDisabled={inputDisabled}
-      status={isAborting ? 'submitted' : undefined}
-      isPending={isPending}
-    >
-      {children}
-    </PromptInput>
-  );
+  return {
+    text: segments.length ? 'text' : '',
+    inputDisabled,
+    handleSend,
+    handleAbort,
+    isAborting,
+    isPending,
+  };
 }
