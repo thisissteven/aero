@@ -710,7 +710,7 @@ const system = new Hono()
 
       const harness = await getActiveAdapter(harnessId);
       const files = await harness.listFilesInDirectory({
-        query: query ?? '',
+        query: query ?? '.',
         directory,
         limit: limit ?? '5',
       });

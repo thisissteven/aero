@@ -185,7 +185,6 @@ export function CommandPaletteList() {
         ref={listRef}
         items={flatItems}
         selectionMode='single'
-        shouldFocusWrap={false}
         autoFocus='first'
         renderEmptyState={() => (
           <div className='text-muted flex h-16 items-center justify-center text-sm'>

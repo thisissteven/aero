@@ -16,6 +16,7 @@ import {
   useAbortSession,
   useCreateSession,
   useSendMessage,
+  useSendShellCommand,
   useSession,
 } from '@/app/hooks/api/sessions';
 import { useDoubleKeyPress } from '@/app/hooks/useDoubleKeyPress';
@@ -74,7 +75,6 @@ export function NewSessionPromptInputWrapper({
       });
     } catch {
       setIsPending(false);
-      toast.danger('Failed to send message');
     }
   };
 
@@ -118,9 +118,15 @@ export function ActiveSessionPromptInputWrapper({
 
   const { sessionId } = useParams({ strict: false });
 
-  useKeyPress('Enter', () => handleSend(sessionId), {
-    ignoreInputs: false,
-  });
+  useKeyPress(
+    'Enter',
+    () => {
+      handleSend(sessionId);
+    },
+    {
+      ignoreInputs: false,
+    },
+  );
 
   return (
     <PromptInput
@@ -155,6 +161,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const [isAborting, setIsAborting] = useState(false);
   const { sessionId } = useParams({ strict: false });
   const { mutate: sendMessage } = useSendMessage(undefined);
+  const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: abortSession } = useAbortSession(undefined);
   const { data: session } = useSession(undefined, sessionId);
 
@@ -194,34 +201,43 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
         return;
       }
 
-      sendMessage(
-        {
-          sessionId,
-          parts: [
-            {
-              type: 'text',
-              text,
-            },
-          ],
-          model: {
-            modelId: selectedModel.model.id,
-            providerId: selectedModel.providerId,
-          },
-          agent: selectedAgent?.name,
-          variant: selectedVariant,
-        },
-        {
-          onSuccess: () => {
-            composerSubmitAfter();
-          },
+      const isShellMode = useComposerStore.getState().mode === 'shell';
 
-          onError: () => {
-            toast.danger('Failed to send message');
-          },
-        },
-      );
+      try {
+        if (isShellMode) {
+          sendShellCommand({
+            sessionId,
+            model: {
+              modelId: selectedModel.model.id,
+              providerId: selectedModel.providerId,
+            },
+            agent: selectedAgent?.name,
+            command: text,
+          });
+        } else {
+          sendMessage({
+            sessionId,
+            parts: [
+              {
+                type: 'text',
+                text,
+              },
+            ],
+            model: {
+              modelId: selectedModel.model.id,
+              providerId: selectedModel.providerId,
+            },
+            agent: selectedAgent?.name,
+            variant: selectedVariant,
+          });
+        }
+      } catch {
+        toast.danger('Failed to send message');
+      } finally {
+        composerSubmitAfter();
+      }
     },
-    [isPending, sendMessage],
+    [isPending, sendMessage, sendShellCommand],
   );
 
   const handleAbort = useCallback(() => {

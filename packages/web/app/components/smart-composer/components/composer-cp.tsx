@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { cn } from '@aero/ui';
+import { cn, Kbd, ScrollShadow } from '@aero/ui';
 
-import { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
+import { FileTypeIcon } from '@/app/components/file-type-icon';
+import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
+import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
+import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 
 import type { SearchItem } from '../smart-composer-helpers';
 
@@ -12,7 +15,10 @@ interface CommandPaletteProps {
   selectedIndex: number;
   caretRect: CaretRect | null;
   onSelect: (item: SearchItem) => void;
+  close: () => void;
 }
+
+const GROUPS = ['FILES', 'AGENTS', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
 
 export function ComposerCommandPalette({
   open,
@@ -20,8 +26,11 @@ export function ComposerCommandPalette({
   selectedIndex,
   caretRect,
   onSelect,
+  close,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
+
+  useOnClickOutside(paletteRef, close);
 
   const position = useCallback(() => {
     const palette = paletteRef.current;
@@ -30,10 +39,7 @@ export function ComposerCommandPalette({
       return;
     }
 
-    const rect = palette.getBoundingClientRect();
-
-    const width = rect.width;
-    const height = rect.height;
+    const { width, height } = palette.getBoundingClientRect();
 
     const gap = 6;
     const margin = 8;
@@ -65,11 +71,9 @@ export function ComposerCommandPalette({
   }, [caretRect, open]);
 
   useLayoutEffect(() => {
-    if (!open) {
-      return;
+    if (open) {
+      position();
     }
-
-    position();
   }, [open, results, selectedIndex, caretRect, position]);
 
   useEffect(() => {
@@ -77,22 +81,12 @@ export function ComposerCommandPalette({
       return;
     }
 
-    const handleResize = () => {
-      position();
-    };
-
-    const handleScroll = () => {
-      position();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
     };
   }, [open, position]);
 
@@ -103,20 +97,16 @@ export function ComposerCommandPalette({
       return;
     }
 
-    const selected = palette.querySelector<HTMLElement>(
-      `[data-index="${selectedIndex}"]`,
-    );
-
-    selected?.scrollIntoView({
-      block: 'nearest',
-    });
+    palette
+      .querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`)
+      ?.scrollIntoView({
+        block: 'nearest',
+      });
   }, [selectedIndex, results]);
 
   if (!open) {
     return null;
   }
-
-  const groups = ['FILES', 'AGENTS', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
 
   let flatIndex = 0;
 
@@ -124,79 +114,104 @@ export function ComposerCommandPalette({
     <div
       ref={paletteRef}
       className={cn(
-        'fixed z-[1]',
-        'max-w-[min(480px,calc(100vw-16px))] min-w-80',
-        'max-h-80 scrollbar-thin overflow-y-auto',
+        'fixed z-50',
+        'max-w-[min(480px,calc(100vw-32px))] min-w-60',
         'border-separator rounded-xl border',
-        'bg-overlay text-overlay-foreground',
-        'p-1',
+        'bg-overlay text-overlay-foreground overflow-hidden',
       )}
-      role='listbox'
-      aria-label='Composer suggestions'
     >
-      {groups.map((group) => {
-        const items = results.filter((item) => item.group === group);
+      <ScrollShadow
+        role='listbox'
+        aria-label='Composer suggestions'
+        className='max-h-80 scroll-py-10 scrollbar-thin overflow-y-auto p-1'
+      >
+        {GROUPS.map((group) => {
+          const items = results.filter((item) => item.group === group);
 
-        if (!items.length) {
-          return null;
-        }
+          if (!items.length) {
+            return null;
+          }
 
-        return (
-          <React.Fragment key={group}>
-            <div
-              className={cn(
-                'border-separator border-b',
-                'px-3 py-1.5',
-                'text-[11px] font-medium uppercase',
-                'text-muted',
-              )}
-            >
-              {group}
-            </div>
+          return (
+            <React.Fragment key={group}>
+              <div
+                className={cn(
+                  'border-separator mb-1 border-b',
+                  'px-3 py-1.5',
+                  'text-[11px] font-medium uppercase',
+                  'text-muted',
+                )}
+              >
+                {group}
+              </div>
 
-            {items.map((item) => {
-              const index = flatIndex++;
+              {items.map((item) => {
+                const index = flatIndex++;
+                const active = index === selectedIndex;
 
-              const active = index === selectedIndex;
+                return (
+                  <div
+                    key={`${group}-${item.id}`}
+                    data-index={index}
+                    role='option'
+                    aria-selected={active}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-2',
+                      'border-separator/20 rounded-md border-b',
+                      'px-3 py-2 text-sm',
+                      active ? 'bg-surface-hover' : 'hover:bg-surface-hover',
+                    )}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      onSelect(item);
+                    }}
+                  >
+                    {item.kind === 'file' && (
+                      <FileTypeIcon filePath={item.value} />
+                    )}
 
-              return (
-                <div
-                  key={`${group}-${item.id}`}
-                  data-index={index}
-                  role='option'
-                  aria-selected={active}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-2',
-                    'border-separator/20 rounded-md border-b',
-                    'px-3 py-2 text-sm',
-                    active ? 'bg-surface-hover' : 'hover:bg-surface-hover',
-                  )}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    onSelect(item);
-                  }}
-                >
-                  <span className='text-muted shrink-0 text-[10px] font-medium uppercase'>
-                    {item.kind}
-                  </span>
+                    {item.kind === 'file' && (
+                      <MiddleTruncatePath
+                        path={item.value}
+                        className='text-muted'
+                        fileClassName='text-foreground'
+                      />
+                    )}
 
-                  <span className='text-foreground min-w-0 font-medium'>
-                    {item.label}
-                  </span>
+                    {item.kind !== 'file' && (
+                      <span className='truncate text-xs'>{item.value}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
 
-                  <span className='text-muted truncate text-xs'>
-                    {item.value}
-                  </span>
-                </div>
-              );
-            })}
-          </React.Fragment>
-        );
-      })}
+        {!results.length && (
+          <div className='text-muted px-3 py-2 text-sm'>No results</div>
+        )}
+      </ScrollShadow>
+      <div className='bg-overlay text-muted border-separator relative flex items-center gap-3 border-t p-1.5'>
+        <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-0.5'>
+            <Kbd className='h-5 rounded-md px-1.5 text-xs'>
+              <Kbd.Abbr keyValue='up' />
+            </Kbd>
+            <Kbd className='h-5 rounded-md px-1.5 text-xs'>
+              <Kbd.Abbr keyValue='down' />
+            </Kbd>
+          </div>
+          <span className='text-xs'>Navigate</span>
+        </div>
 
-      {!results.length && (
-        <div className='text-muted px-3 py-2 text-sm'>No results</div>
-      )}
+        <div className='flex items-center gap-2'>
+          <Kbd className='h-5 rounded-md px-1.5'>
+            <Kbd.Abbr keyValue='enter' />
+          </Kbd>
+          <span className='text-xs'>Select</span>
+        </div>
+      </div>
     </div>
   );
 }

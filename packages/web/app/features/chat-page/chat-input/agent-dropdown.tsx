@@ -93,6 +93,7 @@ export function AgentDropdown() {
           <Command.Dialog
             filter={() => true}
             className='rounded-none border-none bg-transparent shadow-none'
+            allowEscape
           >
             <Command.InputGroup>
               <Command.InputGroup.Prefix>
@@ -102,11 +103,13 @@ export function AgentDropdown() {
               <Command.InputGroup.Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className='py-2.5 text-sm'
+                className='py-2.5 pr-0 text-sm'
                 placeholder='Search agent modes...'
               />
 
-              <Command.InputGroup.ClearButton />
+              <Command.InputGroup.ClearButton
+                onPress={() => setSearchQuery('')}
+              />
             </Command.InputGroup>
 
             {visibleAgents.length === 0 ? (

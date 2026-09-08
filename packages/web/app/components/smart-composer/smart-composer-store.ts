@@ -26,6 +26,7 @@ export interface ComposerPayload {
 }
 
 interface ComposerState {
+  composerOpen: boolean;
   segments: ComposerSegment[];
   mode: ComposerMode;
 
@@ -34,6 +35,7 @@ interface ComposerState {
 
   payload: ComposerPayload | null;
 
+  setComposerOpen: (composerOpen: boolean) => void;
   setSegments: (segments: ComposerSegment[]) => void;
   setMode: (mode: ComposerMode) => void;
   setPayload: (payload: ComposerPayload | null) => void;
@@ -48,6 +50,7 @@ interface ComposerState {
 }
 
 export const useComposerStore = create<ComposerState>((set, get) => ({
+  composerOpen: false,
   segments: [],
   mode: 'normal',
 
@@ -55,6 +58,12 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
   historyIndex: -1,
 
   payload: null,
+
+  setComposerOpen: (composerOpen) => {
+    set({
+      composerOpen,
+    });
+  },
 
   setSegments: (segments) => {
     set({

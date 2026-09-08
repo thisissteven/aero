@@ -13,7 +13,7 @@ export function createNodeFromSegment(segment: ComposerSegment): Node {
     file: 'text-accent',
     agent: 'text-accent-soft-foreground',
     skill: 'text-success',
-    command: 'text-accent',
+    command: 'text-warning',
     snippet: 'text-danger',
   }[token.type];
 

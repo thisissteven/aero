@@ -30,6 +30,7 @@ export function VariantsPicker({
       <Command.Dialog
         filter={() => true}
         className='rounded-none border-none bg-transparent shadow-none'
+        allowEscape
       >
         {variants.length === 0 ? (
           <div className='text-muted flex h-24 items-center justify-center text-sm'>

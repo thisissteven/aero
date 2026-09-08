@@ -19,11 +19,7 @@ export function MiddleTruncatePath({
   if (lastSlashIndex === -1) {
     return (
       <span
-        className={cn(
-          'text-foreground/80 -ml-1 truncate',
-          className,
-          fileClassName,
-        )}
+        className={cn('text-foreground/80 truncate', className, fileClassName)}
       >
         {normalized}
       </span>

@@ -51,6 +51,9 @@ type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<
   typeof $individualSession.message.$post
 >['json'];
+type SendshellCommandInput = InferRequestType<
+  typeof $individualSession.shell.$post
+>['json'];
 
 export type SessionsPageResponse = InferResponseType<
   typeof $sessions.merged.$get,
@@ -143,7 +146,7 @@ export function useSessionTodos(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       return res.json();
     },
     enabled: !!sessionId,
@@ -480,6 +483,32 @@ export function useForkSession(
       queryClient.invalidateQueries({
         queryKey: sessionKeys.merged(),
       });
+    },
+  });
+}
+
+export function useSendShellCommand(harnessId: string | undefined) {
+  return useMutation({
+    mutationFn: async (
+      input: SendshellCommandInput & {
+        sessionId: string;
+      },
+    ) => {
+      const res = await $individualSession.shell.$post({
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
+        json: input,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      return res.json();
     },
   });
 }

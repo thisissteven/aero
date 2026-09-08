@@ -1071,6 +1071,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
     },
 
+    sendShellCommand(sessionID, input, directory) {
+      withOpencodeClientV2((client) =>
+        client.session.shell({
+          sessionID,
+          directory,
+          model: input.model
+            ? {
+                providerID: input.model.providerId,
+                modelID: input.model.modelId,
+              }
+            : undefined,
+          agent: input.agent,
+          command: input.command,
+        }),
+      );
+
+      return true;
+    },
+
     sendMessage(sessionID, input, directory) {
       withOpencodeClientV2((client) =>
         client.session.prompt({

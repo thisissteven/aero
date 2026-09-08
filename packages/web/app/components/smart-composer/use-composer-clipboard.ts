@@ -4,36 +4,29 @@ import {
   createNodeFromSegment,
   serializeContainer,
 } from './smart-composer-dom';
-import { COMPOSER_CLIPBOARD_MIME } from './smart-composer-helpers';
-import { buildText } from './smart-composer-helpers';
+import { buildText, COMPOSER_CLIPBOARD_MIME } from './smart-composer-helpers';
 import { useComposerStore } from './smart-composer-store';
 
 export function useComposerClipboard(
   editorRef: React.RefObject<HTMLDivElement | null>,
 ) {
-  const commitHistory = useComposerStore((state) => state.commitHistory);
-
   const setSegments = useComposerStore((state) => state.setSegments);
+  const commitHistory = useComposerStore((state) => state.commitHistory);
+  const mode = useComposerStore((state) => state.mode);
 
   const handleCopy = useCallback(
     (event: React.ClipboardEvent<HTMLDivElement>) => {
       const editor = editorRef.current;
 
-      if (!editor) {
-        return;
-      }
+      if (!editor) return;
 
       const selection = window.getSelection();
 
-      if (!selection || !selection.rangeCount) {
-        return;
-      }
+      if (!selection || !selection.rangeCount) return;
 
       const range = selection.getRangeAt(0);
 
-      if (!editor.contains(range.startContainer)) {
-        return;
-      }
+      if (!editor.contains(range.startContainer)) return;
 
       const wrapper = document.createElement('div');
 
@@ -68,25 +61,21 @@ export function useComposerClipboard(
     (event: React.ClipboardEvent<HTMLDivElement>) => {
       const editor = editorRef.current;
 
-      if (!editor) {
-        return;
-      }
+      if (!editor) return;
 
       const selection = window.getSelection();
 
-      if (!selection || !selection.rangeCount) {
-        return;
-      }
+      if (!selection || !selection.rangeCount) return;
 
       const range = selection.getRangeAt(0);
 
-      if (!editor.contains(range.startContainer)) {
-        return;
-      }
-
-      const structured = event.clipboardData.getData(COMPOSER_CLIPBOARD_MIME);
+      if (!editor.contains(range.startContainer)) return;
 
       event.preventDefault();
+
+      let inserted = false;
+
+      const structured = event.clipboardData.getData(COMPOSER_CLIPBOARD_MIME);
 
       if (structured) {
         try {
@@ -104,30 +93,52 @@ export function useComposerClipboard(
             range.insertNode(fragment);
             range.collapse(false);
 
-            setSegments(serializeContainer(editor));
-
-            return;
+            inserted = true;
           }
         } catch {
           // Fall through to plain text.
         }
       }
 
-      const text = event.clipboardData.getData('text/plain');
+      if (!inserted) {
+        const text = event.clipboardData.getData('text/plain');
 
-      range.deleteContents();
+        range.deleteContents();
+        range.insertNode(document.createTextNode(text));
+        range.collapse(false);
+      }
 
-      range.insertNode(document.createTextNode(text));
+      const segments = serializeContainer(editor);
 
-      range.collapse(false);
+      setSegments(segments);
 
-      setSegments(serializeContainer(editor));
+      commitHistory({
+        segments,
+        caret: getCaretOffset(editor),
+        mode,
+      });
     },
-    [editorRef, setSegments],
+    [commitHistory, editorRef, mode, setSegments],
   );
 
   return {
     handleCopy,
     handlePaste,
   };
+}
+
+function getCaretOffset(editor: HTMLElement) {
+  const selection = window.getSelection();
+
+  if (!selection || !selection.rangeCount) {
+    return 0;
+  }
+
+  const range = selection.getRangeAt(0);
+  const preRange = document.createRange();
+
+  preRange.selectNodeContents(editor);
+  preRange.setEnd(range.startContainer, range.startOffset);
+
+  return preRange.toString().length;
 }

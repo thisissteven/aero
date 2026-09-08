@@ -94,7 +94,7 @@ export const SmartComposer = React.memo(function SmartComposer({
       <ComposerTextarea
         enabledClassName={enabledClassName}
         editorRef={editorRef}
-        paletteOpen={palette.open}
+        paletteOpen={palette.composerOpen}
         selectedItem={palette.selectedItem}
         onInput={handleInput}
         onCopy={clipboard.handleCopy}
@@ -111,11 +111,12 @@ export const SmartComposer = React.memo(function SmartComposer({
       <ComposerPlaceholder />
 
       <ComposerCommandPalette
-        open={palette.open}
+        open={palette.composerOpen}
         results={palette.results}
         selectedIndex={palette.selectedIndex}
         caretRect={palette.caretRect}
         onSelect={handlePaletteSelect}
+        close={palette.close}
       />
     </div>
   );

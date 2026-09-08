@@ -383,6 +383,13 @@ export interface SendMessageInput {
   variant?: string;
 }
 
+export interface SendShellCommandInput {
+  model?: { providerId: string; modelId: string };
+  system?: string;
+  agent?: string;
+  command?: string;
+}
+
 export interface CreateWorkspaceInput {
   name?: string;
   directory: string;
@@ -488,6 +495,11 @@ export interface HarnessAdapter {
   sendMessage(
     sessionId: string,
     input: SendMessageInput,
+    directory: string,
+  ): boolean;
+  sendShellCommand(
+    sessionId: string,
+    input: SendShellCommandInput,
     directory: string,
   ): boolean;
   sendMessageSync(

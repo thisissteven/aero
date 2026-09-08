@@ -1,59 +1,3 @@
-const FILES = [
-  {
-    id: 'f1',
-    label: '@src/components/chat.tsx',
-    value: 'src/components/chat.tsx',
-  },
-  {
-    id: 'f2',
-    label: '@src/components/chat-input.tsx',
-    value: 'src/components/chat-input.tsx',
-  },
-  {
-    id: 'f3',
-    label: '@src/services/search.ts',
-    value: 'src/services/search.ts',
-  },
-  {
-    id: 'f4',
-    label: '@src/components/file.tsx',
-    value: 'src/components/file.tsx',
-  },
-  {
-    id: 'f5',
-    label: '@src/components/chat-button.tsx',
-    value: 'src/components/chat-button.tsx',
-  },
-  {
-    id: 'f6',
-    label: '@src/services/settings.ts',
-    value: 'src/services/settings.ts',
-  },
-];
-
-const AGENTS = [
-  { id: 'a1', label: '@build', value: 'build' },
-  { id: 'a2', label: '@planner', value: 'planner' },
-];
-
-const COMMANDS = [
-  { id: 'c1', label: '/refactor', value: 'refactor' },
-  { id: 'c2', label: '/review', value: 'review' },
-];
-
-const SKILLS = [
-  {
-    id: 's1',
-    label: '/frontend-design',
-    value: 'frontend-design',
-  },
-  {
-    id: 's2',
-    label: '/code-review',
-    value: 'code-review',
-  },
-];
-
 const SNIPPETS = [
   { id: 'n1', label: '#bug-report', value: 'bug-report' },
   { id: 'n2', label: '#react-component', value: 'react-component' },
@@ -64,6 +8,8 @@ export const COMPOSER_CLIPBOARD_MIME = 'application/x-aero-composer+json';
 export const TRIGGER_CHARS = ['@', '/', '#'] as const;
 
 export type TokenType = 'file' | 'agent' | 'command' | 'skill' | 'snippet';
+
+export type TriggerChar = (typeof TRIGGER_CHARS)[number];
 
 interface TextSegment {
   type: 'text';
@@ -77,7 +23,7 @@ interface TokenSegment {
     type: TokenType;
     label: string;
     value: string;
-    trigger: '@' | '/' | '#';
+    trigger: TriggerChar;
   };
 }
 
@@ -88,8 +34,15 @@ export interface SearchItem {
   label: string;
   value: string;
   kind: TokenType;
-  triggerChar: '@' | '/' | '#';
+  triggerChar: TriggerChar;
   group: 'FILES' | 'AGENTS' | 'COMMANDS' | 'SKILLS' | 'SNIPPETS';
+}
+
+interface SearchData {
+  files: string[];
+  agents: Array<{ name: string }>;
+  commands: Array<{ name: string }>;
+  skills: Array<{ name: string }>;
 }
 
 export function cloneSegments(segments: ComposerSegment[]): ComposerSegment[] {
@@ -102,90 +55,93 @@ export function segmentsEqual(a: ComposerSegment[], b: ComposerSegment[]) {
 
 export function buildText(segments: ComposerSegment[]) {
   return segments
-    .map((segment) => {
-      if (segment.type === 'text') {
-        return segment.text;
-      }
-
-      return segment.token.label || segment.token.value || '';
-    })
+    .map((segment) =>
+      segment.type === 'text'
+        ? segment.text
+        : segment.token.label || segment.token.value || '',
+    )
     .join('')
     .trim();
 }
 
-export function unifiedSearch(trigger: '@' | '/' | '#', query: string) {
-  const q = (query || '').toLowerCase();
+function matches(value: string, query: string) {
+  return value.toLowerCase().includes(query);
+}
+
+function createItem(
+  id: string,
+  name: string,
+  kind: TokenType,
+  triggerChar: TriggerChar,
+  group: SearchItem['group'],
+): SearchItem {
+  return {
+    id,
+    label: `${triggerChar}${name}`,
+    value: name,
+    kind,
+    triggerChar,
+    group,
+  };
+}
+
+export function unifiedSearch(
+  trigger: TriggerChar,
+  query: string,
+  data: SearchData,
+) {
+  const q = query.toLowerCase();
   const results: SearchItem[] = [];
 
   if (trigger === '@') {
-    FILES.filter(
-      (item) =>
-        item.value.toLowerCase().includes(q) ||
-        item.label.toLowerCase().includes(q),
-    ).forEach((item) => {
-      results.push({
-        ...item,
-        kind: 'file',
-        triggerChar: '@',
-        group: 'FILES',
-      });
-    });
+    for (const path of data.files) {
+      results.push(createItem(`file:${path}`, path, 'file', '@', 'FILES'));
+    }
 
-    AGENTS.filter(
-      (item) =>
-        item.value.toLowerCase().includes(q) ||
-        item.label.toLowerCase().includes(q),
-    ).forEach((item) => {
-      results.push({
-        ...item,
-        kind: 'agent',
-        triggerChar: '@',
-        group: 'AGENTS',
-      });
-    });
+    for (const agent of data.agents) {
+      if (matches(agent.name, q)) {
+        results.push(
+          createItem(`agent:${agent.name}`, agent.name, 'agent', '@', 'AGENTS'),
+        );
+      }
+    }
   }
 
   if (trigger === '/') {
-    COMMANDS.filter(
-      (item) =>
-        item.value.toLowerCase().includes(q) ||
-        item.label.toLowerCase().includes(q),
-    ).forEach((item) => {
-      results.push({
-        ...item,
-        kind: 'command',
-        triggerChar: '/',
-        group: 'COMMANDS',
-      });
-    });
+    for (const command of data.commands) {
+      if (matches(command.name, q)) {
+        results.push(
+          createItem(
+            `command:${command.name}`,
+            command.name,
+            'command',
+            '/',
+            'COMMANDS',
+          ),
+        );
+      }
+    }
 
-    SKILLS.filter(
-      (item) =>
-        item.value.toLowerCase().includes(q) ||
-        item.label.toLowerCase().includes(q),
-    ).forEach((item) => {
-      results.push({
-        ...item,
-        kind: 'skill',
-        triggerChar: '/',
-        group: 'SKILLS',
-      });
-    });
+    for (const skill of data.skills) {
+      if (matches(skill.name, q)) {
+        results.push(
+          createItem(`skill:${skill.name}`, skill.name, 'skill', '/', 'SKILLS'),
+        );
+      }
+    }
   }
 
   if (trigger === '#') {
-    SNIPPETS.filter(
-      (item) =>
-        item.value.toLowerCase().includes(q) ||
-        item.label.toLowerCase().includes(q),
-    ).forEach((item) => {
-      results.push({
-        ...item,
-        kind: 'snippet',
-        triggerChar: '#',
-        group: 'SNIPPETS',
-      });
-    });
+    for (const snippet of SNIPPETS) {
+      if (matches(snippet.value, q) || matches(snippet.label, q)) {
+        results.push({
+          ...snippet,
+          kind: 'snippet',
+          triggerChar: '#',
+          group: 'SNIPPETS',
+        });
+      }
+    }
   }
 
   const groups: Record<string, SearchItem[]> = {};

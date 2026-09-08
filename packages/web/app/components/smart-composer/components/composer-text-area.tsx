@@ -119,6 +119,7 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
 
       if ((event.key === 'Enter' || event.key === 'Tab') && selectedItem) {
         event.preventDefault();
+        event.stopPropagation();
         onPaletteSelect(selectedItem);
         return;
       }

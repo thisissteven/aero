@@ -16,7 +16,7 @@ export const BashToolView = memo(
     isStreaming: boolean;
   }) => {
     const command = part.input.command ?? '';
-    const rawOutput = formatToolOutput(part.output);
+    const rawOutput = formatToolOutput(part.output) || 'No output';
 
     return (
       <BaseTool

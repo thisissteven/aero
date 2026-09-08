@@ -18,6 +18,7 @@ import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
+import { OfflineWrapper } from '@/app/providers';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -95,8 +96,17 @@ export function ChatPage({
       )}
 
       <div className='shrink-0 px-4 pb-2 md:pb-4'>
-        <div className='relative mx-auto w-full max-w-[720px]'>
-          <ChatActivityIndicator />
+        <div className='@container relative mx-auto w-full max-w-[720px]'>
+          <OfflineWrapper>
+            <ChatActivityIndicator />
+
+            <RevertedMessages sessionId={sessionId} />
+
+            <div className='@container flex items-center justify-between'>
+              <SessionDiff workspace={workspace} sessionId={sessionId} />
+              <SessionTodos sessionId={sessionId} />
+            </div>
+          </OfflineWrapper>
 
           <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
             <ScrollToBottomButton
@@ -108,13 +118,6 @@ export function ChatPage({
               }}
               subscribeScroll={subscribeScroll}
             />
-          </div>
-
-          <RevertedMessages sessionId={sessionId} />
-
-          <div className='@container flex items-center justify-between'>
-            <SessionDiff workspace={workspace} sessionId={sessionId} />
-            <SessionTodos sessionId={sessionId} />
           </div>
 
           <ChatInput isDisabled={notFound} sessionId={sessionId} />

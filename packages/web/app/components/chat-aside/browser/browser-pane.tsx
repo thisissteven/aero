@@ -100,79 +100,74 @@ function getCachedProxyTarget(key: string): CachedProxyTarget | null {
 }
 
 function normalizeBrowserUrl(input: string): string {
-  let trimmed = input.trim();
+  let value = input.trim();
 
-  if (!trimmed) {
+  if (!value) {
     return 'about:blank';
   }
 
   /**
-   * Remove accidental whitespace around path separators.
+   * Remove whitespace immediately before or after path separators.
    *
-   * Example:
+   * Preserves spaces inside filenames:
+   *
    *   C:\foo \bar\index.html -> C:\foo\bar\index.html
    *   C:\foo\ \bar           -> C:\foo\bar
-   *
-   * Spaces inside a filename are preserved:
    *   C:\foo\my file.html    -> C:\foo\my file.html
+   *   C:\foo my\file.html    -> C:\foo my\file.html
    */
-  trimmed = trimmed
-    .replace(/[ \t]+(?=[\\/])/g, '')
-    .replace(/([\\/])[ \t]+/g, '$1');
+  value = value.replace(/[ \t]+(?=[\\/])/g, '').replace(/([\\/])[ \t]+/g, '$1');
 
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    return encodeURI(trimmed);
+  /**
+   * Existing URL.
+   *
+   * Do not encode it again. URL handles existing escapes such as %20.
+   */
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    return value;
   }
 
-  if (/^(about|chrome|edge|javascript|mailto):/i.test(trimmed)) {
-    return trimmed;
+  if (/^(about|chrome|edge|javascript|mailto):/i.test(value)) {
+    return value;
   }
 
   /**
-   * Windows absolute path:
-   *
-   * C:\Users\Steven\file.html
+   * Windows absolute path.
    */
-  if (/^[a-zA-Z]:[\\/]/.test(trimmed)) {
-    const normalizedPath = trimmed.replace(/\\/g, '/');
-
-    return encodeURI(`file:///${normalizedPath}`);
+  if (/^[a-zA-Z]:[\\/]/.test(value)) {
+    const path = value.replace(/\\/g, '/');
+    return encodeURI(`file:///${path}`);
   }
 
   /**
-   * Windows UNC:
-   *
-   * \\server\share\file.html
+   * Windows UNC path.
    */
-  if (/^\\\\/.test(trimmed)) {
-    const normalizedPath = trimmed.replace(/\\/g, '/');
-
-    return encodeURI(`file:${normalizedPath}`);
+  if (/^\\\\/.test(value)) {
+    const path = value.replace(/\\/g, '/');
+    return encodeURI(`file:${path}`);
   }
 
   /**
    * Unix absolute path.
    */
-  if (/^\//.test(trimmed)) {
-    return encodeURI(`file://${trimmed}`);
+  if (/^\//.test(value)) {
+    return encodeURI(`file://${value}`);
   }
 
   /**
    * Localhost.
    */
   if (
-    /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?(?:\/.*)?$/i.test(
-      trimmed,
-    )
+    /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?(?:\/.*)?$/i.test(value)
   ) {
-    return `http://${trimmed}`;
+    return `http://${value}`;
   }
 
   /**
    * IPv6.
    */
-  if (/^\[[a-f0-9:]+\](?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
-    return `https://${trimmed}`;
+  if (/^\[[a-f0-9:]+\](?::\d+)?(?:\/.*)?$/i.test(value)) {
+    return `https://${value}`;
   }
 
   /**
@@ -180,23 +175,27 @@ function normalizeBrowserUrl(input: string): string {
    */
   if (
     /^([\w-]+(?:\.[\w-]+)+|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?(?:\/.*)?$/i.test(
-      trimmed,
+      value,
     )
   ) {
-    return `https://${trimmed}`;
+    return `https://${value}`;
   }
 
   /**
-   * Relative/local paths.
+   * Relative/local path.
    */
   if (
-    /^\.\.?[\\/]/.test(trimmed) ||
-    /^[^\\/:*?"<>|]+(?:[\\/][^\\/:*?"<>|]+)+$/.test(trimmed)
+    /^\.{1,2}[\\/]/.test(value) ||
+    /^[^\\/:"*?<>|]+(?:[\\/][^\\/:"*?<>|]+)+$/.test(value)
   ) {
-    return encodeURI(`file://${trimmed.replace(/\\/g, '/')}`);
+    const path = value.replace(/\\/g, '/');
+    return encodeURI(`file://${path}`);
   }
 
-  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+  /**
+   * Search.
+   */
+  return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
 }
 
 function formatAgentationContext(pageUrl: string, target: any): string {
@@ -763,16 +762,17 @@ export function BrowserPane({
           <Icon data={ArrowsRotateRight} size={14} />
         </IconBtn>
 
-        <form
-          className='min-w-0 flex-1'
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
-          }}
-        >
+        <form className='min-w-0 flex-1'>
           <input
             value={tab.draftUrl}
             onChange={(event) => setDraftUrl(tabId, event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
+                handleSubmit();
+              }
+            }}
             placeholder='Search or enter address'
             className='border-border bg-default h-7 w-full rounded-md border px-2 text-sm outline-none'
           />

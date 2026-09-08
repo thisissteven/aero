@@ -73,6 +73,7 @@ export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
         <Command.Dialog
           filter={() => true}
           className='max-w-full rounded-none border-none bg-transparent shadow-none'
+          allowEscape
         >
           <Command.InputGroup>
             <Command.InputGroup.Prefix>
@@ -86,7 +87,9 @@ export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
               placeholder='Search agent modes...'
             />
 
-            <Command.InputGroup.ClearButton />
+            <Command.InputGroup.ClearButton
+              onPress={() => setSearchQuery('')}
+            />
           </Command.InputGroup>
 
           {visibleAgents.length === 0 ? (

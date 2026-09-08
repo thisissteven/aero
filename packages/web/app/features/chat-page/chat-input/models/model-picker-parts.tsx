@@ -125,8 +125,10 @@ export function ModelSearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder='Search models or providers'
-        className='py-2.5 pr-3 text-sm'
+        className='py-2.5 pr-0 text-sm'
       />
+
+      <Command.InputGroup.ClearButton onPress={() => onChange('')} />
     </Command.InputGroup>
   );
 }

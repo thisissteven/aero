@@ -33,6 +33,7 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
         <Command.Dialog
           filter={() => true}
           className='max-w-full rounded-none border-none bg-transparent shadow-none'
+          allowEscape
         >
           <Command.InputGroup className='border-separator border-b'>
             <Command.InputGroup.Prefix>
@@ -43,7 +44,11 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder='Search models or providers'
-              className='py-2.5 text-sm'
+              className='py-2.5 pr-0 text-sm'
+            />
+
+            <Command.InputGroup.ClearButton
+              onPress={() => setSearchQuery('')}
             />
           </Command.InputGroup>
 

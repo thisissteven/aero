@@ -101,7 +101,7 @@ export function useWorkspaceByDirectory(directory: string) {
       const res = await $workspaces.$get({
         query: { directory },
       });
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       return res.json();
     },
     enabled: !!directory,

@@ -10,6 +10,7 @@ import { useScrollController } from '@/app/components/scroll-to-bottom';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import type {
   AeroConversationTurn,
   AeroEvent,
@@ -804,7 +805,24 @@ function handleMessagePartUpdated(
     }
   }
 
+  const previousTurn = current.turns.at(-2);
   const lastTurn = current.turns.at(-1);
+
+  const isPreviousUserToolMessage =
+    previousTurn?.role === 'user' &&
+    lastTurn?.role === 'assistant' &&
+    previousTurn.parts?.some(
+      (part) =>
+        part.type === 'text' &&
+        part.text === 'The following tool was executed by the user',
+    );
+
+  if (isPreviousUserToolMessage) {
+    useKeepMountedStoreFeed
+      .getState()
+      .setKeep(`${event.messageId}-part-0`, true);
+  }
+
   if (
     state.activeSessionId === sessionId &&
     lastTurn?.role === 'user' &&

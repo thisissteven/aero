@@ -1,7 +1,7 @@
 import { Signal } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
@@ -44,4 +44,18 @@ export function OfflineAlert() {
       </div>
     </div>
   );
+}
+
+export function OfflineWrapper({ children }: { children: ReactNode }) {
+  const isOnline = useOnlineStatus();
+
+  if (!isOnline) {
+    return (
+      <div className='text-warning mx-3 mb-2 animate-pulse text-left text-sm'>
+        Disconnected. Reconnecting...
+      </div>
+    );
+  }
+
+  return children;
 }

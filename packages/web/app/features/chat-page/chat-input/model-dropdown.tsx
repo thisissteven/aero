@@ -119,6 +119,7 @@ export function ModelDropdown() {
               <Command.Dialog
                 filter={() => true}
                 className='rounded-none border-none bg-transparent shadow-none'
+                allowEscape
               >
                 <ModelSearchInput
                   value={searchQuery}
