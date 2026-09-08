@@ -165,8 +165,8 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
       }
     }
 
-    if (event.key === 'Enter' && !event.shiftKey && !paletteOpen) {
-      event.preventDefault();
+    if (event.key === 'Enter' && event.shiftKey && !paletteOpen) {
+      event.stopPropagation();
     }
   };
 

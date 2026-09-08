@@ -5,6 +5,7 @@ import { useNewSessionStore } from '@/app/features/new-session-page/new-session-
 import { useCapabilities } from '@/app/hooks/api/capabilities';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
+import { useDebounce } from '@/app/hooks/useDebounce';
 
 import { TRIGGER_CHARS, unifiedSearch } from './smart-composer-helpers';
 import { useComposerStore } from './smart-composer-store';
@@ -77,16 +78,163 @@ function getCaretRect(editor: HTMLElement): CaretRect | null {
     return null;
   }
 
-  const rect = range.getClientRects()[0] ?? range.getBoundingClientRect();
+  const rect = range.getBoundingClientRect();
 
-  if (!rect) {
+  if (rect.width || rect.height || rect.top || rect.left) {
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+    };
+  }
+
+  const getRect = (node: Node, offset: number) => {
+    const range = document.createRange();
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      const length = node.textContent?.length ?? 0;
+
+      if (offset > 0 && offset <= length) {
+        range.setStart(node, offset - 1);
+        range.setEnd(node, offset);
+
+        return {
+          rect: range.getBoundingClientRect(),
+          side: 'right' as const,
+        };
+      }
+
+      if (offset < length) {
+        range.setStart(node, offset);
+        range.setEnd(node, offset + 1);
+
+        return {
+          rect: range.getBoundingClientRect(),
+          side: 'left' as const,
+        };
+      }
+
+      return null;
+    }
+
+    const child = node.childNodes[offset - 1];
+
+    if (child) {
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child as HTMLElement).dataset.token === 'true'
+      ) {
+        const childRect = (child as HTMLElement).getBoundingClientRect();
+
+        return {
+          rect: childRect,
+          side: 'right' as const,
+        };
+      }
+
+      const text = child.textContent ?? '';
+
+      if (text.length) {
+        const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT);
+
+        let lastText: Node | null = null;
+        let current: Node | null;
+
+        while ((current = walker.nextNode())) {
+          lastText = current;
+        }
+
+        if (lastText) {
+          const length = lastText.textContent?.length ?? 0;
+
+          range.setStart(lastText, Math.max(0, length - 1));
+          range.setEnd(lastText, length);
+
+          return {
+            rect: range.getBoundingClientRect(),
+            side: 'right' as const,
+          };
+        }
+      }
+
+      const childRect = (child as HTMLElement).getBoundingClientRect?.();
+
+      if (childRect) {
+        return {
+          rect: childRect,
+          side: 'right' as const,
+        };
+      }
+    }
+
+    const next = node.childNodes[offset];
+
+    if (next) {
+      if (
+        next.nodeType === Node.ELEMENT_NODE &&
+        (next as HTMLElement).dataset.token === 'true'
+      ) {
+        const nextRect = (next as HTMLElement).getBoundingClientRect();
+
+        return {
+          rect: nextRect,
+          side: 'left' as const,
+        };
+      }
+
+      const text = next.textContent ?? '';
+
+      if (text.length) {
+        const walker = document.createTreeWalker(next, NodeFilter.SHOW_TEXT);
+
+        const firstText = walker.nextNode();
+
+        if (firstText) {
+          range.setStart(firstText, 0);
+          range.setEnd(firstText, 1);
+
+          return {
+            rect: range.getBoundingClientRect(),
+            side: 'left' as const,
+          };
+        }
+      }
+
+      const nextRect = (next as HTMLElement).getBoundingClientRect?.();
+
+      if (nextRect) {
+        return {
+          rect: nextRect,
+          side: 'left' as const,
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const fallback = getRect(range.startContainer, range.startOffset);
+
+  if (!fallback) {
+    return null;
+  }
+
+  const { rect: fallbackRect, side } = fallback;
+
+  if (
+    !fallbackRect ||
+    (fallbackRect.width === 0 &&
+      fallbackRect.height === 0 &&
+      fallbackRect.top === 0 &&
+      fallbackRect.left === 0)
+  ) {
     return null;
   }
 
   return {
-    top: rect.top,
-    bottom: rect.bottom,
-    left: rect.left,
+    top: fallbackRect.top,
+    bottom: fallbackRect.bottom,
+    left: side === 'right' ? fallbackRect.right : fallbackRect.left,
   };
 }
 
@@ -109,22 +257,22 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     (state) => state.selectedWorkspace?.directory,
   );
 
+  const directory =
+    !sessionId && isWorkMode ? selectedDirectory : session?.workspace;
+
+  const debouncedQuery = useDebounce(activeTrigger?.query, 300);
+
   const { data: files = [] } = useFilesInDirectory({
     harnessId: undefined,
-    directory:
-      !sessionId && isWorkMode ? selectedDirectory : session?.workspace,
-    query: fileTriggerQueryLength > 0 ? activeTrigger?.query : undefined,
+    directory,
+    query: fileTriggerQueryLength > 0 ? debouncedQuery : undefined,
     limit: fileTriggerQueryLength > 0 ? '20' : '5',
   });
 
   const { data: capabilities } = useCapabilities({
     harnessId: undefined,
-    directory: session?.workspace,
+    directory,
   });
-
-  const agents = capabilities?.agents ?? [];
-  const commands = capabilities?.commands ?? [];
-  const skills = capabilities?.skills ?? [];
 
   const detectTrigger = useCallback(() => {
     const editor = editorRef.current;
@@ -196,18 +344,19 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     setComposerOpen(true);
   }, [close, detectTrigger, editorRef]);
 
-  const search = useMemo(
-    () =>
-      activeTrigger
-        ? unifiedSearch(activeTrigger.char, activeTrigger.query, {
-            files,
-            agents,
-            commands,
-            skills,
-          })
-        : { groups: {}, flat: [] },
-    [activeTrigger, agents, commands, files, skills],
-  );
+  const search = useMemo(() => {
+    const agents = capabilities?.agents ?? [];
+    const commands = capabilities?.commands ?? [];
+    const skills = capabilities?.skills ?? [];
+    return activeTrigger
+      ? unifiedSearch(activeTrigger.char, activeTrigger.query, {
+          files,
+          agents,
+          commands,
+          skills,
+        })
+      : { groups: {}, flat: [] };
+  }, [activeTrigger, capabilities, files]);
 
   const results = search.flat;
 

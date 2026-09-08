@@ -5,6 +5,7 @@ import { ChatMessage, Markdown } from '@aero/ui';
 
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
 import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';
+import { formatElapsedMs } from '@/app/hooks/useElapsedTime';
 import { AeroPart } from '@/server/services/harness/types';
 
 const MOCK_WORKTREE_FILES = new Set([
@@ -63,6 +64,10 @@ export const AssistantPartView = memo(function AssistantPartView({
     }
 
     case 'reasoning': {
+      const elapsed = (part.time?.end ?? 0) - (part.time?.start ?? 0);
+      const elapsedTime = isPartStreaming
+        ? undefined
+        : formatElapsedMs(elapsed);
       return (
         <ChatMessage.Assistant className='group py-0'>
           <ChatMessage.Body className='pe-0'>
@@ -73,6 +78,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   isFile={handleIsWorktreeFile}
                   onFileClick={handleOpenFileInEditor}
                   text={part.text}
+                  elapsedTime={elapsedTime}
                   isStreaming={isPartStreaming}
                 />
               </div>

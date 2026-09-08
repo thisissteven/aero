@@ -300,6 +300,11 @@ export type AeroPermission = {
 
 export type AeroEvent =
   | {
+      type: 'todo.updated';
+      sessionId: string;
+      todos: AeroTodo[];
+    }
+  | {
       type: 'permission.replied';
       sessionId: string;
       requestId: string;

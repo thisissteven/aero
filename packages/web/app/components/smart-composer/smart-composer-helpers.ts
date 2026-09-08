@@ -94,21 +94,25 @@ export function unifiedSearch(
   const results: SearchItem[] = [];
 
   if (trigger === '@') {
-    for (const path of data.files) {
-      results.push(createItem(`file:${path}`, path, 'file', '@', 'FILES'));
-    }
+    const agents = query === '' ? data.agents.slice(0, 5) : data.agents;
 
-    for (const agent of data.agents) {
+    for (const agent of agents) {
       if (matches(agent.name, q)) {
         results.push(
           createItem(`agent:${agent.name}`, agent.name, 'agent', '@', 'AGENTS'),
         );
       }
     }
+
+    for (const path of data.files) {
+      results.push(createItem(`file:${path}`, path, 'file', '@', 'FILES'));
+    }
   }
 
   if (trigger === '/') {
-    for (const command of data.commands) {
+    const commands = query === '' ? data.commands.slice(0, 5) : data.commands;
+
+    for (const command of commands) {
       if (matches(command.name, q)) {
         results.push(
           createItem(
@@ -122,7 +126,8 @@ export function unifiedSearch(
       }
     }
 
-    for (const skill of data.skills) {
+    const skills = query === '' ? data.skills.slice(0, 5) : data.skills;
+    for (const skill of skills) {
       if (matches(skill.name, q)) {
         results.push(
           createItem(`skill:${skill.name}`, skill.name, 'skill', '/', 'SKILLS'),

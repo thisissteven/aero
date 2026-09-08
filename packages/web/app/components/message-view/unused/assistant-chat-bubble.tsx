@@ -96,6 +96,7 @@ export const AssistantChatBubble = memo(
                         onFileClick={handleOpenFileInEditor}
                         text={part.text}
                         isStreaming={isPartStreaming}
+                        elapsedTime=''
                       />
                     </div>
                   );

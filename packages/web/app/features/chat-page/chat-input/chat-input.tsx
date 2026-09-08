@@ -30,6 +30,7 @@ export function ChatInput({
           '@container relative',
           isShellMode && 'ring-accent/50 ring',
         )}
+        inert={isDisabled}
       >
         <div className='absolute top-2 right-2'>
           <ChatInputExpandedToggleButton sessionId={sessionId} />

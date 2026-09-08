@@ -1306,6 +1306,13 @@ export const useChatStore = create<ChatStore>()(
                 );
               }
 
+              case 'todo.updated': {
+                queryClient.invalidateQueries({
+                  queryKey: sessionKeys.todos(undefined, event.sessionId),
+                });
+                return state;
+              }
+
               case 'permission.replied': {
                 const current = getRuntime(state.sessions, event.sessionId);
                 const runtime = removePermissionFromRuntime(

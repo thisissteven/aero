@@ -19,8 +19,7 @@ export function useElapsedTime(startedAt: number | null, active: boolean) {
 }
 
 export function formatElapsed(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(ms / 60);
+  const seconds = ms % 60;
   return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }

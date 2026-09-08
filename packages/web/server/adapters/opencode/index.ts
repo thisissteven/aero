@@ -1352,6 +1352,16 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
       };
     }
 
+    case 'todo.updated': {
+      const { todos, sessionID } = event.properties;
+
+      return {
+        type: 'todo.updated',
+        sessionId: sessionID,
+        todos,
+      };
+    }
+
     case 'message.updated': {
       const { info } = event.properties;
 

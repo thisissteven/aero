@@ -7,6 +7,13 @@ import { honoClient } from '@/app/lib';
 const $capabilities = honoClient.api.capabilities;
 
 export const capabilityKeys = {
+  all: (harnessId?: string, directory?: string) =>
+    [
+      'capabilities',
+      'all',
+      harnessId ?? 'default',
+      directory ?? 'root',
+    ] as const,
   agents: (harnessId?: string, directory?: string) =>
     [
       'capabilities',
@@ -78,7 +85,7 @@ export function useCapabilities({
   directory,
 }: UseCapabilitiesOptions = {}) {
   return useQuery({
-    queryKey: capabilityKeys.agents(harnessId, directory),
+    queryKey: capabilityKeys.all(harnessId, directory),
     queryFn: async () => {
       const res = await $capabilities.$get({
         query: { harnessId, directory },

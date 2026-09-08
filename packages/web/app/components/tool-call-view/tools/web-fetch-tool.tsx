@@ -29,7 +29,11 @@ export const WebFetchToolView = memo(
         codeTitle={url}
         code={rawOutput}
         language={format}
-        preview={url}
+        preview={
+          <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+            {url}
+          </span>
+        }
         copyText={rawOutput}
         isStreaming={isStreaming}
         showLineNumbers={false}

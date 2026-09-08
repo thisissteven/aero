@@ -29,8 +29,6 @@ export const SmartComposer = React.memo(function SmartComposer({
 }: SmartComposerProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
 
-  const clipboard = useComposerClipboard(editorRef);
-
   const composer = useSmartComposer({
     editorRef,
   });
@@ -38,6 +36,8 @@ export const SmartComposer = React.memo(function SmartComposer({
   const palette = useComposerPalette({
     editorRef,
   });
+
+  const clipboard = useComposerClipboard(editorRef);
 
   const setMode = useComposerStore((state) => state.setMode);
 

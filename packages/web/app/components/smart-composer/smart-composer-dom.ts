@@ -1,5 +1,13 @@
 import type { ComposerSegment, TokenType } from './smart-composer-helpers';
 
+export const TOKEN_COLOR_MAP = {
+  file: 'text-accent',
+  agent: 'text-accent-soft-foreground',
+  skill: 'text-success',
+  command: 'text-warning',
+  snippet: 'text-danger',
+};
+
 export function createNodeFromSegment(segment: ComposerSegment): Node {
   if (segment.type === 'text') {
     return document.createTextNode(segment.text || '');
@@ -9,13 +17,7 @@ export function createNodeFromSegment(segment: ComposerSegment): Node {
 
   const span = document.createElement('span');
 
-  const tokenColor = {
-    file: 'text-accent',
-    agent: 'text-accent-soft-foreground',
-    skill: 'text-success',
-    command: 'text-warning',
-    snippet: 'text-danger',
-  }[token.type];
+  const tokenColor = TOKEN_COLOR_MAP[token.type];
 
   span.className = `token ${tokenColor}`;
 

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { cn, Kbd, ScrollShadow } from '@aero/ui';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { TOKEN_COLOR_MAP } from '@/app/components/smart-composer/smart-composer-dom';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
@@ -18,7 +19,7 @@ interface CommandPaletteProps {
   close: () => void;
 }
 
-const GROUPS = ['FILES', 'AGENTS', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
+const GROUPS = ['AGENTS', 'FILES', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
 
 export function ComposerCommandPalette({
   open,
@@ -50,10 +51,10 @@ export function ComposerCommandPalette({
 
     let top: number;
 
-    if (spaceBelow >= height + gap) {
-      top = caretRect.bottom + gap;
-    } else if (spaceAbove >= height + gap) {
+    if (spaceAbove >= height + gap) {
       top = caretRect.top - height - gap;
+    } else if (spaceBelow >= height + gap) {
+      top = caretRect.bottom + gap;
     } else {
       top = Math.max(
         margin,
@@ -179,7 +180,12 @@ export function ComposerCommandPalette({
                     )}
 
                     {item.kind !== 'file' && (
-                      <span className='truncate text-xs'>{item.value}</span>
+                      <span
+                        className={cn('truncate', TOKEN_COLOR_MAP[item.kind])}
+                      >
+                        {item.triggerChar}
+                        {item.value}
+                      </span>
                     )}
                   </div>
                 );
