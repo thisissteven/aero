@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { SYSTEM_APPS_ICONS_PATH } from '@/server/helper';
 import { getActiveAdapter } from '@/server/services/harness/registry';
+import { getLocalhostPorts } from '@/server/services/ports';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -524,6 +525,24 @@ const system = new Hono()
     });
 
     return c.json({ editors });
+  })
+
+  .get('/ports', async (c) => {
+    try {
+      const ports = await getLocalhostPorts();
+
+      c.header('Cache-Control', 'no-store');
+      return c.json({
+        ports,
+      });
+    } catch {
+      return c.json(
+        {
+          error: 'Failed to retrieve listening ports',
+        },
+        500,
+      );
+    }
   })
 
   .post('/open-app', zValidator('json', openAppSchema), async (c) => {

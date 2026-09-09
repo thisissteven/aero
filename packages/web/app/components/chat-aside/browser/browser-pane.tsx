@@ -6,12 +6,27 @@ import {
   ArrowsRotateRight,
   ArrowUpRightFromSquare,
   LayoutHeaderCursor,
+  Paperclip,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { toast } from '@aero/ui';
+import { Button, cn, toast } from '@aero/ui';
 
+import {
+  CachedProxyTarget,
+  formatAgentationContext,
+  getBrowserProxyTargetKey,
+  getCachedProxyTarget,
+  isPreviewElementMetadata,
+  normalizeBrowserUrl,
+  PreviewBridgeMessage,
+  previewProxyTargetCache,
+  PreviewSelection,
+  PreviewSelectionPreview,
+} from '@/app/components/chat-aside/browser/browser-helpers';
+import { IconBtn } from '@/app/components/chat-aside/browser/icon-btn';
+import { LocalhostPorts } from '@/app/components/chat-aside/browser/localhost-ports';
 import { honoClient } from '@/app/lib';
 
 import { useBrowserActions, useBrowserTab } from './browser-store';
@@ -22,206 +37,15 @@ interface BrowserPaneProps {
   onAttachToChat?: (text: string) => void;
 }
 
-interface PreviewElementMetadata {
-  tag: string;
-  id?: string;
-  classes: string[];
-  text: string;
-  selector: string;
-  bounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-}
-
-interface PreviewBridgeMessage {
-  source: string;
-  version: number;
-  type: 'ready' | 'hover' | 'select' | 'navigate-preview' | 'history-state';
-  url?: string;
-  title?: string;
-  target?: unknown;
-  canGoBack?: boolean;
-  canGoForward?: boolean;
-}
-
-function isPreviewElementMetadata(
-  value: unknown,
-): value is PreviewElementMetadata {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    typeof (value as any).tag === 'string' &&
-    typeof (value as any).selector === 'string' &&
-    !!(value as any).bounds &&
-    typeof (value as any).bounds.x === 'number' &&
-    typeof (value as any).bounds.y === 'number' &&
-    typeof (value as any).bounds.width === 'number' &&
-    typeof (value as any).bounds.height === 'number'
-  );
-}
-
-function getBrowserProxyTargetKey(url: string): string {
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol === 'file:') {
-      return `file:${parsed.href}`;
-    }
-
-    return `${parsed.origin}${parsed.pathname}`;
-  } catch {
-    return url;
-  }
-}
-
-interface CachedProxyTarget {
-  previewOrigin: string;
-  expiresAt: number;
-}
-
-const previewProxyTargetCache = new Map<string, CachedProxyTarget>();
-
-function getCachedProxyTarget(key: string): CachedProxyTarget | null {
-  const cached = previewProxyTargetCache.get(key);
-
-  if (!cached) {
-    return null;
-  }
-
-  if (Date.now() > cached.expiresAt - 5000) {
-    previewProxyTargetCache.delete(key);
-    return null;
-  }
-
-  return cached;
-}
-
-function normalizeBrowserUrl(input: string): string {
-  let value = input.trim();
-
-  if (!value) {
-    return 'about:blank';
-  }
-
-  /**
-   * Remove whitespace immediately before or after path separators.
-   *
-   * Preserves spaces inside filenames:
-   *
-   *   C:\foo \bar\index.html -> C:\foo\bar\index.html
-   *   C:\foo\ \bar           -> C:\foo\bar
-   *   C:\foo\my file.html    -> C:\foo\my file.html
-   *   C:\foo my\file.html    -> C:\foo my\file.html
-   */
-  value = value.replace(/[ \t]+(?=[\\/])/g, '').replace(/([\\/])[ \t]+/g, '$1');
-
-  /**
-   * Existing URL.
-   *
-   * Do not encode it again. URL handles existing escapes such as %20.
-   */
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
-    return value;
-  }
-
-  if (/^(about|chrome|edge|javascript|mailto):/i.test(value)) {
-    return value;
-  }
-
-  /**
-   * Windows absolute path.
-   */
-  if (/^[a-zA-Z]:[\\/]/.test(value)) {
-    const path = value.replace(/\\/g, '/');
-    return encodeURI(`file:///${path}`);
-  }
-
-  /**
-   * Windows UNC path.
-   */
-  if (/^\\\\/.test(value)) {
-    const path = value.replace(/\\/g, '/');
-    return encodeURI(`file:${path}`);
-  }
-
-  /**
-   * Unix absolute path.
-   */
-  if (/^\//.test(value)) {
-    return encodeURI(`file://${value}`);
-  }
-
-  /**
-   * Localhost.
-   */
-  if (
-    /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?(?:\/.*)?$/i.test(value)
-  ) {
-    return `http://${value}`;
-  }
-
-  /**
-   * IPv6.
-   */
-  if (/^\[[a-f0-9:]+\](?::\d+)?(?:\/.*)?$/i.test(value)) {
-    return `https://${value}`;
-  }
-
-  /**
-   * Domain / IPv4.
-   */
-  if (
-    /^([\w-]+(?:\.[\w-]+)+|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?(?:\/.*)?$/i.test(
-      value,
-    )
-  ) {
-    return `https://${value}`;
-  }
-
-  /**
-   * Relative/local path.
-   */
-  if (
-    /^\.{1,2}[\\/]/.test(value) ||
-    /^[^\\/:"*?<>|]+(?:[\\/][^\\/:"*?<>|]+)+$/.test(value)
-  ) {
-    const path = value.replace(/\\/g, '/');
-    return encodeURI(`file://${path}`);
-  }
-
-  /**
-   * Search.
-   */
-  return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
-}
-
-function formatAgentationContext(pageUrl: string, target: any): string {
-  const lines = [
-    `Element from ${pageUrl}`,
-    `- Selector: \`${target.selector}\``,
-    `- Tag: <${target.tag}${target.id ? ` id="${target.id}"` : ''}>`,
-  ];
-
-  if (target.classes?.length) {
-    lines.push(`- Classes: ${target.classes.join(' ')}`);
-  }
-
-  if (target.text) {
-    lines.push(`- Text: "${target.text}"`);
-  }
-
-  return lines.join('\n');
-}
-
 export function BrowserPane({
   tabId,
   active,
   onAttachToChat,
 }: BrowserPaneProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const lastHoverTargetRef = useRef<PreviewSelection['target'] | null>(null);
+  const bridgeReadyRef = useRef(false);
+  const inspectAttemptRef = useRef(0);
 
   const tab = useBrowserTab(tabId);
 
@@ -239,27 +63,24 @@ export function BrowserPane({
   } = useBrowserActions();
 
   const [iframeSrc, setIframeSrc] = useState('');
+  const [pendingSelection, setPendingSelection] =
+    useState<PreviewSelection | null>(null);
+  const [selectionPreview, setSelectionPreview] =
+    useState<PreviewSelectionPreview | null>(null);
+  const [annotationNote, setAnnotationNote] = useState('');
+  const [bridgeReady, setBridgeReady] = useState(false);
 
-  const iframeNavigationRef = useRef(false);
-
-  /*
-   * ----------------------------------------------------------
-   * Create/reuse preview target
-   * ----------------------------------------------------------
-   */
-
+  // ---------------------------------------------------------------------------
+  // Proxy Target Resolution
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!tab?.loadedUrl) {
-      setProxyState(tabId, {
-        status: 'idle',
-      });
-
+      setProxyState(tabId, { status: 'idle' });
       return;
     }
 
     const normalizedLoadedUrl = normalizeBrowserUrl(tab.loadedUrl);
     const key = getBrowserProxyTargetKey(normalizedLoadedUrl);
-
     const cached = getCachedProxyTarget(key);
 
     if (cached) {
@@ -267,41 +88,30 @@ export function BrowserPane({
         status: 'ready',
         ...cached,
       });
-
       return;
     }
 
     let cancelled = false;
 
-    setProxyState(tabId, {
-      status: 'loading',
-    });
-
+    setProxyState(tabId, { status: 'loading' });
     setLoading(tabId, true);
 
     void (async () => {
       try {
         const response = await honoClient.api.preview.targets.$post({
-          json: {
-            url: normalizedLoadedUrl,
-          },
+          json: { url: normalizedLoadedUrl },
         });
 
         if (!response.ok) {
           const body = await response.json().catch(() => ({}) as any);
-
           const message =
             typeof body?.error === 'string'
               ? body.error
               : `HTTP ${response.status}`;
 
           if (!cancelled) {
-            setProxyState(tabId, {
-              status: 'error',
-              message,
-            });
+            setProxyState(tabId, { status: 'error', message });
           }
-
           return;
         }
 
@@ -336,25 +146,11 @@ export function BrowserPane({
     return () => {
       cancelled = true;
     };
-  }, [tabId, tab?.loadedUrl, setLoading, setProxyState]);
+  }, [setLoading, setProxyState, tab?.loadedUrl, tabId]);
 
-  /*
-   * ----------------------------------------------------------
-   * Build iframe source
-   * ----------------------------------------------------------
-   *
-   * HTTP pages:
-   *
-   *   previewOrigin + upstream pathname
-   *
-   * Local files:
-   *
-   *   previewOrigin + local filename/path
-   *
-   * The server's local target root is the directory
-   * containing the original file.
-   */
-
+  // ---------------------------------------------------------------------------
+  // Build Iframe Source
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!tab || tab.proxyState.status !== 'ready') {
       return;
@@ -370,46 +166,44 @@ export function BrowserPane({
 
     try {
       const parsed = new URL(url);
-
       const previewOrigin = tab.proxyState.previewOrigin.replace(/\/+$/, '');
-
       let nextSrc: string;
 
       if (parsed.protocol === 'file:') {
         const filePath = decodeURIComponent(parsed.pathname);
-
         const fileName = filePath.split('/').pop() || '';
-
-        nextSrc = `${previewOrigin}/${encodeURIComponent(
-          fileName,
-        )}${parsed.search}${parsed.hash}`;
+        nextSrc = `${previewOrigin}/${encodeURIComponent(fileName)}${parsed.search}${parsed.hash}`;
       } else {
-        nextSrc = `${previewOrigin}${
-          parsed.pathname || '/'
-        }${parsed.search}${parsed.hash}`;
+        nextSrc = `${previewOrigin}${parsed.pathname || '/'}${parsed.search}${parsed.hash}`;
       }
 
-      iframeNavigationRef.current = true;
+      bridgeReadyRef.current = false;
+      setBridgeReady(false);
+      lastHoverTargetRef.current = null;
+
+      setPendingSelection(null);
+      setSelectionPreview(null);
+      setAnnotationNote('');
+      setHoverTarget(tabId, null);
 
       setIframeSrc(nextSrc);
     } catch {
       setIframeSrc('');
     }
   }, [
+    setHoverTarget,
     tab?.loadedUrl,
-    tab?.proxyState.status,
-    tab?.proxyState.status === 'ready' ? tab.proxyState.previewOrigin : '',
+    tab?.proxyState,
+    tab?.proxyState,
     tab?.reloadNonce,
+    tabId,
   ]);
 
   const isProxied = tab?.proxyState.status === 'ready';
 
-  /*
-   * ----------------------------------------------------------
-   * Preview URL -> original URL
-   * ----------------------------------------------------------
-   */
-
+  // ---------------------------------------------------------------------------
+  // Preview URL -> Original URL Conversion
+  // ---------------------------------------------------------------------------
   const getCurrentUrlFromFrameUrl = useCallback(
     (frameUrl: string): string => {
       if (!frameUrl || !tab?.loadedUrl || tab.proxyState.status !== 'ready') {
@@ -418,9 +212,7 @@ export function BrowserPane({
 
       try {
         const frame = new URL(frameUrl);
-
         const preview = new URL(tab.proxyState.previewOrigin);
-
         const normalizedLoadedUrl = normalizeBrowserUrl(tab.loadedUrl);
         const upstream = new URL(normalizedLoadedUrl);
 
@@ -428,53 +220,24 @@ export function BrowserPane({
           return '';
         }
 
-        /*
-         * Local file preview.
-         *
-         * Preview root:
-         *
-         *   C:\foo\bar.html
-         *   -> C:\foo\
-         *
-         * So:
-         *
-         *   /bar.html
-         *   -> file:///C:/foo/bar.html
-         *
-         * and:
-         *
-         *   /pages/about.html
-         *   -> file:///C:/foo/pages/about.html
-         */
         if (upstream.protocol === 'file:') {
           const originalPath = decodeURIComponent(upstream.pathname);
-
           const lastSlash = originalPath.lastIndexOf('/');
-
           const originalDirectory =
             lastSlash >= 0 ? originalPath.slice(0, lastSlash + 1) : '/';
-
           const previewPath = decodeURIComponent(frame.pathname).replace(
             /^\/+/,
             '',
           );
 
-          const nextPath = `${originalDirectory}${previewPath}`;
-
           const nextUrl = new URL(upstream.toString());
-
-          nextUrl.pathname = nextPath;
-
+          nextUrl.pathname = `${originalDirectory}${previewPath}`;
           nextUrl.search = frame.search;
-
           nextUrl.hash = frame.hash;
 
           return nextUrl.toString();
         }
 
-        /*
-         * HTTP/HTTPS preview.
-         */
         return new URL(
           `${frame.pathname}${frame.search}${frame.hash}`,
           upstream.origin,
@@ -486,57 +249,153 @@ export function BrowserPane({
     [tab?.loadedUrl, tab?.proxyState],
   );
 
-  const goBackInFrame = useCallback(() => {
+  // ---------------------------------------------------------------------------
+  // Parent -> Iframe Communication
+  // ---------------------------------------------------------------------------
+  const postToFrame = useCallback((message: Record<string, any>) => {
     iframeRef.current?.contentWindow?.postMessage(
       {
         source: 'aero-preview-parent',
         version: 1,
-        type: 'history-back',
+        ...message,
       },
       '*',
     );
   }, []);
 
-  const goForwardInFrame = useCallback(() => {
-    iframeRef.current?.contentWindow?.postMessage(
-      {
-        source: 'aero-preview-parent',
-        version: 1,
-        type: 'history-forward',
-      },
-      '*',
-    );
-  }, []);
-
-  const postInspectMode = useCallback((enabled: boolean) => {
-    iframeRef.current?.contentWindow?.postMessage(
-      {
-        source: 'aero-preview-parent',
-        version: 1,
-        type: 'set-inspect-mode',
-        enabled,
-      },
-      '*',
-    );
-  }, []);
-
-  const attachContext = useCallback(
-    (target: any) => {
-      if (!tab) {
-        return;
-      }
-
-      onAttachToChat?.(formatAgentationContext(tab.url, target));
+  const postInspectMode = useCallback(
+    (enabled: boolean) => {
+      postToFrame({ type: 'set-inspect-mode', enabled });
     },
-    [tab, onAttachToChat],
+    [postToFrame],
   );
 
+  // ---------------------------------------------------------------------------
+  // Selection & Annotation Management
+  // ---------------------------------------------------------------------------
+  const clearSelection = useCallback(() => {
+    setPendingSelection(null);
+    setSelectionPreview(null);
+    setAnnotationNote('');
+  }, []);
+
   const cancelInspect = useCallback(() => {
+    clearSelection();
+    lastHoverTargetRef.current = null;
     setHoverTarget(tabId, null);
-
     postInspectMode(false);
-  }, [tabId, setHoverTarget, postInspectMode]);
+    setInspecting(tabId, false);
+  }, [clearSelection, postInspectMode, setHoverTarget, setInspecting, tabId]);
 
+  const createAnnotation = useCallback(async () => {
+    if (!tab || !pendingSelection) {
+      return;
+    }
+
+    const annotation = {
+      id: `ann_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`,
+      mode: pendingSelection.mode,
+      note: annotationNote.trim(),
+      createdAt: Date.now(),
+      url: tab.url,
+      target: pendingSelection.target,
+      bounds: {
+        x: pendingSelection.bounds.x,
+        y: pendingSelection.bounds.y,
+        width: pendingSelection.bounds.width,
+        height: pendingSelection.bounds.height,
+      },
+      points: pendingSelection.points?.map((point) => ({
+        x: point.x,
+        y: point.y,
+      })),
+    };
+
+    const text = formatAgentationContext(
+      tab.url,
+      annotation.target,
+      annotation,
+    );
+
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast.success('Annotation context copied to clipboard');
+      })
+      .catch((error) => {
+        console.error('[Agentation] Clipboard write failed', error);
+        toast.danger('Failed to copy annotation context');
+      });
+
+    // const iframe = iframeRef.current;
+
+    // if (iframe) {
+    //   const blob = await captureIframeContent(iframe);
+    //   const url = URL.createObjectURL(blob);
+    //   window.open(url, '_blank');
+    // }
+
+    onAttachToChat?.(text);
+
+    clearSelection();
+    lastHoverTargetRef.current = null;
+    setHoverTarget(tabId, null);
+    setInspecting(tabId, false);
+    postInspectMode(false);
+  }, [
+    annotationNote,
+    clearSelection,
+    onAttachToChat,
+    pendingSelection,
+    postInspectMode,
+    setHoverTarget,
+    setInspecting,
+    tab,
+    tabId,
+  ]);
+
+  const handleInspect = useCallback(() => {
+    if (!tab || !isProxied) {
+      return;
+    }
+
+    if (tab.isInspecting) {
+      cancelInspect();
+      return;
+    }
+
+    clearSelection();
+    lastHoverTargetRef.current = null;
+    setHoverTarget(tabId, null);
+    setInspecting(tabId, true);
+
+    postInspectMode(true);
+
+    inspectAttemptRef.current += 1;
+    const attempt = inspectAttemptRef.current;
+
+    if (!bridgeReadyRef.current) {
+      window.setTimeout(() => {
+        if (attempt !== inspectAttemptRef.current || bridgeReadyRef.current) {
+          return;
+        }
+        toast.danger(
+          'Annotations are unavailable for this preview. The page may be preventing injected scripts from running.',
+        );
+      }, 1800);
+    }
+  }, [
+    cancelInspect,
+    clearSelection,
+    isProxied,
+    postInspectMode,
+    setHoverTarget,
+    setInspecting,
+    tab,
+    tabId,
+  ]);
+
+  // Keybindings
   useEffect(() => {
     if (!tab?.isInspecting) {
       return;
@@ -548,164 +407,95 @@ export function BrowserPane({
       }
 
       event.preventDefault();
+      event.stopPropagation();
 
-      setInspecting(tabId, false);
+      if (pendingSelection) {
+        clearSelection();
+        return;
+      }
 
       cancelInspect();
     };
 
     window.addEventListener('keydown', handler, true);
+    return () => {
+      window.removeEventListener('keydown', handler, true);
+    };
+  }, [cancelInspect, clearSelection, pendingSelection, tab?.isInspecting]);
 
-    return () => window.removeEventListener('keydown', handler, true);
-  }, [tab?.isInspecting, tabId, setInspecting, cancelInspect]);
-
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      bridgeReadyRef.current = false;
+      lastHoverTargetRef.current = null;
       setInspecting(tabId, false);
-
       setHoverTarget(tabId, null);
     };
-  }, [tabId, setInspecting, setHoverTarget]);
+  }, [setHoverTarget, setInspecting, tabId]);
 
-  /*
-   * ----------------------------------------------------------
-   * Bridge messages
-   * ----------------------------------------------------------
-   */
-
-  useEffect(() => {
-    const handler = (event: MessageEvent<PreviewBridgeMessage>) => {
-      if (event.source !== iframeRef.current?.contentWindow) {
-        return;
-      }
-
-      const data = event.data;
-
-      if (
-        !data ||
-        data.source !== 'aero-preview-bridge' ||
-        data.version !== 1
-      ) {
-        return;
-      }
-
-      if (data.type === 'history-state') {
-        setIframeHistoryState(tabId, {
-          canGoBack: data.canGoBack === true,
-          canGoForward: data.canGoForward === true,
-        });
-
-        return;
-      }
-
-      if (data.type === 'ready' || data.type === 'navigate-preview') {
-        const frameUrl = typeof data.url === 'string' ? data.url : '';
-
-        const nextUrl = getCurrentUrlFromFrameUrl(frameUrl);
-
-        if (nextUrl && nextUrl !== tab?.currentUrl) {
-          syncNavigation(tabId, nextUrl);
-        }
-
-        if (typeof data.title === 'string' && data.title) {
-          updateTab(tabId, {
-            title: data.title,
-          });
-        }
-
-        if (data.type === 'ready') {
-          setLoading(tabId, false);
-
-          iframeNavigationRef.current = false;
-        }
-
-        return;
-      }
-
-      if (data.type === 'hover') {
-        setHoverTarget(
-          tabId,
-          isPreviewElementMetadata(data.target) ? data.target : null,
-        );
-
-        return;
-      }
-
-      if (data.type === 'select' && isPreviewElementMetadata(data.target)) {
-        setHoverTarget(tabId, null);
-
-        setInspecting(tabId, false);
-
-        postInspectMode(false);
-
-        if (tab) {
-          const context = formatAgentationContext(tab.url, data.target);
-          void navigator.clipboard.writeText(context);
-          toast.success('Context copied to clipboard');
-        }
-
-        attachContext(data.target);
-      }
-    };
-
-    window.addEventListener('message', handler);
-
-    return () => window.removeEventListener('message', handler);
-  }, [
-    tabId,
-    tab?.currentUrl,
-    getCurrentUrlFromFrameUrl,
-    syncNavigation,
-    setIframeHistoryState,
-    updateTab,
-    setLoading,
-    setHoverTarget,
-    setInspecting,
-    postInspectMode,
-    attachContext,
-  ]);
-
-  const handleInspect = () => {
-    if (!tab || !isProxied) {
-      return;
+  // ---------------------------------------------------------------------------
+  // Editor Positioning Calculation
+  // ---------------------------------------------------------------------------
+  const editorPosition = useMemo(() => {
+    if (!pendingSelection) {
+      return null;
     }
 
-    if (tab.isInspecting) {
-      setInspecting(tabId, false);
+    const container = iframeRef.current?.parentElement;
+    const width = container?.clientWidth ?? 0;
+    const height = container?.clientHeight ?? 0;
 
-      cancelInspect();
+    const editorWidth = 320;
+    const editorHeight = 44;
+    const gap = 8;
+    const margin = 8;
 
-      return;
+    let top = pendingSelection.bounds.y + pendingSelection.bounds.height + gap;
+
+    if (top + editorHeight > height - margin) {
+      top = pendingSelection.bounds.y - editorHeight - gap;
     }
 
-    setHoverTarget(tabId, null);
+    top = Math.max(margin, top);
 
-    setInspecting(tabId, true);
+    let left =
+      pendingSelection.bounds.x +
+      (pendingSelection.bounds.width - editorWidth) / 2;
 
-    postInspectMode(true);
-  };
+    left = Math.max(
+      margin,
+      Math.min(left, Math.max(margin, width - editorWidth - margin)),
+    );
 
-  const handleReload = () => {
+    return { left, top };
+  }, [pendingSelection]);
+
+  // ---------------------------------------------------------------------------
+  // Navigation Controls
+  // ---------------------------------------------------------------------------
+  const goBackInFrame = useCallback(() => {
+    postToFrame({ type: 'history-back' });
+  }, [postToFrame]);
+
+  const goForwardInFrame = useCallback(() => {
+    postToFrame({ type: 'history-forward' });
+  }, [postToFrame]);
+
+  const handleReload = useCallback(() => {
     if (!tab?.currentUrl) {
       return;
     }
-
     setLoading(tabId, true);
-
     reload(tabId);
-  };
+  }, [reload, setLoading, tab?.currentUrl, tabId]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!tab) {
       return;
     }
-
     const normalized = normalizeBrowserUrl(tab.draftUrl);
-
-    const nextUrl = normalized === 'about:blank' ? '' : normalized;
-
-    navigate(tabId, nextUrl);
-  };
+    navigate(tabId, normalized === 'about:blank' ? '' : normalized);
+  }, [navigate, tab, tabId]);
 
   const getExternalUrl = useCallback(() => {
     if (!tab?.currentUrl || tab.proxyState.status !== 'ready') {
@@ -719,7 +509,6 @@ export function BrowserPane({
       if (url.protocol === 'file:') {
         const filePath = decodeURIComponent(url.pathname);
         const fileName = filePath.split('/').pop() || '';
-
         return `${previewOrigin}/${encodeURIComponent(fileName)}${url.search}${url.hash}`;
       }
 
@@ -729,9 +518,148 @@ export function BrowserPane({
     }
   }, [tab]);
 
+  // ---------------------------------------------------------------------------
+  // Bridge Message Handlers
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+
+      const data = event.data as PreviewBridgeMessage;
+
+      if (
+        !data ||
+        data.source !== 'aero-preview-bridge' ||
+        data.version !== 1
+      ) {
+        return;
+      }
+
+      switch (data.type) {
+        case 'ready': {
+          bridgeReadyRef.current = true;
+          setBridgeReady(true);
+
+          const frameUrl = typeof data.url === 'string' ? data.url : '';
+          const nextUrl = getCurrentUrlFromFrameUrl(frameUrl);
+
+          if (nextUrl && nextUrl !== tab?.currentUrl) {
+            syncNavigation(tabId, nextUrl);
+          }
+
+          if (typeof data.title === 'string' && data.title) {
+            updateTab(tabId, { title: data.title });
+          }
+
+          setLoading(tabId, false);
+
+          if (tab?.isInspecting) {
+            postInspectMode(true);
+          }
+          break;
+        }
+
+        case 'history-state': {
+          setIframeHistoryState(tabId, {
+            canGoBack: data.canGoBack === true,
+            canGoForward: data.canGoForward === true,
+          });
+          break;
+        }
+
+        case 'navigate-preview': {
+          const frameUrl = typeof data.url === 'string' ? data.url : '';
+          const nextUrl = getCurrentUrlFromFrameUrl(frameUrl);
+
+          if (nextUrl && nextUrl !== tab?.currentUrl) {
+            syncNavigation(tabId, nextUrl);
+          }
+
+          if (typeof data.title === 'string' && data.title) {
+            updateTab(tabId, { title: data.title });
+          }
+          break;
+        }
+
+        case 'hover': {
+          const target = isPreviewElementMetadata(data.target)
+            ? data.target
+            : null;
+
+          if (target) {
+            lastHoverTargetRef.current = target;
+          }
+
+          setHoverTarget(tabId, target);
+          break;
+        }
+
+        case 'selection-preview': {
+          if (!data.selection) {
+            setSelectionPreview(null);
+            return;
+          }
+
+          setSelectionPreview({
+            mode: data.selection.mode,
+            bounds: data.selection.bounds,
+            points: data.selection.points,
+          });
+          break;
+        }
+
+        case 'select': {
+          const selection = data.selection;
+          if (!selection?.bounds) {
+            return;
+          }
+
+          const target = isPreviewElementMetadata(selection.target)
+            ? selection.target
+            : isPreviewElementMetadata(data.target)
+              ? data.target
+              : (lastHoverTargetRef.current ?? undefined);
+
+          setHoverTarget(tabId, null);
+          setSelectionPreview(null);
+
+          setPendingSelection({
+            mode: selection.mode,
+            target,
+            bounds: selection.bounds,
+            points: selection.points,
+          });
+
+          setAnnotationNote('');
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+    };
+  }, [
+    getCurrentUrlFromFrameUrl,
+    postInspectMode,
+    setHoverTarget,
+    setIframeHistoryState,
+    setLoading,
+    syncNavigation,
+    tab?.currentUrl,
+    tab?.isInspecting,
+    tabId,
+    updateTab,
+  ]);
+
   if (!tab) {
     return null;
   }
+
+  const activeSelection = pendingSelection ?? selectionPreview;
 
   return (
     <div
@@ -741,11 +669,11 @@ export function BrowserPane({
         pointerEvents: active ? 'auto' : 'none',
       }}
     >
+      {/* Navigation & Address Bar */}
       <div className='border-border flex items-center gap-1 border-b px-2 py-1'>
         <IconBtn disabled={!tab.canGoBack} onClick={goBackInFrame} title='Back'>
           <Icon data={ArrowLeft} size={14} />
         </IconBtn>
-
         <IconBtn
           disabled={!tab.canGoForward}
           onClick={goForwardInFrame}
@@ -753,7 +681,6 @@ export function BrowserPane({
         >
           <Icon data={ArrowRight} size={14} />
         </IconBtn>
-
         <IconBtn
           disabled={!tab.currentUrl}
           onClick={handleReload}
@@ -783,7 +710,7 @@ export function BrowserPane({
           disabled={!tab.currentUrl || !isProxied}
           onClick={handleInspect}
           title={
-            isProxied ? 'Select an element' : 'Unavailable for un-proxied pages'
+            isProxied ? 'Annotate preview' : 'Unavailable for un-proxied pages'
           }
         >
           <Icon data={LayoutHeaderCursor} size={14} />
@@ -793,7 +720,6 @@ export function BrowserPane({
           disabled={!tab.currentUrl}
           onClick={() => {
             const url = getExternalUrl();
-
             if (url) {
               window.open(url, '_blank', 'noopener,noreferrer');
             }
@@ -804,7 +730,13 @@ export function BrowserPane({
         </IconBtn>
       </div>
 
-      <div className='relative min-h-0 flex-1'>
+      {/* Main Content Area */}
+      <div
+        className={cn(
+          'relative min-h-0 flex-1',
+          !iframeSrc && 'scrollbar-thin overflow-y-auto',
+        )}
+      >
         {iframeSrc ? (
           <div className='absolute inset-0'>
             <iframe
@@ -817,63 +749,128 @@ export function BrowserPane({
               onLoad={() => setLoading(tabId, false)}
             />
 
-            {tab.isInspecting && tab.hoverTarget && (
+            {/* Annotation Overlays */}
+            {tab.isInspecting && (
+              <div className='pointer-events-none absolute inset-0'>
+                {/* Hover Target Overlay */}
+                {tab.hoverTarget && !pendingSelection && (
+                  <div
+                    className='border-accent bg-accent/15 absolute rounded-sm border-2'
+                    style={{
+                      left: tab.hoverTarget.bounds.x,
+                      top: tab.hoverTarget.bounds.y,
+                      width: tab.hoverTarget.bounds.width,
+                      height: tab.hoverTarget.bounds.height,
+                    }}
+                  >
+                    <div className='bg-default text-muted absolute -top-6 left-0 max-w-72 truncate rounded px-2 py-0.5 text-xs font-medium shadow'>
+                      <span className='text-foreground'>
+                        {tab.hoverTarget.tag}
+                      </span>
+                      {tab.hoverTarget.text && (
+                        <span>
+                          {' · '}
+                          {tab.hoverTarget.text}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selection Box Overlay */}
+                {activeSelection?.bounds && (
+                  <div
+                    className='border-accent bg-accent/15 absolute rounded-sm border-2'
+                    style={{
+                      left: activeSelection.bounds.x,
+                      top: activeSelection.bounds.y,
+                      width: activeSelection.bounds.width,
+                      height: activeSelection.bounds.height,
+                    }}
+                  >
+                    {pendingSelection?.target && (
+                      <div className='bg-default text-muted absolute -top-6 left-0 max-w-72 truncate rounded px-2 py-0.5 text-xs font-medium shadow'>
+                        <span className='text-foreground'>
+                          {pendingSelection.target.tag}
+                        </span>
+                        {pendingSelection.target.text && (
+                          <span>
+                            {' · '}
+                            {pendingSelection.target.text}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Note Editor Popover */}
+            {tab.isInspecting && pendingSelection && editorPosition && (
               <div
-                className='border-accent bg-accent/15 pointer-events-none absolute rounded-sm border-2'
+                className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-full border p-1.5 shadow-xl'
                 style={{
-                  left: tab.hoverTarget.bounds.x,
-                  top: tab.hoverTarget.bounds.y,
-                  width: tab.hoverTarget.bounds.width,
-                  height: tab.hoverTarget.bounds.height,
+                  left: editorPosition.left,
+                  top: editorPosition.top,
                 }}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
               >
-                <div className='bg-default absolute -top-6 left-0 max-w-64 truncate rounded px-2 py-0.5 text-xs shadow'>
-                  {tab.hoverTarget.tag}
-                  {tab.hoverTarget.text ? ` · ${tab.hoverTarget.text}` : ''}
-                </div>
+                <input
+                  autoFocus
+                  value={annotationNote}
+                  onChange={(event) => setAnnotationNote(event.target.value)}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      createAnnotation();
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault();
+                      clearSelection();
+                    }
+                  }}
+                  placeholder='Add a note'
+                  className='placeholder:text-muted min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm outline-none'
+                />
+
+                <Button
+                  isIconOnly
+                  type='button'
+                  aria-label='Submit comment'
+                  size='sm'
+                  onPress={createAnnotation}
+                >
+                  <Paperclip />
+                </Button>
+              </div>
+            )}
+
+            {/* Connecting Toast Indicator */}
+            {!bridgeReady && tab.isInspecting && (
+              <div className='border-border bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
+                Connecting to preview…
               </div>
             )}
           </div>
         ) : (
-          <div className='text-muted flex h-full items-center justify-center text-sm'>
-            Enter a URL above to start browsing
-          </div>
+          <LocalhostPorts
+            onSelect={(url) => {
+              setDraftUrl(tabId, url);
+              const normalized = normalizeBrowserUrl(url);
+              navigate(tabId, normalized === 'about:blank' ? '' : normalized);
+            }}
+          />
         )}
 
+        {/* Global Loading Overlay */}
         {tab.isLoading && (
           <div className='bg-background/70 text-muted absolute inset-0 flex items-center justify-center text-sm'>
-            Loading…
+            Loading...
           </div>
         )}
       </div>
     </div>
-  );
-}
-
-function IconBtn({
-  children,
-  onClick,
-  disabled,
-  active,
-  title,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  title?: string;
-}) {
-  return (
-    <button
-      type='button'
-      disabled={disabled}
-      onClick={onClick}
-      title={title}
-      className={`flex h-7 w-7 items-center justify-center rounded-md transition disabled:opacity-30 ${
-        active ? 'bg-default text-accent-soft-foreground' : 'hover:bg-default'
-      }`}
-    >
-      {children}
-    </button>
   );
 }

@@ -6,6 +6,7 @@ const $system = honoClient.api.system;
 
 export const systemKeys = {
   system: () => ['system'] as const,
+  ports: () => ['ports'] as const,
   files: ({
     harnessId,
     directory,
@@ -32,6 +33,17 @@ export function useSystemApps() {
     queryKey: systemKeys.system(),
     queryFn: async () => {
       const res = await $system.editors.$get();
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+}
+
+export function useLocalhostPorts() {
+  return useQuery({
+    queryKey: systemKeys.ports(),
+    queryFn: async () => {
+      const res = await $system.ports.$get();
       if (!res.ok) return null;
       return res.json();
     },

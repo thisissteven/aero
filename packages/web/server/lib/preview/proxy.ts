@@ -193,10 +193,12 @@ async function fetchUpstream(
       method: c.req.method,
       headers: filterRequestHeaders(c.req.raw.headers),
       body: isGetOrHead(c.req.method) ? undefined : c.req.raw.body,
+      duplex: 'half',
       redirect: 'manual',
       signal: buildUpstreamSignal(c),
       proxy,
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
 
     // Ownership of `release` now passes to the caller (proxyRequest),
     // which must call it once the response body has been fully handled
