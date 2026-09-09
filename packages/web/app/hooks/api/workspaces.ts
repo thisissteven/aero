@@ -17,6 +17,7 @@ const $individualWorkspace = honoClient.api.workspaces[':id'];
 
 export const workspaceKeys = {
   merged: () => ['workspaces', 'default'] as const,
+  keys: () => ['workspaces', 'keys'] as const,
   compact: () => ['workspaces', 'compact'] as const,
   detail: (workspaceId: string) =>
     ['workspaces', workspaceId, 'detail'] as const,
@@ -60,6 +61,29 @@ export function useWorkspaces(search?: string) {
     },
 
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+}
+
+export function useWorkspacesKeys() {
+  return useQuery({
+    queryKey: [...workspaceKeys.keys()],
+
+    queryFn: async ({ pageParam }) => {
+      const [res] = await Promise.all([
+        $workspaces.keys.$get({
+          query: {
+            cursor: pageParam,
+          },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch workspaces');
+      }
+
+      return res.json();
+    },
   });
 }
 
@@ -141,6 +165,7 @@ export function useCreateWorkspace() {
     onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.keys() });
     },
   });
 }
@@ -168,6 +193,7 @@ export function useUpdateWorkspace(id: string) {
       }
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.keys() });
     },
   });
 }
@@ -196,6 +222,7 @@ export function useDeleteWorkspace() {
       }
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.keys() });
       queryClient.removeQueries({
         queryKey: workspaceKeys.detail(workspace.id),
       });

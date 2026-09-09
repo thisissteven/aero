@@ -13,6 +13,7 @@ import {
   SettingsModal,
   useTheme,
 } from '@/app/providers';
+import { GlobalTooltip } from '@/app/providers/GlobalTooltipProvider';
 import { KeyPressProvider } from '@/app/providers/key-press';
 import { PathnameHandler } from '@/app/providers/PathnameHandler';
 import { PreloadProvider } from '@/app/providers/PreloadProvider';
@@ -53,6 +54,7 @@ function AppLayout() {
           <Outlet />
         </ChatShell>
         <ToastProvider placement='bottom end' width={280} />
+        <GlobalTooltip />
         <GlobalModal />
         <GlobalModalOuter />
         <SettingsModal />

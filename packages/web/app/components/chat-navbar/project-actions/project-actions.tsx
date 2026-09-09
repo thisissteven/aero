@@ -4,6 +4,7 @@ import {
   Code,
   Copy,
   Folder,
+  Play,
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
@@ -36,7 +37,7 @@ async function openApp(path: string, appId: string): Promise<boolean> {
   return res.ok;
 }
 
-export function OpenInActions() {
+export function ProjectActions() {
   const { sessionId } = useParams({
     strict: false,
   });
@@ -47,10 +48,10 @@ export function OpenInActions() {
 
   if (!sessionId || !workspace) return null;
 
-  return <OpenInActionsContent projectPath={workspace} />;
+  return <ProjectActionsContent projectPath={workspace} />;
 }
 
-function OpenInActionsContent({ projectPath }: { projectPath: string }) {
+function ProjectActionsContent({ projectPath }: { projectPath: string }) {
   const { selectedAppId, setSelectedAppId } = useOpenInStore();
 
   const handleSelect = async (appId: string) => {
@@ -64,24 +65,17 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
     (a: DetectedApp) => a.available,
   );
 
-  const selectedApp = apps.find((app) => app.id === selectedAppId);
-
   return (
     <div className='border-separator inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
-
       <Tooltip>
         <IconButton
-          aria-label='Open project'
+          aria-label='Run action'
           onPress={async () => await openApp(projectPath, selectedAppId)}
         >
-          <AppIcon app={selectedApp} fallbackId={selectedAppId} />
+          <Play />
         </IconButton>
-        <Tooltip.Content>
-          {selectedApp
-            ? `Open project in ${selectedApp.label}`
-            : 'Open project'}
-        </Tooltip.Content>
+        <Tooltip.Content>Run action</Tooltip.Content>
       </Tooltip>
 
       {/* Dropdown Menu */}

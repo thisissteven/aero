@@ -4,17 +4,13 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { withPagination } from '../helper';
+import { GET_ALL_LIMIT, withPagination } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import {
   mergeAllWorkspacesAcrossAdapters,
   mergeWorkspaceAcrossAdapters,
   mergeWorkspaceAcrossAdaptersByDirectory,
 } from '../services/workspace/workspaces-merger';
-
-const harnessQuerySchema = z.object({
-  harnessId: z.string().optional(),
-});
 
 const idParamSchema = z.object({
   id: z.string().min(1),
@@ -87,6 +83,34 @@ const workspaces = new Hono()
       return c.json(result);
     },
   )
+
+  // GET /api/workspaces/keys -> Returns unified workspaces with sessions merged from ALL adapters
+  .get('/keys', async (c) => {
+    const adapters = await getAllAdapters();
+
+    let result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+      cursor: undefined,
+      limit: GET_ALL_LIMIT,
+      search: undefined,
+    });
+
+    // First-load guard: nothing in store yet, and this isn't a filtered/paged query
+    if (result.items.length === 0) {
+      await adapters[0].initWorkspaces();
+      await Promise.all(adapters.map((a) => a.syncWorkspaces()));
+      result = await mergeAllWorkspacesAcrossAdapters(adapters, {
+        cursor: undefined,
+        limit: GET_ALL_LIMIT,
+        search: undefined,
+      });
+    }
+
+    const keys = Object.fromEntries(
+      result.items.map((item) => [item.directory, item.name]),
+    );
+
+    return c.json(keys);
+  })
 
   // GET /api/workspaces/merged -> Returns unified workspaces with sessions merged from ALL adapters
   .get(

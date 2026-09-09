@@ -829,6 +829,9 @@ function handleMessagePartUpdated(
     part.messageID === lastTurn.id &&
     part.type === 'text'
   ) {
+    queryClient.invalidateQueries({
+      queryKey: sessionKeys.toc(undefined, sessionId),
+    });
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         useScrollController.getState().scrollToBottom();

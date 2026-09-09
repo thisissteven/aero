@@ -38,7 +38,7 @@ export const RootWorktreeItem = memo(function RootWorktreeItem({
           id={`${idPrefix}-empty-root`}
           textValue='Empty session'
           isDisabled
-          className='h-6 before:opacity-0'
+          className='h-6 w-[calc(100%+2rem)] -translate-x-2 before:opacity-0'
         >
           <Sidebar.MenuItemContent>
             <Sidebar.MenuLabel className='text-xs'>

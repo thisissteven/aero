@@ -150,7 +150,7 @@ export function SessionItemSummary({
             >
               <Dropdown.Menu aria-label={`${session.title} actions`}>
                 <RenameSession sessionId={session.id} from={from} />
-                {!isStandaloneSession && (
+                {!isStandaloneSession && !session.readOnly && (
                   <OpenIsolatedWorkspace directory={session.workspace} />
                 )}
                 <CopySessionId sessionId={session.id} />

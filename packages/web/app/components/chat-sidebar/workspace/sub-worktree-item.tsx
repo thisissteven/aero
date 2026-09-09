@@ -110,7 +110,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
             id={`${worktreeItemId}-empty`}
             textValue='Empty session'
             isDisabled
-            className='h-6 -translate-x-4 before:opacity-0'
+            className='h-6 w-[calc(100%+2rem)] -translate-x-6 before:opacity-0'
           >
             <Sidebar.MenuItemContent>
               <Sidebar.MenuLabel className='text-xs'>

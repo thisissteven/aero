@@ -42,7 +42,7 @@ export function SessionDiff({
       <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 flex items-center justify-start gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
-          {fileCount} {fileCount === 1 ? 'file' : 'files'} changed in workspace
+          {fileCount} {fileCount === 1 ? 'file' : 'files'} changed
         </span>
 
         {totalAdditions > 0 && (

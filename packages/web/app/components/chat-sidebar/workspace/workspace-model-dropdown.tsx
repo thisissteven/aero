@@ -1,6 +1,6 @@
 import { ChevronDown } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { cn, Command, Popover } from '@aero/ui';
 
@@ -9,14 +9,13 @@ import {
   AddProviderRow,
   buildModelVirtualItems,
   ModelEmptyState,
-  ModelInfoPanelCard,
   ModelPickerFooter,
   ModelSearchInput,
   ModelVirtualList,
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
-import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { SearchableModel } from '@/app/lib/model';
+import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
 
 export interface WorkspaceModelDropdownProps {
   value?: string | null; // e.g., model ID stored in workspace config
@@ -32,6 +31,7 @@ export function WorkspaceModelDropdown({
   onAddProviderClick,
 }: WorkspaceModelDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const hideTooltip = useTooltipStore((state) => state.hideTooltip);
 
   // No favorites for this picker — favoriteModelIds is simply omitted.
   const {
@@ -43,21 +43,7 @@ export function WorkspaceModelDropdown({
     totalResults,
     collapsedGroups,
     toggleGroupCollapse,
-    isModelVisible,
   } = useModelDirectory();
-
-  const {
-    activeModel,
-    hoverTop,
-    infoSide,
-    panelRef,
-    activateModel,
-    clearIfStale,
-  } = useModelInfoPanel();
-
-  useEffect(() => {
-    clearIfStale(isModelVisible);
-  }, [clearIfStale, isModelVisible]);
 
   const selectedModelEntry =
     value && searchableModels.length > 0
@@ -67,6 +53,7 @@ export function WorkspaceModelDropdown({
   const selectModel = (entry: SearchableModel) => {
     onChange?.(entry.model.id);
     setIsOpen(false);
+    hideTooltip();
   };
 
   const items = buildModelVirtualItems({
@@ -76,7 +63,13 @@ export function WorkspaceModelDropdown({
   });
 
   return (
-    <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
+    <Popover
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) hideTooltip();
+      }}
+    >
       <Popover.Trigger className='flex-1'>
         <button
           disabled={disabled}
@@ -110,7 +103,7 @@ export function WorkspaceModelDropdown({
         className='relative overflow-visible p-0'
         placement='top right'
       >
-        <div ref={panelRef} className='relative flex items-start'>
+        <div className='relative flex items-start'>
           <div className='bg-overlay text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border'>
             {onAddProviderClick && (
               <AddProviderRow onClick={onAddProviderClick} />
@@ -136,7 +129,6 @@ export function WorkspaceModelDropdown({
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroupCollapse}
                     onSelect={selectModel}
-                    onActivate={activateModel}
                   />
                 )}
               </Command.Dialog>
@@ -144,14 +136,6 @@ export function WorkspaceModelDropdown({
 
             <ModelPickerFooter />
           </div>
-
-          {activeModel && (
-            <ModelInfoPanelCard
-              model={activeModel}
-              top={hoverTop}
-              side={infoSide}
-            />
-          )}
         </div>
       </Popover.Content>
     </Popover>

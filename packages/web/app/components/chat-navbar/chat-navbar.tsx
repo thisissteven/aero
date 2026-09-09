@@ -14,6 +14,7 @@ import {
 
 import { ContextUsagePreview } from '@/app/components/chat-navbar/context-usage-preview';
 import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
+import { ProjectActions } from '@/app/components/chat-navbar/project-actions/project-actions';
 import {
   ArchiveSession,
   CopySessionId,
@@ -58,6 +59,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         <div className='flex items-center gap-2 max-md:hidden'>
           <ContextUsagePreview />
           <OpenInActions />
+          <ProjectActions />
         </div>
       </Navbar.Header>
     </Navbar>
@@ -213,7 +215,7 @@ function SessionsNavbarContent() {
           >
             <Dropdown.Menu aria-label={`${session.title} actions`}>
               <RenameSession sessionId={session.id} from='navbar' />
-              {!isStandaloneSession && (
+              {!isStandaloneSession && !session.readOnly && (
                 <OpenIsolatedWorkspace directory={session.workspace} />
               )}
               <CopySessionId sessionId={session.id} />
