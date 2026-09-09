@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface PreviewElementMetadata {
   tag: string;
@@ -171,370 +172,382 @@ function createTab(url = ''): BrowserTab {
   };
 }
 
-export const useBrowserStore = create<BrowserStore>()((set) => ({
-  tabs: [],
-  activeTabId: null,
+export const useBrowserStore = create<BrowserStore>()(
+  persist(
+    (set) => ({
+      tabs: [],
+      activeTabId: null,
 
-  actions: {
-    addTab: (url = '') => {
-      const tab = createTab(url);
+      actions: {
+        addTab: (url = '') => {
+          const tab = createTab(url);
 
-      set((state) => ({
-        tabs: [...state.tabs, tab],
-        activeTabId: tab.id,
-      }));
+          set((state) => ({
+            tabs: [...state.tabs, tab],
+            activeTabId: tab.id,
+          }));
 
-      return tab.id;
-    },
+          return tab.id;
+        },
 
-    removeTab: (id) => {
-      set((state) => {
-        const removedIndex = state.tabs.findIndex((tab) => tab.id === id);
+        removeTab: (id) => {
+          set((state) => {
+            const removedIndex = state.tabs.findIndex((tab) => tab.id === id);
 
-        const tabs = state.tabs.filter((tab) => tab.id !== id);
+            const tabs = state.tabs.filter((tab) => tab.id !== id);
 
-        let activeTabId = state.activeTabId;
+            let activeTabId = state.activeTabId;
 
-        if (activeTabId === id) {
-          activeTabId =
-            tabs[Math.max(0, removedIndex - 1)]?.id ?? tabs[0]?.id ?? null;
-        }
+            if (activeTabId === id) {
+              activeTabId =
+                tabs[Math.max(0, removedIndex - 1)]?.id ?? tabs[0]?.id ?? null;
+            }
 
-        return {
-          tabs,
-          activeTabId,
-        };
-      });
-    },
+            return {
+              tabs,
+              activeTabId,
+            };
+          });
+        },
 
-    setActiveTab: (id) =>
-      set({
-        activeTabId: id,
-      }),
+        setActiveTab: (id) =>
+          set({
+            activeTabId: id,
+          }),
 
-    setDraftUrl: (id, value) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                draftUrl: value,
+        setDraftUrl: (id, value) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    draftUrl: value,
+                  }
+                : tab,
+            ),
+          })),
+
+        navigate: (id, url, options) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) => {
+              if (tab.id !== id) {
+                return tab;
               }
-            : tab,
-        ),
-      })),
 
-    navigate: (id, url, options) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) => {
-          if (tab.id !== id) {
-            return tab;
-          }
-
-          /*
-           * This is only for callers explicitly reporting
-           * an iframe navigation.
-           */
-          if (options?.inFrame) {
-            return {
-              ...tab,
-              url,
-              draftUrl: url,
-              currentUrl: url,
-              isLoading: false,
-            };
-          }
-
-          /*
-           * Empty navigation.
-           */
-          if (!url) {
-            return {
-              ...tab,
-              url: '',
-              draftUrl: '',
-              loadedUrl: '',
-              currentUrl: '',
-              history: [],
-              historyIndex: -1,
-              canGoBack: false,
-              canGoForward: false,
-              isLoading: false,
-              proxyState: {
-                status: 'idle',
-              },
-              hoverTarget: null,
-              isInspecting: false,
-            };
-          }
-
-          /*
-           * Replace current history entry.
-           */
-          if (options?.replaceHistory) {
-            const history = tab.history.length > 0 ? [...tab.history] : [url];
-
-            const nextIndex = tab.historyIndex >= 0 ? tab.historyIndex : 0;
-
-            history[nextIndex] = url;
-
-            return {
-              ...tab,
-              url,
-              draftUrl: url,
-              loadedUrl: url,
-              currentUrl: url,
-              history,
-              historyIndex: nextIndex,
-              canGoBack: nextIndex > 0,
-              canGoForward: nextIndex < history.length - 1,
-              isLoading: true,
-              proxyState: {
-                status: 'idle',
-              },
-              hoverTarget: null,
-              isInspecting: false,
-            };
-          }
-
-          /*
-           * Normal top-level navigation.
-           *
-           * Preserve the existing browser-tab history,
-           * but discard its forward branch.
-           */
-          const kept =
-            tab.historyIndex >= 0
-              ? tab.history.slice(0, tab.historyIndex + 1)
-              : [];
-
-          if (kept[kept.length - 1] === url) {
-            const index = kept.length - 1;
-
-            return {
-              ...tab,
-              url,
-              draftUrl: url,
-              loadedUrl: url,
-              currentUrl: url,
-              history: kept,
-              historyIndex: index,
-              canGoBack: index > 0,
-              canGoForward: false,
-              isLoading: true,
-              proxyState: {
-                status: 'idle',
-              },
-              hoverTarget: null,
-              isInspecting: false,
-            };
-          }
-
-          const history = [...kept, url];
-          const nextIndex = history.length - 1;
-
-          return {
-            ...tab,
-            url,
-            draftUrl: url,
-            loadedUrl: url,
-            currentUrl: url,
-            history,
-            historyIndex: nextIndex,
-            canGoBack: nextIndex > 0,
-            canGoForward: false,
-            isLoading: true,
-            proxyState: {
-              status: 'idle',
-            },
-            hoverTarget: null,
-            isInspecting: false,
-          };
-        }),
-      })),
-
-    /*
-     * CSR navigation inside the existing iframe.
-     *
-     * IMPORTANT:
-     * loadedUrl never changes here.
-     */
-    syncNavigation: (id, url) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) => {
-          if (tab.id !== id) {
-            return tab;
-          }
-
-          const existingIndex = tab.history.indexOf(url);
-
-          /*
-           * Existing history entry:
-           * usually Back/Forward.
-           */
-          if (existingIndex >= 0) {
-            return {
-              ...tab,
-              url,
-              draftUrl: url,
-              currentUrl: url,
-              historyIndex: existingIndex,
-              isLoading: false,
-            };
-          }
-
-          /*
-           * New SPA navigation.
-           */
-          const kept =
-            tab.historyIndex >= 0
-              ? tab.history.slice(0, tab.historyIndex + 1)
-              : [];
-
-          const history = [...kept, url];
-          const index = history.length - 1;
-
-          return {
-            ...tab,
-            url,
-            draftUrl: url,
-            currentUrl: url,
-            history,
-            historyIndex: index,
-            canGoBack: index > 0,
-            canGoForward: false,
-            isLoading: false,
-          };
-        }),
-      })),
-
-    setIframeHistoryState: (id, historyState) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                canGoBack: historyState.canGoBack,
-                canGoForward: historyState.canGoForward,
+              /*
+               * This is only for callers explicitly reporting
+               * an iframe navigation.
+               */
+              if (options?.inFrame) {
+                return {
+                  ...tab,
+                  url,
+                  draftUrl: url,
+                  currentUrl: url,
+                  isLoading: false,
+                };
               }
-            : tab,
-        ),
-      })),
 
-    /*
-     * Explicit parent-side history restoration.
-     *
-     * This intentionally updates loadedUrl because this is
-     * a full preview reload, not an iframe CSR navigation.
-     */
-    goToHistory: (id, index) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) => {
-          if (tab.id !== id) {
-            return tab;
-          }
+              /*
+               * Empty navigation.
+               */
+              if (!url) {
+                return {
+                  ...tab,
+                  url: '',
+                  draftUrl: '',
+                  loadedUrl: '',
+                  currentUrl: '',
+                  history: [],
+                  historyIndex: -1,
+                  canGoBack: false,
+                  canGoForward: false,
+                  isLoading: false,
+                  proxyState: {
+                    status: 'idle',
+                  },
+                  hoverTarget: null,
+                  isInspecting: false,
+                };
+              }
 
-          const nextUrl = tab.history[index];
+              /*
+               * Replace current history entry.
+               */
+              if (options?.replaceHistory) {
+                const history =
+                  tab.history.length > 0 ? [...tab.history] : [url];
 
-          if (!nextUrl) {
-            return tab;
-          }
+                const nextIndex = tab.historyIndex >= 0 ? tab.historyIndex : 0;
 
-          return {
-            ...tab,
-            url: nextUrl,
-            draftUrl: nextUrl,
-            loadedUrl: nextUrl,
-            currentUrl: nextUrl,
-            historyIndex: index,
-            canGoBack: index > 0,
-            canGoForward: index < tab.history.length - 1,
-            isLoading: true,
-            proxyState: {
-              status: 'idle',
-            },
-            hoverTarget: null,
-            isInspecting: false,
-            reloadNonce: tab.reloadNonce + 1,
-          };
-        }),
-      })),
+                history[nextIndex] = url;
 
-    reload: (id) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
+                return {
+                  ...tab,
+                  url,
+                  draftUrl: url,
+                  loadedUrl: url,
+                  currentUrl: url,
+                  history,
+                  historyIndex: nextIndex,
+                  canGoBack: nextIndex > 0,
+                  canGoForward: nextIndex < history.length - 1,
+                  isLoading: true,
+                  proxyState: {
+                    status: 'idle',
+                  },
+                  hoverTarget: null,
+                  isInspecting: false,
+                };
+              }
+
+              /*
+               * Normal top-level navigation.
+               *
+               * Preserve the existing browser-tab history,
+               * but discard its forward branch.
+               */
+              const kept =
+                tab.historyIndex >= 0
+                  ? tab.history.slice(0, tab.historyIndex + 1)
+                  : [];
+
+              if (kept[kept.length - 1] === url) {
+                const index = kept.length - 1;
+
+                return {
+                  ...tab,
+                  url,
+                  draftUrl: url,
+                  loadedUrl: url,
+                  currentUrl: url,
+                  history: kept,
+                  historyIndex: index,
+                  canGoBack: index > 0,
+                  canGoForward: false,
+                  isLoading: true,
+                  proxyState: {
+                    status: 'idle',
+                  },
+                  hoverTarget: null,
+                  isInspecting: false,
+                };
+              }
+
+              const history = [...kept, url];
+              const nextIndex = history.length - 1;
+
+              return {
                 ...tab,
-                reloadNonce: tab.reloadNonce + 1,
+                url,
+                draftUrl: url,
+                loadedUrl: url,
+                currentUrl: url,
+                history,
+                historyIndex: nextIndex,
+                canGoBack: nextIndex > 0,
+                canGoForward: false,
                 isLoading: true,
-              }
-            : tab,
-        ),
-      })),
+                proxyState: {
+                  status: 'idle',
+                },
+                hoverTarget: null,
+                isInspecting: false,
+              };
+            }),
+          })),
 
-    setLoading: (id, value) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                isLoading: value,
+        /*
+         * CSR navigation inside the existing iframe.
+         *
+         * IMPORTANT:
+         * loadedUrl never changes here.
+         */
+        syncNavigation: (id, url) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) => {
+              if (tab.id !== id) {
+                return tab;
               }
-            : tab,
-        ),
-      })),
 
-    setProxyState: (id, value) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                proxyState: value,
-              }
-            : tab,
-        ),
-      })),
+              const existingIndex = tab.history.indexOf(url);
 
-    setInspecting: (id, value) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                isInspecting: value,
-                hoverTarget: value ? tab.hoverTarget : null,
+              /*
+               * Existing history entry:
+               * usually Back/Forward.
+               */
+              if (existingIndex >= 0) {
+                return {
+                  ...tab,
+                  url,
+                  draftUrl: url,
+                  currentUrl: url,
+                  historyIndex: existingIndex,
+                  isLoading: false,
+                };
               }
-            : tab,
-        ),
-      })),
 
-    setHoverTarget: (id, value) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
-                ...tab,
-                hoverTarget: value,
-              }
-            : tab,
-        ),
-      })),
+              /*
+               * New SPA navigation.
+               */
+              const kept =
+                tab.historyIndex >= 0
+                  ? tab.history.slice(0, tab.historyIndex + 1)
+                  : [];
 
-    updateTab: (id, patch) =>
-      set((state) => ({
-        tabs: state.tabs.map((tab) =>
-          tab.id === id
-            ? {
+              const history = [...kept, url];
+              const index = history.length - 1;
+
+              return {
                 ...tab,
-                ...patch,
+                url,
+                draftUrl: url,
+                currentUrl: url,
+                history,
+                historyIndex: index,
+                canGoBack: index > 0,
+                canGoForward: false,
+                isLoading: false,
+              };
+            }),
+          })),
+
+        setIframeHistoryState: (id, historyState) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    canGoBack: historyState.canGoBack,
+                    canGoForward: historyState.canGoForward,
+                  }
+                : tab,
+            ),
+          })),
+
+        /*
+         * Explicit parent-side history restoration.
+         *
+         * This intentionally updates loadedUrl because this is
+         * a full preview reload, not an iframe CSR navigation.
+         */
+        goToHistory: (id, index) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) => {
+              if (tab.id !== id) {
+                return tab;
               }
-            : tab,
-        ),
-      })),
-  },
-}));
+
+              const nextUrl = tab.history[index];
+
+              if (!nextUrl) {
+                return tab;
+              }
+
+              return {
+                ...tab,
+                url: nextUrl,
+                draftUrl: nextUrl,
+                loadedUrl: nextUrl,
+                currentUrl: nextUrl,
+                historyIndex: index,
+                canGoBack: index > 0,
+                canGoForward: index < tab.history.length - 1,
+                isLoading: true,
+                proxyState: {
+                  status: 'idle',
+                },
+                hoverTarget: null,
+                isInspecting: false,
+                reloadNonce: tab.reloadNonce + 1,
+              };
+            }),
+          })),
+
+        reload: (id) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    reloadNonce: tab.reloadNonce + 1,
+                    isLoading: true,
+                  }
+                : tab,
+            ),
+          })),
+
+        setLoading: (id, value) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    isLoading: value,
+                  }
+                : tab,
+            ),
+          })),
+
+        setProxyState: (id, value) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    proxyState: value,
+                  }
+                : tab,
+            ),
+          })),
+
+        setInspecting: (id, value) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    isInspecting: value,
+                    hoverTarget: value ? tab.hoverTarget : null,
+                  }
+                : tab,
+            ),
+          })),
+
+        setHoverTarget: (id, value) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    hoverTarget: value,
+                  }
+                : tab,
+            ),
+          })),
+
+        updateTab: (id, patch) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    ...patch,
+                  }
+                : tab,
+            ),
+          })),
+      },
+    }),
+    {
+      name: 'aero-browser-tabs',
+      partialize: (state) => ({
+        tabs: state.tabs,
+        activeTabId: state.activeTabId,
+      }),
+    },
+  ),
+);
 
 export const useBrowserTabs = () => useBrowserStore((state) => state.tabs);
 

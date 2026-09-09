@@ -1,10 +1,10 @@
 import { ChatAside } from '@/app/components/chat-aside/chat-aside';
-import { useChatPanelStore } from '@/app/stores/chat-panel-store';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function ConnectedChatAside() {
-  const isOpen = useChatPanelStore((s) => s.isOpen);
-  const activeNavItem = useChatPanelStore((s) => s.activeNavItem);
-  const toggleNavItem = useChatPanelStore((s) => s.toggleNavItem);
+  const isOpen = useSidePanelStore((s) => s.isOpen);
+  const activeNavItem = useSidePanelStore((s) => s.activeNavItem);
+  const toggleNavItem = useSidePanelStore((s) => s.toggleNavItem);
 
   return (
     <ChatAside

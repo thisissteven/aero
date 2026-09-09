@@ -1,24 +1,33 @@
 import {
   Check,
   ChevronDown,
+  CircleDashed,
   Code,
   Copy,
   Folder,
   Play,
+  Stop,
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
-import { Dropdown, Label, Separator, Tooltip } from '@aero/ui';
+import { Dropdown, Label, Separator, toast, Tooltip } from '@aero/ui';
 
+import { useBrowserStore } from '@/app/components/chat-aside/browser/browser-store';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
 import { IconButton } from '@/app/components/ui/icon-button';
+import {
+  useRunScript,
+  useScriptStatus,
+  useStopScript,
+} from '@/app/hooks/api/discovery';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 interface DetectedApp {
   id: string;
@@ -51,7 +60,11 @@ export function ProjectActions() {
   return <ProjectActionsContent projectPath={workspace} />;
 }
 
-function ProjectActionsContent({ projectPath }: { projectPath: string }) {
+export function ProjectActionsContent({
+  projectPath,
+}: {
+  projectPath: string;
+}) {
   const { selectedAppId, setSelectedAppId } = useOpenInStore();
 
   const handleSelect = async (appId: string) => {
@@ -60,22 +73,77 @@ function ProjectActionsContent({ projectPath }: { projectPath: string }) {
   };
 
   const { data: systemData } = useSystemApps();
-
   const apps = (systemData?.editors ?? []).filter(
     (a: DetectedApp) => a.available,
   );
+
+  // Script execution hooks
+  const { data: scriptStatus, refetch: refetchStatus } =
+    useScriptStatus(projectPath);
+  const { mutateAsync: runScript, isPending } = useRunScript();
+  const { mutateAsync: stopScript } = useStopScript();
+
+  const status = scriptStatus?.status ?? 'idle';
+  const isStarting = isPending || status === 'starting';
+  const isRunning = status === 'running';
+
+  const [runningTabId, setRunningTabId] = useState('');
+
+  const handlePrimaryAction = async () => {
+    if (isRunning) {
+      await stopScript(projectPath);
+      useBrowserStore.getState().actions.removeTab(runningTabId);
+      setRunningTabId('');
+    } else if (!isStarting) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = (await runScript(projectPath)) as any;
+        // If a script URL was instantly detected, you can open it automatically or show it
+        if (res?.url) {
+          useSidePanelStore.getState().openPanel();
+          useSidePanelStore.getState().setActiveNavItem('browser');
+          const tab = useBrowserStore.getState().tabs.find((tab) => !tab.url);
+          if (tab) {
+            useBrowserStore.getState().actions.setActiveTab(tab.id);
+            useBrowserStore.getState().actions.navigate(tab.id, res.url);
+            setRunningTabId(tab.id);
+          } else {
+            const tabId = useBrowserStore.getState().actions.addTab(res.url);
+            setRunningTabId(tabId);
+          }
+        }
+      } catch {
+        toast.warning('No dev script discovered');
+      }
+    }
+    refetchStatus();
+  };
+
+  // Determine which icon to display based on state
+  let primaryIcon = <Play />;
+  let tooltipText = 'Auto discover dev script';
+
+  if (isStarting) {
+    primaryIcon = <CircleDashed className='animate-spin' />;
+    tooltipText = 'Starting script...';
+  } else if (isRunning) {
+    primaryIcon = <Stop className='text-accent' />;
+    tooltipText = 'Stop running script';
+  }
 
   return (
     <div className='border-separator inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
       <Tooltip>
         <IconButton
-          aria-label='Run action'
-          onPress={async () => await openApp(projectPath, selectedAppId)}
+          aria-label={tooltipText}
+          onPress={handlePrimaryAction}
+          isDisabled={isStarting}
+          className='disabled:opacity-100'
         >
-          <Play />
+          {primaryIcon}
         </IconButton>
-        <Tooltip.Content>Run action</Tooltip.Content>
+        <Tooltip.Content>{tooltipText}</Tooltip.Content>
       </Tooltip>
 
       {/* Dropdown Menu */}
@@ -112,7 +180,6 @@ function ProjectActionsContent({ projectPath }: { projectPath: string }) {
                 </Dropdown.Item>
               ))
             ) : (
-              /* Fallback item while fetching or if none detected */
               <Dropdown.Item
                 className='flex items-center justify-between'
                 onAction={() => handleSelect('finder')}

@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 
+import { useWindowSize } from '@/app/hooks/useWindowSize';
+
 interface TooltipPosition {
   top: number;
   left: number;
@@ -167,7 +169,9 @@ export function GlobalTooltip() {
     setAdjustedPos({ top, left });
   }, [position, content]);
 
-  if (!isVisible || !position || !content) return null;
+  const isMobile = useWindowSize((size) => size.width < 768);
+
+  if (!isVisible || !position || !content || isMobile) return null;
 
   return (
     <div

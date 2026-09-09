@@ -17,7 +17,7 @@ import {
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
 
-import { SkillScope } from '@/server/helper';
+import { SkillScope } from '../../helper';
 
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
 export type ConversationRole = 'user' | 'assistant' | 'system';

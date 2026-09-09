@@ -4,7 +4,7 @@ import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
-import { useChatPanelStore } from '@/app/stores/chat-panel-store';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function KeyPressProvider() {
   const toggleOpenShortcutsModal = useGlobalModalStore(
@@ -29,7 +29,7 @@ export function KeyPressProvider() {
     modifiers: { mod: true },
   });
 
-  const toggleOpenRightPanel = useChatPanelStore(
+  const toggleOpenRightPanel = useSidePanelStore(
     (state) => state.openClosePanelWithShortcut,
   );
 
@@ -53,7 +53,7 @@ export function KeyPressProvider() {
     modifiers: { mod: true, shift: true },
   });
 
-  const openAndExpandRightPanel = useChatPanelStore(
+  const openAndExpandRightPanel = useSidePanelStore(
     (state) => state.openAndExpandPanelWithShortcut,
   );
 

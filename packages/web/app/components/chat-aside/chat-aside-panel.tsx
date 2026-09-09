@@ -13,14 +13,14 @@ import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel'
 import { collapsibleNav } from '@/app/components/chat-aside/chat-aside';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
-import { useChatPanelStore } from '@/app/stores/chat-panel-store';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function ChatAsidePanel() {
-  const isOpen = useChatPanelStore((s) => s.isOpen);
-  const activeNavItem = useChatPanelStore((s) => s.activeNavItem);
-  const isExpanded = useChatPanelStore((s) => s.isExpanded);
-  const storeToggleExpanded = useChatPanelStore((s) => s.toggleExpanded);
-  const closePanel = useChatPanelStore((s) => s.closePanel);
+  const isOpen = useSidePanelStore((s) => s.isOpen);
+  const activeNavItem = useSidePanelStore((s) => s.activeNavItem);
+  const isExpanded = useSidePanelStore((s) => s.isExpanded);
+  const storeToggleExpanded = useSidePanelStore((s) => s.toggleExpanded);
+  const closePanel = useSidePanelStore((s) => s.closePanel);
 
   const panelRef = useRef<PanelImperativeHandle | null>(null);
   const lastSizeRef = useRef<number | null>(null);

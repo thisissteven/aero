@@ -11,8 +11,8 @@ import {
   AeroConversationTurn,
   AeroMessage,
   HarnessAdapter,
-} from '@/server/services/harness/types';
-import { normalizePath } from '@/server/shared';
+} from './services/harness/types';
+import { normalizePath } from './shared';
 
 /**
  * Checks if a specific port is free to use on 127.0.0.1.

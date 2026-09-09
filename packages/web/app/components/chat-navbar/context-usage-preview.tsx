@@ -5,7 +5,7 @@ import { Tooltip } from '@aero/ui';
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { formatCompactNumber } from '@/app/lib/number';
-import { useChatPanelStore } from '@/app/stores/chat-panel-store';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 interface PercentageCircleIconProps {
   percentage: number;
@@ -55,7 +55,7 @@ export function PercentageCircleIcon({
 }
 
 export function ContextUsagePreview() {
-  const toggleOpenRightPanel = useChatPanelStore(
+  const toggleOpenRightPanel = useSidePanelStore(
     (state) => state.openClosePanelWithShortcut,
   );
 
