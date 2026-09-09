@@ -56,16 +56,15 @@ export function SessionDiff({
           data={ChevronDown}
           size={12}
           className={cn(
-            'text-foreground/80 transition',
+            'text-foreground/80 shrink-0 transition',
             isOpen && 'rotate-180',
           )}
         />
       </Popover.Trigger>
 
       <Popover.Content
-        placement='top left'
+        placement='top right'
         className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
-        crossOffset={-8}
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>

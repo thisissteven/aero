@@ -8,13 +8,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 import React, { useEffect, useMemo, useState } from 'react';
 
-import {
-  Button,
-  CheckboxButtonGroup,
-  Disclosure,
-  Input,
-  toast,
-} from '@aero/ui';
+import { Button, CheckboxButtonGroup, Disclosure, Input } from '@aero/ui';
 
 import type {
   QuestionOption,
@@ -26,13 +20,14 @@ import {
   useReplyToQuestion,
   useSessionQuestions,
 } from '@/app/hooks/api/sessions';
+import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 
 export const ReplyToQuestion = React.memo(() => {
   const { sessionId: activeSessionId } = useParams({
     strict: false,
   });
 
-  const [isExiting, setIsExiting] = useState(false);
+  const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
   const isAwaitingQuestion = useChatStore((state) => {
     if (!activeSessionId) {
@@ -148,7 +143,6 @@ export const ReplyToQuestion = React.memo(() => {
     setCustomAnswers([]);
     setCurrentQuestionIndex(0);
     setIsExpanded(true);
-    setIsExiting(false);
   }, [isAwaitingQuestion]);
 
   const isSubmitting = isPendingReply || isPendingReject;
@@ -193,14 +187,16 @@ export const ReplyToQuestion = React.memo(() => {
   const currentAnswered =
     (normalizedAnswers[currentQuestionIndex]?.length ?? 0) > 0;
 
-  if (
-    !isAwaitingQuestion ||
-    !questionPart ||
-    !questionRequest ||
-    isQuestionsLoading ||
-    questions.length === 0 ||
-    !currentQuestion
-  ) {
+  // 2. Allow rendering while exiting so the collapse/fade animation can play out fully
+  const shouldRender =
+    isAwaitingQuestion &&
+    questionPart &&
+    questionRequest &&
+    !isQuestionsLoading &&
+    questions.length > 0 &&
+    Boolean(currentQuestion);
+
+  if (!shouldRender && !isExiting) {
     return null;
   }
 
@@ -237,7 +233,7 @@ export const ReplyToQuestion = React.memo(() => {
 
     if (value.trim()) {
       const isMultiple = Boolean(
-        (currentQuestion as { multiple?: boolean }).multiple,
+        (currentQuestion as { multiple?: boolean } | undefined)?.multiple,
       );
 
       if (!isMultiple) {
@@ -267,67 +263,49 @@ export const ReplyToQuestion = React.memo(() => {
   };
 
   const handleSubmit = () => {
-    if (!allAnswered || isSubmitting || isExiting) {
+    if (!allAnswered || isSubmitting || isExiting || !questionRequest) {
       return;
     }
 
-    setIsExiting(true);
-
-    setTimeout(() => {
-      toast.promise(
+    void execute({
+      action: () =>
         reply({
           sessionId: questionRequest.sessionID,
           requestId: questionRequest.id,
           answers: normalizedAnswers,
-        }).finally(() => {
-          setIsExiting(false);
-          void refetchQuestions();
         }),
-        {
-          error: (err) => {
-            setIsExiting(false);
-            return err.message;
-          },
-          loading: 'Submitting answers...',
-          success: 'Answers submitted',
-        },
-      );
-    }, 500);
+      refetch: refetchQuestions,
+      messages: {
+        loading: 'Submitting answers...',
+        success: 'Answers submitted',
+      },
+    });
   };
 
   const handleReject = () => {
-    if (isSubmitting || isExiting) {
+    if (isSubmitting || isExiting || !questionRequest) {
       return;
     }
 
-    setIsExiting(true);
-
-    setTimeout(() => {
-      toast.promise(
+    void execute({
+      action: () =>
         reject({
           sessionId: questionRequest.sessionID,
           requestId: questionRequest.id,
-        }).finally(() => {
-          setIsExiting(false);
-          void refetchQuestions();
         }),
-        {
-          error: (err) => {
-            setIsExiting(false);
-            return err.message;
-          },
-          loading: 'Rejecting question...',
-          success: 'Question rejected',
-        },
-      );
-    }, 500);
+      refetch: refetchQuestions,
+      messages: {
+        loading: 'Rejecting question...',
+        success: 'Question rejected',
+      },
+    });
   };
 
   const isMultiple = Boolean(
-    (currentQuestion as { multiple?: boolean }).multiple,
+    (currentQuestion as { multiple?: boolean } | undefined)?.multiple,
   );
 
-  const options = (currentQuestion.options ?? []) as QuestionOption[];
+  const options = (currentQuestion?.options ?? []) as QuestionOption[];
 
   const currentCustomAnswer = customAnswers[currentQuestionIndex] ?? '';
 
@@ -396,14 +374,14 @@ export const ReplyToQuestion = React.memo(() => {
               <div className='space-y-3 p-2 pb-3'>
                 <div className='flex items-center justify-between px-2 pt-1'>
                   <div className='min-w-0'>
-                    {currentQuestion.header && (
+                    {currentQuestion?.header && (
                       <div className='text-muted mb-0.5 text-[11px] font-medium tracking-wider uppercase'>
                         {currentQuestion.header}
                       </div>
                     )}
 
                     <div className='text-foreground text-sm leading-5 font-medium'>
-                      {currentQuestion.question}
+                      {currentQuestion?.question}
                     </div>
                   </div>
 

@@ -95,16 +95,18 @@ export function ChatPage({
         </>
       )}
 
-      <div className='shrink-0 px-4 pb-2 md:pb-4'>
+      <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
-            <ChatActivityIndicator />
-
             <RevertedMessages sessionId={sessionId} />
 
-            <div className='@container flex items-center justify-between'>
-              <SessionDiff workspace={workspace} sessionId={sessionId} />
-              <SessionTodos sessionId={sessionId} />
+            <div className='flex flex-wrap items-end justify-between gap-2'>
+              <ChatActivityIndicator />
+
+              <div className='@container flex flex-1 shrink-0 flex-col items-end'>
+                <SessionTodos sessionId={sessionId} />
+                <SessionDiff workspace={workspace} sessionId={sessionId} />
+              </div>
             </div>
           </OfflineWrapper>
 

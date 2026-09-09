@@ -32,7 +32,7 @@ export function useSystemApps() {
     queryKey: systemKeys.system(),
     queryFn: async () => {
       const res = await $system.editors.$get();
-      if (!res.ok) return [];
+      if (!res.ok) return null;
       return res.json();
     },
   });

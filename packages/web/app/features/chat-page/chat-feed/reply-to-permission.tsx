@@ -1,14 +1,15 @@
 import { Kbd } from '@heroui/react';
 import { useParams } from '@tanstack/react-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 
-import { Button, toast } from '@aero/ui';
+import { Button } from '@aero/ui';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useReplyToPermission,
   useSessionPermissions,
 } from '@/app/hooks/api/sessions';
+import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 import { normalizePath } from '@/server/shared';
 
 export type EditToolNames =
@@ -22,7 +23,7 @@ export const ReplyToPermission = React.memo(() => {
     strict: false,
   });
 
-  const [isExiting, setIsExiting] = useState(false);
+  const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
   // 1. Get latest permission from chat store
   const storePermission = useChatStore((state) => {
@@ -114,29 +115,19 @@ export const ReplyToPermission = React.memo(() => {
     const isReject = replyValue === 'reject';
     const requestId = permissionRequest.id;
 
-    setIsExiting(true);
-
-    // Wait for the exit transition to finish before triggering the mutation
-    setTimeout(() => {
-      toast.promise(
+    void execute({
+      action: () =>
         reply({
           sessionId: activeSessionId,
           requestId,
           reply: replyValue,
-        }).finally(() => {
-          setIsExiting(false);
-          void refetchPermissions();
         }),
-        {
-          error: (err) => {
-            setIsExiting(false);
-            return err.message;
-          },
-          loading: isReject ? 'Rejecting request...' : 'Authorizing request...',
-          success: isReject ? 'Permission denied' : 'Permission granted',
-        },
-      );
-    }, 500);
+      refetch: refetchPermissions,
+      messages: {
+        loading: isReject ? 'Rejecting request...' : 'Authorizing request...',
+        success: isReject ? 'Permission denied' : 'Permission granted',
+      },
+    });
   };
 
   // Keyboard shortcut handler
@@ -162,13 +153,17 @@ export const ReplyToPermission = React.memo(() => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [permissionRequest, isPendingReply, isExiting]);
 
-  if (!permissionRequest || (isPermissionsLoading && !storePermission)) {
+  const shouldRender =
+    Boolean(permissionRequest) &&
+    (!isPermissionsLoading || Boolean(storePermission));
+
+  if (!shouldRender && !isExiting) {
     return null;
   }
 
   // Process Tool Inputs across categories
   const rawToolName =
-    targetToolCall?.toolName ?? permissionRequest.permission ?? 'action';
+    targetToolCall?.toolName ?? permissionRequest?.permission ?? 'action';
   const toolName = rawToolName.toLowerCase();
   const input = targetToolCall?.input ?? {};
 

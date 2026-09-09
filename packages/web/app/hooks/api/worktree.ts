@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { gitKeys } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';
@@ -57,9 +58,13 @@ export function useCreateWorktree(harnessId?: string) {
         queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
-      queryClient.invalidateQueries({
-        queryKey: workspaceKeys.detail(input.directory),
-      });
+      const currentIsolatedWorkspace =
+        useWorkspaceStore.getState().isolatedWorkspaceDirectory;
+      if (currentIsolatedWorkspace) {
+        queryClient.invalidateQueries({
+          queryKey: workspaceKeys.detail(currentIsolatedWorkspace),
+        });
+      }
     },
   });
 }
@@ -85,9 +90,13 @@ export function useDeleteWorktree(harnessId?: string) {
         queryKey: gitKeys.worktrees(input.directory),
       });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
-      queryClient.invalidateQueries({
-        queryKey: workspaceKeys.detail(input.directory),
-      });
+      const currentIsolatedWorkspace =
+        useWorkspaceStore.getState().isolatedWorkspaceDirectory;
+      if (currentIsolatedWorkspace) {
+        queryClient.invalidateQueries({
+          queryKey: workspaceKeys.detail(currentIsolatedWorkspace),
+        });
+      }
     },
   });
 }

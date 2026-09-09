@@ -5,6 +5,7 @@ import {
   Box,
   BranchesDown,
   ChartBar,
+  ChevronLeft,
   Clock,
   Code,
   Comment,
@@ -23,10 +24,11 @@ import {
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { SVGProps, useEffect, useRef } from 'react';
+import { SVGProps, useEffect, useRef, useState } from 'react';
 
 import { Modal, SearchField } from '@aero/ui';
 
+import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
 import { GeneralView } from '@/app/providers/settings/general/general-view';
 import { ReloadOpencode } from '@/app/providers/settings/reload-opencode';
@@ -95,6 +97,16 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+function getTabLabel(tab: SettingsTab): string {
+  for (const section of NAV_SECTIONS) {
+    const item = section.items.find((i) => i.id === tab);
+    if (item) return item.label;
+  }
+  return 'Settings';
+}
+
+type MobilePanel = 'list' | 'detail';
+
 export function SettingsModal() {
   const {
     isOpen,
@@ -103,25 +115,205 @@ export function SettingsModal() {
     setActiveTab,
     searchQuery,
     setSearchQuery,
-    selectedSkillId,
-    setSelectedSkillId,
     sidebarScrollTop,
     setSidebarScrollTop,
   } = useSettingsModalStore();
 
   const sidebarNavRef = useRef<HTMLDivElement | null>(null);
 
+  // Mobile-only view state. Opens to the 'list' view by default.
+  const [panel, setPanel] = useState<MobilePanel>('list');
+  const [exitingPanel, setExitingPanel] = useState<MobilePanel | null>(null);
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+  const [hasNavigated, setHasNavigated] = useState(false);
+
+  const isMobile = useWindowSize((size) => size.width < 768);
+
   useEffect(() => {
-    if (isOpen && sidebarNavRef.current) {
-      sidebarNavRef.current.scrollTop = sidebarScrollTop;
+    if (isOpen) {
+      setPanel('list');
+      setExitingPanel(null);
+      setHasNavigated(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && panel === 'list' && sidebarNavRef.current) {
+      sidebarNavRef.current.scrollTop = sidebarScrollTop;
+    }
+  }, [isOpen, panel]);
 
   const handleClose = () => {
     const currentScrollTop = sidebarNavRef.current?.scrollTop ?? 0;
     setSidebarScrollTop(currentScrollTop);
     closeModal();
   };
+
+  const navigateTo = (next: MobilePanel) => {
+    if (next === panel) return;
+    setDirection(next === 'detail' ? 'forward' : 'backward');
+    setExitingPanel(panel);
+    setPanel(next);
+    setHasNavigated(true);
+  };
+
+  const handleNavigate = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    if (isMobile) {
+      const currentScrollTop = sidebarNavRef.current?.scrollTop ?? 0;
+      setSidebarScrollTop(currentScrollTop);
+      navigateTo('detail');
+    }
+  };
+
+  const handleBack = () => {
+    navigateTo('list');
+  };
+
+  const renderNavSections = (
+    onNavigate: (tab: SettingsTab) => void,
+    highlightActive: boolean,
+  ) => (
+    <nav className='flex flex-col gap-4 px-3 pb-3'>
+      {NAV_SECTIONS.map((section, idx) => {
+        const filteredItems = section.items.filter((item) =>
+          item.label.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
+
+        if (filteredItems.length === 0) return null;
+
+        return (
+          <div key={idx} className='flex flex-col gap-1'>
+            {section.title && (
+              <span className='text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
+                {section.title}
+              </span>
+            )}
+            {filteredItems.map((item) => {
+              const isActive = highlightActive && activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm ${
+                    isActive
+                      ? 'bg-surface-secondary text-surface-foreground font-medium'
+                      : 'text-muted hover:bg-surface-secondary'
+                  }`}
+                >
+                  <div className='flex items-center gap-2.5'>
+                    <Icon data={item.icon} />
+                    <span
+                      className={`${
+                        isActive ? 'text-surface-foreground' : 'text-muted'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                  {item.badge && (
+                    <span className='bg-accent-soft-foreground text-accent-foreground rounded px-1.5 py-0.5 text-[10px] font-normal'>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </nav>
+  );
+
+  const renderContent = () => {
+    if (activeTab === 'general') return <GeneralView />;
+    if (activeTab === 'appearance') return <AppearanceView />;
+    return (
+      <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
+        Content for
+        <div className='text-foreground mx-1 capitalize'>
+          {activeTab.replace('-', ' ')}
+        </div>
+        is under development.
+      </div>
+    );
+  };
+
+  const isTransitioning = exitingPanel !== null;
+
+  const renderMobileListPanel = (
+    ref?: React.Ref<HTMLDivElement>,
+    locked?: boolean,
+  ) => (
+    <div
+      ref={ref}
+      className={`relative flex h-full scrollbar-thin flex-col gap-1 ${
+        locked ? 'overflow-hidden' : 'overflow-y-auto'
+      }`}
+    >
+      <div className='relative sticky top-0 px-3 py-3 pr-10'>
+        <div className='bg-surface/50 absolute inset-0 -z-[1] -translate-y-1/2 backdrop-blur-sm'></div>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          className='relative w-full'
+          variant='primary'
+        >
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input
+              placeholder='Search settings'
+              className='w-full text-sm'
+            />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
+      </div>
+
+      {renderNavSections(handleNavigate, false)}
+    </div>
+  );
+
+  const renderMobileDetailPanel = (locked?: boolean) => (
+    <div className='flex h-full flex-col'>
+      <div className='border-separator flex shrink-0 items-center gap-2 border-b px-2 py-3'>
+        <button
+          onClick={handleBack}
+          className='text-muted hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors'
+        >
+          <Icon data={ChevronLeft} size={18} />
+          Back
+        </button>
+        <span className='text-foreground text-sm font-medium'>
+          {getTabLabel(activeTab)}
+        </span>
+      </div>
+      <div
+        className={`flex min-h-0 flex-1 ${locked ? 'overflow-hidden' : 'overflow-y-auto'}`}
+      >
+        {renderContent()}
+      </div>
+    </div>
+  );
+
+  const renderMobilePanel = (
+    which: MobilePanel,
+    ref?: React.Ref<HTMLDivElement>,
+    locked?: boolean,
+  ) =>
+    which === 'list'
+      ? renderMobileListPanel(ref, locked)
+      : renderMobileDetailPanel(locked);
+
+  const enterAnimation =
+    direction === 'forward'
+      ? 'animate-in fade-in slide-in-from-right-full fill-mode-forwards'
+      : 'animate-in fade-in slide-in-from-left-full fill-mode-forwards';
+
+  const exitAnimation =
+    direction === 'forward'
+      ? 'animate-out fade-out slide-out-to-left-full fill-mode-forwards'
+      : 'animate-out fade-out slide-out-to-right-full fill-mode-forwards';
 
   return (
     <Modal
@@ -136,290 +328,81 @@ export function SettingsModal() {
         }}
       >
         <Modal.Container size='cover'>
-          <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none'>
+          <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none max-md:h-full max-md:max-w-full'>
             <div className='text-foreground relative flex h-full w-full'>
               {/* Native Close Trigger */}
               <Modal.CloseTrigger className='text-muted hover:text-foreground absolute top-4 right-4 z-10 transition-colors' />
 
-              {/* Left Sidebar */}
-              <aside className='border-separator flex w-64 shrink-0 flex-col justify-between border-r'>
-                <div
-                  ref={sidebarNavRef}
-                  className='relative flex scrollbar-thin flex-col gap-1 overflow-y-auto'
-                >
-                  {/* Search Bar */}
-                  <div className='relative sticky top-0 px-3 py-3'>
-                    <div className='bg-surface/50 absolute inset-0 -z-[1] -translate-y-1/2 backdrop-blur-sm'></div>
-                    <SearchField
-                      value={searchQuery}
-                      onChange={setSearchQuery}
-                      className='relative w-full'
-                      variant='primary'
+              {isMobile ? (
+                <div className='relative isolate h-full w-full overflow-hidden'>
+                  {exitingPanel && (
+                    <div
+                      key={`exit-${exitingPanel}`}
+                      onAnimationEnd={() => setExitingPanel(null)}
+                      className={`absolute inset-0 z-0 h-full transform-gpu duration-200 ease-in ${exitAnimation} ${
+                        isTransitioning ? 'pointer-events-none' : ''
+                      }`}
                     >
-                      <SearchField.Group>
-                        <SearchField.SearchIcon />
-                        <SearchField.Input
-                          placeholder='Search settings'
-                          className='w-full text-sm'
-                        />
-                        <SearchField.ClearButton />
-                      </SearchField.Group>
-                    </SearchField>
-                  </div>
-
-                  {/* Navigation Items */}
-                  <nav className='flex flex-col gap-4 px-3 pb-3'>
-                    {NAV_SECTIONS.map((section, idx) => {
-                      const filteredItems = section.items.filter((item) =>
-                        item.label
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()),
-                      );
-
-                      if (filteredItems.length === 0) return null;
-
-                      return (
-                        <div key={idx} className='flex flex-col gap-1'>
-                          {section.title && (
-                            <span className='text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
-                              {section.title}
-                            </span>
-                          )}
-                          {filteredItems.map((item) => {
-                            const isActive = activeTab === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm ${
-                                  isActive
-                                    ? 'bg-surface-secondary text-surface-foreground font-medium'
-                                    : 'text-muted hover:bg-surface-secondary'
-                                }`}
-                              >
-                                <div className='flex items-center gap-2.5'>
-                                  <Icon data={item.icon} />
-                                  <span
-                                    className={`${
-                                      isActive
-                                        ? 'text-surface-foreground'
-                                        : 'text-muted'
-                                    }`}
-                                  >
-                                    {item.label}
-                                  </span>
-                                </div>
-                                {item.badge && (
-                                  <span className='bg-accent-soft-foreground text-accent-foreground rounded px-1.5 py-0.5 text-[10px] font-normal'>
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </nav>
-                </div>
-
-                {/* Sidebar Footer */}
-                <div className='border-separator border-t p-2'>
-                  <ReloadOpencode />
-                </div>
-              </aside>
-
-              {/* Main Content Area */}
-              <main className='flex flex-1 overflow-hidden'>
-                {activeTab === 'general' && <GeneralView />}
-                {activeTab === 'appearance' && <AppearanceView />}
-                {activeTab === 'skills' && (
-                  <SkillsView
-                    selectedSkillId={selectedSkillId}
-                    onSelectSkill={setSelectedSkillId}
-                  />
-                )}
-                {activeTab !== 'appearance' && activeTab !== 'general' && (
-                  <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
-                    Content for
-                    <div className='text-foreground mx-1 capitalize'>
-                      {activeTab.replace('-', ' ')}
+                      {renderMobilePanel(exitingPanel, undefined, true)}
                     </div>
-                    is under development.
+                  )}
+                  <div
+                    key={`enter-${panel}`}
+                    className={`absolute inset-0 z-10 h-full transform-gpu duration-300 ease-out ${
+                      hasNavigated ? enterAnimation : ''
+                    } ${isTransitioning ? 'pointer-events-none' : ''}`}
+                  >
+                    {renderMobilePanel(panel, sidebarNavRef, isTransitioning)}
                   </div>
-                )}
-              </main>
+                </div>
+              ) : (
+                <>
+                  {/* Left Sidebar */}
+                  <aside className='border-separator flex w-64 shrink-0 flex-col justify-between border-r'>
+                    <div
+                      ref={sidebarNavRef}
+                      className='relative flex scrollbar-thin flex-col gap-1 overflow-y-auto'
+                    >
+                      {/* Search Bar */}
+                      <div className='relative sticky top-0 px-3 py-3 max-md:pr-12'>
+                        <div className='bg-surface/50 absolute inset-0 -z-[1] -translate-y-1/2 backdrop-blur-sm'></div>
+                        <SearchField
+                          value={searchQuery}
+                          onChange={setSearchQuery}
+                          className='relative w-full'
+                          variant='primary'
+                        >
+                          <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input
+                              placeholder='Search settings'
+                              className='w-full text-sm'
+                            />
+                            <SearchField.ClearButton />
+                          </SearchField.Group>
+                        </SearchField>
+                      </div>
+
+                      {/* Navigation Items */}
+                      {renderNavSections(setActiveTab, true)}
+                    </div>
+
+                    {/* Sidebar Footer */}
+                    <div className='border-separator border-t p-2'>
+                      <ReloadOpencode />
+                    </div>
+                  </aside>
+
+                  {/* Main Content Area */}
+                  <main className='flex flex-1 overflow-hidden'>
+                    {renderContent()}
+                  </main>
+                </>
+              )}
             </div>
           </Modal.Dialog>
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
-  );
-}
-
-/* ==========================================================================
-   Skills Tab View
-   ========================================================================== */
-interface SkillsViewProps {
-  selectedSkillId: string | null;
-  onSelectSkill: (id: string) => void;
-}
-
-function SkillsView({ selectedSkillId, onSelectSkill }: SkillsViewProps) {
-  const projectSkills = [
-    { id: 'animation', name: 'animation...', tags: ['project', 'opencode'] },
-    { id: 'emil-design', name: 'emil-desig...', tags: ['project', 'opencode'] },
-    { id: 'make-inte', name: 'make-inte...', tags: ['project', 'opencode'] },
-    { id: 'review-ani', name: 'review-ani...', tags: ['project', 'opencode'] },
-  ];
-
-  const userSkills = [
-    {
-      id: 'customize-open',
-      name: 'customize-open...',
-      tags: ['user', 'opencode'],
-    },
-    { id: 'find-skills', name: 'find-skills', tags: ['user', 'claude'] },
-  ];
-
-  return (
-    <div className='flex flex-1 overflow-hidden'>
-      {/* Sub-sidebar for Skills */}
-      <div className='border-separator bg-surface-secondary flex w-56 shrink-0 flex-col gap-4 border-r p-4'>
-        <div className='flex items-center justify-between'>
-          <span className='text-foreground text-sm font-semibold'>Skills</span>
-        </div>
-
-        <select className='border-border bg-field-background text-field-foreground w-full rounded-md border px-2.5 py-1.5 text-xs'>
-          <option>Aero</option>
-        </select>
-
-        <div className='text-muted flex items-center justify-between text-xs'>
-          <span>Total 6</span>
-          <button className='text-foreground text-base leading-none hover:opacity-80'>
-            +
-          </button>
-        </div>
-
-        <div className='scrollbar-thin space-y-4 overflow-y-auto'>
-          <div>
-            <span className='text-muted mb-2 block text-[10px] font-semibold tracking-wider uppercase'>
-              PROJECT SKILLS
-            </span>
-            <div className='space-y-1'>
-              {projectSkills.map((s) => (
-                <SkillListItem
-                  key={s.id}
-                  skill={s}
-                  isSelected={selectedSkillId === s.id}
-                  onClick={() => onSelectSkill(s.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <span className='text-muted mb-2 block text-[10px] font-semibold tracking-wider uppercase'>
-              USER SKILLS
-            </span>
-            <div className='space-y-1'>
-              {userSkills.map((s) => (
-                <SkillListItem
-                  key={s.id}
-                  skill={s}
-                  isSelected={selectedSkillId === s.id}
-                  onClick={() => onSelectSkill(s.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Detail Pane */}
-      <div className='flex-1 scrollbar-thin space-y-6 overflow-y-auto p-6'>
-        <div>
-          <h2 className='text-foreground text-lg font-medium'>
-            {selectedSkillId || 'find-skills'}
-          </h2>
-          <p className='text-muted text-xs'>User / Claude skill</p>
-        </div>
-
-        <div className='space-y-2'>
-          <h3 className='text-foreground text-xs font-semibold'>
-            Basic Information
-          </h3>
-          <div>
-            <label className='text-muted mb-1 block text-xs'>
-              Description <span className='text-danger'>*</span>
-            </label>
-            <textarea
-              rows={3}
-              readOnly
-              className='border-border bg-field-background text-field-foreground w-full resize-none rounded-md border p-2.5 text-xs focus:outline-none'
-              value='Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities.'
-            />
-          </div>
-        </div>
-
-        <div className='space-y-2'>
-          <h3 className='text-foreground text-xs font-semibold'>
-            Instructions
-          </h3>
-          <div className='border-border bg-surface-tertiary text-success overflow-x-auto rounded-md border p-3 font-mono text-[11px] leading-relaxed'>
-            <pre>
-              {`---
-description: Helps users discover and install agent skills when they ask
-  questions like "how do I do X", "find a skill for X", "is there a skill
-  that can...", or express interest in extending capabilities. This skill
-  should be
-  used when the user is looking for functionality that might exist as an
-  installable skill.
----
-
-# Find Skills
-
-This skill helps you discover and install skills from the open agent
-skills ecosystem.
-
-## When to Use This Skill`}
-            </pre>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SkillListItem({
-  skill,
-  isSelected,
-  onClick,
-}: {
-  skill: { id: string; name: string; tags: string[] };
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex w-full items-center justify-between rounded-md p-2 text-left text-xs ${
-        isSelected
-          ? 'bg-accent text-accent-foreground'
-          : 'text-foreground hover:bg-surface-secondary'
-      }`}
-    >
-      <span className='truncate'>{skill.name}</span>
-      <div className='flex shrink-0 gap-1'>
-        {skill.tags.map((t) => (
-          <span
-            key={t}
-            className='bg-default text-default-foreground rounded px-1 py-0.5 text-[9px]'
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-    </button>
   );
 }

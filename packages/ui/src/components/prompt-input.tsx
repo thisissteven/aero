@@ -56,7 +56,7 @@ interface PromptContextValue {
   variant: PromptInputVariant;
 }
 const Context = createContext<PromptContextValue | null>(null);
-const usePrompt = (): PromptContextValue => {
+export const usePrompt = (): PromptContextValue => {
   const value = useContext(Context);
   if (!value)
     throw new Error(
@@ -66,7 +66,7 @@ const usePrompt = (): PromptContextValue => {
 };
 const cls = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
-const running = (status: PromptInputStatus): boolean =>
+export const running = (status: PromptInputStatus): boolean =>
   status === 'submitted' || status === 'streaming';
 const TEXTAREA_MIN_HEIGHT = 48;
 const TEXTAREA_CLASS =

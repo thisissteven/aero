@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 import { cn, PromptInput } from '@aero/ui';
 
-import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
@@ -20,6 +19,7 @@ import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-d
 import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
 import { HeroText } from '@/app/features/new-session-page/hero-text';
+import { PromptInputContent } from '@/app/features/new-session-page/prompt-input-content';
 import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
@@ -34,18 +34,21 @@ export function NewSessionPage() {
   const isShellMode = useComposerStore((state) => state.mode === 'shell');
 
   return (
-    <div ref={setContainer} className='relative h-full overflow-hidden'>
+    <div
+      ref={setContainer}
+      className='@container relative h-full overflow-hidden'
+    >
       {container && <ModelAgentDropdownSheet container={container} />}
-      <div className='relative h-[calc(100svh-var(--chat-navbar-height,56px))] overflow-hidden'>
+      <div className='relative h-[calc(100svh-var(--chat-navbar-height,56px))] overflow-hidden py-2 @max-md:flex @max-md:flex-col @max-md:justify-between'>
         <ChatWorkToggle />
         <div
           className={cn(
-            'flex flex-col justify-center',
+            'h-full',
             isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
             'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
           )}
         >
-          <div className='mx-auto flex min-h-[520px] w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4'>
+          <div className='mx-auto flex h-full w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4 @max-md:justify-end'>
             <HeroText />
 
             <WorkspaceWorktreeDropdownWrapper>
@@ -62,9 +65,7 @@ export function NewSessionPage() {
                     />
                   </div>
 
-                  <PromptInput.Content>
-                    <SmartComposer enabledClassName='min-h-[calc(100svh-320px)]' />
-                  </PromptInput.Content>
+                  <PromptInputContent />
 
                   <PromptInput.Toolbar>
                     <PromptInput.ToolbarStart className='items-end justify-start gap-1'>

@@ -31,7 +31,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
           All tasks completed
         </span>
-        <Icon data={CircleCheck} size={12} className='text-success' />
+        <Icon data={CircleCheck} size={12} className='text-success shrink-0' />
       </div>
     );
   }
@@ -56,7 +56,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
           data={ChevronDown}
           size={12}
           className={cn(
-            'text-foreground/80 transition',
+            'text-foreground/80 shrink-0 transition',
             isOpen && 'rotate-180',
           )}
         />

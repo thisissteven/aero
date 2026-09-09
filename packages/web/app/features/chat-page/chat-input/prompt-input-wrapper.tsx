@@ -81,10 +81,6 @@ export function NewSessionPromptInputWrapper({
   const isDisabled =
     error && error?.code === 'DIRECTORY_NOT_FOUND' && state === 'work';
 
-  useKeyPress('Enter', handleSubmit, {
-    ignoreInputs: false,
-  });
-
   return (
     <PromptInput
       className='group/prompt-input'
@@ -117,16 +113,6 @@ export function ActiveSessionPromptInputWrapper({
   } = usePromptInput({ isDisabled });
 
   const { sessionId } = useParams({ strict: false });
-
-  useKeyPress(
-    'Enter',
-    () => {
-      handleSend(sessionId);
-    },
-    {
-      ignoreInputs: false,
-    },
-  );
 
   return (
     <PromptInput

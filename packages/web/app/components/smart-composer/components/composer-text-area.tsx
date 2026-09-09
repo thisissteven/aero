@@ -1,7 +1,7 @@
 import { useLocation, useParams } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 
-import { cn } from '@aero/ui';
+import { cn, running, usePrompt } from '@aero/ui';
 
 import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/components/composer-placeholder';
 import { useChatInputExpanded } from '@/app/hooks/api/config';
@@ -57,6 +57,8 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
   const mode = useComposerStore((state) => state.mode);
 
   const getText = () => buildText(useComposerStore.getState().segments);
+
+  const { status, allowSubmitWhileRunning, onSubmit } = usePrompt();
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const isMod = event.ctrlKey || event.metaKey;
@@ -168,6 +170,14 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
     if (event.key === 'Enter' && event.shiftKey && !paletteOpen) {
       event.stopPropagation();
     }
+
+    if (event.key === 'Enter' && !event.shiftKey && !paletteOpen) {
+      event.preventDefault();
+
+      if (!running(status) || allowSubmitWhileRunning) {
+        onSubmit?.();
+      }
+    }
   };
 
   useEffect(() => {
@@ -221,8 +231,9 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
       ref={editorRef}
       className={cn(
         enabled
-          ? (enabledClassName ?? 'min-h-[calc(100svh-156px)]')
-          : '@max-lg:min-h-18',
+          ? (enabledClassName ??
+              'h-[calc(100svh-144px)] max-h-[calc(100svh-144px)]')
+          : 'max-h-60 min-h-12 @max-lg:min-h-18',
         'text-sm transition-none',
         'overflow-wrap-anywhere overflow-y-auto whitespace-pre-wrap',
         'outline-none',

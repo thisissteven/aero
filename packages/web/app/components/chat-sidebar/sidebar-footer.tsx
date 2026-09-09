@@ -40,6 +40,7 @@ import {
   Sidebar,
   Tooltip,
   Typography,
+  useSidebar,
 } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
@@ -51,12 +52,16 @@ export function SidebarFooter() {
   const openSettingsModal = useSettingsModalStore((state) => state.openModal);
   const openAboutModal = useGlobalModalStore((state) => state.openModal);
   const openShortcutsModal = useGlobalModalStore((state) => state.openModal);
+  const { setMobileOpen } = useSidebar();
   return (
     <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-1 pb-3'>
       <div className='mt-1.5 space-x-1 px-4'>
         <Tooltip>
           <IconButton
-            onPress={() => openSettingsModal()}
+            onPress={() => {
+              openSettingsModal();
+              setMobileOpen(false);
+            }}
             slot='close'
             svgSize='sm'
           >

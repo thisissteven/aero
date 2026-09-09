@@ -46,7 +46,7 @@ export function MessageActionsPin({ messageId }: { messageId: string }) {
       >
         <Icon
           data={pinned ? PinFill : Pin}
-          className={cn(pinned && 'text-foreground')}
+          className={cn(pinned && 'text-accent')}
         />
       </IconButton>
 

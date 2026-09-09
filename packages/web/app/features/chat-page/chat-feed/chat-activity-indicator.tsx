@@ -148,7 +148,7 @@ export function ChatActivityIndicator() {
       <div
         role='status'
         aria-live='polite'
-        className='flex items-center gap-2 px-2 pb-2'
+        className='flex shrink-0 items-center gap-2 px-2 pb-2'
       >
         <PixelLoader />
 

@@ -14,14 +14,14 @@ export function ComposerPlaceholder() {
 
   if (state === 'shell') {
     return (
-      <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 font-mono text-sm'>
+      <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 pr-4 font-mono text-sm'>
         {shellPlaceholder}
       </div>
     );
   }
 
   return (
-    <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 text-sm'>
+    <div className='text-muted pointer-events-none absolute inset-x-[1.1rem] top-5 left-5 pr-4 text-sm'>
       {SMART_COMPOSER_PLACEHOLDER}
     </div>
   );

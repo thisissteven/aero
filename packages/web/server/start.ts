@@ -4,6 +4,8 @@ import { serve, type ServerWebSocket } from 'bun';
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 
+import { opencodePool } from '@/server/adapters/opencode/pool';
+
 import api from './index';
 import { getPreviewTarget } from './lib/preview/store';
 import { validateWebSocketRequest } from './lib/terminal/auth';
@@ -249,19 +251,40 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
   );
 }
 
+// Pre-initialize OpenCode server pool before opening Bun listener
+console.log('[start] Initializing OpenCode server pool...');
+try {
+  await opencodePool.init();
+  const stats = await opencodePool.getStats();
+  console.log(
+    `[start] OpenCode pool initialized successfully on port ${stats.nodes[0]?.port ?? 'N/A'}`,
+  );
+} catch (err) {
+  console.error('[start] Failed to pre-warm OpenCode pool:', err);
+}
+
 const DESIRED_PORT = Number(process.env.PORT) || 3000;
 
 const server = await listenWithRetry(DESIRED_PORT);
 
 console.log(`Server listening on http://localhost:${server.port}`);
 
-const shutdown = () => {
-  console.log('\nShutting down server...');
+const shutdown = async (signal: string) => {
+  console.log(
+    `\nReceived ${signal}. Shutting down server and OpenCode pool...`,
+  );
 
   server.stop(true);
-  process.exit(0);
+  try {
+    await opencodePool.shutdown();
+    console.log('[start] OpenCode pool shutdown cleanly.');
+  } catch (err) {
+    console.error('[start] Error during pool shutdown:', err);
+  } finally {
+    process.exit(0);
+  }
 };
 
-process.on('SIGINT', shutdown);
+process.on('SIGINT', () => void shutdown('SIGINT'));
 
-process.on('SIGTERM', shutdown);
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
