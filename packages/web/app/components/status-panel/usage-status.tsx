@@ -1,4 +1,5 @@
 import { ArrowsRotateRight, Clock } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 
 import { Typography } from '@aero/ui';
 
@@ -7,8 +8,8 @@ export function UsageStatus() {
     <div className='border-separator border-b p-3'>
       <div className='mb-2 flex cursor-pointer items-center justify-between'>
         <div className='flex items-center gap-1'>
-          <Clock className='text-muted h-4 w-4' />
-          <Typography type='body-sm' className='text-foreground font-semibold'>
+          <Icon data={Clock} className='text-muted' size={14} />
+          <Typography type='body-sm' className='text-foreground font-medium'>
             Usage
           </Typography>
         </div>

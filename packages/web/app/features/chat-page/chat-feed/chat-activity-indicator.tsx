@@ -1,6 +1,9 @@
+import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
+import React from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
 import type {
@@ -9,6 +12,7 @@ import type {
 } from '@/server/services/harness/types';
 
 function getActivityLabel(
+  role: string,
   turns: AeroConversationTurn[],
   status: AeroSessionStatus,
 ) {
@@ -25,7 +29,7 @@ function getActivityLabel(
     .find((turn) => turn.role === 'assistant');
 
   if (!lastAssistant) {
-    return 'Assistant is thinking…';
+    return `${role} is thinking…`;
   }
 
   const activeTool = [...lastAssistant.parts]
@@ -38,14 +42,14 @@ function getActivityLabel(
 
   if (activeTool) {
     if (activeTool.type === 'tool' && activeTool.toolName === 'question') {
-      return 'Assistant is waiting for an answer…';
+      return `${role} is waiting for an answer…`;
     }
 
     if (activeTool.type === 'tool' && activeTool.toolName === 'task') {
       return 'Subagent is working…';
     }
 
-    return 'Assistant is calling a tool…';
+    return `${role} is calling a tool…`;
   }
 
   const hasReasoning = lastAssistant.parts.some(
@@ -53,7 +57,7 @@ function getActivityLabel(
   );
 
   if (hasReasoning) {
-    return 'Assistant is thinking…';
+    return `${role} is thinking…`;
   }
 
   const hasText = lastAssistant.parts.some(
@@ -61,10 +65,10 @@ function getActivityLabel(
   );
 
   if (hasText) {
-    return 'Assistant is responding…';
+    return `${role} is responding…`;
   }
 
-  return 'Assistant is thinking…';
+  return `${role} is thinking…`;
 }
 
 const chevronDelays = Array.from({ length: 9 }, (_, i) => {
@@ -94,27 +98,37 @@ function PixelLoader() {
   );
 }
 
-export function ChatActivityIndicator() {
-  const turns = useChatStore((state) => state.activeSession.turns);
-  const status = useChatStore((state) => state.activeSession.status);
-  const startedAt = useChatStore(
-    (state) => state.activeSession.streamStartedAt,
-  );
+export const ChatActivityIndicator = React.memo(
+  function ChatActivityIndicator() {
+    const turns = useChatStore((state) => state.activeSession.turns);
+    const status = useChatStore((state) => state.activeSession.status);
+    const startedAt = useChatStore(
+      (state) => state.activeSession.streamStartedAt,
+    );
 
-  const elapsed = useElapsedTime(startedAt, status.type !== 'idle');
+    const elapsed = useElapsedTime(startedAt, status.type !== 'idle');
 
-  const label = useMemo(() => getActivityLabel(turns, status), [turns, status]);
+    const { sessionId } = useParams({ strict: false });
+    const { data: session } = useSession(undefined, sessionId);
 
-  const isChatInputExpanded = useChatInputExpanded();
+    const isSubagent = Boolean(session?.parentId);
+    const role = isSubagent ? 'Subagent' : 'Assistant';
 
-  if (!label || isChatInputExpanded) {
-    return null;
-  }
+    const label = useMemo(
+      () => getActivityLabel(role, turns, status),
+      [role, turns, status],
+    );
 
-  return (
-    <>
-      <style>
-        {`
+    const isChatInputExpanded = useChatInputExpanded();
+
+    if (!label || isChatInputExpanded) {
+      return null;
+    }
+
+    return (
+      <>
+        <style>
+          {`
           @keyframes chat-activity-pixel {
             0%,
             100% {
@@ -144,34 +158,35 @@ export function ChatActivityIndicator() {
             }
           }
         `}
-      </style>
+        </style>
 
-      <div
-        role='status'
-        aria-live='polite'
-        className='flex shrink-0 items-center gap-2 px-2 pb-2'
-      >
-        <PixelLoader />
-
-        <span
-          className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
-            backgroundSize: '200% 100%',
-            animation: 'chat-activity-shimmer 1.4s linear infinite',
-            color: 'var(--ink)',
-          }}
+        <div
+          role='status'
+          aria-live='polite'
+          className='flex shrink-0 items-center gap-2 px-2 pb-2'
         >
-          {label}
-        </span>
+          <PixelLoader />
 
-        {startedAt !== null && (
-          <span className='text-muted-foreground mt-0.5 font-mono text-xs tabular-nums'>
-            {formatElapsed(elapsed)}
+          <span
+            className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
+            style={{
+              backgroundImage:
+                'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
+              backgroundSize: '200% 100%',
+              animation: 'chat-activity-shimmer 1.4s linear infinite',
+              color: 'var(--ink)',
+            }}
+          >
+            {label}
           </span>
-        )}
-      </div>
-    </>
-  );
-}
+
+          {startedAt !== null && (
+            <span className='text-muted-foreground mt-0.5 font-mono text-xs tabular-nums'>
+              {formatElapsed(elapsed)}
+            </span>
+          )}
+        </div>
+      </>
+    );
+  },
+);

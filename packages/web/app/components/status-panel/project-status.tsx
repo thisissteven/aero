@@ -36,7 +36,7 @@ function ProjectStatusHeader() {
 
   return (
     <div className='mb-2 flex items-center justify-between gap-2'>
-      <Typography type='body-sm' className='text-foreground font-semibold'>
+      <Typography type='body-sm' className='text-foreground font-medium'>
         Project
       </Typography>
       <Typography type='body-xs' className='text-muted truncate font-mono'>

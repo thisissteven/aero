@@ -525,6 +525,46 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return entries.filter((agent) => !agent.hidden).map(toAeroAgentCompact);
     },
 
+    async listMCPs(directory) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.mcp.status({ directory }),
+        ),
+      );
+
+      return entries;
+    },
+
+    async addMCP({ directory, name, config }) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.mcp.add({ directory, name, config }),
+        ),
+      );
+
+      return entries;
+    },
+
+    async connectMCP({ directory, name }) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.mcp.connect({ directory, name }),
+        ),
+      );
+
+      return entries;
+    },
+
+    async disconnectMCP({ directory, name }) {
+      const entries = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.mcp.disconnect({ directory, name }),
+        ),
+      );
+
+      return entries;
+    },
+
     async listSkills(directory) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>

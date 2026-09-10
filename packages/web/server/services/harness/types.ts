@@ -1,4 +1,10 @@
-import { ApiError, ToolState } from '@opencode-ai/sdk';
+import {
+  ApiError,
+  McpLocalConfig,
+  McpRemoteConfig,
+  McpStatus,
+  ToolState,
+} from '@opencode-ai/sdk';
 import {
   Agent,
   AgentPartInput,
@@ -197,6 +203,12 @@ export interface AeroSessionContextDetails {
     rawContent: string;
   }[];
 }
+
+export type AeroMCPConfig = McpLocalConfig | McpRemoteConfig;
+export type AeroMCPStatus = McpStatus;
+export type AeroMCPEntry = {
+  [key: string]: AeroMCPStatus;
+};
 
 export interface AeroTodo {
   content: string;
@@ -612,4 +624,32 @@ export interface HarnessAdapter {
     limit: string;
     directory: string;
   }): Promise<string[]>;
+
+  listMCPs(directory?: string): Promise<AeroMCPEntry>;
+
+  addMCP({
+    directory,
+    name,
+    config,
+  }: {
+    directory?: string;
+    name?: string;
+    config: AeroMCPConfig;
+  }): Promise<AeroMCPEntry>;
+
+  connectMCP({
+    directory,
+    name,
+  }: {
+    directory?: string;
+    name: string;
+  }): Promise<boolean>;
+
+  disconnectMCP({
+    directory,
+    name,
+  }: {
+    directory?: string;
+    name: string;
+  }): Promise<boolean>;
 }

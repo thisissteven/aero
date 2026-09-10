@@ -16,7 +16,7 @@ const toolsQuerySchema = commonQuerySchema.extend({
   model: z.string().min(1, 'Model is required'),
 });
 
-const agents = new Hono()
+const capabilities = new Hono()
   // GET /api/capabilities?harnessId=...&directory=...
   .get('/', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');
@@ -98,5 +98,5 @@ const agents = new Hono()
     return c.json(tools);
   });
 
-export default agents;
-export type AgentsRoutes = typeof agents;
+export default capabilities;
+export type CapabilitiesRoutes = typeof capabilities;

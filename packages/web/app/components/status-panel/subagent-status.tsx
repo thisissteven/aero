@@ -1,4 +1,5 @@
 import { CircleTree } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { Chip, Typography } from '@aero/ui';
@@ -29,8 +30,8 @@ function SubagentStatusContent() {
     <div className='border-separator border-b p-3'>
       <div className='mb-2.5 flex items-center justify-between gap-1'>
         <div className='flex items-center gap-1'>
-          <CircleTree className='text-muted h-4 w-4' />
-          <Typography type='body-sm' className='text-foreground font-semibold'>
+          <Icon data={CircleTree} className='text-muted' size={14} />
+          <Typography type='body-sm' className='text-foreground font-medium'>
             Subagents
           </Typography>
         </div>
