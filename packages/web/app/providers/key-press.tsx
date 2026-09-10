@@ -1,5 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
-
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useGlobalModalStore } from '@/app/providers';
@@ -65,12 +63,6 @@ export function KeyPressProvider() {
   useKeyPress('j', () => toggleOpenRightPanel('terminal'), {
     ignoreInputs: false,
     modifiers: { mod: true, shift: false },
-  });
-
-  const navigate = useNavigate();
-
-  useKeyPress('n', () => navigate({ to: '/new' }), {
-    modifiers: { mod: false, alt: false, shift: false },
   });
 
   return null;

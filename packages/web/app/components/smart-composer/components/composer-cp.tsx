@@ -22,7 +22,6 @@ interface CommandPaletteProps {
   selectedIndex: number;
   caretRect: CaretRect | null;
   onSelect: (item: SearchItem) => void;
-  onActiveChange: (index: number) => void;
   close: () => void;
 }
 
@@ -34,7 +33,6 @@ export function ComposerCommandPalette({
   selectedIndex,
   caretRect,
   onSelect,
-  onActiveChange,
   close,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
@@ -319,7 +317,6 @@ export function ComposerCommandPalette({
                       }
 
                       setActiveIndex(hoveredIndex);
-                      onActiveChange(hoveredIndex);
                     }}
                     onShowTooltip={showItemTooltip}
                   />

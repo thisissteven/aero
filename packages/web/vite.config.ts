@@ -5,7 +5,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
-import { terminalDevPlugin } from './server/dev/terminal-dev-plugin';
+import { devWebSocketPlugin } from './server/dev/terminal-dev-plugin';
 import { autoCleanupPlugin } from './server/routes/discovery';
 
 function previewHostPlugin(): Plugin {
@@ -85,7 +85,7 @@ export default defineConfig({
       exclude: [/^\/(?!api\/).*/],
     }),
 
-    terminalDevPlugin(),
+    devWebSocketPlugin(),
     react(),
     tailwindcss(),
   ],
