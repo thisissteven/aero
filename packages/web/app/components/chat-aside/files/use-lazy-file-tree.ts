@@ -2,7 +2,7 @@ import type { FileTree as FileTreeModel } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { FsSocket } from '@/app/components/message-view/unused/file-system/fs-socket';
+import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 
 export interface UseLazyFileTreeOptions {
   /** Path on the machine running the Hono server, not the browser. */

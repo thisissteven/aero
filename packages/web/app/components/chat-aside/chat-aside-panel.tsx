@@ -12,6 +12,7 @@ import { Resizable } from '@aero/ui';
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { collapsibleNav } from '@/app/components/chat-aside/chat-aside';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
+import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -108,6 +109,8 @@ export function ChatAsidePanel() {
               <BrowserPanel />
             ) : activeNavItem === 'context' ? (
               <ContextPanel />
+            ) : activeNavItem === 'files' ? (
+              <FileExplorerPanel />
             ) : (
               <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
                 Content body: {activeNavData?.label}

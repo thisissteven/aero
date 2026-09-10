@@ -24,10 +24,7 @@ export type FsEntry = z.infer<typeof FsEntry>;
 export const ListRequest = z.object({
   id: z.string(),
   type: z.literal('list'),
-  /** '' means the connection's root directory. Non-recursive: immediate
-   * children only. */
   path: z.string(),
-  /** Opaque pagination cursor returned by a previous list:result. */
   cursor: z.string().optional(),
 });
 export type ListRequest = z.infer<typeof ListRequest>;
@@ -63,7 +60,6 @@ export const ListResult = z.object({
   type: z.literal('list:result'),
   path: z.string(),
   entries: z.array(FsEntry),
-  /** Non-null means there are more entries; pass back as `cursor` to page. */
   cursor: z.string().nullable(),
 });
 export type ListResult = z.infer<typeof ListResult>;
@@ -72,12 +68,29 @@ export const ReadResult = z.object({
   id: z.string(),
   type: z.literal('read:result'),
   path: z.string(),
-  /** null when the file was detected as binary. */
+
+  /**
+   * Text files:
+   *   UTF-8 text.
+   *
+   * Binary previewable files:
+   *   base64-encoded bytes.
+   *
+   * Other binary files:
+   *   null.
+   */
   content: z.string().nullable(),
+
   size: z.number(),
   truncated: z.boolean(),
   binary: z.boolean(),
   mtimeMs: z.number(),
+
+  /**
+   * MIME type for previewable binary files.
+   * null for normal text files and unsupported binaries.
+   */
+  mimeType: z.string().nullable(),
 });
 export type ReadResult = z.infer<typeof ReadResult>;
 
@@ -85,7 +98,6 @@ export const SearchResultMessage = z.object({
   id: z.string(),
   type: z.literal('search:result'),
   matches: z.array(z.string()),
-  /** false for incremental batches, true on the final message. */
   done: z.boolean(),
 });
 export type SearchResultMessage = z.infer<typeof SearchResultMessage>;
@@ -110,7 +122,8 @@ export type ServerMessage = z.infer<typeof ServerMessage>;
 // Shared constants
 // ---------------------------------------------------------------------------
 
-export const READ_MAX_BYTES = 2 * 1024 * 1024; // 2MB
+export const READ_MAX_BYTES = 2 * 1024 * 1024;
+export const MEDIA_MAX_BYTES = 50 * 1024 * 1024;
 export const LIST_PAGE_SIZE = 500;
 
 export const DEFAULT_IGNORED_DIRS = new Set([

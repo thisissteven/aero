@@ -8,13 +8,12 @@ import {
   DEFAULT_IGNORED_DIRS,
   FsEntry,
   LIST_PAGE_SIZE,
+  MEDIA_MAX_BYTES,
   READ_MAX_BYTES,
   ServerMessage,
 } from '../../server/lib/fs-ws/fs-protocol';
 
 interface FsSession {
-  /** Resolved, symlink-free absolute path. Every request path is validated
-   * against this before touching disk. */
   root: string;
 }
 
@@ -22,38 +21,40 @@ async function resolveRoot(rawRoot: string): Promise<string> {
   const abs = path.resolve(rawRoot);
   const real = await fs.realpath(abs);
   const stat = await fs.stat(real);
+
   if (!stat.isDirectory()) {
     throw new Error('root is not a directory');
   }
+
   return real;
 }
 
-/**
- * Resolves a client-supplied relative path against the session root and
- * guarantees the result cannot escape it — blocks `..` traversal and
- * symlinks that point outside the root. Throws on any violation.
- */
 async function resolveSafe(
   session: FsSession,
   relativePath: string,
 ): Promise<string> {
   const candidate = path.resolve(session.root, relativePath || '.');
+
   if (
     candidate !== session.root &&
     !candidate.startsWith(session.root + path.sep)
   ) {
     throw new Error('path escapes root');
   }
+
   try {
     const real = await fs.realpath(candidate);
+
     if (real !== session.root && !real.startsWith(session.root + path.sep)) {
       throw new Error('path escapes root (symlink)');
     }
+
     return real;
   } catch (err) {
-    if (err instanceof Error && err.message.includes('escapes root')) throw err;
-    // Doesn't exist yet / broken symlink — return the unresolved candidate,
-    // which is still guaranteed to be inside root at this point.
+    if (err instanceof Error && err.message.includes('escapes root')) {
+      throw err;
+    }
+
     return candidate;
   }
 }
@@ -64,8 +65,11 @@ function toRelative(session: FsSession, absolute: string): string {
 
 function shouldSkip(name: string): boolean {
   if (DEFAULT_IGNORED_DIRS.has(name)) return true;
-  if (name.startsWith('.') && name !== '.env' && name !== '.gitignore')
+
+  if (name.startsWith('.') && name !== '.env' && name !== '.gitignore') {
     return true;
+  }
+
   return false;
 }
 
@@ -89,7 +93,9 @@ async function handleList(
     });
 
   const startIndex = msg.cursor ? Number.parseInt(msg.cursor, 10) : 0;
+
   const page = entries.slice(startIndex, startIndex + LIST_PAGE_SIZE);
+
   const nextCursor =
     startIndex + LIST_PAGE_SIZE < entries.length
       ? String(startIndex + LIST_PAGE_SIZE)
@@ -106,10 +112,53 @@ async function handleList(
 
 function looksBinary(buffer: Buffer): boolean {
   const len = Math.min(buffer.length, 8000);
+
   for (let i = 0; i < len; i += 1) {
     if (buffer[i] === 0) return true;
   }
+
   return false;
+}
+
+const MEDIA_MIME_TYPES: Record<string, string> = {
+  // Images
+  '.apng': 'image/apng',
+  '.avif': 'image/avif',
+  '.bmp': 'image/bmp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+
+  // PDF
+  '.pdf': 'application/pdf',
+
+  // Audio
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.m4a': 'audio/mp4',
+  '.mp3': 'audio/mpeg',
+  '.oga': 'audio/ogg',
+  '.ogg': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.weba': 'audio/webm',
+
+  // Video
+  '.m4v': 'video/x-m4v',
+  '.mov': 'video/quicktime',
+  '.mp4': 'video/mp4',
+  '.mpeg': 'video/mpeg',
+  '.mpg': 'video/mpeg',
+  '.ogv': 'video/ogg',
+  '.webm': 'video/webm',
+};
+
+function getMediaMimeType(filePath: string): string | null {
+  return MEDIA_MIME_TYPES[path.extname(filePath).toLowerCase()] ?? null;
 }
 
 async function handleRead(
@@ -118,15 +167,41 @@ async function handleRead(
 ): Promise<ServerMessage> {
   const fileAbs = await resolveSafe(session, msg.path);
   const stat = await fs.stat(fileAbs);
-  if (!stat.isFile()) throw new Error('not a file');
 
-  const truncated = stat.size > READ_MAX_BYTES;
-  const bytesToRead = Math.min(stat.size, READ_MAX_BYTES);
+  if (!stat.isFile()) {
+    throw new Error('not a file');
+  }
+
+  const mimeType = getMediaMimeType(fileAbs);
+  const isMedia = mimeType !== null;
+
+  const maxBytes = isMedia ? MEDIA_MAX_BYTES : READ_MAX_BYTES;
+  const truncated = stat.size > maxBytes;
+  const bytesToRead = Math.min(stat.size, maxBytes);
+
   const fh = await fs.open(fileAbs, 'r');
+
   try {
     const buffer = Buffer.alloc(bytesToRead);
+
     await fh.read(buffer, 0, bytesToRead, 0);
+
+    if (isMedia) {
+      return {
+        id: msg.id,
+        type: 'read:result',
+        path: msg.path,
+        content: truncated ? null : buffer.toString('base64'),
+        size: stat.size,
+        truncated,
+        binary: true,
+        mtimeMs: stat.mtimeMs,
+        mimeType,
+      };
+    }
+
     const binary = looksBinary(buffer);
+
     return {
       id: msg.id,
       type: 'read:result',
@@ -136,6 +211,7 @@ async function handleRead(
       truncated,
       binary,
       mtimeMs: stat.mtimeMs,
+      mimeType: null,
     };
   } finally {
     await fh.close();
@@ -153,21 +229,27 @@ async function handleSearch(
 
   async function walk(dirAbs: string): Promise<void> {
     if (total >= msg.maxResults) return;
+
     let dirents: Dirent[];
+
     try {
       dirents = await fs.readdir(dirAbs, { withFileTypes: true });
     } catch {
-      return; // permission errors etc — skip this branch silently
+      return;
     }
+
     for (const d of dirents) {
       if (total >= msg.maxResults) return;
       if (shouldSkip(d.name)) continue;
+
       const abs = path.join(dirAbs, d.name);
+
       if (d.isDirectory()) {
         await walk(abs);
       } else if (d.name.toLowerCase().includes(query)) {
         buffer.push(toRelative(session, abs));
         total += 1;
+
         if (buffer.length >= 50) {
           onBatch(buffer, false);
           buffer = [];
@@ -189,7 +271,9 @@ function send(ws: WebSocket, message: ServerMessage): void {
 export function setupFsWebSocket(wss: WebSocketServer): void {
   wss.on('connection', async (ws, req) => {
     let session: FsSession | null = null;
+
     const url = new URL(req.url || '', `http://${req.headers.host}`);
+
     const rawRoot = url.searchParams.get('root');
 
     if (!rawRoot) {
@@ -199,12 +283,15 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
         message: 'missing root',
         code: 'EINVAL',
       });
+
       ws.close();
       return;
     }
 
     try {
-      session = { root: await resolveRoot(rawRoot) };
+      session = {
+        root: await resolveRoot(rawRoot),
+      };
     } catch {
       send(ws, {
         id: '',
@@ -212,6 +299,7 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
         message: 'invalid root directory',
         code: 'EINVAL',
       });
+
       ws.close();
       return;
     }
@@ -220,10 +308,11 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
       if (!session) return;
 
       let parsed: ClientMessage;
+
       try {
         parsed = ClientMessage.parse(JSON.parse(String(data)));
       } catch {
-        return; // ignore malformed frames rather than crashing the socket
+        return;
       }
 
       try {
@@ -243,12 +332,19 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'unknown error';
+
         const code = message.includes('ENOENT')
           ? ('ENOENT' as const)
           : message.includes('EACCES')
             ? ('EACCES' as const)
             : ('UNKNOWN' as const);
-        send(ws, { id: parsed.id, type: 'error', message, code });
+
+        send(ws, {
+          id: parsed.id,
+          type: 'error',
+          message,
+          code,
+        });
       }
     });
 
