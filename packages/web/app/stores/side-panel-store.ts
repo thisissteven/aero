@@ -69,11 +69,12 @@ export const useSidePanelStore = create<SidePanelState>()(
           };
         }),
 
-      openPanel: () =>
+      openPanel: () => {
         set((state) => ({
           isOpen: true,
           activeNavItem: state.activeNavItem ?? 'context',
-        })),
+        }));
+      },
 
       closePanel: () => set({ isOpen: false }),
     }),

@@ -1,3 +1,9 @@
+import {
+  AeroAgentCompact,
+  AeroCommandCompact,
+  AeroSkillCompact,
+} from '@/server/services/harness/types';
+
 const SNIPPETS = [
   { id: 'n1', label: '#bug-report', value: 'bug-report' },
   { id: 'n2', label: '#react-component', value: 'react-component' },
@@ -29,20 +35,43 @@ interface TokenSegment {
 
 export type ComposerSegment = TextSegment | TokenSegment;
 
-export interface SearchItem {
+type BaseSearchItem = {
   id: string;
   label: string;
   value: string;
-  kind: TokenType;
   triggerChar: TriggerChar;
-  group: 'FILES' | 'AGENTS' | 'COMMANDS' | 'SKILLS' | 'SNIPPETS';
-}
+};
+
+export type SearchItem =
+  | (BaseSearchItem & {
+      kind: 'file';
+      group: 'FILES';
+    })
+  | (BaseSearchItem & {
+      kind: 'agent';
+      group: 'AGENTS';
+      agent: AeroAgentCompact;
+    })
+  | (BaseSearchItem & {
+      kind: 'command';
+      group: 'COMMANDS';
+      command: AeroCommandCompact;
+    })
+  | (BaseSearchItem & {
+      kind: 'skill';
+      group: 'SKILLS';
+      skill: AeroSkillCompact;
+    })
+  | (BaseSearchItem & {
+      kind: 'snippet';
+      group: 'SNIPPETS';
+    });
 
 interface SearchData {
   files: string[];
-  agents: Array<{ name: string }>;
-  commands: Array<{ name: string }>;
-  skills: Array<{ name: string }>;
+  agents: AeroAgentCompact[];
+  commands: AeroCommandCompact[];
+  skills: AeroSkillCompact[];
 }
 
 export function cloneSegments(segments: ComposerSegment[]): ComposerSegment[] {
@@ -68,14 +97,21 @@ function matches(value: string, query: string) {
   return value.toLowerCase().includes(query);
 }
 
-function createItem(
+function createItem<T extends TokenType>(
   id: string,
   name: string,
-  kind: TokenType,
+  kind: T,
   triggerChar: TriggerChar,
   group: SearchItem['group'],
+  source?: T extends 'agent'
+    ? AeroAgentCompact
+    : T extends 'command'
+      ? AeroCommandCompact
+      : T extends 'skill'
+        ? AeroSkillCompact
+        : never,
 ): SearchItem {
-  return {
+  const base = {
     id,
     label: `${triggerChar}${name}`,
     value: name,
@@ -83,6 +119,35 @@ function createItem(
     triggerChar,
     group,
   };
+
+  if (kind === 'agent') {
+    return {
+      ...base,
+      kind: 'agent',
+      group: 'AGENTS',
+      agent: source as AeroAgentCompact,
+    };
+  }
+
+  if (kind === 'command') {
+    return {
+      ...base,
+      kind: 'command',
+      group: 'COMMANDS',
+      command: source as AeroCommandCompact,
+    };
+  }
+
+  if (kind === 'skill') {
+    return {
+      ...base,
+      kind: 'skill',
+      group: 'SKILLS',
+      skill: source as AeroSkillCompact,
+    };
+  }
+
+  return base as SearchItem;
 }
 
 export function unifiedSearch(
@@ -99,7 +164,14 @@ export function unifiedSearch(
     for (const agent of agents) {
       if (matches(agent.name, q)) {
         results.push(
-          createItem(`agent:${agent.name}`, agent.name, 'agent', '@', 'AGENTS'),
+          createItem(
+            `agent:${agent.name}`,
+            agent.name,
+            'agent',
+            '@',
+            'AGENTS',
+            agent,
+          ),
         );
       }
     }
@@ -121,6 +193,7 @@ export function unifiedSearch(
             'command',
             '/',
             'COMMANDS',
+            command,
           ),
         );
       }
@@ -130,7 +203,14 @@ export function unifiedSearch(
     for (const skill of skills) {
       if (matches(skill.name, q)) {
         results.push(
-          createItem(`skill:${skill.name}`, skill.name, 'skill', '/', 'SKILLS'),
+          createItem(
+            `skill:${skill.name}`,
+            skill.name,
+            'skill',
+            '/',
+            'SKILLS',
+            skill,
+          ),
         );
       }
     }

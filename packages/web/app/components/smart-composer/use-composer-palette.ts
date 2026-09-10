@@ -344,19 +344,21 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     setComposerOpen(true);
   }, [close, detectTrigger, editorRef]);
 
+  const visibleFiles = isWorkMode ? files : [];
+
   const search = useMemo(() => {
     const agents = capabilities?.agents ?? [];
     const commands = capabilities?.commands ?? [];
     const skills = capabilities?.skills ?? [];
     return activeTrigger
       ? unifiedSearch(activeTrigger.char, activeTrigger.query, {
-          files,
+          files: visibleFiles,
           agents,
           commands,
           skills,
         })
       : { groups: {}, flat: [] };
-  }, [activeTrigger, capabilities, files]);
+  }, [activeTrigger, capabilities, visibleFiles]);
 
   const results = search.flat;
 

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 
 import { useWindowSize } from '@/app/hooks/useWindowSize';
@@ -14,6 +15,8 @@ interface TooltipState {
   isVisible: boolean;
   content: ReactNode | null;
   position: TooltipPosition | null;
+  triggerRect: DOMRect | null;
+  offset: number;
   isInteractive: boolean;
   isHovered: boolean;
   hideTimeoutId: NodeJS.Timeout | null;
@@ -28,29 +31,36 @@ interface TooltipState {
   cancelHide: () => void;
 }
 
-const EXIT_DELAY_MS = 200; // Time window allowed for mouse to bridge across gap
+const EXIT_DELAY_MS = 200;
 
 export const useTooltipStore = create<TooltipState>((set, get) => ({
   isOpen: false,
   isVisible: false,
   content: null,
   position: null,
+  triggerRect: null,
+  offset: 16,
   isInteractive: false,
   isHovered: false,
   hideTimeoutId: null,
 
   showTooltip: ({ content, rect, isInteractive = false, offset = 16 }) => {
     const { hideTimeoutId } = get();
-    if (hideTimeoutId) clearTimeout(hideTimeoutId);
+
+    if (hideTimeoutId) {
+      clearTimeout(hideTimeoutId);
+    }
 
     set({
       isOpen: true,
       isVisible: true,
       content,
+      triggerRect: rect,
+      offset,
       isInteractive,
       position: {
-        top: rect.top + rect.height / 2, // Centered vertically
-        left: rect.right + offset, // Offset to right
+        top: rect.top + rect.height / 2,
+        left: rect.right + offset,
       },
       hideTimeoutId: null,
     });
@@ -58,23 +68,31 @@ export const useTooltipStore = create<TooltipState>((set, get) => ({
 
   hideTooltip: () => {
     const { hideTimeoutId, isHovered } = get();
-    if (hideTimeoutId) clearTimeout(hideTimeoutId);
 
-    // If cursor moved into interactive tooltip, don't trigger hide
-    if (isHovered) return;
+    if (hideTimeoutId) {
+      clearTimeout(hideTimeoutId);
+    }
+
+    if (isHovered) {
+      return;
+    }
 
     const timeout = setTimeout(() => {
       const { isHovered: currentlyHovered } = get();
-      if (currentlyHovered) return;
+
+      if (currentlyHovered) {
+        return;
+      }
 
       set({ isOpen: false });
 
-      // Match exit fade-out duration before unmounting
       setTimeout(() => {
         set({
           isVisible: false,
           content: null,
           position: null,
+          triggerRect: null,
+          offset: 16,
           isInteractive: false,
         });
       }, 150);
@@ -83,8 +101,9 @@ export const useTooltipStore = create<TooltipState>((set, get) => ({
     set({ hideTimeoutId: timeout });
   },
 
-  setHovered: (hovered: boolean) => {
+  setHovered: (hovered) => {
     const { hideTimeoutId } = get();
+
     set({ isHovered: hovered });
 
     if (hovered && hideTimeoutId) {
@@ -97,6 +116,7 @@ export const useTooltipStore = create<TooltipState>((set, get) => ({
 
   cancelHide: () => {
     const { hideTimeoutId } = get();
+
     if (hideTimeoutId) {
       clearTimeout(hideTimeoutId);
       set({ hideTimeoutId: null });
@@ -109,96 +129,149 @@ export function GlobalTooltip() {
     isOpen,
     isVisible,
     content,
-    position,
+    triggerRect,
+    offset,
     isInteractive,
     setHovered,
     cancelHide,
   } = useTooltipStore();
 
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [adjustedPos, setAdjustedPos] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+
+  const [adjustedPos, setAdjustedPos] = useState<TooltipPosition | null>(null);
+
+  const [maxWidth, setMaxWidth] = useState<number | null>(null);
   const [wasOpen, setWasOpen] = useState(false);
-
-  // 1. Manage state transition flags without resetting adjustedPos mid-animation
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => setWasOpen(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setWasOpen(false);
-      // DO NOT setAdjustedPos(null) here! Let it freeze at its last position during exit.
-    }
-  }, [isOpen]);
-
-  // 2. Clear adjustedPos ONLY when the tooltip completely closes and becomes invisible
-  useEffect(() => {
-    if (!isVisible) {
-      setAdjustedPos(null);
-    }
-  }, [isVisible]);
-
-  // 3. Compute position adjustments
-  useEffect(() => {
-    if (!position || !tooltipRef.current) return;
-
-    const el = tooltipRef.current;
-    const tooltipRect = el.getBoundingClientRect();
-    const padding = 12;
-
-    let top = position.top - tooltipRect.height / 2;
-    let left = position.left;
-
-    // Top boundary constraint
-    if (top < padding) {
-      top = padding;
-    }
-    // Bottom boundary constraint
-    else if (top + tooltipRect.height > window.innerHeight - padding) {
-      top = window.innerHeight - padding - tooltipRect.height;
-    }
-
-    // Right boundary constraint -> flip to left
-    if (left + tooltipRect.width > window.innerWidth - padding) {
-      const originalTargetLeft = position.left - 12;
-      left = originalTargetLeft - tooltipRect.width - 12;
-    }
-
-    setAdjustedPos({ top, left });
-  }, [position, content]);
 
   const isMobile = useWindowSize((size) => size.width < 768);
 
-  if (!isVisible || !position || !content || isMobile) return null;
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        setWasOpen(true);
+      }, 50);
 
-  return (
+      return () => clearTimeout(timer);
+    }
+
+    setWasOpen(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setAdjustedPos(null);
+      setMaxWidth(null);
+    }
+  }, [isVisible]);
+
+  const updatePosition = () => {
+    const tooltip = tooltipRef.current;
+
+    if (!tooltip || !triggerRect) {
+      return;
+    }
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const padding = 12;
+
+    const rightSpace = viewportWidth - triggerRect.right - offset - padding;
+
+    const leftSpace = triggerRect.left - offset - padding;
+
+    let left: number;
+    let availableWidth: number;
+
+    // Prefer right.
+    if (tooltipRect.width <= rightSpace) {
+      left = triggerRect.right + offset;
+      availableWidth = rightSpace;
+    }
+    // Otherwise place it to the left of the trigger.
+    else if (tooltipRect.width <= leftSpace) {
+      left = triggerRect.left - offset - tooltipRect.width;
+      availableWidth = leftSpace;
+    }
+    // Neither side fits; use whichever side has more room.
+    else if (rightSpace >= leftSpace) {
+      left = triggerRect.right + offset;
+      availableWidth = Math.max(0, rightSpace);
+    } else {
+      availableWidth = Math.max(0, leftSpace);
+      left = triggerRect.left - offset - availableWidth;
+    }
+
+    // Keep the tooltip inside the viewport.
+    left = Math.max(
+      padding,
+      Math.min(left, viewportWidth - tooltipRect.width - padding),
+    );
+
+    setMaxWidth(Math.max(0, availableWidth));
+
+    let top = triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2;
+
+    top = Math.max(
+      padding,
+      Math.min(top, viewportHeight - tooltipRect.height - padding),
+    );
+
+    setAdjustedPos({
+      top,
+      left,
+    });
+  };
+
+  useLayoutEffect(() => {
+    updatePosition();
+  }, [triggerRect, offset, content]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isVisible, triggerRect, offset, content]);
+
+  if (!isVisible || !triggerRect || !content || isMobile) {
+    return null;
+  }
+
+  const tooltip = (
     <div
       ref={tooltipRef}
       onMouseEnter={() => {
         cancelHide();
-        if (isInteractive) setHovered(true);
+
+        if (isInteractive) {
+          setHovered(true);
+        }
       }}
       onMouseLeave={() => {
-        if (isInteractive) setHovered(false);
+        if (isInteractive) {
+          setHovered(false);
+        }
       }}
-      className={`fixed ${
+      className={`fixed z-40 ${
         isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
       } ${
-        /* Position transition only runs between open items */
-        wasOpen && isOpen
-          ? 'transition-[top,left] duration-150 ease-out'
-          : 'transtion-[left]'
+        wasOpen && isOpen ? 'transition-[top,left] duration-150 ease-out' : ''
       }`}
       style={{
-        top: `${adjustedPos?.top ?? position.top}px`,
-        left: `${adjustedPos?.left ?? position.left}px`,
-        visibility: adjustedPos ? 'visible' : 'hidden',
+        top: `${adjustedPos?.top ?? triggerRect.top}px`,
+        left: `${adjustedPos?.left ?? triggerRect.right + offset}px`,
+        maxWidth: maxWidth ? `${maxWidth}px` : 'calc(100vw - 24px)',
       }}
     >
       <div
-        className={`transition-all duration-150 ease-out ${
+        className={`w-max max-w-full transition-all duration-150 ease-out ${
           isOpen
             ? 'translate-x-0 scale-100 opacity-100'
             : '-translate-x-1 scale-95 opacity-0'
@@ -208,4 +281,6 @@ export function GlobalTooltip() {
       </div>
     </div>
   );
+
+  return createPortal(tooltip, document.body);
 }

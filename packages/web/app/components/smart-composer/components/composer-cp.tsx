@@ -1,12 +1,18 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { cn, Kbd, ScrollShadow } from '@aero/ui';
 
-import { FileTypeIcon } from '@/app/components/file-type-icon';
-import { TOKEN_COLOR_MAP } from '@/app/components/smart-composer/smart-composer-dom';
+import { CommandPaletteItem } from '@/app/components/smart-composer/components/composer-cp-item';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
-import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
+import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
 
 import type { SearchItem } from '../smart-composer-helpers';
 
@@ -16,6 +22,7 @@ interface CommandPaletteProps {
   selectedIndex: number;
   caretRect: CaretRect | null;
   onSelect: (item: SearchItem) => void;
+  onActiveChange: (index: number) => void;
   close: () => void;
 }
 
@@ -27,11 +34,58 @@ export function ComposerCommandPalette({
   selectedIndex,
   caretRect,
   onSelect,
+  onActiveChange,
   close,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
 
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+
+  // After keyboard navigation, don't let a stationary pointer
+  // take control back until the pointer actually moves.
+  const ignoreHoverRef = useRef(false);
+
+  const showTooltip = useTooltipStore((s) => s.showTooltip);
+  const hideTooltip = useTooltipStore((s) => s.hideTooltip);
+
   useOnClickOutside(paletteRef, close);
+
+  const flatResults = useMemo(
+    () =>
+      GROUPS.flatMap((group) => results.filter((item) => item.group === group)),
+    [results],
+  );
+
+  const showItemTooltip = useCallback(
+    (item: SearchItem, element: HTMLElement) => {
+      const description =
+        item.kind === 'agent'
+          ? item.agent.description
+          : item.kind === 'command'
+            ? item.command.description
+            : item.kind === 'skill'
+              ? item.skill.description
+              : undefined;
+
+      showTooltip({
+        content: (
+          <div className='bg-surface border-separator max-w-sm rounded-lg border p-2 shadow-lg'>
+            <div className='mb-1 text-sm font-medium'>
+              {item.triggerChar}
+              {item.value}
+            </div>
+
+            {description && (
+              <p className='text-muted text-xs leading-4'>{description}</p>
+            )}
+          </div>
+        ),
+        rect: element.getBoundingClientRect(),
+        isInteractive: true,
+      });
+    },
+    [showTooltip],
+  );
 
   const position = useCallback(() => {
     const palette = paletteRef.current;
@@ -46,7 +100,6 @@ export function ComposerCommandPalette({
     const margin = 8;
 
     const spaceBelow = window.innerHeight - caretRect.bottom - margin;
-
     const spaceAbove = caretRect.top - margin;
 
     let top: number;
@@ -75,7 +128,7 @@ export function ComposerCommandPalette({
     if (open) {
       position();
     }
-  }, [open, results, selectedIndex, caretRect, position]);
+  }, [open, results, caretRect, position]);
 
   useEffect(() => {
     if (!open) {
@@ -91,19 +144,122 @@ export function ComposerCommandPalette({
     };
   }, [open, position]);
 
-  useEffect(() => {
+  // Only keyboard navigation controls scrolling.
+  // Respect scroll-py-* by explicitly accounting for the list's
+  // computed scrollPaddingTop/Bottom when changing scrollTop.
+  useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+
     const palette = paletteRef.current;
 
     if (!palette) {
       return;
     }
 
-    palette
-      .querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`)
-      ?.scrollIntoView({
-        block: 'nearest',
-      });
-  }, [selectedIndex, results]);
+    const list = palette.querySelector<HTMLElement>('[role="listbox"]');
+    const item = list?.querySelector<HTMLElement>(
+      `[data-index="${selectedIndex}"]`,
+    );
+
+    if (!list || !item) {
+      return;
+    }
+
+    const listRect = list.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+
+    const styles = getComputedStyle(list);
+    const paddingTop = parseFloat(styles.scrollPaddingTop) || 0;
+    const paddingBottom = parseFloat(styles.scrollPaddingBottom) || 0;
+
+    const visibleTop = listRect.top + paddingTop;
+    const visibleBottom = listRect.bottom - paddingBottom;
+
+    if (itemRect.top < visibleTop) {
+      list.scrollTop -= visibleTop - itemRect.top;
+    } else if (itemRect.bottom > visibleBottom) {
+      list.scrollTop += itemRect.bottom - visibleBottom;
+    }
+  }, [open, selectedIndex]);
+
+  // Keyboard navigation always wins over the mouse.
+  // The pointer must physically move before hover can take control again.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    ignoreHoverRef.current = true;
+    setActiveIndex(selectedIndex);
+  }, [selectedIndex, open]);
+
+  // A real pointer movement hands control back to the mouse.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handlePointerMove = () => {
+      ignoreHoverRef.current = false;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+    };
+  }, [open]);
+
+  // Keep the tooltip attached to the currently active item.
+  // Hide it when the active item does not provide a tooltip.
+  useLayoutEffect(() => {
+    if (!open || activeIndex < 0) {
+      return;
+    }
+
+    const palette = paletteRef.current;
+    const item = flatResults[activeIndex];
+
+    if (!palette || !item) {
+      hideTooltip();
+      return;
+    }
+
+    if (
+      item.kind !== 'agent' &&
+      item.kind !== 'command' &&
+      item.kind !== 'skill'
+    ) {
+      hideTooltip();
+      return;
+    }
+
+    const element = palette.querySelector<HTMLElement>(
+      `[data-index="${activeIndex}"]`,
+    );
+
+    if (!element) {
+      hideTooltip();
+      return;
+    }
+
+    showItemTooltip(item, element);
+  }, [open, activeIndex, flatResults, showItemTooltip, hideTooltip]);
+
+  useEffect(() => {
+    if (!open) {
+      hideTooltip();
+    }
+  }, [open, hideTooltip]);
+
+  useEffect(() => {
+    if (!open) {
+      setActiveIndex(selectedIndex);
+      ignoreHoverRef.current = false;
+    }
+  }, [open, selectedIndex]);
 
   if (!open) {
     return null;
@@ -148,46 +304,25 @@ export function ComposerCommandPalette({
 
               {items.map((item) => {
                 const index = flatIndex++;
-                const active = index === selectedIndex;
+                const active = index === activeIndex;
 
                 return (
-                  <div
+                  <CommandPaletteItem
                     key={`${group}-${item.id}`}
-                    data-index={index}
-                    role='option'
-                    aria-selected={active}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-2',
-                      'border-separator/20 rounded-md border-b',
-                      'px-3 py-2 text-sm',
-                      active ? 'bg-surface-hover' : 'hover:bg-surface-hover',
-                    )}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      onSelect(item);
+                    item={item}
+                    index={index}
+                    active={active}
+                    onSelect={onSelect}
+                    onHover={(hoveredIndex) => {
+                      if (ignoreHoverRef.current) {
+                        return;
+                      }
+
+                      setActiveIndex(hoveredIndex);
+                      onActiveChange(hoveredIndex);
                     }}
-                  >
-                    {item.kind === 'file' && (
-                      <FileTypeIcon filePath={item.value} />
-                    )}
-
-                    {item.kind === 'file' && (
-                      <MiddleTruncatePath
-                        path={item.value}
-                        className='text-muted'
-                        fileClassName='text-foreground'
-                      />
-                    )}
-
-                    {item.kind !== 'file' && (
-                      <span
-                        className={cn('truncate', TOKEN_COLOR_MAP[item.kind])}
-                      >
-                        {item.triggerChar}
-                        {item.value}
-                      </span>
-                    )}
-                  </div>
+                    onShowTooltip={showItemTooltip}
+                  />
                 );
               })}
             </React.Fragment>
@@ -198,6 +333,7 @@ export function ComposerCommandPalette({
           <div className='text-muted px-3 py-2 text-sm'>No results</div>
         )}
       </ScrollShadow>
+
       <div className='bg-overlay text-muted border-separator relative flex items-center gap-3 border-t p-1.5'>
         <div className='flex items-center gap-2'>
           <div className='flex items-center gap-0.5'>
@@ -208,6 +344,7 @@ export function ComposerCommandPalette({
               <Kbd.Abbr keyValue='down' />
             </Kbd>
           </div>
+
           <span className='text-xs'>Navigate</span>
         </div>
 
@@ -215,6 +352,7 @@ export function ComposerCommandPalette({
           <Kbd className='h-5 rounded-md px-1.5'>
             <Kbd.Abbr keyValue='enter' />
           </Kbd>
+
           <span className='text-xs'>Select</span>
         </div>
       </div>

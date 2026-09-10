@@ -1,4 +1,4 @@
-import { ChevronDown, Layers } from '@gravity-ui/icons';
+import { Layers } from '@gravity-ui/icons';
 
 import { Typography } from '@aero/ui';
 
@@ -11,7 +11,6 @@ export function ContextSources() {
           <Typography type='body-sm' className='text-foreground font-semibold'>
             Context sources
           </Typography>
-          <ChevronDown className='text-muted h-3.5 w-3.5' />
         </div>
         <Typography type='body-xs' className='text-muted'>
           7 skills

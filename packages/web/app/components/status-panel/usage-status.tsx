@@ -1,4 +1,4 @@
-import { ArrowsRotateRight, ChevronDown, Clock } from '@gravity-ui/icons';
+import { ArrowsRotateRight, Clock } from '@gravity-ui/icons';
 
 import { Typography } from '@aero/ui';
 
@@ -11,7 +11,6 @@ export function UsageStatus() {
           <Typography type='body-sm' className='text-foreground font-semibold'>
             Usage
           </Typography>
-          <ChevronDown className='text-muted h-3.5 w-3.5' />
         </div>
         <div className='text-muted flex items-center gap-1.5'>
           <span className='text-xs'>Used</span>

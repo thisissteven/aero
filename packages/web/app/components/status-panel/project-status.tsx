@@ -9,6 +9,12 @@ import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
 
 export function ProjectStatus() {
+  const { sessionId } = useParams({ strict: false });
+  const { data: session } = useSession(undefined, sessionId);
+  const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
+
+  if (!currentBranch) return null;
+
   return (
     <div className='border-separator border-b p-3'>
       <ProjectStatusHeader />
