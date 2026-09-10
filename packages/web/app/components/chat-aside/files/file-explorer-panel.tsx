@@ -55,7 +55,7 @@ function FileExplorerPanelInner({ root }: { root: string }) {
       <FileExplorer
         {...lazyFileTree}
         onOpenFile={setOpenPath}
-        className='w-72 shrink-0 border-r'
+        className='w-72 shrink-0'
       />
     </div>
   );

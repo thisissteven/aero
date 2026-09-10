@@ -9,19 +9,11 @@ import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-trunc
 import { useGitDiff } from '@/app/hooks/api/git';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 
-export function SessionDiff({
-  workspace,
-  sessionId,
-}: {
-  workspace?: string;
-  sessionId: string;
-}) {
+export function SessionDiff({ workspace }: { workspace?: string }) {
   const { data: diffData, isLoading } = useGitDiff(workspace);
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data } = useChatInputExpanded(sessionId);
-
-  const isChatInputExpanded = data?.value ?? false;
+  const isChatInputExpanded = useChatInputExpanded();
 
   if (isLoading || !diffData?.summary?.length || isChatInputExpanded) {
     return null;

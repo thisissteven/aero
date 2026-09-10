@@ -17,7 +17,7 @@ interface TerminalStoreState {
 }
 
 interface TerminalStoreActions {
-  addSession: (initialCwd?: string) => string;
+  addSession: ({ title, cwd }: { title?: string; cwd?: string }) => string;
   removeSession: (id: string) => void;
   setActiveSession: (id: string) => void;
   renameSession: (id: string, title: string) => void;
@@ -27,10 +27,19 @@ interface TerminalStoreActions {
 
 type TerminalStore = TerminalStoreState & { actions: TerminalStoreActions };
 
-function createSession(index: number, cwd?: string): TerminalSession {
+function createSession(
+  index: number,
+  {
+    title,
+    cwd,
+  }: {
+    title?: string;
+    cwd?: string;
+  },
+): TerminalSession {
   return {
     id: crypto.randomUUID(),
-    title: `Terminal ${index}`,
+    title: title ?? `Terminal ${index}`,
     createdAt: Date.now(),
     cwd,
   };
@@ -42,8 +51,8 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
   statusById: {},
 
   actions: {
-    addSession: (initialCwd) => {
-      const session = createSession(get().sessions.length + 1, initialCwd);
+    addSession: ({ title, cwd }) => {
+      const session = createSession(get().sessions.length + 1, { title, cwd });
       set((state) => ({
         sessions: [...state.sessions, session],
         activeSessionId: session.id,

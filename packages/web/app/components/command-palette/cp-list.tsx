@@ -5,13 +5,13 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import { cn, Command, ListLayout, Virtualizer } from '@aero/ui';
 
+import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
-import { getLastPathName } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
@@ -249,25 +249,10 @@ export function CommandPaletteList() {
                     <span className='text-foreground truncate text-sm leading-tight font-medium'>
                       {typedItem.session.title}
                     </span>
-                    <span className='text-muted truncate text-xs'>
-                      {typedItem.session.parentId ? (
-                        <span>
-                          Subagent session at{' '}
-                          <span className='truncate font-bold'>
-                            {getLastPathName(typedItem.session.workspace)}
-                          </span>
-                        </span>
-                      ) : isStandaloneSession ? (
-                        'Standalone session'
-                      ) : (
-                        <span>
-                          at{' '}
-                          <span className='truncate font-bold'>
-                            {getLastPathName(typedItem.session.workspace)}
-                          </span>
-                        </span>
-                      )}
-                    </span>
+                    <SessionItemMetadata
+                      session={typedItem.session}
+                      time={false}
+                    />
                   </div>
                   <span className='text-muted ml-auto shrink-0 text-[11px]'>
                     {updatedAtStr}

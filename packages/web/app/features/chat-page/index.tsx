@@ -105,7 +105,7 @@ export function ChatPage({
 
               <div className='@container flex flex-1 shrink-0 flex-col items-end'>
                 <SessionTodos sessionId={sessionId} />
-                <SessionDiff workspace={workspace} sessionId={sessionId} />
+                <SessionDiff workspace={workspace} />
               </div>
             </div>
           </OfflineWrapper>

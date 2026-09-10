@@ -2,80 +2,11 @@ import { FileTree, useFileTreeSelection } from '@pierre/trees/react';
 import { useEffect } from 'react';
 
 import { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
-import { ColorTheme, useTheme } from '@/app/providers';
+import { useTheme } from '@/app/providers';
 
 export interface FileExplorerProps extends UseLazyFileTreeResult {
   onOpenFile: (path: string) => void;
   className?: string;
-}
-
-const TREE_THEME_MAP: Partial<Record<ColorTheme, string>> = {
-  github: 'github-dark',
-  dracula: 'dracula',
-  catppuccin: 'catppuccin-mocha',
-  gruvbox: 'gruvbox-dark-hard',
-  nord: 'nord',
-  monokai: 'monokai',
-  nightowl: 'night-owl',
-  rosepine: 'rose-pine',
-  solarized: 'solarized-dark',
-  tokyonight: 'tokyo-night',
-  vesper: 'vesper',
-  vitesse: 'vitesse-dark',
-  zenburn: 'zenburn',
-  aero: 'github-dark',
-  amoled: 'github-dark',
-  aura: 'aura',
-  ayu: 'ayu-dark',
-  carbonfox: 'carbonfox',
-  cursor: 'github-dark',
-  flexoki: 'flexoki-dark',
-  jetbrains: 'github-dark',
-  'lucent-orng': 'github-dark',
-  mono: 'github-dark',
-  'mono-plus': 'github-dark',
-  'oc-2': 'github-dark',
-  onedarkpro: 'github-dark',
-  orng: 'github-dark',
-  shadesofpurple: 'shades-of-purple',
-  vercel: 'vercel-dark',
-  'fields-of-the-shire': 'github-dark',
-};
-
-const TREE_LIGHT_THEME_MAP: Partial<Record<ColorTheme, string>> = {
-  github: 'github-light',
-  catppuccin: 'catppuccin-latte',
-  gruvbox: 'gruvbox-light-hard',
-  rosepine: 'rose-pine-dawn',
-  solarized: 'solarized-light',
-  tokyonight: 'tokyo-night',
-  vitesse: 'vitesse-light',
-  vercel: 'vercel-light',
-  flexoki: 'flexoki-light',
-  ayu: 'ayu-light',
-  aero: 'github-light',
-  cursor: 'github-light',
-  amoled: 'github-light',
-  jetbrains: 'github-light',
-  'lucent-orng': 'github-light',
-  mono: 'github-light',
-  'mono-plus': 'github-light',
-  'oc-2': 'github-light',
-  onedarkpro: 'github-light',
-  orng: 'github-light',
-  shadesofpurple: 'shades-of-purple',
-};
-
-function getTreeThemeName(
-  colorTheme: ColorTheme,
-  resolvedTheme: 'light' | 'dark',
-): string {
-  const map = resolvedTheme === 'light' ? TREE_LIGHT_THEME_MAP : TREE_THEME_MAP;
-
-  return (
-    map[colorTheme] ??
-    (resolvedTheme === 'light' ? 'github-light' : 'github-dark')
-  );
 }
 
 export function FileExplorer({
@@ -84,10 +15,7 @@ export function FileExplorer({
   className,
 }: FileExplorerProps) {
   const selectedPaths = useFileTreeSelection(model);
-
-  const { resolvedTheme, colorTheme } = useTheme();
-
-  const treeTheme = getTreeThemeName(colorTheme, resolvedTheme);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (selectedPaths.length !== 1) return;
@@ -104,12 +32,49 @@ export function FileExplorer({
   return (
     <div className={className}>
       <FileTree
-        key={`${resolvedTheme}:${colorTheme}:${treeTheme}`}
         model={model}
-        className='h-full rounded-lg border'
-        style={{
-          height: '100%',
-        }}
+        className='border-separator h-full border-l'
+        style={
+          {
+            height: '100%',
+            colorScheme: resolvedTheme,
+            fontFamily: 'var(--font-sans)',
+
+            // Base
+            '--trees-bg-override': 'var(--background)',
+            '--trees-fg-override': 'var(--foreground)',
+            '--trees-fg-muted-override': 'var(--muted)',
+            '--trees-bg-muted-override': 'var(--background-secondary)',
+
+            // Hover / selection
+            '--trees-hover-bg-override': 'var(--surface-hover)',
+            '--trees-selected-fg-override': 'var(--accent-soft-foreground)',
+            '--trees-selected-bg-override': 'var(--accent-soft)',
+            '--trees-selected-border-color-override':
+              'color-mix(in oklab, var(--accent) 20%, transparent)',
+            '--trees-selected-focused-border-color-override':
+              'color-mix(in oklab, var(--accent) 20%, transparent)',
+
+            // Focus
+            '--trees-focus-ring-color-override': 'var(--focus)',
+
+            // Search / input
+            '--trees-search-fg-override': 'var(--field-foreground)',
+            '--trees-search-bg-override': 'var(--field-background)',
+
+            // Borders
+            '--trees-border-color-override': 'var(--border)',
+
+            // Git status
+            '--trees-git-added-color-override': 'var(--success)',
+            '--trees-git-modified-color-override': 'var(--warning)',
+            '--trees-git-deleted-color-override': 'var(--danger)',
+            '--trees-git-renamed-color-override': 'var(--accent)',
+            '--trees-git-untracked-color-override': 'var(--success)',
+            '--trees-git-ignored-color-override': 'var(--muted)',
+            '--trees-git-descendant-color-override': 'var(--muted)',
+          } as React.CSSProperties
+        }
       />
     </div>
   );

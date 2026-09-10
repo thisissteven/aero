@@ -3,6 +3,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { ReactNode } from 'react';
 
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
 interface QueryProviderProps {
@@ -31,8 +32,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
 
 export function OfflineAlert() {
   const isOnline = useOnlineStatus();
+  const isChatInputExpanded = useChatInputExpanded();
 
-  if (isOnline) {
+  if (isOnline || isChatInputExpanded) {
     return null;
   }
 

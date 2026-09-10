@@ -1,9 +1,14 @@
 import { Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
+import React from 'react';
+
+import { cn } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
+import { getLastPathName } from '@/app/lib/file';
 
 import { SessionStatusDot } from './session-status-dot';
 import {
@@ -19,9 +24,29 @@ export function TerminalTabs() {
 
   const { sessionId } = useParams({ strict: false });
   const { data: session } = useSession(undefined, sessionId);
+  const { data: keys } = useWorkspacesKeys();
+
+  React.useEffect(() => {
+    if (
+      session?.workspace &&
+      !sessions.some((ts) => ts.cwd === session.workspace) &&
+      keys
+    ) {
+      addSession({
+        title:
+          keys?.[session.workspace]?.name ?? getLastPathName(session.workspace),
+        cwd: session.workspace,
+      });
+    }
+  }, [session?.workspace, keys]);
 
   return (
-    <div className='bg-background flex items-center gap-1 px-1 py-1'>
+    <div
+      className={cn(
+        'bg-background flex items-center gap-1 py-1',
+        sessions.length > 0 ? 'px-1' : 'px-0',
+      )}
+    >
       <div className='flex flex-1 items-center gap-1'>
         {sessions.map((session) => {
           const isActive = session.id === activeSessionId;
@@ -53,7 +78,17 @@ export function TerminalTabs() {
           );
         })}
       </div>
-      <IconButton onPress={() => addSession(session?.workspace)}>
+      <IconButton
+        onPress={() =>
+          addSession({
+            title: session?.workspace
+              ? (keys?.[session.workspace]?.name ??
+                getLastPathName(session.workspace))
+              : undefined,
+            cwd: session?.workspace,
+          })
+        }
+      >
         <Icon data={Plus} />
       </IconButton>
     </div>

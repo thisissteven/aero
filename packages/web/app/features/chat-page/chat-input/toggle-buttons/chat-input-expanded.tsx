@@ -15,10 +15,8 @@ export function ChatInputExpandedToggleButton({
 }: {
   sessionId: string;
 }) {
-  const { data } = useChatInputExpanded(sessionId);
+  const enabled = useChatInputExpanded();
   const { mutate: updateSetting } = useUpdateSetting();
-
-  const enabled = data?.value ?? false;
 
   return (
     <BooleanSettingToggleButton

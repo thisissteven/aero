@@ -7,6 +7,8 @@ import { serveStatic } from 'hono/bun';
 import { opencodePool } from '@/server/adapters/opencode/pool';
 
 import api from './index';
+import { resolveRoot } from './lib/fs-ws/fs-core';
+import { handleFsSocketMessage } from './lib/fs-ws/fs-ws-bun';
 import { getPreviewTarget } from './lib/preview/store';
 import { validateWebSocketRequest } from './lib/terminal/auth';
 import { AUTH_CONFIG } from './lib/terminal/config';
@@ -48,6 +50,7 @@ app.get(
 );
 
 type TerminalSocketData = {
+  kind: 'terminal';
   sessionId: string;
   cols: number;
   rows: number;
@@ -55,9 +58,17 @@ type TerminalSocketData = {
   cwd?: string;
 };
 
-function adaptBunSocket(ws: ServerWebSocket<TerminalSocketData>): WsLikeSocket {
+type FsSocketData = {
+  kind: 'fs';
+  root: string;
+};
+
+type SocketData = TerminalSocketData | FsSocketData;
+
+function adaptBunSocket(ws: ServerWebSocket<SocketData>): WsLikeSocket {
   return {
     readyState: ws.readyState,
+    bufferedAmount: ws.getBufferedAmount?.(),
     send(data) {
       ws.send(data);
     },
@@ -127,7 +138,7 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const serverInstance = serve<TerminalSocketData>({
+      const serverInstance = serve<SocketData>({
         port: currentPort,
         reusePort: true,
 
@@ -159,10 +170,7 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
           /*
            * Terminal websocket.
            */
-          if (
-            url.pathname === '/ws/terminal' ||
-            url.pathname === '/api/terminal/ws'
-          ) {
+          if (url.pathname === '/ws/terminal') {
             const decision = validateWebSocketRequest(AUTH_CONFIG, {
               host: req.headers.get('host') ?? undefined,
               origin: req.headers.get('origin') ?? undefined,
@@ -193,6 +201,7 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
 
             const upgraded = server.upgrade(req, {
               data: {
+                kind: 'terminal',
                 sessionId,
                 cols,
                 rows,
@@ -208,11 +217,47 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
                 });
           }
 
+          /*
+           * File system websocket.
+           */
+          if (url.pathname === '/ws/fs') {
+            const rawRoot = url.searchParams.get('root');
+
+            if (!rawRoot) {
+              return new Response('missing root', { status: 400 });
+            }
+
+            let resolvedRoot: string;
+
+            try {
+              resolvedRoot = await resolveRoot(rawRoot);
+            } catch {
+              return new Response('invalid root directory', {
+                status: 400,
+              });
+            }
+
+            const upgraded = server.upgrade(req, {
+              data: { kind: 'fs', root: resolvedRoot },
+            });
+
+            return upgraded
+              ? undefined
+              : new Response('Upgrade failed', {
+                  status: 400,
+                });
+          }
+
           return app.fetch(req, server);
         },
 
         websocket: {
           open(ws) {
+            if (ws.data.kind === 'fs') {
+              // No session state to initialize — root lives on ws.data.
+              return;
+            }
+
             const { sessionId, cols, rows, reset, cwd } = ws.data;
 
             const socketAdapter = adaptBunSocket(ws);
@@ -221,10 +266,24 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
           },
 
           message(ws, message) {
+            if (ws.data.kind === 'fs') {
+              void handleFsSocketMessage(
+                adaptBunSocket(ws),
+                { root: ws.data.root },
+                message.toString(),
+              );
+              return;
+            }
+
             handleBunSocketMessage(ws.data.sessionId, message.toString());
           },
 
           close(ws) {
+            if (ws.data.kind === 'fs') {
+              // No session state to tear down.
+              return;
+            }
+
             const socketAdapter = adaptBunSocket(ws);
 
             handleBunSocketClose(socketAdapter, ws.data.sessionId);

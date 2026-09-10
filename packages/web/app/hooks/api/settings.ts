@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useParams } from '@tanstack/react-router';
 
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
@@ -7,6 +8,7 @@ import type {
   AeroSettingUpdate,
   AeroSettingValue,
 } from '@/server/services/settings';
+import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 const $config = honoClient.api.config;
 
@@ -143,6 +145,9 @@ export function useGoalMode(sessionId: string) {
   return useSetting(['goalMode', sessionId]);
 }
 
-export function useChatInputExpanded(sessionId: string) {
-  return useSetting(['chatInputExpanded', sessionId]);
+export function useChatInputExpanded() {
+  const { sessionId } = useParams({ strict: false });
+  const resolvedSessionId = sessionId ?? NEW_SESSION_PAGE_SESSION_ID;
+  const { data } = useSetting(['chatInputExpanded', resolvedSessionId]);
+  return data?.value ?? false;
 }

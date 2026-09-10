@@ -148,6 +148,23 @@ export function useSkills({
   });
 }
 
+export function useSkillsCompact({
+  harnessId,
+  directory,
+}: UseCapabilitiesOptions = {}) {
+  return useQuery({
+    queryKey: capabilityKeys.skillsCompact(harnessId, directory),
+    queryFn: async () => {
+      const res = await $capabilities.skills.compact.$get({
+        query: { harnessId, directory },
+      });
+      if (!res.ok) throw new Error('Failed to fetch skills');
+      return res.json();
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function useCommands({
   harnessId,
   directory,

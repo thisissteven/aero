@@ -32,9 +32,7 @@ export function RevertedMessages({ sessionId }: { sessionId: string }) {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const { data } = useChatInputExpanded(sessionId);
-
-  const isChatInputExpanded = data?.value ?? false;
+  const isChatInputExpanded = useChatInputExpanded();
 
   if (revertedMessages.length === 0 || isChatInputExpanded) return null;
 

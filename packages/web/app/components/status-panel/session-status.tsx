@@ -1,11 +1,12 @@
-import { Sliders } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
 
 import { ProgressBar, Typography } from '@aero/ui';
 
+import { DisplayPopover } from '@/app/components/status-panel/display-popover';
 import { useSessionContext } from '@/app/hooks/api/sessions';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
-export function SessionStatus() {
+function ContextUsage() {
   const { sessionId } = useParams({
     strict: false,
   });
@@ -15,15 +16,7 @@ export function SessionStatus() {
   const percentage = Math.round(data?.context?.usedPercentage ?? 0);
 
   return (
-    <div className='border-separator border-b p-3'>
-      <div className='mb-2 flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
-          <Typography type='body-sm' className='text-foreground font-semibold'>
-            Session
-          </Typography>
-        </div>
-        <Sliders className='text-muted hover:text-foreground h-3.5 w-3.5 cursor-pointer' />
-      </div>
+    <div className='mt-2'>
       <div className='mb-1.5 flex items-center justify-between'>
         <Typography type='body-xs' color='muted'>
           Context
@@ -44,6 +37,25 @@ export function SessionStatus() {
           <ProgressBar.Fill />
         </ProgressBar.Track>
       </ProgressBar>
+    </div>
+  );
+}
+
+export function SessionStatus() {
+  const isVisible = useStatusPanelStore((state) => state.visibleItems.session);
+
+  return (
+    <div className='border-separator border-b p-3'>
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
+          <Typography type='body-sm' className='text-foreground font-semibold'>
+            Session
+          </Typography>
+        </div>
+        <DisplayPopover />
+      </div>
+
+      {isVisible && <ContextUsage />}
     </div>
   );
 }

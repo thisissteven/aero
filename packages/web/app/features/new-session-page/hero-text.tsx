@@ -2,7 +2,6 @@ import { TextShimmer } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
-import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function HeroText() {
   const state = useNewSessionStore((state) => state.state);
@@ -11,8 +10,7 @@ export function HeroText() {
     (state) => state.selectedWorkspace?.name,
   );
 
-  const { data } = useChatInputExpanded(NEW_SESSION_PAGE_SESSION_ID);
-  const enabled = data?.value ?? false;
+  const enabled = useChatInputExpanded();
 
   if (enabled) return null;
 

@@ -65,6 +65,8 @@ export function ComposerCommandPalette({
               ? item.skill.description
               : undefined;
 
+      if (!description) return;
+
       showTooltip({
         content: (
           <div className='bg-surface border-separator max-w-sm rounded-lg border p-2 shadow-lg'>

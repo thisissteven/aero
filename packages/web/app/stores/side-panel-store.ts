@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { NavItemId } from '@/app/components/chat-aside/chat-aside';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface SidePanelState {
   isOpen: boolean;
@@ -89,3 +90,9 @@ export const useSidePanelStore = create<SidePanelState>()(
     },
   ),
 );
+
+useSidePanelStore.subscribe((state, prevState) => {
+  if (state.isOpen && !prevState.isOpen) {
+    useStatusPanelStore.getState().setIsOpen(false);
+  }
+});

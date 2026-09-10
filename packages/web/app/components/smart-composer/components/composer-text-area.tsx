@@ -1,4 +1,4 @@
-import { useLocation, useParams } from '@tanstack/react-router';
+import { useLocation } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 
 import { cn, running, usePrompt } from '@aero/ui';
@@ -7,7 +7,6 @@ import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/comp
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
-import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 import { findTokenImmediatelyBeforeCaret } from '../smart-composer-dom';
 import { buildText, SearchItem } from '../smart-composer-helpers';
@@ -58,7 +57,7 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
 
   const getText = () => buildText(useComposerStore.getState().segments);
 
-  const { status, allowSubmitWhileRunning, onSubmit } = usePrompt();
+  const { status, allowSubmitWhileRunning, onSubmit, disabled } = usePrompt();
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const isMod = event.ctrlKey || event.metaKey;
@@ -188,11 +187,7 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
     editorRef.current.spellcheck = false;
   }, [editorRef]);
 
-  const { sessionId } = useParams({ strict: false });
-  const { data } = useChatInputExpanded(
-    sessionId ?? NEW_SESSION_PAGE_SESSION_ID,
-  );
-  const enabled = data?.value ?? false;
+  const enabled = useChatInputExpanded();
 
   useEffect(() => {
     if (
@@ -240,7 +235,7 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
         'prompt-input__textarea',
         mode === 'shell' && 'border-accent/50 font-mono',
       )}
-      contentEditable
+      contentEditable={!disabled}
       role='textbox'
       aria-multiline='true'
       data-placeholder={SMART_COMPOSER_PLACEHOLDER}

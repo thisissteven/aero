@@ -1,4 +1,4 @@
-import { CircleTree, Ellipsis } from '@gravity-ui/icons';
+import { Ellipsis } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 
@@ -26,14 +26,11 @@ import {
   ShareUnshareSession,
   UnarchiveSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
+import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
-import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
-import { formatCompactRelativeTime } from '@/app/lib';
-import { getLastPathName } from '@/app/lib/file';
 import { OfflineAlert } from '@/app/providers';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
-import { isWorktree } from '@/server/shared';
 
 import type { ChatActivePage } from '../../data/chat';
 
@@ -148,8 +145,6 @@ function SessionsNavbarContent() {
 
   const { data: session, isPending } = useSession(undefined, sessionId);
 
-  const { data: keys } = useWorkspacesKeys();
-
   if (isPending) {
     return <NavbarContentSkeleton />;
   }
@@ -164,44 +159,12 @@ function SessionsNavbarContent() {
   }
 
   const isStandaloneSession = session.workspace.includes('.aero/workspaces');
-  const workspaceTitle =
-    keys?.[session.workspace]?.name ?? getLastPathName(session.workspace);
 
   return (
     <div className='flex min-w-0 items-start gap-2 transition'>
       <div className='flex min-w-0 flex-col'>
         <SessionTitle sessionId={session.id} sessionTitle={session.title} />
-
-        <div className='text-muted flex min-w-0 items-center gap-1 overflow-hidden text-xs'>
-          <span className='shrink-0'>
-            {formatCompactRelativeTime(session.updatedAt, true)}
-            {!isStandaloneSession && ` at `}
-          </span>
-          {isStandaloneSession && (
-            <span className='truncate font-bold'>
-              (Standalone session) {session.readOnly && ' (read only)'}
-            </span>
-          )}
-          {!isStandaloneSession && !isWorktree(session.workspace) && (
-            <span className='truncate font-bold'>
-              {workspaceTitle}
-              {session.readOnly && ' (read only)'}
-            </span>
-          )}
-          {!isStandaloneSession && isWorktree(session.workspace) && (
-            <div className='flex items-center gap-1'>
-              {workspaceTitle}
-              <Icon data={CircleTree} size={12} />
-              <span className='truncate font-bold'>
-                {getLastPathName(session.workspace)}
-                {session.readOnly && ' (read only)'}
-              </span>
-            </div>
-          )}
-          {session.archived && (
-            <span className='truncate font-bold'>{' (archived)'}</span>
-          )}
-        </div>
+        <SessionItemMetadata session={session} />
       </div>
       <div>
         <Dropdown size='sm'>

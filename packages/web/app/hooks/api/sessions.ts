@@ -11,6 +11,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useParams } from '@tanstack/react-router';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
@@ -176,6 +177,16 @@ export function useSessionStatus(
     },
     enabled: !!sessionId,
   });
+}
+
+export function useSessionDirectory() {
+  const { sessionId } = useParams({ strict: false });
+
+  const { data: session } = useSession(undefined, sessionId);
+
+  if (!sessionId || !session) return undefined;
+
+  return session.workspace;
 }
 
 export function useSession(harnessId: string | undefined, sessionId: string) {

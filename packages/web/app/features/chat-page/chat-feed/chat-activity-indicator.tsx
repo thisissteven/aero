@@ -91,7 +91,6 @@ function PixelLoader() {
 }
 
 export function ChatActivityIndicator() {
-  const sessionId = useChatStore((state) => state.activeSessionId);
   const turns = useChatStore((state) => state.activeSession.turns);
   const status = useChatStore((state) => state.activeSession.status);
   const startedAt = useChatStore(
@@ -102,9 +101,7 @@ export function ChatActivityIndicator() {
 
   const label = useMemo(() => getActivityLabel(turns, status), [turns, status]);
 
-  const { data } = useChatInputExpanded(sessionId as string);
-
-  const isChatInputExpanded = data?.value ?? false;
+  const isChatInputExpanded = useChatInputExpanded();
 
   if (!label || isChatInputExpanded) {
     return null;

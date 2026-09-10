@@ -5,7 +5,6 @@ import { useNewSessionStore } from '@/app/features/new-session-page/new-session-
 import { useCapabilities } from '@/app/hooks/api/capabilities';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
-import { useDebounce } from '@/app/hooks/useDebounce';
 
 import { TRIGGER_CHARS, unifiedSearch } from './smart-composer-helpers';
 import { useComposerStore } from './smart-composer-store';
@@ -260,12 +259,12 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   const directory =
     !sessionId && isWorkMode ? selectedDirectory : session?.workspace;
 
-  const debouncedQuery = useDebounce(activeTrigger?.query, 300);
+  // const debouncedQuery = useDebounce(activeTrigger?.query, 300);
 
   const { data: files = [] } = useFilesInDirectory({
     harnessId: undefined,
     directory,
-    query: fileTriggerQueryLength > 0 ? debouncedQuery : undefined,
+    query: fileTriggerQueryLength > 0 ? activeTrigger?.query : undefined,
     limit: fileTriggerQueryLength > 0 ? '20' : '5',
   });
 

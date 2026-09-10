@@ -73,6 +73,7 @@ export default defineConfig({
 
     previewHostPlugin(),
     autoCleanupPlugin(),
+    devWebSocketPlugin(),
 
     devServer({
       entry: 'server/index.ts',
@@ -85,7 +86,6 @@ export default defineConfig({
       exclude: [/^\/(?!api\/).*/],
     }),
 
-    devWebSocketPlugin(),
     react(),
     tailwindcss(),
   ],

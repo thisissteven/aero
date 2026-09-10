@@ -2,14 +2,12 @@ import { Segment } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
-import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function ChatWorkToggle() {
   const state = useNewSessionStore((state) => state.state);
   const setState = useNewSessionStore((state) => state.setState);
 
-  const { data } = useChatInputExpanded(NEW_SESSION_PAGE_SESSION_ID);
-  const enabled = data?.value ?? false;
+  const enabled = useChatInputExpanded();
 
   if (enabled) return null;
 

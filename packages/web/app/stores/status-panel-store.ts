@@ -1,91 +1,53 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { NavItemId } from '@/app/components/chat-aside/chat-aside';
-
 interface Position {
   x: number;
   y: number;
 }
 
+export type StatusItemKey =
+  | 'session'
+  | 'project'
+  | 'usage'
+  | 'subagent'
+  | 'task'
+  | 'mcp'
+  | 'pinnedMessage'
+  | 'contextSources';
+
 interface StatusPanelState {
   isOpen: boolean;
-  activeNavItem: NavItemId | null;
-  isExpanded: boolean;
   position: Position | null;
+  visibleItems: Record<StatusItemKey, boolean>;
+
   setIsOpen: (isOpen: boolean) => void;
-  setActiveNavItem: (item: NavItemId | null) => void;
-  toggleNavItem: (id: NavItemId) => void;
-  toggleExpanded: () => void;
-  openClosePanelWithShortcut: (navItem?: NavItemId) => void;
-  openAndExpandPanelWithShortcut: (navItem: NavItemId) => void;
-  openPanel: () => void;
-  closePanel: () => void;
   setPosition: (
     position: Position | null | ((prev: Position | null) => Position),
   ) => void;
+  toggleItemVisibility: (key: StatusItemKey) => void;
+  setItemVisibility: (key: StatusItemKey, isVisible: boolean) => void;
 }
+
+const DEFAULT_VISIBLE_ITEMS: Record<StatusItemKey, boolean> = {
+  session: true,
+  project: true,
+  usage: true,
+  subagent: true,
+  task: true,
+  mcp: true,
+  pinnedMessage: true,
+  contextSources: true,
+};
 
 export const useStatusPanelStore = create<StatusPanelState>()(
   persist(
     (set) => ({
       isOpen: false,
-      activeNavItem: null,
-      isExpanded: false,
       position: null,
+      visibleItems: DEFAULT_VISIBLE_ITEMS,
 
       setIsOpen: (isOpen) => set({ isOpen }),
-
-      setActiveNavItem: (item) =>
-        set((state) => ({
-          activeNavItem: item,
-          isOpen: item !== null ? true : state.isOpen,
-        })),
-
-      toggleNavItem: (id) =>
-        set((state) => {
-          if (state.activeNavItem === id && state.isOpen) {
-            return { isOpen: false };
-          }
-          return { activeNavItem: id, isOpen: true };
-        }),
-
-      toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
-
-      openClosePanelWithShortcut: (navItem) =>
-        set((state) => {
-          if (state.isOpen && (navItem === state.activeNavItem || !navItem)) {
-            return { isOpen: false };
-          }
-          return {
-            isOpen: true,
-            activeNavItem: navItem ?? state.activeNavItem ?? 'context',
-          };
-        }),
-
-      openAndExpandPanelWithShortcut: (navItem) =>
-        set((state) => {
-          const isSameItemOpen =
-            state.isOpen && state.activeNavItem === navItem;
-
-          if (isSameItemOpen) {
-            return { isExpanded: !state.isExpanded };
-          }
-
-          return {
-            isOpen: true,
-            activeNavItem: navItem,
-            isExpanded: true,
-          };
-        }),
-
-      openPanel: () =>
-        set((state) => ({
-          isOpen: true,
-          activeNavItem: state.activeNavItem ?? 'context',
-        })),
-
-      closePanel: () => set({ isOpen: false }),
 
       setPosition: (position) =>
         set((state) => ({
@@ -94,14 +56,29 @@ export const useStatusPanelStore = create<StatusPanelState>()(
               ? position(state.position)
               : position,
         })),
+
+      toggleItemVisibility: (key) =>
+        set((state) => ({
+          visibleItems: {
+            ...state.visibleItems,
+            [key]: !state.visibleItems[key],
+          },
+        })),
+
+      setItemVisibility: (key, isVisible) =>
+        set((state) => ({
+          visibleItems: {
+            ...state.visibleItems,
+            [key]: isVisible,
+          },
+        })),
     }),
     {
       name: 'aero-status-panel',
       partialize: (state) => ({
         isOpen: state.isOpen,
-        isExpanded: state.isExpanded,
-        activeNavItem: state.activeNavItem,
         position: state.position,
+        visibleItems: state.visibleItems,
       }),
     },
   ),

@@ -61,7 +61,7 @@ export function devWebSocketPlugin(): Plugin {
         }
 
         // 2. File System WebSocket Handler
-        if (url.pathname === '/api/fs-ws' || url.pathname === '/ws/fs') {
+        if (url.pathname === '/ws/fs') {
           fsWss.handleUpgrade(req, socket, head, (ws) => {
             fsWss.emit('connection', ws, req);
           });

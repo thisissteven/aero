@@ -21,7 +21,6 @@ export interface FsSocketOptions {
   /** Absolute (or server-resolvable) path on the machine running the Hono
    * server. This is NOT a browser-local path. */
   root: string;
-  /** Defaults to `${origin}/api/fs-ws` with the protocol swapped to ws/wss. */
   url?: string;
   onDisconnect?: () => void;
   onReconnect?: () => void;
@@ -45,7 +44,7 @@ export class FsSocket {
 
   private connect(): void {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const base = this.options.url ?? `${protocol}//${location.host}/api/fs-ws`;
+    const base = this.options.url ?? `${protocol}//${location.host}/ws/fs`;
     const url = `${base}?root=${encodeURIComponent(this.options.root)}`;
     const ws = new WebSocket(url);
     this.ws = ws;

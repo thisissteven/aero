@@ -71,6 +71,18 @@ export function useLazyFileTree({
     search: true,
     fileTreeSearchMode: 'hide-non-matches',
     initialExpansion: 'closed',
+    flattenEmptyDirectories: true,
+    density: 'default',
+    composition: {
+      contextMenu: {
+        enabled: true,
+        buttonVisibility: 'when-needed',
+      },
+    },
+    // gitStatus: [{
+    //   path: '',
+    //   status: 'added'
+    // }]
   });
 
   const loadDirectory = useCallback(

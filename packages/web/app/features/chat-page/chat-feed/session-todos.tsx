@@ -12,9 +12,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data } = useChatInputExpanded(sessionId);
-
-  const isChatInputExpanded = data?.value ?? false;
+  const isChatInputExpanded = useChatInputExpanded();
 
   if (!todos || todos.length === 0 || isChatInputExpanded) return null;
 

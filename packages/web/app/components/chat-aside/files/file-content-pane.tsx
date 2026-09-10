@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@aero/ui';
 
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
+import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { ColorTheme, useTheme } from '@/app/providers';
 
 export interface FileContentPaneProps {
@@ -236,11 +237,12 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
 
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden'>
-      <div className='bg-background/95 sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3 backdrop-blur'>
+      <div className='bg-background border-separator sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3 backdrop-blur'>
         <div
-          className='text-foreground min-w-0 truncate text-xs font-medium'
+          className='text-foreground flex min-w-0 items-center gap-1 truncate text-xs font-medium'
           title={displayedPath}
         >
+          <FileTypeIcon filePath={fileName} />
           {fileName}
         </div>
 
@@ -264,7 +266,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
         )}
       </div>
 
-      <div className='min-h-0 min-w-0 flex-1 basis-0 overflow-auto'>
+      <div className='min-h-0 min-w-0 flex-1 basis-0 scrollbar-thin overflow-auto'>
         {error && state.path === path && (
           <div className='text-danger p-4 text-sm'>{error}</div>
         )}
@@ -292,13 +294,14 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
               file={{
                 name: displayedPath,
                 contents: state.content ?? '',
+                header: undefined,
               }}
               options={{
                 theme: pierreTheme,
                 overflow: wrapText ? 'wrap' : 'scroll',
-                stickyHeader: false,
+                disableFileHeader: true,
               }}
-              className='h-full scrollbar-thin'
+              className='h-full'
             />
           </div>
         )}
