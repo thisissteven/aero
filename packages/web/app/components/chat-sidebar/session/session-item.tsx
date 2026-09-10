@@ -97,8 +97,7 @@ export const ChatSidebarSessionItem = memo(
         const isStandaloneSession =
           session.workspace.includes('.aero/workspaces');
         const workspaceTitle =
-          keys[session.workspace] ??
-          getLastPathName(session.workspaceTitle ?? session.workspace);
+          keys[session.workspace]?.name ?? getLastPathName(session.workspace);
         showTooltip({
           content: (
             <div className='bg-surface border-separator rounded-lg border p-2 shadow-lg'>
@@ -121,11 +120,10 @@ export const ChatSidebarSessionItem = memo(
                 )}
                 {!isStandaloneSession && isWorktree(session.workspace) && (
                   <div className='flex items-center gap-1'>
+                    {workspaceTitle}
                     <Icon data={CircleTree} size={12} />
                     <span className='truncate font-bold'>
-                      {getLastPathName(
-                        session.workspaceTitle ?? session.workspace,
-                      )}
+                      {getLastPathName(session.workspace)}
                       {session.readOnly && ' (read only)'}
                     </span>
                   </div>
@@ -230,8 +228,7 @@ export const WorkspaceSessionItem = memo(
         const isStandaloneSession =
           session.workspace.includes('.aero/workspaces');
         const workspaceTitle =
-          keys[session.workspace] ??
-          getLastPathName(session.workspaceTitle ?? session.workspace);
+          keys[session.workspace]?.name ?? getLastPathName(session.workspace);
         showTooltip({
           content: (
             <div className='bg-surface border-separator rounded-lg border p-2 shadow-lg'>
@@ -254,11 +251,10 @@ export const WorkspaceSessionItem = memo(
                 )}
                 {!isStandaloneSession && isWorktree(session.workspace) && (
                   <div className='flex items-center gap-1'>
+                    {workspaceTitle}
                     <Icon data={CircleTree} size={12} />
                     <span className='truncate font-bold'>
-                      {getLastPathName(
-                        session.workspaceTitle ?? session.workspace,
-                      )}
+                      {getLastPathName(session.workspace)}
                       {session.readOnly && ' (read only)'}
                     </span>
                   </div>

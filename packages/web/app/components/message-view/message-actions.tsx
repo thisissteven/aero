@@ -14,14 +14,14 @@ import { cn, toast, Tooltip } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import {
-  usePinnedSessionMessage,
-  useUpdateSetting,
-} from '@/app/hooks/api/config';
-import {
   sessionKeys,
   useForkSession,
   useRevertSession,
 } from '@/app/hooks/api/sessions';
+import {
+  usePinnedSessionMessage,
+  useUpdateSetting,
+} from '@/app/hooks/api/settings';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { queryClient } from '@/app/providers';
 import { Route } from '@/app/routes/_app/sessions/$sessionId';

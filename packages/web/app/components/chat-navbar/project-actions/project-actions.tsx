@@ -139,7 +139,7 @@ export function ProjectActionsContent({
           aria-label={tooltipText}
           onPress={handlePrimaryAction}
           isDisabled={isStarting}
-          className='disabled:opacity-100'
+          className='h-7 w-7 disabled:opacity-100'
         >
           {primaryIcon}
         </IconButton>
@@ -148,7 +148,7 @@ export function ProjectActionsContent({
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options'>
+        <IconButton aria-label='Open in options' className='h-7 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 

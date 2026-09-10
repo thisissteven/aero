@@ -1,6 +1,6 @@
 import { ChevronDown } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { cn, Command, Popover } from '@aero/ui';
 
@@ -9,11 +9,13 @@ import {
   AddProviderRow,
   buildModelVirtualItems,
   ModelEmptyState,
+  ModelInfoPanelCard,
   ModelPickerFooter,
   ModelSearchInput,
   ModelVirtualList,
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
+import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { SearchableModel } from '@/app/lib/model';
 import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
 
@@ -43,6 +45,7 @@ export function WorkspaceModelDropdown({
     totalResults,
     collapsedGroups,
     toggleGroupCollapse,
+    isModelVisible,
   } = useModelDirectory();
 
   const selectedModelEntry =
@@ -61,6 +64,19 @@ export function WorkspaceModelDropdown({
     groupedProviders,
     collapsedGroups,
   });
+
+  const {
+    activeModel,
+    hoverTop,
+    infoSide,
+    panelRef,
+    activateModel,
+    clearIfStale,
+  } = useModelInfoPanel();
+
+  useEffect(() => {
+    clearIfStale(isModelVisible);
+  }, [clearIfStale, isModelVisible]);
 
   return (
     <Popover
@@ -103,7 +119,7 @@ export function WorkspaceModelDropdown({
         className='relative overflow-visible p-0'
         placement='top right'
       >
-        <div className='relative flex items-start'>
+        <div ref={panelRef} className='relative flex items-start'>
           <div className='bg-overlay text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border'>
             {onAddProviderClick && (
               <AddProviderRow onClick={onAddProviderClick} />
@@ -129,6 +145,7 @@ export function WorkspaceModelDropdown({
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroupCollapse}
                     onSelect={selectModel}
+                    onActivate={activateModel}
                   />
                 )}
               </Command.Dialog>
@@ -136,6 +153,14 @@ export function WorkspaceModelDropdown({
 
             <ModelPickerFooter />
           </div>
+
+          {activeModel && (
+            <ModelInfoPanelCard
+              model={activeModel}
+              top={hoverTop}
+              side={infoSide}
+            />
+          )}
         </div>
       </Popover.Content>
     </Popover>

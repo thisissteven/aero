@@ -3,7 +3,7 @@ import { ShieldCheck } from '@gravity-ui/icons';
 import {
   usePermissionAutoAccept,
   useUpdateSetting,
-} from '@/app/hooks/api/config';
+} from '@/app/hooks/api/settings';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
 

@@ -9,7 +9,7 @@ import { createServer as createNetServer } from 'node:net';
 
 import { installAeroPlugin } from '@/server/adapters/opencode/plugin';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
-import { AERO_PLUGIN_PATH, findAvailablePort } from '@/server/helper';
+import { findAvailablePort } from '@/server/helper';
 
 export type OpencodeServerV2 = Awaited<ReturnType<typeof createServerV2>>;
 export type OpencodeClientV2 = ReturnType<typeof createClientV2>;
@@ -267,7 +267,7 @@ export const opencodePoolV2 = new OpencodeServerPool<
         permission: {
           websearch: 'allow',
         },
-        plugin: [AERO_PLUGIN_PATH],
+        // plugin: [AERO_PLUGIN_PATH],
       },
     });
   },

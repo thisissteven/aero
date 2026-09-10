@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 import { cn, Popover } from '@aero/ui';
 
-import { useChatInputExpanded } from '@/app/hooks/api/config';
 import { useSessionTodos } from '@/app/hooks/api/sessions';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 
 export function SessionTodos({ sessionId }: { sessionId: string }) {
   const { data: todos } = useSessionTodos(undefined, sessionId);

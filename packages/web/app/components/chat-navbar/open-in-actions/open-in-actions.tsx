@@ -74,6 +74,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
         <IconButton
           aria-label='Open project'
           onPress={async () => await openApp(projectPath, selectedAppId)}
+          className='h-7 w-7'
         >
           <AppIcon app={selectedApp} fallbackId={selectedAppId} />
         </IconButton>
@@ -86,7 +87,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options'>
+        <IconButton aria-label='Open in options' className='h-7 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 

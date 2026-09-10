@@ -6,6 +6,7 @@ import { IconButton } from '@/app/components/ui/icon-button';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { formatCompactNumber } from '@/app/lib/number';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface PercentageCircleIconProps {
   percentage: number;
@@ -63,9 +64,11 @@ export function ContextUsagePreview() {
     strict: false,
   });
 
+  const statusPanelOpen = useStatusPanelStore((state) => state.isOpen);
+
   const { data } = useSessionContext(undefined, sessionId);
 
-  if (!sessionId || !data) {
+  if (!sessionId || !data || statusPanelOpen) {
     return null;
   }
 

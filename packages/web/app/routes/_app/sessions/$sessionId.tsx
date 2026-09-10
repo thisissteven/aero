@@ -59,6 +59,10 @@ function SessionPage() {
     removeUnreadSession,
   ]);
 
+  // const { data: keys } = useWorkspacesKeys();
+
+  // useEffect(() => {}, [sessionId, keys]);
+
   /**
    * Hydrate persisted messages once.
    *

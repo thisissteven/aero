@@ -55,7 +55,6 @@ export interface AeroSessionSummary {
     messageID?: string;
   };
   archived: boolean;
-  workspaceTitle?: string;
 }
 
 export type AeroPartUserMessage =

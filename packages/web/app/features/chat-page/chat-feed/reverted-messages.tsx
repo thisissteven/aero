@@ -7,13 +7,13 @@ import { cn, Disclosure, toast } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
-import { useChatInputExpanded } from '@/app/hooks/api/config';
 import {
   sessionKeys,
   useForkSession,
   useRestoreAllMessages,
   useRevertSession,
 } from '@/app/hooks/api/sessions';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { queryClient } from '@/app/providers';
 
 export function RevertedMessages({ sessionId }: { sessionId: string }) {

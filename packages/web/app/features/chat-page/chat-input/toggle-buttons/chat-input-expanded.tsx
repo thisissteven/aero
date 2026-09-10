@@ -3,7 +3,10 @@ import {
   ChevronsExpandUpRight,
 } from '@gravity-ui/icons';
 
-import { useChatInputExpanded, useUpdateSetting } from '@/app/hooks/api/config';
+import {
+  useChatInputExpanded,
+  useUpdateSetting,
+} from '@/app/hooks/api/settings';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
 

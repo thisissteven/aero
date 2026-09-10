@@ -12,6 +12,8 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { cn, Tooltip, Typography } from '@aero/ui';
 
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+
 export const collapsibleNav = [
   {
     id: 'context',
@@ -72,9 +74,11 @@ interface ChatAsideProps {
 }
 
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
+  const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
+
   return (
     <aside className='relative h-full w-12 shrink-0 max-sm:hidden'>
-      {!!activeItem && (
+      {(!!activeItem || isStatusPanelOpen) && (
         <div
           className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
           aria-hidden
@@ -83,7 +87,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
       <div
         className={cn(
           'mt-14 flex h-full flex-col gap-2 pt-4',
-          !!activeItem && 'border-separator border-l',
+          (!!activeItem || isStatusPanelOpen) && 'border-separator border-l',
         )}
       >
         {collapsibleNav.map((item) => {

@@ -1,6 +1,6 @@
 import { Target } from '@gravity-ui/icons';
 
-import { useGoalMode, useUpdateSetting } from '@/app/hooks/api/config';
+import { useGoalMode, useUpdateSetting } from '@/app/hooks/api/settings';
 
 import { BooleanSettingToggleButton } from './boolean-setting';
 

@@ -183,7 +183,7 @@ export function GlobalTooltip() {
       onMouseLeave={() => {
         if (isInteractive) setHovered(false);
       }}
-      className={`fixed z-[9999] ${
+      className={`fixed ${
         isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
       } ${
         /* Position transition only runs between open items */

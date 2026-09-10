@@ -1,0 +1,41 @@
+import { Shapes3 } from '@gravity-ui/icons';
+import { useParams } from '@tanstack/react-router';
+
+import { Tooltip } from '@aero/ui';
+
+import { IconButton } from '@/app/components/ui/icon-button';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+
+export function StatusPanelToggle() {
+  const isOpen = useStatusPanelStore((state) => state.isOpen);
+  const toggleOpenRightPanel = useStatusPanelStore(
+    (state) => state.openClosePanelWithShortcut,
+  );
+
+  const { sessionId } = useParams({
+    strict: false,
+  });
+
+  if (!sessionId) {
+    return null;
+  }
+
+  return (
+    <Tooltip>
+      <IconButton
+        onPress={() => toggleOpenRightPanel()}
+        svgSize='xs'
+        className={
+          isOpen
+            ? 'text-foreground bg-default'
+            : 'text-muted hover:text-muted active:text-muted'
+        }
+      >
+        <Shapes3 />
+      </IconButton>
+      <Tooltip.Content>
+        {isOpen ? 'Hide work status' : 'Show work status'}
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}

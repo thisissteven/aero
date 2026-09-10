@@ -22,6 +22,27 @@ export const configKeys = {
   setting: (path: SettingPath) => ['config', 'settings', ...path] as const,
 };
 
+export async function getSetting<const P extends AeroSettingPath>(path: P) {
+  const normalizedPath = [...path];
+
+  const res = await $config.settings.$get({
+    query: {
+      path: normalizedPath.join('.'),
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch setting: ${normalizedPath.join('.')}`);
+  }
+
+  const data = await res.json();
+
+  return {
+    path: data.path as P,
+    value: data.value as AeroSettingValue<P> | undefined,
+  };
+}
+
 export function useSetting<const P extends AeroSettingPath>(path: P) {
   const normalizedPath = [...path];
 
@@ -31,51 +52,36 @@ export function useSetting<const P extends AeroSettingPath>(path: P) {
     enabled: normalizedPath.length > 0,
 
     queryFn: async () => {
-      const res = await $config.settings.$get({
-        query: {
-          path: normalizedPath.join('.'),
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch setting: ${normalizedPath.join('.')}`);
-      }
-
-      const data = await res.json();
-
-      return {
-        path: data.path as P,
-        value: data.value as AeroSettingValue<P> | undefined,
-      };
+      return await getSetting(path);
     },
   });
 }
 
+export async function updateSetting({ path, value }: SettingUpdate) {
+  const normalizedPath = [...path];
+
+  const res = await $config.settings.$patch({
+    json: {
+      path: normalizedPath,
+      value,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to update setting: ${normalizedPath.join('.')}`);
+  }
+
+  const data = await res.json();
+
+  return {
+    path: data.path as typeof path,
+    value: data.value as typeof value,
+  };
+}
+
 export function useUpdateSetting() {
   return useMutation({
-    mutationFn: async ({ path, value }: SettingUpdate) => {
-      const normalizedPath = [...path];
-
-      const res = await $config.settings.$patch({
-        json: {
-          path: normalizedPath,
-          value,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(
-          `Failed to update setting: ${normalizedPath.join('.')}`,
-        );
-      }
-
-      const data = await res.json();
-
-      return {
-        path: data.path as typeof path,
-        value: data.value as typeof value,
-      };
-    },
+    mutationFn: updateSetting,
 
     onMutate: async ({ path, value }) => {
       const normalizedPath = [...path];

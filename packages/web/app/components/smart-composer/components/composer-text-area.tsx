@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { cn, running, usePrompt } from '@aero/ui';
 
 import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/components/composer-placeholder';
-import { useChatInputExpanded } from '@/app/hooks/api/config';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
-import { useChatInputExpanded } from '@/app/hooks/api/config';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
 import type {
   AeroConversationTurn,

@@ -12,10 +12,23 @@ export const settingsSchema = z.object({
     z.string(),
     z.record(z.string(), z.boolean()),
   ),
+  recentModelVariants: z.record(z.string(), z.string()),
 
   // Future examples:
   // theme: z.enum(['light', 'dark', 'system']),
   // recentModels: z.array(z.string()),
+  // chatSettings: z.record(
+  //   z.string(),
+  //   z.object({
+  //     selectedModel: z.object({
+  //       model: z.string(),
+  //       providerId: z.string(),
+  //       providerName: z.string(),
+  //     }),
+  //     selectedAgent: z.string(),
+  //   }),
+  // ),
+  // favoriteModelIds: z.array(z.string()),
 });
 
 export type AeroSettings = z.infer<typeof settingsSchema>;
@@ -25,6 +38,7 @@ export const DEFAULT_SETTINGS: AeroSettings = {
   chatInputExpanded: {},
   permissionAutoAcceptSessions: {},
   pinnedSessionMessages: {},
+  recentModelVariants: {},
 };
 
 type SettingsObject = Record<string, unknown>;

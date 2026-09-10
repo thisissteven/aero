@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { getSetting, updateSetting } from '@/app/hooks/api/settings';
+import { debounce } from '@/app/hooks/useDebounce';
 import { SearchableModel } from '@/app/lib/model';
 
 export interface SelectedAgent {
@@ -47,7 +49,22 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
       modelAgentSheetOpen: false,
       modelAgentSheetSelection: 'agent',
 
-      setSelectedVariant: (selectedVariant) => set({ selectedVariant }),
+      setSelectedVariant: (selectedVariant) => {
+        set((state) => {
+          const selectedModel = state.selectedModel;
+          if (selectedModel) {
+            debounce(
+              async () =>
+                await updateSetting({
+                  path: ['recentModelVariants', selectedModel.model.id],
+                  value: selectedVariant,
+                }),
+              300,
+            )();
+          }
+          return { selectedVariant };
+        });
+      },
 
       cycleVariant: (direction = 1) => {
         const { selectedModel, selectedVariant } = get();
@@ -63,16 +80,34 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
               ? 0
               : variants.length - 1
             : (currentIndex + direction + variants.length) % variants.length;
+
         set({ selectedVariant: variants[nextIndex] });
+        debounce(
+          async () =>
+            await updateSetting({
+              path: ['recentModelVariants', selectedModel.model.id],
+              value: variants[nextIndex],
+            }),
+          300,
+        )();
       },
 
       setSelectedModel: (selectedModel) => {
-        const variants = Object.keys(selectedModel.model.variants ?? {});
-        const selectedVariant =
-          variants.length > 0
-            ? variants[Math.floor((variants.length - 1) / 2)]
-            : undefined;
-        return set({ selectedModel, selectedVariant });
+        set({ selectedModel });
+
+        void getSetting(['recentModelVariants', selectedModel.model.id]).then(
+          ({ value: recentVariant }) => {
+            const variants = Object.keys(selectedModel.model.variants ?? {});
+
+            const selectedVariant =
+              recentVariant ??
+              (variants.length > 0
+                ? variants[Math.floor((variants.length - 1) / 2)]
+                : undefined);
+
+            set({ selectedVariant });
+          },
+        );
       },
 
       setSelectedAgent: (selectedAgent) => set({ selectedAgent }),
@@ -90,7 +125,9 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
 
       isFavoriteModel: (modelId) => get().favoriteModelIds.includes(modelId),
 
-      setFavoriteModelIds: (favoriteModelIds) => set({ favoriteModelIds }),
+      setFavoriteModelIds: (favoriteModelIds) => {
+        set({ favoriteModelIds });
+      },
 
       setModelAgentSheetOpen: (open) =>
         set({

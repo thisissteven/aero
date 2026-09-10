@@ -34,7 +34,6 @@ import { getSetting } from '@/server/services/settings';
 import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
 import {
   addWorktreeToWorkspace,
-  AeroWorktree,
   createWorkspace,
   deleteWorkspace,
   getWorkspace,
@@ -132,39 +131,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     return stored;
   }
 
-  async function updateSessionsInDirectory(input: AeroWorktree) {
-    try {
-      const directory = input.directory;
-
-      if (typeof directory !== 'string') {
-        return;
-      }
-
-      await withOpencodeClientV2(async (client) => {
-        const sessions = unwrap(
-          await client.v2.session.list({
-            directory: normalizePath(directory),
-            limit: GET_ALL_LIMIT,
-            order: 'asc',
-          }),
-        );
-
-        await Promise.allSettled(
-          sessions.data.map((s) =>
-            client.session.update({
-              sessionID: s.id,
-              metadata: {
-                workspaceTitle: input.name,
-              },
-            }),
-          ),
-        );
-      });
-    } catch {
-      //
-    }
-  }
-
   async function archiveSessionsInDirectory(directoryPath: string) {
     try {
       await withOpencodeClientV2(async (client) => {
@@ -253,12 +219,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
       if (!updated) {
         throw new Error(`Workspace not found: ${workspaceId}`);
-      }
-
-      if (updated) {
-        await Promise.allSettled(
-          updated.worktrees.map((wt) => updateSessionsInDirectory(wt)),
-        );
       }
 
       return updated;

@@ -6,8 +6,8 @@ import { cn, Popover } from '@aero/ui';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useChatInputExpanded } from '@/app/hooks/api/config';
 import { useGitDiff } from '@/app/hooks/api/git';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 
 export function SessionDiff({
   workspace,

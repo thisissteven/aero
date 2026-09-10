@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 
 import { AppLayout, Resizable } from '@aero/ui';
 
+import { StatusAsidePanel } from '@/app/components/chat-aside/status-aside-panel';
 import { useRestoreSessionStreams } from '@/app/hooks/api/stream-event';
 
 import { ChatAsidePanel } from './chat-aside/chat-aside-panel';
@@ -48,6 +49,7 @@ export function ChatShell({ children }: ChatShellProps) {
         >
           <Resizable orientation='horizontal' autoSaveId='chat:side-panel'>
             <ChatMainContentPanel>{children}</ChatMainContentPanel>
+            <StatusAsidePanel />
             <ChatAsidePanel />
           </Resizable>
         </AppLayout>

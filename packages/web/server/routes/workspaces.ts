@@ -105,9 +105,26 @@ const workspaces = new Hono()
       });
     }
 
-    const keys = Object.fromEntries(
-      result.items.map((item) => [item.directory, item.name]),
-    );
+    const keys = Object.fromEntries([
+      ...result.items.map((item) => [
+        item.directory,
+        {
+          name: item.name,
+        },
+      ]),
+      ...result.items.flatMap((item) =>
+        item.worktrees.map((worktree) => [
+          worktree.directory,
+          {
+            name: item.name,
+          },
+        ]),
+      ),
+    ]) as {
+      [key: string]: {
+        name: string;
+      };
+    };
 
     return c.json(keys);
   })
