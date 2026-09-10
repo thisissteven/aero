@@ -46,6 +46,8 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'questions'] as const,
   permissions: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'permissions'] as const,
+  children: (harnessId: string | undefined, sessionId: string) =>
+    ['sessions', harnessId ?? 'default', sessionId, 'children'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -762,5 +764,24 @@ export function useRenameSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to rename session');
       return res.json();
     },
+  });
+}
+
+export function useSessionChildren(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.children(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.children.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) return [];
+      return res.json() as Promise<AeroSessionSummary[]>;
+    },
+    enabled: !!sessionId,
+    placeholderData: keepPreviousData,
   });
 }

@@ -41,6 +41,10 @@ function getActivityLabel(
       return 'Assistant is waiting for an answer…';
     }
 
+    if (activeTool.type === 'tool' && activeTool.toolName === 'task') {
+      return 'Subagent is working…';
+    }
+
     return 'Assistant is calling a tool…';
   }
 

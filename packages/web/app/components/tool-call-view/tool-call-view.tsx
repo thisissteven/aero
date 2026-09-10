@@ -1,5 +1,6 @@
 import { memo } from 'react';
 
+import { SubagentToolView } from '@/app/components/tool-call-view/tools/subagent-tool';
 import { WriteToolView } from '@/app/components/tool-call-view/tools/write-tool';
 import type { AeroPart } from '@/server/services/harness/types';
 
@@ -28,6 +29,7 @@ import type {
   ReadPart,
   SearchPart,
   SkillPart,
+  SubagentPart,
   TodoWritePart,
   WebFetchPart,
   WebSearchPart,
@@ -113,6 +115,9 @@ export const ToolCallView = memo(function ToolCallView({
     case 'todowrite':
     case 'todoread':
       return <TodoToolView part={part as TodoWritePart} {...props} />;
+
+    case 'task':
+      return <SubagentToolView part={part as SubagentPart} {...props} />;
 
     // Catch-all default tool view
     default:

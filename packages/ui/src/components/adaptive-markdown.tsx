@@ -1,12 +1,11 @@
 'use client';
 
 import type { ComponentPropsWithRef, ReactElement, RefObject } from 'react';
-import { memo, useRef } from 'react';
+import { memo } from 'react';
 import type { Components } from 'react-markdown';
 
 import { Markdown } from './markdown';
 import { VirtualizedMarkdown } from './virtualized-markdown';
-import { useAutoScroll } from '../hooks/useAutoScroll';
 
 export interface AdaptiveMarkdownProps extends Omit<
   ComponentPropsWithRef<'div'>,
@@ -39,32 +38,20 @@ export const AdaptiveMarkdown = memo(function AdaptiveMarkdown({
   scrollRef,
   ...props
 }: AdaptiveMarkdownProps): ReactElement {
-  const contentRef = useRef<HTMLDivElement>(null);
-
   const shouldVirtualize = children.length > VIRTUALIZE_THRESHOLD;
 
-  useAutoScroll({
-    scrollRef: scrollRef ?? { current: null },
-    contentRef,
-    isStreaming,
-  });
-
-  return (
-    <div ref={contentRef}>
-      {shouldVirtualize ? (
-        <VirtualizedMarkdown
-          scrollRef={scrollRef}
-          streaming={isStreaming}
-          {...props}
-        >
-          {children}
-        </VirtualizedMarkdown>
-      ) : (
-        <Markdown scrollRef={scrollRef} streaming={isStreaming} {...props}>
-          {children}
-        </Markdown>
-      )}
-    </div>
+  return shouldVirtualize ? (
+    <VirtualizedMarkdown
+      scrollRef={scrollRef}
+      streaming={isStreaming}
+      {...props}
+    >
+      {children}
+    </VirtualizedMarkdown>
+  ) : (
+    <Markdown scrollRef={scrollRef} streaming={isStreaming} {...props}>
+      {children}
+    </Markdown>
   );
 });
 AdaptiveMarkdown.displayName = 'AdaptiveMarkdown';

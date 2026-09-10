@@ -28,7 +28,6 @@ import { directoryExists, getSkillScope } from '@/server/helper';
 import { normalizePath } from '@/server/shared';
 import type {
   ExtendedGlobalSession,
-  ExtendedSessionV1,
   ExtendedSessionV2,
   ExtendedSessionV2Info,
 } from '@/server/types/opencode-sdk';
@@ -65,22 +64,6 @@ async function getProviderModelInfo(providerId: string, modelId: string) {
   };
 }
 
-export function toAeroSession(s: ExtendedSessionV1): AeroSessionSummary {
-  return {
-    id: s.id,
-    title: s.title || 'Untitled session',
-    harnessId: 'opencode',
-    parentId: s.parentID,
-    createdAt: s.time?.created ?? Date.now(),
-    updatedAt: s.time?.updated ?? Date.now(),
-    workspace: normalizePath(s.directory),
-    readOnly: !directoryExists(s.directory),
-    sharedUrl: s.metadata?.sharedUrl,
-    revert: s.revert,
-    archived: false,
-  };
-}
-
 export function toAeroSessionExperimental(
   s: ExtendedGlobalSession,
 ): AeroSessionSummary {
@@ -96,6 +79,8 @@ export function toAeroSessionExperimental(
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
     archived: Boolean(s.time.archived),
+    agent: s.agent,
+    model: s.model,
   };
 }
 
@@ -112,6 +97,8 @@ export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
     archived: Boolean(s.time.archived),
+    agent: s.agent,
+    model: s.model,
   };
 }
 
@@ -130,6 +117,8 @@ export function toAeroSessionV2Info(
     sharedUrl: s.metadata?.sharedUrl,
     revert: s.revert,
     archived: Boolean(s.time.archived),
+    agent: s.agent,
+    model: s.model,
   };
 }
 

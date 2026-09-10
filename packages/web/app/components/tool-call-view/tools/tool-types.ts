@@ -146,4 +146,21 @@ export type TodoWritePart = ToolPartBase & {
   };
 };
 
+export type SubagentPart = ToolPartBase & {
+  input: {
+    command: string;
+    description: string;
+    prompt: string;
+    subagent_type: string;
+  };
+  metadata: {
+    parentSessionId: string;
+    sessionId: string;
+    model: {
+      providerID: string;
+      modelID: string;
+    };
+  };
+};
+
 export type GenericToolPart = ToolPartBase;

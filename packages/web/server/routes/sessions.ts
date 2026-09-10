@@ -444,9 +444,9 @@ const sessions = new Hono()
       const { harnessId } = c.req.valid('query');
 
       const harness = await getActiveAdapter(harnessId);
-      const todos = await harness.listSessionChildren(id);
+      const sessions = await harness.listSessionChildren(id);
 
-      return c.json(todos);
+      return c.json(sessions.reverse());
     },
   )
 

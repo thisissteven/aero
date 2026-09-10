@@ -214,7 +214,7 @@ export const WebSearchToolView = memo(
         title='Web Search'
         preview={
           output?.results ? (
-            <div className='-mt-0.5 space-x-1'>
+            <div className='space-x-1'>
               {isEmpty && (
                 <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
                   Found no results

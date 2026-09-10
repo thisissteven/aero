@@ -22,6 +22,7 @@ interface StatusPanelState {
   visibleItems: Record<StatusItemKey, boolean>;
 
   setIsOpen: (isOpen: boolean) => void;
+  toggleIsOpen: () => void;
   setPosition: (
     position: Position | null | ((prev: Position | null) => Position),
   ) => void;
@@ -48,6 +49,7 @@ export const useStatusPanelStore = create<StatusPanelState>()(
       visibleItems: DEFAULT_VISIBLE_ITEMS,
 
       setIsOpen: (isOpen) => set({ isOpen }),
+      toggleIsOpen: () => set((state) => ({ isOpen: !state.isOpen })),
 
       setPosition: (position) =>
         set((state) => ({

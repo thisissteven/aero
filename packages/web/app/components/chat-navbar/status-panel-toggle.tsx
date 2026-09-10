@@ -8,9 +8,7 @@ import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function StatusPanelToggle() {
   const isOpen = useStatusPanelStore((state) => state.isOpen);
-  const toggleOpenRightPanel = useStatusPanelStore(
-    (state) => state.openClosePanelWithShortcut,
-  );
+  const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 
   const { sessionId } = useParams({
     strict: false,
@@ -23,7 +21,7 @@ export function StatusPanelToggle() {
   return (
     <Tooltip>
       <IconButton
-        onPress={() => toggleOpenRightPanel()}
+        onPress={() => toggleIsOpen()}
         svgSize='xs'
         className={
           isOpen

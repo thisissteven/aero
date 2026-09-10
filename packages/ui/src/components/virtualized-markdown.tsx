@@ -7,7 +7,7 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import type { Components } from 'react-markdown';
 import { Virtualizer } from 'virtua';
 
@@ -16,6 +16,7 @@ import {
   MarkdownFileContext,
   MemoizedBlock,
 } from './markdown';
+import { useAutoScroll } from '../hooks';
 
 /**
  * Splits markdown into top-level blocks on blank-line boundaries, keeping
@@ -118,11 +119,20 @@ export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps>
       [isFile, onFileClick],
     );
 
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useAutoScroll({
+      scrollRef: scrollRef ?? { current: null },
+      contentRef,
+      isStreaming: streaming,
+    });
+
     return (
       <MarkdownFileContext.Provider value={contextValue}>
         <div
           className={cn('markdown', className)}
           data-slot='markdown'
+          ref={contentRef}
           {...props}
         >
           <Virtualizer<string>

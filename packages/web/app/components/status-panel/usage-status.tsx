@@ -6,7 +6,7 @@ export function UsageStatus() {
   return (
     <div className='border-separator border-b p-3'>
       <div className='mb-2 flex cursor-pointer items-center justify-between'>
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-1'>
           <Clock className='text-muted h-4 w-4' />
           <Typography type='body-sm' className='text-foreground font-semibold'>
             Usage

@@ -805,6 +805,12 @@ function handleMessagePartUpdated(
     }
   }
 
+  if (part.type === 'tool' && part.toolName === 'task') {
+    queryClient.invalidateQueries({
+      queryKey: sessionKeys.children(undefined, sessionId),
+    });
+  }
+
   const previousTurn = current.turns.at(-2);
   const lastTurn = current.turns.at(-1);
 

@@ -230,8 +230,7 @@ export function CommandPaletteList() {
               const updatedAtStr = formatCompactRelativeTime(
                 typedItem.session.updatedAt,
               );
-              const isStandaloneSession =
-                typedItem.session.workspace.includes('.aero/workspaces');
+
               return (
                 <Command.Item
                   key={typedItem.id}

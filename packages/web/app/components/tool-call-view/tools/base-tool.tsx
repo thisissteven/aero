@@ -1,6 +1,6 @@
 import { Icon } from '@gravity-ui/uikit';
 import { ReactNode, SVGProps, useRef } from 'react';
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 
 import {
   AdaptiveCodeBlockCode,
@@ -13,6 +13,7 @@ import {
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
+import { formatElapsedMs, useElapsedTime } from '@/app/hooks/useElapsedTime';
 import { useTheme } from '@/app/providers';
 import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
@@ -29,47 +30,31 @@ type TimerProps = {
 };
 
 export const Timer = memo(
-  ({
-    id,
-    duration,
-    isStreaming = false,
-    className,
-    style,
-    decimals = 1,
-  }: TimerProps) => {
+  ({ id, duration, isStreaming = false, className, style }: TimerProps) => {
+    // If a duration in seconds is provided, display it immediately
+    if (typeof duration === 'number') {
+      if (startTimeCache.has(id)) {
+        startTimeCache.delete(id);
+      }
+      return (
+        <span className={cn('tabular-nums', className)} style={style}>
+          {formatElapsedMs(duration * 1000)}
+        </span>
+      );
+    }
+
+    // Lazy initialization for start time tracking during active streaming
     let startTime = startTimeCache.get(id);
-    if (!startTime) {
+    if (!startTime && isStreaming) {
       startTime = Date.now();
       startTimeCache.set(id, startTime);
     }
 
-    const currentStartTime = startTime;
-
-    const [elapsed, setElapsed] = useState(() => {
-      if (typeof duration === 'number') return duration;
-      return (Date.now() - currentStartTime) / 1000;
-    });
-
-    useEffect(() => {
-      if (typeof duration === 'number' || !isStreaming) {
-        if (startTimeCache.has(id)) {
-          startTimeCache.delete(id);
-        }
-        return;
-      }
-
-      const interval = setInterval(() => {
-        setElapsed((Date.now() - currentStartTime) / 1000);
-      }, 100);
-
-      return () => clearInterval(interval);
-    }, [id, duration, isStreaming, currentStartTime]);
-
-    const displayValue = typeof duration === 'number' ? duration : elapsed;
+    const elapsedMs = useElapsedTime(startTime ?? null, isStreaming);
 
     return (
       <span className={cn('tabular-nums', className)} style={style}>
-        {displayValue.toFixed(decimals)}s
+        {formatElapsedMs(elapsedMs)}
       </span>
     );
   },
@@ -100,6 +85,7 @@ export function BaseTool({
   children,
   isStreaming = false,
   useDuration = false,
+  forceEnabled = false,
 }: {
   blockId: string;
   status: string;
@@ -122,6 +108,7 @@ export function BaseTool({
   children?: ReactNode;
   isStreaming?: boolean;
   useDuration?: boolean;
+  forceEnabled?: boolean;
 }) {
   const hasCodeContent = Boolean(copyText && code);
   const hasContent = hasCodeContent || Boolean(children);
@@ -157,7 +144,7 @@ export function BaseTool({
             status === 'error' && 'text-danger',
             status === 'completed' && 'text-muted/70',
           )}
-          isDisabled={(!hasContent && !error) || isAnimating}
+          isDisabled={((!hasContent && !error) || isAnimating) && !forceEnabled}
         >
           <div className='flex min-w-0 flex-1 items-center gap-2'>
             <div

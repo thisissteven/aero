@@ -55,6 +55,12 @@ export interface AeroSessionSummary {
     messageID?: string;
   };
   archived: boolean;
+  agent?: string;
+  model?: {
+    id: string;
+    providerID: string;
+    variant?: string | undefined;
+  };
 }
 
 export type AeroPartUserMessage =

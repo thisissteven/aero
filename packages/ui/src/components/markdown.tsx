@@ -8,13 +8,14 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { createContext, memo, useContext, useMemo } from 'react';
+import { createContext, memo, useContext, useMemo, useRef } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { CodeBlock } from './code-block';
+import { useAutoScroll } from '../hooks';
 
 interface MarkdownFileContextValue {
   isFile?: (path: string) => boolean;
@@ -224,6 +225,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     isFile,
     onFileClick,
     streaming = false,
+    scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
     const renderers = useMemo(
@@ -242,20 +244,31 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       [isFile, onFileClick],
     );
 
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useAutoScroll({
+      scrollRef: scrollRef ?? { current: null },
+      contentRef,
+      isStreaming: streaming,
+    });
+
     return (
-      <MarkdownFileContext.Provider value={contextValue}>
-        <div
-          className={cn('markdown', className)}
-          data-slot='markdown'
-          {...props}
-        >
-          <MemoizedBlock
-            components={renderers}
-            content={children}
-            streaming={streaming}
-          />
-        </div>
-      </MarkdownFileContext.Provider>
+      <div ref={contentRef}>
+        <MarkdownFileContext.Provider value={contextValue}>
+          <div
+            className={cn('markdown', className)}
+            data-slot='markdown'
+            ref={scrollRef as RefObject<HTMLDivElement>}
+            {...props}
+          >
+            <MemoizedBlock
+              components={renderers}
+              content={children}
+              streaming={streaming}
+            />
+          </div>
+        </MarkdownFileContext.Provider>
+      </div>
     );
   },
 );
