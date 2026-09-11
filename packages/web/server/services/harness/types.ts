@@ -637,6 +637,14 @@ export interface HarnessAdapter {
     config: AeroMCPConfig;
   }): Promise<AeroMCPEntry>;
 
+  removeMCP({
+    directory,
+    name,
+  }: {
+    directory?: string;
+    name: string;
+  }): Promise<boolean>;
+
   connectMCP({
     directory,
     name,

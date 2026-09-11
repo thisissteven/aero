@@ -19,6 +19,7 @@ import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { OfflineWrapper } from '@/app/providers';
+import { useChatScrollStore } from '@/app/stores/chat-scroll-store';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -40,18 +41,26 @@ export function ChatPage({
   );
 
   const feedRef = useRef<ChatFeedRef | null>(null);
+  const registerScrollToIndex = useChatScrollStore(
+    (state) => state.registerScrollToIndex,
+  );
 
-  const handleSelectTocItem = useCallback(
-    (groupIndex: number) => {
+  useEffect(() => {
+    registerScrollToIndex((groupIndex: number) => {
       const clamped = Math.min(
         Math.max(groupIndex, 0),
         Math.max(groups.length - 1, 0),
       );
 
       feedRef.current?.scrollToIndex(clamped);
-    },
-    [groups.length],
-  );
+    });
+
+    return () => registerScrollToIndex(null);
+  }, [groups.length, registerScrollToIndex]);
+
+  const handleSelectTocItem = useCallback((groupIndex: number) => {
+    useChatScrollStore.getState().scrollToIndex(groupIndex);
+  }, []);
 
   /**
    * When switching sessions, start at the latest group.

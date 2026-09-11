@@ -268,3 +268,9 @@ export async function updateSetting<const P extends AeroSettingPath>(
 
   return getAtPath(validated, path) as AeroSettingValue<P> | undefined;
 }
+
+export async function getPinnedMessages(sessionId: string) {
+  const settings = await getSettings();
+  const sessionPinnedMessages = settings.pinnedSessionMessages[sessionId];
+  return sessionPinnedMessages;
+}

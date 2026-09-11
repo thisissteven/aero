@@ -10,6 +10,7 @@ import {
   listArchivedSessionsAcrossAdapters,
   listSessionsAcrossAdapters,
 } from '@/server/services/sessions/sessions-merger';
+import { getPinnedMessages } from '@/server/services/settings';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 
 import { groupMessages, withPagination } from '../helper';
@@ -577,6 +578,15 @@ const sessions = new Hono()
       return c.json(markdown);
     },
   )
+
+  // GET /api/sessions/:id/pinned
+  .get('/:id/pinned', zValidator('param', idParamSchema), async (c) => {
+    const { id } = c.req.valid('param');
+
+    const pinnedMessages = await getPinnedMessages(id);
+
+    return c.json(pinnedMessages);
+  })
 
   // PATCH /api/sessions/:id/rename?harnessId=...
   .patch(

@@ -69,6 +69,25 @@ const mcp = new Hono()
     },
   )
 
+  // POST /api/mcp/remove?harnessId=...&directory=...&name=...
+  .delete(
+    '/remove',
+    zValidator(
+      'query',
+      commonQuerySchema.extend({
+        name: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { harnessId, directory, name } = c.req.valid('query');
+
+      const harness = await getActiveAdapter(harnessId);
+      const entries = await harness.removeMCP({ directory, name });
+
+      return c.json(entries);
+    },
+  )
+
   // POST /api/mcp/connect?harnessId=...&directory=...&name=...
   .post(
     '/connect',

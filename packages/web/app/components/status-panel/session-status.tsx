@@ -48,7 +48,7 @@ export function SessionStatus() {
     <div className='border-separator border-b p-3'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
-          <Typography type='body-sm' className='text-foreground font-semibold'>
+          <Typography type='body-sm' className='text-foreground font-medium'>
             Session
           </Typography>
         </div>

@@ -545,6 +545,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return entries;
     },
 
+    async removeMCP({ directory, name }) {
+      const entry = unwrap(
+        await withOpencodeClientV2((client) =>
+          client.mcp.auth.remove({ name, directory }),
+        ),
+      );
+
+      return entry.success;
+    },
+
     async connectMCP({ directory, name }) {
       const entries = unwrap(
         await withOpencodeClientV2((client) =>

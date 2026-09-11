@@ -144,3 +144,41 @@ export function useConnectMCP(harnessId?: string) {
     },
   });
 }
+
+export function useRemoveMCP(harnessId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      name,
+      directory,
+    }: {
+      name: string;
+      directory?: string;
+    }) => {
+      const [res] = await Promise.all([
+        $mcp.remove.$delete({
+          query: { harnessId, directory, name },
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error('Failed to delete MCP server');
+      return res.json();
+    },
+    onSuccess: (_data, input) => {
+      const key = mcpKeys.all(harnessId, input.directory);
+
+      queryClient.setQueryData<Record<string, AeroMCPStatus>>(
+        key,
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          const { [input.name]: _, ...newData } = oldData;
+          return newData;
+        },
+      );
+
+      queryClient.invalidateQueries({ queryKey: key });
+    },
+  });
+}

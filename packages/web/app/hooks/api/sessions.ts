@@ -48,6 +48,7 @@ export const sessionKeys = {
     ['sessions', harnessId ?? 'default', sessionId, 'permissions'] as const,
   children: (harnessId: string | undefined, sessionId: string) =>
     ['sessions', harnessId ?? 'default', sessionId, 'children'] as const,
+  pinned: (sessionId: string) => ['sessions', sessionId, 'pinned'] as const,
 };
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
@@ -779,7 +780,22 @@ export function useSessionChildren(
         query: { harnessId },
       });
       if (!res.ok) return [];
-      return res.json() as Promise<AeroSessionSummary[]>;
+      return res.json();
+    },
+    enabled: !!sessionId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useSessionPinnedMessages(sessionId: string) {
+  return useQuery({
+    queryKey: sessionKeys.pinned(sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.pinned.$get({
+        param: { id: sessionId },
+      });
+      if (!res.ok) return [];
+      return res.json();
     },
     enabled: !!sessionId,
     placeholderData: keepPreviousData,

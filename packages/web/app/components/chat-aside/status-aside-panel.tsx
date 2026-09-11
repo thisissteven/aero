@@ -45,7 +45,7 @@ export function StatusAsidePanel() {
         maxSize='70%'
         groupResizeBehavior='preserve-pixel-size'
       >
-        <aside className='flex h-full flex-col'>
+        <aside className='flex h-[calc(100svh-56px)] flex-col overflow-hidden'>
           <StatusPanel />
         </aside>
       </Resizable.Panel>

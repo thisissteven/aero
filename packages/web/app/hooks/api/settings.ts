@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
+import { sessionKeys } from '@/app/hooks/api/sessions';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
 import type {
@@ -89,9 +90,7 @@ export function useUpdateSetting() {
       const normalizedPath = [...path];
       const queryKey = configKeys.setting(path);
 
-      await queryClient.cancelQueries({
-        queryKey,
-      });
+      await queryClient.cancelQueries({ queryKey });
 
       const previous =
         queryClient.getQueryData<SettingData<AeroSettingValue<typeof path>>>(
@@ -115,20 +114,38 @@ export function useUpdateSetting() {
         },
       );
 
-      return {
-        previous,
-        queryKey,
-      };
+      return { previous, queryKey };
     },
 
     onError: (_error, _variables, context) => {
       if (!context) return;
-
       queryClient.setQueryData(context.queryKey, context.previous);
     },
 
     onSuccess: (data, variables) => {
+      // 1. Update the exact key
       queryClient.setQueryData(configKeys.setting(variables.path), data);
+
+      // 2. Check for pinned message path and invalidate sessionKeys.pinned(sessionId)
+      const [root, sessionId] = variables.path;
+
+      if (
+        root === 'pinnedSessionMessages' &&
+        sessionId &&
+        variables.path.length === 3
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: sessionKeys.pinned(sessionId as string),
+        });
+      }
+
+      // 3. Invalidate generic parent query paths
+      if (variables.path.length > 1) {
+        const parentPath = variables.path.slice(0, -1);
+        queryClient.invalidateQueries({
+          queryKey: configKeys.setting(parentPath as AeroSettingPath),
+        });
+      }
     },
   });
 }

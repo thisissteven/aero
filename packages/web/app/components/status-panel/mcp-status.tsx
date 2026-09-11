@@ -1,4 +1,4 @@
-import { Check, Power, Server } from '@gravity-ui/icons';
+import { Check, LogoMcp, Power } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { Switch } from '@heroui/react';
 
@@ -117,10 +117,10 @@ export function McpStatus() {
   if (!isVisible) return null;
 
   return (
-    <div className='p-3'>
+    <div className='border-separator border-b p-3'>
       <div className='mb-2.5 flex items-center justify-between'>
         <div className='flex items-center gap-1'>
-          <Icon data={Server} className='text-muted' size={14} />
+          <Icon data={LogoMcp} className='text-muted' size={14} />
           <Typography type='body-sm' className='text-foreground font-medium'>
             MCP Status
           </Typography>

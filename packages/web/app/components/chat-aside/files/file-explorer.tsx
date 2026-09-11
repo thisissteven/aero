@@ -33,12 +33,14 @@ export function FileExplorer({
     <div className={className}>
       <FileTree
         model={model}
-        className='border-separator h-full border-l'
+        className='border-separator h-full border-l pt-1'
         style={
           {
             height: '100%',
             colorScheme: resolvedTheme,
             fontFamily: 'var(--font-sans)',
+
+            '--trees-padding-inline': '4px',
 
             // Base
             '--trees-bg-override': 'var(--background)',

@@ -3,7 +3,13 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { Typography } from '@aero/ui';
 
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+
 export function UsageStatus() {
+  const isVisible = useStatusPanelStore((state) => state.visibleItems.usage);
+
+  if (!isVisible) return null;
+
   return (
     <div className='border-separator border-b p-3'>
       <div className='mb-2 flex cursor-pointer items-center justify-between'>

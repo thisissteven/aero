@@ -7,8 +7,17 @@ import { useGitCurrentBranch, useGitDiff } from '@/app/hooks/api/git';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function ProjectStatus() {
+  const isVisible = useStatusPanelStore((state) => state.visibleItems.mcp);
+
+  if (!isVisible) return null;
+
+  return <ProjectStatusContent />;
+}
+
+export function ProjectStatusContent() {
   const { sessionId } = useParams({ strict: false });
   const { data: session } = useSession(undefined, sessionId);
   const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
