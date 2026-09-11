@@ -64,7 +64,7 @@ export function ChatAsidePanel() {
         groupResizeBehavior='preserve-pixel-size'
       >
         <aside className='flex h-full flex-col'>
-          <div className='border-separator dark:border-separator/50 flex h-12 shrink-0 items-center justify-between border-b px-3'>
+          <div className='border-separator dark:border-separator/70 flex h-12 shrink-0 items-center justify-between border-b px-3'>
             <div className='flex items-center gap-2'>
               <span className='flex size-4 place-items-center'>
                 {activeNavData?.icon}

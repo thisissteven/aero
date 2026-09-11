@@ -46,7 +46,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
   return (
     <Navbar maxWidth='full' className='relative h-14 bg-transparent'>
       {isAsideExpanded && (
-        <div className='border-separator dark:border-separator/50 absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
+        <div className='border-separator dark:border-separator/70 absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
       )}
       <Navbar.Header className='overflow-hidden pr-0'>
         <AppLayout.MenuToggle className='shrink-0' />

@@ -12,7 +12,7 @@ export function ComposerPayload() {
       <pre
         className={cn(
           'mt-6 max-h-80 overflow-auto',
-          'border-separator dark:border-separator:40 rounded-md border',
+          'border-separator dark:border-separator/60 rounded-md border',
           'bg-surface p-4',
           'font-mono text-[13px] leading-[1.5]',
           'break-words whitespace-pre-wrap',

@@ -39,7 +39,7 @@
 
   .chat-message__bubble {
     border-radius: calc(var(--radius) * 2);
-    background-color: var(--default);
+    @apply bg-default/60 backdrop-blur-sm;
     padding-inline: calc(var(--spacing, 0.25rem) * 4);
     padding-block: calc(var(--spacing, 0.25rem) * 2);
     color: var(--foreground);

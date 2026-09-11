@@ -132,7 +132,7 @@ export function ProjectActionsContent({
   }
 
   return (
-    <div className='border-separator dark:border-separator/50 inline-flex items-center rounded-lg border p-0.5'>
+    <div className='border-separator bg-surface inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
       <Tooltip>
         <IconButton

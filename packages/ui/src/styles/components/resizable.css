@@ -30,17 +30,17 @@
     --resizable-handle-hit-area: 8px;
     --resizable-handle-color: color-mix(
       in srgb,
-      var(--color-separator) 40%,
+      var(--color-separator) 30%,
       transparent
     );
     --resizable-handle-color-hover: color-mix(
       in srgb,
-      var(--color-separator-secondary) 40%,
+      var(--color-separator-secondary) 30%,
       transparent
     );
     --resizable-handle-color-active: color-mix(
       in srgb,
-      var(--color-separator-secondary) 40%,
+      var(--color-separator-secondary) 30%,
       transparent
     );
     --resizable-indicator-pill-width: 6px;
@@ -48,23 +48,23 @@
     --resizable-indicator-drag-radius: var(--radius-sm, 6px);
     --resizable-indicator-drag-bg: color-mix(
       in srgb,
-      var(--color-separator) 40%,
+      var(--color-separator) 30%,
       transparent
     );
     --resizable-indicator-drag-bg-hover: color-mix(
       in srgb,
-      var(--color-separator-secondary) 40%,
+      var(--color-separator-secondary) 30%,
       transparent
     );
 
     --resizable-indicator-drag-fg: color-mix(
       in srgb,
-      var(--color-separator) 40%,
+      var(--color-separator) 30%,
       transparent
     );
     --resizable-indicator-drag-fg-hover: color-mix(
       in srgb,
-      var(--color-separator-secondary) 40%,
+      var(--color-separator-secondary) 30%,
       transparent
     );
 
@@ -145,7 +145,7 @@
   .resizable__handle--primary {
     --resizable-handle-color: color-mix(
       in srgb,
-      var(--color-separator-secondary) 40%,
+      var(--color-separator-secondary) 30%,
       transparent
     );
   }

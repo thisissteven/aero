@@ -145,7 +145,7 @@
     margin-block: calc(var(--spacing, 0.25rem) * 4);
     border-inline-start-width: 3px;
     border-inline-start-style: solid;
-    border-color: var(--border-separator);
+    @apply border-separator;
     color: var(--muted);
     padding-inline-start: calc(var(--spacing, 0.25rem) * 4);
     font-style: italic;
@@ -154,7 +154,7 @@
   /* Horizontal divider */
   .markdown hr {
     margin-block: calc(var(--spacing, 0.25rem) * 6);
-    border-color: var(--border-separator);
+    @apply border-separator;
   }
 
   /* Tables */
@@ -169,7 +169,7 @@
   .markdown td {
     border-width: 1px;
     border-style: solid;
-    border-color: var(--border-separator);
+    @apply border-separator;
     padding-inline: calc(var(--spacing, 0.25rem) * 3);
     padding-block: calc(var(--spacing, 0.25rem) * 2);
     text-align: start;

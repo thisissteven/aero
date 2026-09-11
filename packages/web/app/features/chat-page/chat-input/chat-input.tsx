@@ -54,8 +54,8 @@ export function ChatInput({
                     <ModelAgentDropdownTrigger />
                   </div>
                   <div className='flex @max-md:hidden'>
-                    <VariantsDropdown />
                     <ModelDropdown />
+                    <VariantsDropdown />
                     <AgentDropdown />
                   </div>
                 </>

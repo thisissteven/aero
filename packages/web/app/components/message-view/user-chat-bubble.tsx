@@ -151,7 +151,7 @@ export const UserChatBubble = memo(
         </ChatMessage.Bubble>
 
         <div className='mt-3 flex w-full justify-end gap-2 pb-3'>
-          <div className='text-muted flex items-center gap-1 text-xs opacity-100 select-none'>
+          <div className='text-muted/80 flex items-center gap-1 text-xs opacity-100 select-none'>
             <Icon data={Clock} size={12} className='opacity-80' />
             {formatDateTime(turn.createdAt)}
           </div>

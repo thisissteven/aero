@@ -263,7 +263,7 @@ export function GlobalTooltip() {
       }}
       className={cn(
         'fixed z-40',
-        'bg-overlay/60 border-separator dark:border-separator/50 rounded-lg border backdrop-blur-sm',
+        'bg-overlay/60 border-separator dark:border-separator/70 rounded-lg border backdrop-blur-sm',
         wasOpen && isOpen ? 'transition-[top,left] duration-150 ease-out' : '',
         isInteractive ? 'pointer-events-auto' : 'pointer-events-none',
       )}

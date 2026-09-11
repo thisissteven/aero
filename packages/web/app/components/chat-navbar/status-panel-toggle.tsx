@@ -25,8 +25,8 @@ export function StatusPanelToggle() {
         svgSize='xs'
         className={
           isOpen
-            ? 'text-foreground bg-default'
-            : 'text-muted/50 hover:text-muted/50 active:text-muted'
+            ? 'text-foreground bg-default/60'
+            : 'text-muted/60 hover:text-muted/60 active:text-muted'
         }
       >
         <Shapes3 />

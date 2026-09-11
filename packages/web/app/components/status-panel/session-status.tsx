@@ -45,7 +45,7 @@ export function SessionStatus() {
   const isVisible = useStatusPanelStore((state) => state.visibleItems.session);
 
   return (
-    <div className='border-separator dark:border-separator/50 border-b p-3'>
+    <div className='border-separator dark:border-separator/70 border-b p-3'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <Typography type='body-sm' className='text-foreground font-medium'>

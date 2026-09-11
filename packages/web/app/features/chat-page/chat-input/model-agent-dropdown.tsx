@@ -54,7 +54,7 @@ export function ModelAgentDropdownSheet({
             </div>
 
             <Sheet.Body className='flex min-h-0 flex-col gap-0 overflow-hidden p-0'>
-              <div className='border-separator dark:border-separator/50 flex gap-1 border-b p-2 pl-3'>
+              <div className='border-separator dark:border-separator/70 flex gap-1 border-b p-2 pl-3'>
                 <Button
                   variant={selection === 'agent' ? 'secondary' : 'ghost'}
                   className='w-fit rounded-lg text-sm'

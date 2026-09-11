@@ -18,7 +18,9 @@ export function SessionItemMetadata({
 
   if (!keys) return null;
 
-  const isStandaloneSession = session.workspace.includes('.aero/workspaces');
+  const isStandaloneSession =
+    session.workspace.includes('.aero/workspaces') ||
+    session.workspace.includes('.config/openchamber');
   const workspaceTitle =
     keys[session.workspace]?.name ?? getLastPathName(session.workspace);
 
@@ -29,19 +31,17 @@ export function SessionItemMetadata({
           ? formatCompactRelativeTime(session.updatedAt, true) + ' at '
           : session.parentId
             ? 'Subagent session at '
-            : isStandaloneSession
-              ? 'Standalone session at '
-              : ' at '}
+            : ' at '}
       </span>
       {!isWorktree(session.workspace) && (
         <span className='truncate font-bold'>
-          {workspaceTitle}
+          {isStandaloneSession ? 'Standalone Session' : workspaceTitle}
           {session.readOnly && ' (read only)'}
         </span>
       )}
       {isWorktree(session.workspace) && (
         <div className='flex items-center gap-1'>
-          {workspaceTitle}
+          {isStandaloneSession ? 'Standalone Session' : workspaceTitle}
           <Icon data={CircleTree} size={12} />
           <span className='truncate font-bold'>
             {getLastPathName(session.workspace)}

@@ -248,10 +248,7 @@ export function CommandPaletteList() {
                     <span className='text-foreground truncate text-sm leading-tight font-medium'>
                       {typedItem.session.title}
                     </span>
-                    <SessionItemMetadata
-                      session={typedItem.session}
-                      time={false}
-                    />
+                    <SessionItemMetadata session={typedItem.session} />
                   </div>
                   <span className='text-muted ml-auto shrink-0 text-[11px]'>
                     {updatedAtStr}

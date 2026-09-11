@@ -321,7 +321,7 @@ export const ReplyToQuestion = React.memo(() => {
         <Disclosure
           isExpanded={isExpanded}
           onExpandedChange={setIsExpanded}
-          className='border-separator dark:border-separator/50 bg-surface text-surface-foreground w-full overflow-hidden rounded-xl border'
+          className='border-separator dark:border-separator/70 bg-surface text-surface-foreground w-full overflow-hidden rounded-xl border'
         >
           <Disclosure.Heading>
             <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2.5 text-sm transition-colors'>
@@ -370,7 +370,7 @@ export const ReplyToQuestion = React.memo(() => {
           </Disclosure.Heading>
 
           <Disclosure.Content>
-            <div className='border-separator dark:border-separator/50 border-t'>
+            <div className='border-separator dark:border-separator/70 border-t'>
               <div className='space-y-3 p-2 pb-3'>
                 <div className='flex items-center justify-between px-2 pt-1'>
                   <div className='min-w-0'>

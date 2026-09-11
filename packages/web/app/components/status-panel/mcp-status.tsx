@@ -117,7 +117,7 @@ export function McpStatus() {
   if (!isVisible) return null;
 
   return (
-    <div className='border-separator dark:border-separator/50 border-b p-3'>
+    <div className='border-separator dark:border-separator/70 border-b p-3'>
       <div className='mb-2.5 flex items-center justify-between'>
         <div className='flex items-center gap-1'>
           <Icon data={LogoMcp} className='text-muted' size={14} />

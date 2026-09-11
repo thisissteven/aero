@@ -462,10 +462,6 @@
   .command__dialog {
     border-radius: calc(var(--radius) * 2);
     @apply bg-overlay/60 backdrop-blur-sm;
-    --tw-shadow: var(--overlay-shadow);
-    box-shadow:
-      var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
-      var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
     --tw-outline-style: none;
     pointer-events: auto;
     interpolate-size: allow-keywords;
@@ -511,7 +507,7 @@
     gap: calc(var(--spacing, 0.25rem) * 2);
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
-    @apply border-separator dark:border-separator/50;
+    @apply border-separator dark:border-separator/70;
     width: 100%;
     display: flex;
   }
@@ -520,7 +516,7 @@
     .command__input-group {
       border-color: color-mix(
         in oklab,
-        var(--border-separator) 40%,
+        var(--border-separator) 60%,
         transparent
       );
     }
@@ -721,7 +717,7 @@
     gap: calc(var(--spacing, 0.25rem) * 2);
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
-    @apply border-separator dark:border-separator/50;
+    @apply border-separator dark:border-separator/70;
     width: 100%;
     display: flex;
   }

@@ -82,7 +82,7 @@
   .app-layout__aside {
     border-inline-start-style: var(--tw-border-style);
     border-inline-start-width: 1px;
-    @apply border-separator dark:border-separator/50;
+    @apply border-separator dark:border-separator/70;
     background-color: var(--background);
     --app-layout-aside-width: 320px;
     --app-layout-aside-duration: 0.2s;

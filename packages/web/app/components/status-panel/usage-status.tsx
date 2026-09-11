@@ -11,7 +11,7 @@ export function UsageStatus() {
   if (!isVisible) return null;
 
   return (
-    <div className='border-separator dark:border-separator/50 border-b p-3'>
+    <div className='border-separator dark:border-separator/70 border-b p-3'>
       <div className='mb-2 flex cursor-pointer items-center justify-between'>
         <div className='flex items-center gap-1'>
           <Icon data={Clock} className='text-muted' size={14} />

@@ -89,7 +89,7 @@ export function WorkspaceModelDropdown({
       <Popover.Trigger className='flex-1'>
         <button
           disabled={disabled}
-          className='text-foreground bg-default hover:bg-default-hover flex w-full items-center justify-between gap-1.5 rounded-xl px-3 py-2 transition'
+          className='text-foreground bg-default/60 hover:bg-default-hover/60 flex w-full items-center justify-between gap-1.5 rounded-xl px-3 py-2 transition'
         >
           <div className='flex items-center gap-1.5'>
             {selectedModelEntry && (
@@ -120,7 +120,7 @@ export function WorkspaceModelDropdown({
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
-          <div className='bg-overlay/60 text-overlay-foreground border-separator dark:border-separator:40 flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
+          <div className='bg-overlay/60 text-overlay-foreground border-separator dark:border-separator/60 flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
             {onAddProviderClick && (
               <AddProviderRow onClick={onAddProviderClick} />
             )}

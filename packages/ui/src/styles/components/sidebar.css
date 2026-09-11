@@ -45,7 +45,7 @@
 
   .sidebar {
     top: calc(var(--spacing, 0.25rem) * 0);
-    @apply bg-background/20 border-separator dark:border-separator/50 backdrop-blur-sm;
+    @apply bg-background/20 border-separator dark:border-separator/70 backdrop-blur-sm;
     --sidebar-width: 240px;
     --sidebar-width-collapsed: 48px;
     --sidebar-duration: 0.2s;
@@ -621,7 +621,7 @@
   .sidebar__menu-icon {
     width: calc(var(--spacing, 0.25rem) * 5);
     height: calc(var(--spacing, 0.25rem) * 5);
-    color: var(--muted);
+    @apply text-foreground;
     flex-shrink: 0;
     justify-content: center;
     align-items: center;

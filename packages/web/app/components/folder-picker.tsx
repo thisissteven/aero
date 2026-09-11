@@ -286,7 +286,7 @@ export function FolderPicker({
   return (
     <Modal.Dialog className='bg-surface text-foreground my-auto flex h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl p-0 sm:h-[min(640px,calc(100vh-48px))]'>
       {/* Explorer Toolbar */}
-      <div className='border-separator dark:border-separator/50 bg-surface-secondary/50 flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center'>
+      <div className='border-separator dark:border-separator/70 bg-surface-secondary/50 flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center'>
         <div className='flex min-w-0 flex-1 items-center gap-2'>
           {/* Back / Forward / Up Controls */}
           <div className='flex shrink-0 items-center gap-1'>
@@ -322,7 +322,7 @@ export function FolderPicker({
           </div>
 
           {/* Breadcrumbs / Address Bar */}
-          <div className='border-separator dark:border-separator/50 bg-surface flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto rounded border px-2 py-1'>
+          <div className='border-separator dark:border-separator/70 bg-surface flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto rounded border px-2 py-1'>
             <Icon
               data={Folder}
               size={14}
@@ -360,7 +360,7 @@ export function FolderPicker({
               className='h-7 w-full'
               variant='primary'
             >
-              <SearchField.Group className='border-separator dark:border-separator/50 rounded border'>
+              <SearchField.Group className='border-separator dark:border-separator/70 rounded border'>
                 <Icon data={Magnifier} size={14} className='text-muted ml-3' />
                 <SearchField.Input
                   placeholder={`Search ${
@@ -378,7 +378,7 @@ export function FolderPicker({
       </div>
 
       {/* Sub-Bar Controls */}
-      <div className='border-separator dark:border-separator/50 bg-surface-secondary/20 flex shrink-0 items-center justify-between border-b px-3 py-1.5 sm:px-4'>
+      <div className='border-separator dark:border-separator/70 bg-surface-secondary/20 flex shrink-0 items-center justify-between border-b px-3 py-1.5 sm:px-4'>
         <Label className='text-muted flex cursor-pointer items-center gap-1.5 text-xs select-none'>
           <Checkbox
             name='show-hidden-items'
@@ -411,7 +411,7 @@ export function FolderPicker({
       {/* Explorer Body */}
       <div className='flex min-h-0 flex-1 flex-col sm:flex-row'>
         {/* Navigation Pane */}
-        <div className='border-separator dark:border-separator/50 bg-surface-secondary/30 flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b p-1.5 sm:w-48 sm:flex-col sm:gap-0.5 sm:overflow-y-auto sm:border-r sm:border-b-0 sm:p-2'>
+        <div className='border-separator dark:border-separator/70 bg-surface-secondary/30 flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b p-1.5 sm:w-48 sm:flex-col sm:gap-0.5 sm:overflow-y-auto sm:border-r sm:border-b-0 sm:p-2'>
           <div className='text-muted mb-1 hidden px-2 text-[10px] font-bold tracking-wider uppercase select-none sm:block'>
             This PC
           </div>
@@ -457,7 +457,7 @@ export function FolderPicker({
       </div>
 
       {/* Footer */}
-      <div className='border-separator dark:border-separator/50 bg-surface-secondary/30 flex shrink-0 flex-col items-stretch justify-between gap-2 border-t px-3 py-2 sm:flex-row sm:items-center sm:px-4 sm:py-2.5'>
+      <div className='border-separator dark:border-separator/70 bg-surface-secondary/30 flex shrink-0 flex-col items-stretch justify-between gap-2 border-t px-3 py-2 sm:flex-row sm:items-center sm:px-4 sm:py-2.5'>
         <div className='text-muted truncate text-center font-mono text-xs sm:text-left'>
           {selectedPath
             ? `Selected: ${selectedPath}`
@@ -534,7 +534,7 @@ function DirectoryList({
 
   return (
     <div className='p-2 select-none'>
-      <div className='text-muted border-separator dark:border-separator/50/50 mb-1 grid grid-cols-1 border-b px-3 py-1 text-[11px] font-semibold sm:grid-cols-[1fr_120px]'>
+      <div className='text-muted border-separator dark:border-separator/70/50 mb-1 grid grid-cols-1 border-b px-3 py-1 text-[11px] font-semibold sm:grid-cols-[1fr_120px]'>
         <span>Name</span>
         <span className='hidden sm:block'>Type</span>
       </div>
@@ -556,7 +556,7 @@ function DirectoryList({
                   if (e.key === 'Enter') onConfirmCreateFolder();
                   if (e.key === 'Escape') onCancelCreateFolder();
                 }}
-                className='bg-surface border-separator dark:border-separator/50 text-foreground placeholder:text-muted focus:border-accent/30 w-full min-w-0 rounded border px-2 py-1 text-xs focus:outline-none'
+                className='bg-surface border-separator dark:border-separator/70 text-foreground placeholder:text-muted focus:border-accent/30 w-full min-w-0 rounded border px-2 py-1 text-xs focus:outline-none'
               />
               <div className='flex items-center'>
                 <button

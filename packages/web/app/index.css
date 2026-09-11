@@ -21,11 +21,16 @@
   }
 
   .tooltip {
-    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/70 border shadow-none backdrop-blur-sm;
+  }
+
+  .select,
+  .input--secondary {
+    @apply bg-default/60! backdrop-blur-sm;
   }
 
   .select__popover {
-    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/70 border shadow-none backdrop-blur-sm;
   }
 
   [data-slot='menu-item']:hover,
@@ -38,7 +43,7 @@
   }
 
   .popover {
-    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/70 border shadow-none backdrop-blur-sm;
   }
 
   .checkbox__control {
@@ -46,12 +51,12 @@
   }
 
   .dropdown__popover {
-    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none! backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/70 border shadow-none! backdrop-blur-sm;
   }
 
   .sheet__dialog,
   .modal__dialog {
-    @apply border-separator dark:border-separator/50 dark:bg-overlay/60 border border-0 shadow-none dark:backdrop-blur-sm;
+    @apply border-separator dark:border-separator/70 dark:bg-overlay/60 border border-0 shadow-none dark:backdrop-blur-sm;
   }
 
   .button--secondary {

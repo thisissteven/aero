@@ -40,7 +40,7 @@ export function LocalhostPorts({
             <button
               type='button'
               onClick={() => onSelect(port)}
-              className='border-separator dark:border-separator/50 bg-surface hover:bg-field-hover text-foreground group focus-visible:ring-accent flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-150 focus-visible:ring-2 focus-visible:outline-none'
+              className='border-separator dark:border-separator/70 bg-surface hover:bg-field-hover text-foreground group focus-visible:ring-accent flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-150 focus-visible:ring-2 focus-visible:outline-none'
             >
               <span className='truncate font-mono text-xs font-medium'>
                 {port.startsWith('http') ? port : `http://${port}`}

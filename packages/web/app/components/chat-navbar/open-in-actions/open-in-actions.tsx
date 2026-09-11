@@ -67,7 +67,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
   const selectedApp = apps.find((app) => app.id === selectedAppId);
 
   return (
-    <div className='border-separator dark:border-separator/50 inline-flex items-center rounded-lg border p-0.5'>
+    <div className='border-separator bg-surface inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
 
       <Tooltip>

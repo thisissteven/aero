@@ -35,6 +35,7 @@ export function PercentageCircleIcon({
         cy='10'
         r={radius}
         fill='transparent'
+        className='opacity-50'
         stroke='var(--muted, #e5e7eb)'
         strokeWidth='3'
       />

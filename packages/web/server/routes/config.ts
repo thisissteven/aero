@@ -17,11 +17,30 @@ const commonQuerySchema = z.object({
 });
 
 const getSettingQuerySchema = z.object({
-  path: z.string().transform((value) => {
-    return value
-      .split('.')
-      .map((part) => part.trim())
-      .filter(Boolean) as AeroSettingPath;
+  path: z.string().transform((value, ctx) => {
+    try {
+      const parsed = JSON.parse(value);
+
+      const result = z.array(z.string().min(1)).min(1).safeParse(parsed);
+
+      if (!result.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid setting path',
+        });
+
+        return z.NEVER;
+      }
+
+      return result.data as AeroSettingPath;
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid setting path',
+      });
+
+      return z.NEVER;
+    }
   }),
 });
 

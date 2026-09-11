@@ -43,7 +43,7 @@ export function RevertedMessages() {
         <Disclosure
           isExpanded={isExpanded}
           onExpandedChange={setIsExpanded}
-          className='border-separator dark:border-separator/50 bg-surface overflow-hidden rounded-xl border'
+          className='border-separator dark:border-separator/70 bg-surface overflow-hidden rounded-xl border'
         >
           <Disclosure.Heading>
             <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2 text-sm transition-colors'>

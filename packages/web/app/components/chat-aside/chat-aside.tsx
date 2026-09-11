@@ -80,7 +80,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
     <aside className='relative h-full w-12 shrink-0 max-sm:hidden'>
       {(!!activeItem || isStatusPanelOpen) && (
         <div
-          className='border-separator dark:border-separator/50 absolute inset-0 top-0 right-0 h-14 border-b'
+          className='border-separator dark:border-separator/70 absolute inset-0 top-0 right-0 h-14 border-b'
           aria-hidden
         ></div>
       )}
@@ -88,7 +88,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
         className={cn(
           'mt-14 flex h-full flex-col gap-2 pt-4',
           (!!activeItem || isStatusPanelOpen) &&
-            'border-separator dark:border-separator/50 border-l',
+            'border-separator dark:border-separator/70 border-l',
         )}
       >
         {collapsibleNav.map((item) => {

@@ -30,7 +30,7 @@ export async function getSetting<const P extends AeroSettingPath>(path: P) {
 
   const res = await $config.settings.$get({
     query: {
-      path: normalizedPath.join('.'),
+      path: JSON.stringify(normalizedPath),
     },
   });
 
