@@ -511,14 +511,18 @@
     gap: calc(var(--spacing, 0.25rem) * 2);
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
-    border-color: var(--border);
+    @apply border-separator dark:border-separator/50;
     width: 100%;
     display: flex;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__input-group {
-      border-color: color-mix(in oklab, var(--border) 70%, transparent);
+      border-color: color-mix(
+        in oklab,
+        var(--border-separator) 40%,
+        transparent
+      );
     }
   }
 
@@ -717,14 +721,18 @@
     gap: calc(var(--spacing, 0.25rem) * 2);
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
-    border-color: var(--border);
+    @apply border-separator dark:border-separator/50;
     width: 100%;
     display: flex;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__footer {
-      border-color: color-mix(in oklab, var(--border) 50%, transparent);
+      border-color: color-mix(
+        in oklab,
+        var(--border-separator) 50%,
+        transparent
+      );
     }
   }
 

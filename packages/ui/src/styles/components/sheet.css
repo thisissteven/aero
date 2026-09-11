@@ -471,7 +471,7 @@
   }
 
   .sheet__dialog {
-    @apply bg-overlay/60 backdrop-blur-sm;
+    @apply bg-overlay/30 backdrop-blur-sm;
     color: var(--overlay-foreground);
     --tw-shadow: var(--overlay-shadow);
     box-shadow:
@@ -567,7 +567,7 @@
   }
 
   .sheet__handle-bar {
-    background-color: var(--default);
+    @apply bg-default/60 backdrop-blur-sm;
     border-radius: 3.40282e38px;
     width: 2rem;
     height: 0.3rem;
@@ -577,7 +577,7 @@
 
   .sheet__handle:hover .sheet__handle-bar,
   .sheet__handle:active .sheet__handle-bar {
-    background-color: var(--default-hover);
+    @apply bg-default-hover/60 backdrop-blur-sm;
   }
 
   .sheet__close-trigger {

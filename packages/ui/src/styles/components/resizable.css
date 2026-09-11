@@ -28,16 +28,46 @@
   .resizable {
     --resizable-handle-size: 1px;
     --resizable-handle-hit-area: 8px;
-    --resizable-handle-color: var(--color-separator);
-    --resizable-handle-color-hover: var(--color-separator-secondary);
-    --resizable-handle-color-active: var(--color-accent-soft);
+    --resizable-handle-color: color-mix(
+      in srgb,
+      var(--color-separator) 40%,
+      transparent
+    );
+    --resizable-handle-color-hover: color-mix(
+      in srgb,
+      var(--color-separator-secondary) 40%,
+      transparent
+    );
+    --resizable-handle-color-active: color-mix(
+      in srgb,
+      var(--color-separator-secondary) 40%,
+      transparent
+    );
     --resizable-indicator-pill-width: 6px;
     --resizable-indicator-pill-height: 32px;
     --resizable-indicator-drag-radius: var(--radius-sm, 6px);
-    --resizable-indicator-drag-bg: var(--color-default);
-    --resizable-indicator-drag-bg-hover: var(--color-default-hover);
-    --resizable-indicator-drag-fg: var(--color-muted);
-    --resizable-indicator-drag-fg-hover: var(--color-foreground);
+    --resizable-indicator-drag-bg: color-mix(
+      in srgb,
+      var(--color-separator) 40%,
+      transparent
+    );
+    --resizable-indicator-drag-bg-hover: color-mix(
+      in srgb,
+      var(--color-separator-secondary) 40%,
+      transparent
+    );
+
+    --resizable-indicator-drag-fg: color-mix(
+      in srgb,
+      var(--color-separator) 40%,
+      transparent
+    );
+    --resizable-indicator-drag-fg-hover: color-mix(
+      in srgb,
+      var(--color-separator-secondary) 40%,
+      transparent
+    );
+
     --resizable-indicator-drag-long: 20px;
     --resizable-indicator-drag-short: 13px;
     --resizable-indicator-drag-icon-size: 10px;
@@ -113,7 +143,11 @@
   }
 
   .resizable__handle--primary {
-    --resizable-handle-color: var(--color-separator);
+    --resizable-handle-color: color-mix(
+      in srgb,
+      var(--color-separator-secondary) 40%,
+      transparent
+    );
   }
 
   .resizable__handle--secondary {

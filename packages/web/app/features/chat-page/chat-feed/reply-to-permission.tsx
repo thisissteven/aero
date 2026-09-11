@@ -227,7 +227,7 @@ export const ReplyToPermission = React.memo(() => {
       }`}
     >
       <div className='overflow-hidden pb-3'>
-        <div className='bg-surface text-surface-foreground border-separator flex flex-col gap-3 rounded-xl border p-4'>
+        <div className='bg-surface text-surface-foreground border-separator dark:border-separator/50 flex flex-col gap-3 rounded-xl border p-4'>
           {/* Permission Header */}
           <div className='text-foreground text-sm leading-5 font-medium'>
             Allow Agent to <span className='font-semibold'>{actionTitle}</span>?
@@ -235,7 +235,7 @@ export const ReplyToPermission = React.memo(() => {
 
           {/* Code Snippet Box */}
           {codeSnippet && (
-            <div className='bg-default/50 border-separator max-h-40 overflow-auto rounded-lg border p-2.5 font-mono text-xs break-all whitespace-pre-wrap'>
+            <div className='bg-default/50 border-separator dark:border-separator/50 max-h-40 overflow-auto rounded-lg border p-2.5 font-mono text-xs break-all whitespace-pre-wrap'>
               <code>{codeSnippet}</code>
             </div>
           )}

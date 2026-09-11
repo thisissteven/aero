@@ -100,7 +100,7 @@ function SearchResults({
       </div>
 
       {results.length > 0 ? (
-        <div className='divide-separator border-border bg-surface divide-y overflow-hidden rounded-xl border'>
+        <div className='divide-separator border-separator dark:border-separator:40 bg-surface divide-y overflow-hidden rounded-xl border'>
           {results.slice(0, 5).map((result, index) => {
             const domain = getDomain(result.url);
             const excerpt = getExcerpt(result);
@@ -114,7 +114,7 @@ function SearchResults({
                 className='group/result hover:bg-surface-secondary relative block px-3 py-3 transition-colors'
               >
                 <div className='flex min-w-0 gap-3'>
-                  <div className='border-border bg-surface-secondary mt-0.5 flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border'>
+                  <div className='border-separator dark:border-separator:40 bg-surface-secondary mt-0.5 flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border'>
                     <img
                       src={`https://${domain}/favicon.ico`}
                       alt=''
@@ -171,7 +171,7 @@ function SearchResults({
           )}
         </div>
       ) : (
-        <div className='border-border bg-surface text-muted rounded-xl border px-3 py-3 text-[11px]'>
+        <div className='border-separator dark:border-separator:40 bg-surface text-muted rounded-xl border px-3 py-3 text-[11px]'>
           No results found
         </div>
       )}

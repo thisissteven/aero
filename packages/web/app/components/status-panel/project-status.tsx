@@ -25,7 +25,7 @@ export function ProjectStatusContent() {
   if (!currentBranch) return null;
 
   return (
-    <div className='border-separator border-b p-3'>
+    <div className='border-separator dark:border-separator/50 border-b p-3'>
       <ProjectStatusHeader />
       <CurrentBranch />
       <FilesChanged />

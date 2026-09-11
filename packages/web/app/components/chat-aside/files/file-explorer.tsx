@@ -33,7 +33,7 @@ export function FileExplorer({
     <div className={className}>
       <FileTree
         model={model}
-        className='border-separator h-full border-l pt-1'
+        className='border-separator dark:border-separator/50 h-full border-l pt-1'
         style={
           {
             height: '100%',
@@ -65,7 +65,7 @@ export function FileExplorer({
             '--trees-search-bg-override': 'var(--field-background)',
 
             // Borders
-            '--trees-border-color-override': 'var(--border)',
+            '--trees-border-color-override': 'var(--border-separator)',
 
             // Git status
             '--trees-git-added-color-override': 'var(--success)',

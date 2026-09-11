@@ -120,7 +120,7 @@ export function WorkspaceModelDropdown({
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
-          <div className='bg-overlay/60 text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
+          <div className='bg-overlay/60 text-overlay-foreground border-separator dark:border-separator:40 flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
             {onAddProviderClick && (
               <AddProviderRow onClick={onAddProviderClick} />
             )}
@@ -128,7 +128,7 @@ export function WorkspaceModelDropdown({
             <Command>
               <Command.Dialog
                 filter={() => true}
-                className='rounded-none border-none bg-transparent shadow-none'
+                className='border-none bg-transparent shadow-none'
                 allowEscape
               >
                 <ModelSearchInput

@@ -670,7 +670,7 @@ export function BrowserPane({
       }}
     >
       {/* Navigation & Address Bar */}
-      <div className='border-border flex items-center gap-1 border-b px-2 py-1'>
+      <div className='border-separator dark:border-separator:40 flex items-center gap-1 border-b px-2 py-1'>
         <IconBtn disabled={!tab.canGoBack} onClick={goBackInFrame} title='Back'>
           <Icon data={ArrowLeft} size={14} />
         </IconBtn>
@@ -701,7 +701,7 @@ export function BrowserPane({
               }
             }}
             placeholder='Search or enter address'
-            className='border-border bg-default h-7 w-full rounded-md border px-2 text-sm outline-none'
+            className='border-separator dark:border-separator:40 bg-default h-7 w-full rounded-md border px-2 text-sm outline-none'
           />
         </form>
 
@@ -809,7 +809,7 @@ export function BrowserPane({
             {/* Note Editor Popover */}
             {tab.isInspecting && pendingSelection && editorPosition && (
               <div
-                className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-full border p-1.5 shadow-xl'
+                className='border-separator dark:border-separator/50 bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-full border p-1.5 shadow-xl'
                 style={{
                   left: editorPosition.left,
                   top: editorPosition.top,
@@ -849,7 +849,7 @@ export function BrowserPane({
 
             {/* Connecting Toast Indicator */}
             {!bridgeReady && tab.isInspecting && (
-              <div className='border-border bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
+              <div className='border-separator dark:border-separator:40 bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
                 Connecting to preview…
               </div>
             )}

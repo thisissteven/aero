@@ -35,7 +35,7 @@
   .prompt-input__shell {
     border-radius: calc(var(--radius) * 2);
     border-style: solid;
-    border-color: var(--field-border, var(--border));
+    @apply border-separator dark:border-separator/50;
     border-width: var(--border-width-field, var(--field-border-width, 1px));
     width: 100%;
     transition:
@@ -51,7 +51,7 @@
 
   .prompt-input__shell--primary {
     background-color: var(--field-background, var(--default));
-    border-color: var(--field-border, var(--border));
+    @apply border-separator dark:border-separator/50;
   }
 
   @media (hover: hover) {
@@ -74,7 +74,7 @@
       var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
       var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
     background-color: var(--default);
-    border-color: var(--field-border, var(--border));
+    @apply border-separator dark:border-separator/50;
   }
 
   @media (hover: hover) {
@@ -239,7 +239,7 @@
   .prompt-input[data-layout='compact'] .prompt-input__shell--compact,
   .prompt-input[data-layout='inline'] .prompt-input__shell--inline {
     background-color: var(--field-background, var(--default));
-    border-color: var(--field-border, var(--border));
+    @apply border-separator dark:border-separator/50;
     border-radius: var(--radius-2xl, 1rem);
     transition:
       background-color 0.15s var(--ease-smooth),
@@ -559,7 +559,7 @@
   .prompt-input__queue {
     border-radius: calc(var(--radius) * 2);
     border-style: solid;
-    border-color: var(--field-border, var(--border));
+    @apply border-separator dark:border-separator/50;
     border-width: var(--border-width-field, var(--field-border-width, 1px));
     width: 100%;
     transition:

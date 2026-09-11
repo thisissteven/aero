@@ -80,7 +80,7 @@ export function ContextUsagePreview() {
         svgSize='sm'
       >
         <PercentageCircleIcon percentage={data.context.usedPercentage} />
-        <span className='text-foreground/50'>
+        <span className='text-muted/50'>
           {Math.round(data.context.usedPercentage)}%
         </span>
       </IconButton>

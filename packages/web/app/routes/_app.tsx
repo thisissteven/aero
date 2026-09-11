@@ -29,7 +29,7 @@ function AppLayout() {
   if (!isPoolReady) {
     return (
       <div className='bg-background grid h-screen place-items-center'>
-        <div className='bg-surface-secondary border-separator flex size-28 animate-pulse items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
+        <div className='bg-surface-secondary border-separator dark:border-separator/50 flex size-28 animate-pulse items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
           <img
             src={
               resolvedTheme === 'dark'

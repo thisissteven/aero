@@ -27,8 +27,8 @@ export function ChatInput({
     <ActiveSessionPromptInputWrapper isDisabled={isDisabled}>
       <PromptInput.Shell
         className={cn(
-          'ring-separator @container relative ring',
-          isShellMode && 'ring-accent/50',
+          'border-separator dark:border-separator/60 @container relative border',
+          isShellMode && 'border-accent/20 dark:border-accent/15',
         )}
         inert={isDisabled}
       >

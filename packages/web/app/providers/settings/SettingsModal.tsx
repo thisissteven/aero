@@ -276,7 +276,7 @@ export function SettingsModal() {
 
   const renderMobileDetailPanel = (locked?: boolean) => (
     <div className='flex h-full flex-col'>
-      <div className='border-separator flex shrink-0 items-center gap-2 border-b px-2 py-3'>
+      <div className='border-separator dark:border-separator/50 flex shrink-0 items-center gap-2 border-b px-2 py-3'>
         <button
           onClick={handleBack}
           className='text-muted hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors'
@@ -328,7 +328,7 @@ export function SettingsModal() {
         }}
       >
         <Modal.Container size='cover'>
-          <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl border-0 p-0 shadow-none max-md:h-full max-md:max-w-full'>
+          <Modal.Dialog className='bg-surface my-auto h-180 w-full max-w-5xl overflow-hidden rounded-2xl p-0 max-md:h-full max-md:max-w-full'>
             <div className='text-foreground relative flex h-full w-full'>
               {/* Native Close Trigger */}
               <Modal.CloseTrigger className='text-muted hover:text-foreground absolute top-4 right-4 z-10 transition-colors' />
@@ -358,7 +358,7 @@ export function SettingsModal() {
               ) : (
                 <>
                   {/* Left Sidebar */}
-                  <aside className='border-separator flex w-64 shrink-0 flex-col justify-between border-r'>
+                  <aside className='border-separator dark:border-separator/50 flex w-64 shrink-0 flex-col justify-between border-r'>
                     <div
                       ref={sidebarNavRef}
                       className='relative flex scrollbar-thin flex-col gap-1 overflow-y-auto'
@@ -388,7 +388,7 @@ export function SettingsModal() {
                     </div>
 
                     {/* Sidebar Footer */}
-                    <div className='border-separator border-t p-2'>
+                    <div className='border-separator dark:border-separator/50 border-t p-2'>
                       <ReloadOpencode />
                     </div>
                   </aside>

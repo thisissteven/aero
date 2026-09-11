@@ -87,7 +87,7 @@
   .floating-toc__bar::after {
     content: '';
     border-radius: calc(var(--radius) * 0.5);
-    background-color: var(--border);
+    @apply bg-border/80 backdrop-blur-sm;
     transition-property: all;
     transition-timing-function: var(
       --tw-ease,
@@ -114,7 +114,7 @@
 
   .floating-toc__content {
     border-radius: calc(var(--radius) * 2);
-    background-color: var(--overlay);
+    @apply bg-overlay/60 backdrop-blur-sm;
     --tw-shadow: var(--overlay-shadow);
     box-shadow:
       var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
@@ -245,17 +245,17 @@
   @media (hover: hover) {
     .floating-toc__item:hover,
     .floating-toc__item[data-hovered='true'] {
-      background-color: var(--default);
+      @apply bg-default/60 backdrop-blur-sm;
     }
   }
 
   .floating-toc__item[data-focused='true'] {
-    background-color: var(--default);
+    @apply bg-default/60 backdrop-blur-sm;
   }
 
   .floating-toc__item:active,
   .floating-toc__item[data-pressed='true'] {
-    background-color: var(--default-hover);
+    @apply bg-default-hover/60 backdrop-blur-sm;
   }
 
   .floating-toc__item:focus-visible:not(:focus),

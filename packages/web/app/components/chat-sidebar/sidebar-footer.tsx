@@ -118,12 +118,12 @@ export function AboutModal() {
   const { data } = useOpencodeVersion();
 
   return (
-    <Modal.Dialog className='bg-surface text-foreground border-separator rounded-2xl border p-6 shadow-xl sm:max-w-[360px]'>
+    <Modal.Dialog className='text-foreground rounded-2xl p-6 sm:max-w-[360px]'>
       <Modal.CloseTrigger />
 
       <Modal.Header className='flex flex-col items-center space-y-3 pt-2 text-center'>
         {/* Logo Container */}
-        <div className='bg-surface-secondary border-separator flex h-16 w-16 items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
+        <div className='bg-surface-secondary border-separator dark:border-separator/50 flex h-16 w-16 items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
           <img
             src={
               resolvedTheme === 'dark'
@@ -401,11 +401,11 @@ function KeyItem({ keyName, isFirst }: { keyName: KbdKey; isFirst: boolean }) {
 
 export function ShortcutsModal() {
   return (
-    <Modal.Dialog className='border-separator text-foreground w-full max-w-xl gap-0 rounded-2xl border px-0 py-0 pr-2 shadow-2xl'>
+    <Modal.Dialog className='text-foreground w-full max-w-xl gap-0 rounded-2xl px-0 py-0 pr-2'>
       <Modal.CloseTrigger />
 
       {/* Header */}
-      <Modal.Header className='border-separator flex flex-col gap-1 border-b px-6 py-5'>
+      <Modal.Header className='flex flex-col gap-1 px-6 py-5'>
         <div className='flex items-center gap-2'>
           <Icon data={Keyboard} />
           <Modal.Heading className='typography typography--h5 typography--weight-semibold text-foreground'>
@@ -451,7 +451,7 @@ export function ShortcutsModal() {
 
                       {/* Shortcut Keys */}
                       <div className='flex items-center gap-1'>
-                        <Kbd className='bg-surface-secondary text-foreground border-separator'>
+                        <Kbd className='bg-surface-secondary text-foreground border-separator dark:border-separator/50'>
                           {item.keys.map((key, idx) => (
                             <React.Fragment key={idx}>
                               {idx > 0 && (
@@ -472,7 +472,7 @@ export function ShortcutsModal() {
             ))}
 
             {/* Pro Tips Section */}
-            <div className='border-separator bg-surface-secondary/60 space-y-2 rounded-xl border p-4 backdrop-blur-sm'>
+            <div className='border-separator dark:border-separator/50 bg-surface-secondary/60 space-y-2 rounded-xl border p-4 backdrop-blur-sm'>
               <div className='flex items-center gap-2'>
                 <Icon data={Keyboard} />
                 <Typography

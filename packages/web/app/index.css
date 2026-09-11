@@ -13,7 +13,7 @@
 
 @layer components {
   .skeleton {
-    @apply bg-surface-tertiary/30 backdrop-blur-sm;
+    @apply opacity-70 dark:opacity-30;
   }
 
   .kbd {
@@ -21,11 +21,24 @@
   }
 
   .tooltip {
-    @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
+  }
+
+  .select__popover {
+    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
+  }
+
+  [data-slot='menu-item']:hover,
+  [data-slot='list-box-item']:hover {
+    @apply bg-default/50! backdrop-blur-sm;
+  }
+
+  .separator {
+    @apply bg-separator dark:bg-separator/60;
   }
 
   .popover {
-    @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
+    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none backdrop-blur-sm;
   }
 
   .checkbox__control {
@@ -33,27 +46,24 @@
   }
 
   .dropdown__popover {
-    @apply bg-overlay/60! border-separator border shadow-none! backdrop-blur-sm;
-
-    [data-slot='menu-item']:hover {
-      @apply bg-default/50 backdrop-blur-sm;
-    }
+    @apply bg-overlay/60! border-separator dark:border-separator/50 border shadow-none! backdrop-blur-sm;
   }
 
+  .sheet__dialog,
   .modal__dialog {
-    @apply border-separator border shadow-none backdrop-blur-sm;
+    @apply border-separator dark:border-separator/50 dark:bg-overlay/60 border border-0 shadow-none dark:backdrop-blur-sm;
   }
 
   .button--secondary {
-    --button-bg: color-mix(in srgb, var(--default) 60%, transparent);
+    --button-bg: color-mix(in srgb, var(--default) 30%, transparent);
     --button-bg-hover: color-mix(
       in srgb,
-      var(--default-hover) 60%,
+      var(--default-hover) 30%,
       transparent
     );
     --button-bg-pressed: color-mix(
       in srgb,
-      var(--default-hover) 60%,
+      var(--default-hover) 30%,
       transparent
     );
   }
@@ -74,8 +84,8 @@
   .button--ghost,
   .button--outline {
     --button-bg: transparent;
-    --button-bg-hover: color-mix(in srgb, var(--default) 60%, transparent);
-    --button-bg-pressed: color-mix(in srgb, var(--default) 60%, transparent);
+    --button-bg-hover: color-mix(in srgb, var(--default) 30%, transparent);
+    --button-bg-pressed: color-mix(in srgb, var(--default) 30%, transparent);
   }
 }
 

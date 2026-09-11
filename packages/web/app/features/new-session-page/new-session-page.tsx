@@ -55,8 +55,8 @@ export function NewSessionPage() {
               <NewSessionPromptInputWrapper>
                 <PromptInput.Shell
                   className={cn(
-                    'ring-separator @container relative ring',
-                    isShellMode && 'ring-accent/50',
+                    'border-separator dark:border-separator/60 @container relative border',
+                    isShellMode && 'border-accent/20 dark:border-accent/15',
                   )}
                 >
                   <div className='absolute top-2 right-2'>

@@ -96,10 +96,10 @@ HeroUI defines color tokens by **semantic intent**, not visual appearance. Alway
 
 #### Borders and Dividers
 
-| Purpose             | Token                                              |
-| ------------------- | -------------------------------------------------- |
-| Element borders     | `border-border`                                    |
-| Separators/dividers | `border-separator` or `border-separator-secondary` |
+| Purpose             | Token                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| Element borders     | `border-separator dark:border-separator:40`                                                          |
+| Separators/dividers | `border-separator dark:border-separator/50` or `border-separator dark:border-separator/50-secondary` |
 
 ### 3. Form Variant Rule
 

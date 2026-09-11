@@ -50,7 +50,7 @@ export function VariantsDropdown() {
         <Command>
           <Command.Dialog
             filter={() => true}
-            className='rounded-none border-none bg-transparent shadow-none'
+            className='border-none bg-transparent shadow-none'
             allowEscape
           >
             <Command.InputGroup>

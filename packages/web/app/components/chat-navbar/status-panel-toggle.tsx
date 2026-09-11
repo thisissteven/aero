@@ -26,7 +26,7 @@ export function StatusPanelToggle() {
         className={
           isOpen
             ? 'text-foreground bg-default'
-            : 'text-muted hover:text-muted active:text-muted'
+            : 'text-muted/50 hover:text-muted/50 active:text-muted'
         }
       >
         <Shapes3 />

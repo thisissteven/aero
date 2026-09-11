@@ -54,9 +54,9 @@ export function ModelAgentDropdownSheet({
             </div>
 
             <Sheet.Body className='flex min-h-0 flex-col gap-0 overflow-hidden p-0'>
-              <div className='border-separator flex gap-2 border-b p-2 pl-3'>
+              <div className='border-separator dark:border-separator/50 flex gap-1 border-b p-2 pl-3'>
                 <Button
-                  variant={selection === 'agent' ? 'secondary' : 'outline'}
+                  variant={selection === 'agent' ? 'secondary' : 'ghost'}
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('agent')}
                 >
@@ -64,7 +64,7 @@ export function ModelAgentDropdownSheet({
                 </Button>
 
                 <Button
-                  variant={selection === 'model' ? 'secondary' : 'outline'}
+                  variant={selection === 'model' ? 'secondary' : 'ghost'}
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('model')}
                 >
@@ -72,7 +72,7 @@ export function ModelAgentDropdownSheet({
                 </Button>
 
                 <Button
-                  variant={selection === 'variant' ? 'secondary' : 'outline'}
+                  variant={selection === 'variant' ? 'secondary' : 'ghost'}
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('variant')}
                 >

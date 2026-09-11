@@ -48,8 +48,8 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
   }, [activeHandle, onAttachToChat]);
 
   return (
-    <div className='border-border bg-background flex h-full flex-col overflow-hidden'>
-      <div className='border-border flex scrollbar-thin items-center justify-between overflow-x-auto border-b'>
+    <div className='bg-background flex h-full flex-col overflow-hidden'>
+      <div className='border-separator dark:border-separator/50 flex scrollbar-thin items-center justify-between overflow-x-auto border-b'>
         <TerminalTabs />
         <div className='flex shrink-0 items-center gap-1 pr-1'>
           <IconButton onPress={handleRefresh} isDisabled={!activeSessionId}>

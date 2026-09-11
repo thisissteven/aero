@@ -395,7 +395,7 @@ function AppLayoutResizable({
   const sidebarSection = sidebarResizable ? (
     <Resizable.Panel
       collapsible
-      className='app-layout__sidebar-panel'
+      className='app-layout__sidebar-panel relative'
       collapsedSize={0}
       defaultSize={sidebarDefaultSize}
       groupResizeBehavior={sidebarResizeBehavior}
@@ -407,6 +407,7 @@ function AppLayoutResizable({
       onCollapse={() => setSidebarOpen(false)}
       onExpand={() => setSidebarOpen(true)}
     >
+      <div className='from-accent/30 via-accent/5 absolute inset-0 -z-10 h-40 w-full bg-gradient-to-br to-transparent'></div>
       {sidebar}
     </Resizable.Panel>
   ) : null;

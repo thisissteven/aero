@@ -48,7 +48,7 @@ export const TodoToolView = memo(
         isStreaming={isStreaming}
       >
         <div className='space-y-6 py-2 text-sm'>
-          <div className='text-muted bg-surface/50 border-separator flex flex-wrap items-center gap-3 rounded-xl border p-3 text-xs'>
+          <div className='text-muted bg-surface/50 border-separator dark:border-separator/50 flex flex-wrap items-center gap-3 rounded-xl border p-3 text-xs'>
             <span>
               Total: <strong className='text-foreground'>{stats.total}</strong>
             </span>

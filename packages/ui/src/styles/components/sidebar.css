@@ -45,8 +45,7 @@
 
   .sidebar {
     top: calc(var(--spacing, 0.25rem) * 0);
-    border-color: var(--border);
-    @apply bg-background/20 backdrop-blur-sm;
+    @apply bg-background/20 border-separator dark:border-separator/50 backdrop-blur-sm;
     --sidebar-width: 240px;
     --sidebar-width-collapsed: 48px;
     --sidebar-duration: 0.2s;

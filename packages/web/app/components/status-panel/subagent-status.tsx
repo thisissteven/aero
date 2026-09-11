@@ -27,7 +27,7 @@ function SubagentStatusContent() {
 
   if (!children.length || !sessionStatus) return null;
   return (
-    <div className='border-separator border-b p-3'>
+    <div className='border-separator dark:border-separator/50 border-b p-3'>
       <div className='mb-2.5 flex items-center justify-between gap-1'>
         <div className='flex items-center gap-1'>
           <Icon data={CircleTree} className='text-muted' size={14} />
