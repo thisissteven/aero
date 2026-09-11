@@ -461,7 +461,7 @@
 
   .command__dialog {
     border-radius: calc(var(--radius) * 2);
-    background-color: var(--overlay);
+    @apply bg-overlay/60 backdrop-blur-sm;
     --tw-shadow: var(--overlay-shadow);
     box-shadow:
       var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
@@ -643,17 +643,17 @@
   @media (hover: hover) {
     .command__item:hover,
     .command__item[data-hovered='true'] {
-      background-color: var(--default);
+      background-color: color-mix(in srgb, var(--default) 50%, transparent);
     }
   }
 
   .command__item[data-focused='true'] {
-    background-color: var(--default);
+    background-color: color-mix(in srgb, var(--default) 50%, transparent);
   }
 
   .command__item:active,
   .command__item[data-pressed='true'] {
-    background-color: var(--default-hover);
+    background-color: color-mix(in srgb, var(--default-hover) 50%, transparent);
   }
 
   .command__item[data-disabled='true'] {
@@ -729,12 +729,12 @@
   }
 
   .command__footer {
-    background-color: var(--default);
+    @apply bg-default/50 backdrop-blur-sm;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__footer {
-      background-color: color-mix(in oklab, var(--default) 50%, transparent);
+      @apply bg-default/50 backdrop-blur-sm;
     }
   }
 

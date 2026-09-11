@@ -10,6 +10,7 @@ import { SelectionPopover } from '@/app/components/selection-popover';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
 import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
+import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
@@ -122,9 +123,10 @@ export const ChatFeed = forwardRef<
             flatItems={flatItems}
             onScroll={handleScroll}
           />
-          <div className='-mt-5'>
+          <div className='-mt-5 has-[:not(:empty)]:mb-24'>
             <ReplyToQuestion />
             <ReplyToPermission />
+            <RevertedMessages />
           </div>
           <SelectionPopover containerRef={contentRef} />
         </div>

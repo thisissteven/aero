@@ -8,6 +8,7 @@ import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useGitDiff } from '@/app/hooks/api/git';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function SessionDiff({ workspace }: { workspace?: string }) {
   const { data: diffData, isLoading } = useGitDiff(workspace);
@@ -15,7 +16,14 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
 
   const isChatInputExpanded = useChatInputExpanded();
 
-  if (isLoading || !diffData?.summary?.length || isChatInputExpanded) {
+  const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
+
+  if (
+    isLoading ||
+    !diffData?.summary?.length ||
+    isChatInputExpanded ||
+    isStatusPanelOpen
+  ) {
     return null;
   }
 
@@ -31,7 +39,7 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 flex items-center justify-start gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed

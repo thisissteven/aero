@@ -11,6 +11,74 @@
   }
 }
 
+@layer components {
+  .skeleton {
+    @apply bg-surface-tertiary/30 backdrop-blur-sm;
+  }
+
+  .kbd {
+    @apply bg-default/60! backdrop-blur-sm;
+  }
+
+  .tooltip {
+    @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
+  }
+
+  .popover {
+    @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
+  }
+
+  .checkbox__control {
+    @apply bg-default/60! backdrop-blur-sm;
+  }
+
+  .dropdown__popover {
+    @apply bg-overlay/60! border-separator border shadow-none! backdrop-blur-sm;
+
+    [data-slot='menu-item']:hover {
+      @apply bg-default/50 backdrop-blur-sm;
+    }
+  }
+
+  .modal__dialog {
+    @apply border-separator border shadow-none backdrop-blur-sm;
+  }
+
+  .button--secondary {
+    --button-bg: color-mix(in srgb, var(--default) 60%, transparent);
+    --button-bg-hover: color-mix(
+      in srgb,
+      var(--default-hover) 60%,
+      transparent
+    );
+    --button-bg-pressed: color-mix(
+      in srgb,
+      var(--default-hover) 60%,
+      transparent
+    );
+  }
+
+  .button--tertiary {
+    --button-bg-hover: color-mix(
+      in srgb,
+      var(--default-hover) 60%,
+      transparent
+    );
+    --button-bg-pressed: color-mix(
+      in srgb,
+      var(--default-hover) 60%,
+      transparent
+    );
+  }
+
+  .button--ghost,
+  .button--outline {
+    --button-bg: transparent;
+    --button-bg-hover: color-mix(in srgb, var(--default) 60%, transparent);
+    --button-bg-pressed: color-mix(in srgb, var(--default) 60%, transparent);
+  }
+}
+
 @font-face {
   font-family: 'DM Sans';
   src: url('./assets/fonts/DMSans-VariableFont_opsz,wght.ttf')

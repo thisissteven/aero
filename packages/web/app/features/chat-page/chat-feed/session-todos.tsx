@@ -6,6 +6,7 @@ import { cn, Popover } from '@aero/ui';
 
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function SessionTodos({ sessionId }: { sessionId: string }) {
   const { data: todos } = useSessionTodos(undefined, sessionId);
@@ -14,7 +15,10 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   const isChatInputExpanded = useChatInputExpanded();
 
-  if (!todos || todos.length === 0 || isChatInputExpanded) return null;
+  const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
+
+  if (!todos || todos.length === 0 || isChatInputExpanded || isStatusPanelOpen)
+    return null;
 
   const inProgress = todos.filter((todo) => todo.status === 'in_progress');
 
@@ -36,7 +40,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mx-2 mb-2 ml-auto flex shrink-0 items-center justify-end gap-1 text-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle @max-md:hidden'>
           {inProgress.length > 0
             ? inProgress[0].content

@@ -11,7 +11,6 @@ import {
   ChatFeed,
   type ChatFeedRef,
 } from '@/app/features/chat-page/chat-feed/chat-feed';
-import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
@@ -107,12 +106,10 @@ export function ChatPage({
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
-            <RevertedMessages sessionId={sessionId} />
-
             <div className='flex flex-wrap items-end justify-between gap-2'>
               <ChatActivityIndicator />
 
-              <div className='@container flex flex-1 shrink-0 flex-col items-end'>
+              <div className='@container absolute left-0 flex w-full flex-1 shrink-0 flex-col items-end'>
                 <SessionTodos sessionId={sessionId} />
                 <SessionDiff workspace={workspace} />
               </div>

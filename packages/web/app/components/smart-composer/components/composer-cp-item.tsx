@@ -67,8 +67,8 @@ export function CommandPaletteItem({
       aria-selected={active}
       className={cn(
         'group flex cursor-pointer items-center',
-        'border-separator/20 rounded-md border-b px-3 py-2',
-        active && 'bg-surface-hover',
+        'rounded-md px-3 py-2',
+        active && 'bg-surface-hover/50',
       )}
       onMouseEnter={handleMouseEnter}
       onMouseDown={(event) => {

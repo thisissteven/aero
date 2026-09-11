@@ -90,7 +90,7 @@ export const ChatSidebarSessionItem = memo(
 
         showTooltip({
           content: (
-            <div className='bg-surface border-separator rounded-lg border p-2 shadow-lg'>
+            <div className='p-2'>
               <p className='text-sm'>{session.title}</p>
               <SessionItemMetadata session={session} />
             </div>
@@ -190,7 +190,7 @@ export const WorkspaceSessionItem = memo(
 
         showTooltip({
           content: (
-            <div className='bg-surface border-separator rounded-lg border p-2 shadow-lg'>
+            <div className='p-2'>
               <p className='text-sm'>{session.title}</p>
               <SessionItemMetadata session={session} />
             </div>

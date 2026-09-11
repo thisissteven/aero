@@ -347,9 +347,10 @@ export function ModelInfoPanelCard({
   return (
     <div
       style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
-      className={`bg-overlay text-overlay-foreground border-border absolute w-64 space-y-2 rounded-xl border p-3 text-xs transition-all duration-75 ${
-        side === 'right' ? 'left-full ml-2' : 'right-full mr-2'
-      }`}
+      className={cn(
+        'bg-overlay/60 text-overlay-foreground border-border absolute w-64 space-y-2 rounded-xl border p-3 text-xs backdrop-blur-sm transition-all duration-75',
+        side === 'right' ? 'left-full ml-2' : 'right-full mr-2',
+      )}
     >
       <div className='text-muted flex items-center justify-between gap-2'>
         <span>Capabilities</span>

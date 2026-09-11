@@ -88,11 +88,14 @@ export function AgentDropdown() {
           : 'Select Agent'}
       </Button>
 
-      <Popover.Content className='w-72 rounded-xl p-0' placement='top right'>
+      <Popover.Content
+        className='w-72 rounded-xl bg-transparent p-0'
+        placement='top right'
+      >
         <Command>
           <Command.Dialog
             filter={() => true}
-            className='rounded-none border-none bg-transparent shadow-none'
+            className='border-none bg-transparent shadow-none'
             allowEscape
           >
             <Command.InputGroup>

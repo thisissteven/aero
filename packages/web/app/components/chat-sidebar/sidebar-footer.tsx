@@ -401,7 +401,7 @@ function KeyItem({ keyName, isFirst }: { keyName: KbdKey; isFirst: boolean }) {
 
 export function ShortcutsModal() {
   return (
-    <Modal.Dialog className='border-separator bg-surface text-foreground w-full max-w-xl gap-0 rounded-2xl border px-0 py-0 pr-2 shadow-2xl'>
+    <Modal.Dialog className='border-separator text-foreground w-full max-w-xl gap-0 rounded-2xl border px-0 py-0 pr-2 shadow-2xl'>
       <Modal.CloseTrigger />
 
       {/* Header */}
@@ -472,7 +472,7 @@ export function ShortcutsModal() {
             ))}
 
             {/* Pro Tips Section */}
-            <div className='border-separator bg-surface-secondary space-y-2 rounded-xl border p-4'>
+            <div className='border-separator bg-surface-secondary/60 space-y-2 rounded-xl border p-4 backdrop-blur-sm'>
               <div className='flex items-center gap-2'>
                 <Icon data={Keyboard} />
                 <Typography

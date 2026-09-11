@@ -3,6 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 
+import { cn } from '@aero/ui';
+
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 interface TooltipPosition {
@@ -259,11 +261,12 @@ export function GlobalTooltip() {
           setHovered(false);
         }
       }}
-      className={`fixed z-40 ${
-        isInteractive ? 'pointer-events-auto' : 'pointer-events-none'
-      } ${
-        wasOpen && isOpen ? 'transition-[top,left] duration-150 ease-out' : ''
-      }`}
+      className={cn(
+        'fixed z-40',
+        'bg-overlay/60 border-separator rounded-lg border backdrop-blur-sm',
+        wasOpen && isOpen ? 'transition-[top,left] duration-150 ease-out' : '',
+        isInteractive ? 'pointer-events-auto' : 'pointer-events-none',
+      )}
       style={{
         top: `${adjustedPos?.top ?? triggerRect.top}px`,
         left: `${adjustedPos?.left ?? triggerRect.right + offset}px`,

@@ -105,47 +105,10 @@ export function ModelDropdown() {
       </Button>
 
       <Popover.Content
-        className='relative overflow-visible p-0'
+        className='relative overflow-visible rounded-xl p-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
-          <div className='bg-overlay text-overlay-foreground border-border flex w-80 flex-col overflow-hidden rounded-xl border'>
-            {/* NOTE: preserved as-is from the original — this button has
-                never had an onClick wired up. Pass one in if that was
-                meant to open the add-provider flow. */}
-            <AddProviderRow />
-
-            <Command>
-              <Command.Dialog
-                filter={() => true}
-                className='rounded-none border-none bg-transparent shadow-none'
-                allowEscape
-              >
-                <ModelSearchInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                />
-
-                {totalResults === 0 ? (
-                  <ModelEmptyState />
-                ) : (
-                  <ModelVirtualList
-                    items={items}
-                    selectedModelId={selectedModel?.model.id}
-                    favoriteModelIds={favoriteModelIds}
-                    collapsedGroups={collapsedGroups}
-                    onToggleGroup={toggleGroupCollapse}
-                    onSelect={selectModel}
-                    onToggleFavorite={toggleFavorite}
-                    onActivate={activateModel}
-                  />
-                )}
-              </Command.Dialog>
-            </Command>
-
-            <ModelPickerFooter />
-          </div>
-
           {activeModel && (
             <ModelInfoPanelCard
               model={activeModel}
@@ -153,6 +116,45 @@ export function ModelDropdown() {
               side={infoSide}
             />
           )}
+
+          <Popover.Dialog className='p-0'>
+            <div className='text-overlay-foreground flex w-80 flex-col overflow-hidden'>
+              {/* NOTE: preserved as-is from the original — this button has
+                never had an onClick wired up. Pass one in if that was
+                meant to open the add-provider flow. */}
+              <AddProviderRow />
+
+              <Command>
+                <Command.Dialog
+                  filter={() => true}
+                  className='rounded-none border-none bg-transparent shadow-none'
+                  allowEscape
+                >
+                  <ModelSearchInput
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                  />
+
+                  {totalResults === 0 ? (
+                    <ModelEmptyState />
+                  ) : (
+                    <ModelVirtualList
+                      items={items}
+                      selectedModelId={selectedModel?.model.id}
+                      favoriteModelIds={favoriteModelIds}
+                      collapsedGroups={collapsedGroups}
+                      onToggleGroup={toggleGroupCollapse}
+                      onSelect={selectModel}
+                      onToggleFavorite={toggleFavorite}
+                      onActivate={activateModel}
+                    />
+                  )}
+                </Command.Dialog>
+              </Command>
+
+              <ModelPickerFooter />
+            </div>
+          </Popover.Dialog>
         </div>
       </Popover.Content>
     </Popover>

@@ -69,7 +69,7 @@ export function ComposerCommandPalette({
 
       showTooltip({
         content: (
-          <div className='bg-surface border-separator max-w-sm rounded-lg border p-2 shadow-lg'>
+          <div className='max-w-sm p-2'>
             <div className='mb-1 text-sm font-medium'>
               {item.triggerChar}
               {item.value}
@@ -274,7 +274,7 @@ export function ComposerCommandPalette({
         'fixed z-50',
         'max-w-[min(480px,calc(100vw-32px))] min-w-60',
         'border-separator rounded-xl border',
-        'bg-overlay text-overlay-foreground overflow-hidden',
+        'bg-overlay/60 text-overlay-foreground overflow-hidden backdrop-blur-sm',
       )}
     >
       <ScrollShadow
@@ -333,7 +333,7 @@ export function ComposerCommandPalette({
         )}
       </ScrollShadow>
 
-      <div className='bg-overlay text-muted border-separator relative flex items-center gap-3 border-t p-1.5'>
+      <div className='text-muted border-separator relative flex items-center gap-3 border-t p-1.5'>
         <div className='flex items-center gap-2'>
           <div className='flex items-center gap-0.5'>
             <Kbd className='h-5 rounded-md px-1.5 text-xs'>

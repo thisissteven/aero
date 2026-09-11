@@ -23,6 +23,7 @@ export function EditWorkspaceDirectoryInput({
       <Label className='font-medium'>Project Directory</Label>
       <div className='relative flex w-full items-center gap-2'>
         <Input
+          variant='secondary'
           value={directory}
           placeholder='Enter project directory'
           className='pointer-events-none w-full opacity-50'

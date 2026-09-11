@@ -471,7 +471,7 @@
   }
 
   .sheet__dialog {
-    background-color: var(--overlay);
+    @apply bg-overlay/60 backdrop-blur-sm;
     color: var(--overlay-foreground);
     --tw-shadow: var(--overlay-shadow);
     box-shadow:

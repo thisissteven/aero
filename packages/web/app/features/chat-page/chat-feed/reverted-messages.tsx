@@ -1,6 +1,6 @@
 import { ArrowUturnCcwRight, ChevronDown, CodeFork } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { cn, Disclosure, toast } from '@aero/ui';
@@ -16,7 +16,8 @@ import {
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { queryClient } from '@/app/providers';
 
-export function RevertedMessages({ sessionId }: { sessionId: string }) {
+export function RevertedMessages() {
+  const { sessionId } = useParams({ strict: false });
   const revertedMessages = useChatStore(
     (state) => state.activeSession.revertedMessages,
   );

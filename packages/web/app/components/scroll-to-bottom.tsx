@@ -166,6 +166,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
         'pointer-events-auto shadow-md',
         'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
         isReady ? 'opacity-100' : 'opacity-0',
+        'bg-surface/60 hover:bg-default/60 active:bg-default/60 backdrop-blur-sm',
       )}
       onPress={scrollToBottom}
     >

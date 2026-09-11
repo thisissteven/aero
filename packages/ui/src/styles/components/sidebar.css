@@ -46,7 +46,7 @@
   .sidebar {
     top: calc(var(--spacing, 0.25rem) * 0);
     border-color: var(--border);
-    /* background-color: var(--background); */
+    @apply bg-background/20 backdrop-blur-sm;
     --sidebar-width: 240px;
     --sidebar-width-collapsed: 48px;
     --sidebar-duration: 0.2s;
@@ -499,7 +499,7 @@
   @media (hover: hover) {
     .sidebar__menu-item:hover .sidebar__menu-item-content,
     .sidebar__menu-item[data-hovered='true'] .sidebar__menu-item-content {
-      background-color: var(--default);
+      @apply bg-accent/5 backdrop-blur-sm;
     }
   }
 
@@ -547,7 +547,7 @@
       :has(.sidebar__menu-actions [aria-expanded='true'])
     )
     .sidebar__menu-item-content {
-    background-color: var(--default);
+    @apply bg-accent/10 backdrop-blur-sm;
   }
 
   .sidebar__menu-item[data-current='true'] .sidebar__menu-label {
@@ -760,8 +760,8 @@
   .sidebar__menu-action {
     cursor: var(--cursor-interactive);
     --button-bg: transparent;
-    --button-bg-hover: var(--color-default-hover);
-    --button-bg-pressed: var(--color-default-hover);
+    --button-bg-hover: color-mix(in srgb, var(--accent) 15%, transparent);
+    --button-bg-pressed: color-mix(in srgb, var(--accent) 15%, transparent);
     --button-fg: var(--color-default-foreground);
     background-color: var(--button-bg);
     color: var(--button-fg);
