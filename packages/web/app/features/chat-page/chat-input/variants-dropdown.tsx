@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { Button, Command, Popover } from '@aero/ui';
 
-import { capitalizeFirstLetter } from '@/app/lib/file';
+import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from './chat-settings-store';
 

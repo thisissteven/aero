@@ -8,6 +8,7 @@ import { ProviderLogo } from '@/app/components/provider-logo';
 import { useSessionChildren, useSessionStatus } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+import { toPascalCase } from '@/server/shared';
 
 export function SubagentStatus() {
   const isVisible = useStatusPanelStore(
@@ -27,7 +28,7 @@ function SubagentStatusContent() {
 
   if (!children.length || !sessionStatus) return null;
   return (
-    <div className='border-separator dark:border-separator/70 border-b p-3'>
+    <div className='border-separator border-b p-3'>
       <div className='mb-2.5 flex items-center justify-between gap-1'>
         <div className='flex items-center gap-1'>
           <Icon data={CircleTree} className='text-muted' size={14} />
@@ -46,7 +47,7 @@ function SubagentStatusContent() {
             key={child.id}
             type='button'
             onClick={() => navigate({ to: `/sessions/${child.id}` })}
-            className='hover:bg-surface flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors'
+            className='hover:bg-surface/60 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors'
           >
             <div className='min-w-0 flex-1 space-y-1'>
               <Typography
@@ -58,7 +59,7 @@ function SubagentStatusContent() {
               <div className='flex items-center justify-between gap-1'>
                 <Typography
                   type='body-xs'
-                  className='text-muted flex items-center justify-between gap-1 font-mono'
+                  className='text-muted flex items-center justify-between gap-1'
                 >
                   {child.model && (
                     <>
@@ -67,7 +68,7 @@ function SubagentStatusContent() {
                         alt={child.model.id}
                         className='size-3.5'
                       />
-                      {child.model.id}
+                      {toPascalCase(child.model.id)}
                     </>
                   )}
                 </Typography>

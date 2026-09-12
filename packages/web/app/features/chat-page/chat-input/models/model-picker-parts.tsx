@@ -116,7 +116,7 @@ export function ModelSearchInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <Command.InputGroup className='border-separator dark:border-separator/70 border-b'>
+    <Command.InputGroup className='border-separator border-b'>
       <Command.InputGroup.Prefix className='pl-3'>
         <Icon data={Magnifier} className='size-3.5' />
       </Command.InputGroup.Prefix>
@@ -143,7 +143,7 @@ export function ModelEmptyState() {
 
 export function AddProviderRow({ onClick }: { onClick?: () => void }) {
   return (
-    <div className='border-separator dark:border-separator/70 border-b p-1'>
+    <div className='border-separator border-b p-1'>
       <IconButton
         isIconOnly={false}
         className='w-full justify-start gap-3 px-2'
@@ -158,7 +158,7 @@ export function AddProviderRow({ onClick }: { onClick?: () => void }) {
 
 export function ModelPickerFooter() {
   return (
-    <div className='text-muted border-separator dark:border-separator/70 flex items-center justify-between border-t px-3 py-1.5'>
+    <div className='text-muted border-separator flex items-center justify-between border-t px-3 py-1.5'>
       <div className='flex items-center gap-2'>
         <div className='flex items-center gap-0.5'>
           <Kbd className='text-xs'>
@@ -348,7 +348,7 @@ export function ModelInfoPanelCard({
     <div
       style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
       className={cn(
-        'bg-overlay/60 text-overlay-foreground border-separator dark:border-separator/60 absolute w-64 space-y-2 rounded-xl border p-3 text-xs backdrop-blur-sm transition-all duration-75',
+        'bg-overlay/60 text-overlay-foreground border-separator absolute w-64 space-y-2 rounded-xl border p-3 text-xs backdrop-blur-sm transition-all duration-75',
         side === 'right' ? 'left-full ml-2' : 'right-full mr-2',
       )}
     >
@@ -373,7 +373,7 @@ export function ModelInfoPanelCard({
         </span>
       </div>
 
-      <div className='text-muted border-separator dark:border-separator/70 flex items-center justify-between border-t pt-1'>
+      <div className='text-muted border-separator flex items-center justify-between border-t pt-1'>
         <span>Cost ($/1M tokens)</span>
         <span className='text-foreground font-medium'>
           {`In $${model.cost?.input ?? 0} · Out $${model.cost?.output ?? 0}`}

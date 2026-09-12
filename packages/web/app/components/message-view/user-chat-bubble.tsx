@@ -1,5 +1,3 @@
-import { Clock } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
 import {
   memo,
   useEffect,
@@ -128,7 +126,7 @@ export const UserChatBubble = memo(
             <div
               ref={textRef}
               className={cn(
-                'overflow-hidden font-sans break-words whitespace-pre-wrap',
+                'overflow-hidden font-sans text-sm break-words whitespace-pre-wrap',
                 !isExpanded && isOverflowing && 'line-clamp-2',
               )}
             >
@@ -150,9 +148,8 @@ export const UserChatBubble = memo(
           </div>
         </ChatMessage.Bubble>
 
-        <div className='mt-3 flex w-full justify-end gap-2 pb-3'>
-          <div className='text-muted/80 flex items-center gap-1 text-xs opacity-100 select-none'>
-            <Icon data={Clock} size={12} className='opacity-80' />
+        <div className='mt-3 flex w-full items-center justify-end gap-2 pb-3'>
+          <div className='text-muted text-xs select-none'>
             {formatDateTime(turn.createdAt)}
           </div>
           <div>

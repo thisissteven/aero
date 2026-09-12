@@ -1,0 +1,54 @@
+{
+  "message": {
+    "id": "msg_09285deff001IlOvHK4cHZf37c",
+    "sessionID": "ses_f6d7aca63ffezGmcVnuQbmNwXD",
+    "role": "assistant",
+    "agent": "build",
+    "cost": 0,
+    "mode": "build",
+    "modelID": "big-pickle",
+    "parentID": "msg_09285deda001Hm5iBoOVK2BYP6",
+    "path": {
+      "cwd": "C:\Users\Steven\Downloads\aero",
+      "root": "C:\Users\Steven\Downloads\aero"
+    },
+    "providerID": "opencode",
+    "time": {
+      "created": 1789164642047,
+      "completed": 1789164643362
+    },
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    }
+  },
+  "tool_part": {
+    "part_id": "prt_09285df050019qIUBAlpdpiorp",
+    "callID": "01M298BQR5TF1ZGT10SSVFYXPS",
+    "messageID": "msg_09285deff001IlOvHK4cHZf37c",
+    "sessionID": "ses_f6d7aca63ffezGmcVnuQbmNwXD",
+    "state": {
+      "status": "completed",
+      "input": {
+        "command": "echo 'hi'\necho 'hello'"
+      },
+      "output": "hi \r\nhello \r\n",
+      "metadata": {
+        "output": "hi \r\nhello \r\n",
+        "title": "",
+        "status": "completed"
+      },
+      "time": {
+        "start": 1789164642053,
+        "end": 1789164643362
+      },
+      "tool": "bash",
+      "type": "tool"
+    }
+  }
+}

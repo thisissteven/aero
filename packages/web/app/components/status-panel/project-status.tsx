@@ -25,7 +25,7 @@ export function ProjectStatusContent() {
   if (!currentBranch) return null;
 
   return (
-    <div className='border-separator dark:border-separator/70 border-b p-3'>
+    <div className='border-separator border-b p-3'>
       <ProjectStatusHeader />
       <CurrentBranch />
       <FilesChanged />
@@ -48,7 +48,7 @@ function ProjectStatusHeader() {
       <Typography type='body-sm' className='text-foreground font-medium'>
         Project
       </Typography>
-      <Typography type='body-xs' className='text-muted truncate font-mono'>
+      <Typography type='body-xs' className='text-muted truncate'>
         {workspaceTitle}
       </Typography>
     </div>
@@ -96,7 +96,7 @@ function FilesChanged() {
         <span>{fileCount} files changed</span>
       </div>
       {totalAdditions || totalDeletions ? (
-        <div className='flex gap-1.5 font-mono'>
+        <div className='flex gap-1.5'>
           <span className='text-success'>+{totalAdditions}</span>
           <span className='text-danger'>-{totalDeletions}</span>
         </div>

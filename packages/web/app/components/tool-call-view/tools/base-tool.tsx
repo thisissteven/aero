@@ -155,7 +155,12 @@ export function BaseTool({
 
               <Icon
                 data={icon}
-                className='text-muted absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'
+                className={cn(
+                  'absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                  status === 'error' && 'text-danger',
+                  status === 'running' && 'text-foreground/60',
+                  status === 'completed' && 'text-foreground/60',
+                )}
                 style={{ width: 12, height: 12 }}
               />
             </div>
@@ -193,7 +198,7 @@ export function BaseTool({
 
               <div
                 className={cn(
-                  'text-muted/70 flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                  'text-muted flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
                   getAnimationClass(),
                 )}
                 style={getAnimationStyle(4)}

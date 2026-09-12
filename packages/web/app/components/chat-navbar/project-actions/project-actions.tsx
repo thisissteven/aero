@@ -132,23 +132,23 @@ export function ProjectActionsContent({
   }
 
   return (
-    <div className='border-separator bg-surface inline-flex items-center rounded-lg border p-0.5'>
+    <div className='border-separator bg-surface/60 dark:bg-surface inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
       <Tooltip>
         <IconButton
           aria-label={tooltipText}
           onPress={handlePrimaryAction}
           isDisabled={isStarting}
-          className='h-7 w-7 disabled:opacity-100'
+          className='text-foreground h-6 w-7 opacity-80 disabled:opacity-80'
         >
           {primaryIcon}
         </IconButton>
-        <Tooltip.Content>{tooltipText}</Tooltip.Content>
+        <Tooltip.Content offset={6}>{tooltipText}</Tooltip.Content>
       </Tooltip>
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options' className='h-7 w-7'>
+        <IconButton aria-label='Open in options' className='h-6 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 

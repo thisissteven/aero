@@ -9,7 +9,7 @@ interface Position {
 export type StatusItemKey =
   | 'session'
   | 'project'
-  | 'usage'
+  // | 'usage'
   | 'subagent'
   | 'task'
   | 'mcp'
@@ -33,7 +33,7 @@ interface StatusPanelState {
 const DEFAULT_VISIBLE_ITEMS: Record<StatusItemKey, boolean> = {
   session: true,
   project: true,
-  usage: true,
+  // usage: true,
   subagent: true,
   task: true,
   mcp: true,

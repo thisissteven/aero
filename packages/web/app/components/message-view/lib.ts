@@ -16,6 +16,7 @@
 // This is defensive and works for both in-place mutation and replace-by-ref
 // streaming patterns.
 
+import { formatElapsedMs } from '@/app/hooks/useElapsedTime';
 import { formatDateTime } from '@/app/lib/date';
 import {
   AeroConversationTurn,
@@ -131,13 +132,20 @@ export type FlatConversationVirtualItem =
       assistantTextResponse: string;
       nextTurnId: string;
       providerID?: string;
+      variant?: string;
       modelID?: string;
       agent?: string;
       mode?: string;
+      elapsedTime?: string;
     }
   | {
       id: string;
       type: 'assistant-error';
+      message: string;
+    }
+  | {
+      id: string;
+      type: 'assistant-turn-aborted';
       message: string;
     }
   | {
@@ -313,14 +321,6 @@ export function buildFlatConversationItems(
       assistantTextResponse = assistantTextResponse.replace(/\n{3,}/g, '\n\n');
     }
 
-    let errorMessage: string | undefined = undefined;
-    if (turn.error) {
-      errorMessage =
-        turn.error.name === 'MessageAbortedError'
-          ? 'This turn was aborted by the user'
-          : turn.error.data?.message;
-    }
-
     const partsLength = turn.parts.length;
     for (let partIndex = 0; partIndex < partsLength; partIndex++) {
       const part = turn.parts[partIndex];
@@ -358,12 +358,21 @@ export function buildFlatConversationItems(
       });
     }
 
-    if (errorMessage) {
-      items.push({
-        id: `${turn.id}-assistant-error`,
-        type: 'assistant-error',
-        message: errorMessage,
-      });
+    const errorMessage = turn?.error?.data?.message;
+    if (turn.error) {
+      if (turn.error.name === 'MessageAbortedError') {
+        items.push({
+          id: `${turn.id}-assistant-turn-aborted`,
+          type: 'assistant-turn-aborted',
+          message: 'This turn was aborted by the user',
+        });
+      } else if (errorMessage) {
+        items.push({
+          id: `${turn.id}-assistant-error`,
+          type: 'assistant-error',
+          message: errorMessage,
+        });
+      }
     }
 
     if (usageExceeded && turnIndex === latestAssistantTurnIndex) {
@@ -381,6 +390,22 @@ export function buildFlatConversationItems(
     const hasFooter =
       !isTurnStreaming && (turn.parts.length > 0 || !!turn.error);
     if (hasFooter) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lastPart = turn.parts[turn.parts.length - 2] as any;
+      const endTimeRaw = lastPart?.time?.end ?? lastPart?.end;
+
+      let elapsedTime: string | undefined;
+
+      if (endTimeRaw) {
+        const startTime = new Date(turn.createdAt).getTime();
+        const endTime = new Date(endTimeRaw).getTime();
+        const durationMs = Math.max(0, endTime - startTime);
+
+        if (durationMs > 0) {
+          elapsedTime = formatElapsedMs(durationMs);
+        }
+      }
+
       items.push({
         id: `${turn.id}-footer`,
         type: 'assistant-footer',
@@ -388,8 +413,10 @@ export function buildFlatConversationItems(
         createdAt: formatDateTime(turn.createdAt),
         assistantTextResponse: assistantTextResponse || errorMessage || '',
         nextTurnId,
+        elapsedTime,
         providerID: turn.providerID,
         modelID: turn.modelID,
+        variant: turn.variant,
         agent: turn.agent,
         mode: turn.mode,
       });

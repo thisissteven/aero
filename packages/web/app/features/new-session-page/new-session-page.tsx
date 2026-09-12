@@ -55,7 +55,7 @@ export function NewSessionPage() {
               <NewSessionPromptInputWrapper>
                 <PromptInput.Shell
                   className={cn(
-                    'border-separator dark:border-separator/60 @container relative border',
+                    'border-separator @container relative border',
                     isShellMode && 'border-accent/20 dark:border-accent/15',
                   )}
                 >

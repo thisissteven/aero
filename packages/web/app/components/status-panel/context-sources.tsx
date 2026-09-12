@@ -30,7 +30,7 @@ function SkillsSection() {
       <Typography type='body-xs' color='muted'>
         Skills
       </Typography>
-      <Typography type='body-xs' className='text-foreground font-mono'>
+      <Typography type='body-xs' className='text-foreground'>
         {count}
       </Typography>
     </div>
@@ -47,7 +47,7 @@ function McpSection() {
       <Typography type='body-xs' color='muted'>
         MCP servers
       </Typography>
-      <Typography type='body-xs' className='text-foreground font-mono'>
+      <Typography type='body-xs' className='text-foreground'>
         {count}
       </Typography>
     </div>

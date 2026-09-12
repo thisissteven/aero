@@ -112,6 +112,7 @@ export type AeroPartRequest =
       error?: string;
       title?: string;
       duration?: number;
+      end?: number;
       attachments?: FilePart[];
       metadata?: Record<string, unknown>;
     }
@@ -242,6 +243,7 @@ export interface AeroMessage {
   role: ConversationRole;
   modelID?: string;
   providerID?: string;
+  variant?: string;
   agent?: string;
   mode?: string;
   parts: AeroPart[];
@@ -260,6 +262,7 @@ export interface AeroConversationTurn {
   role: ConversationRole;
   modelID?: string;
   providerID?: string;
+  variant?: string;
   agent?: string;
   mode?: string;
   parts: AeroPart[];

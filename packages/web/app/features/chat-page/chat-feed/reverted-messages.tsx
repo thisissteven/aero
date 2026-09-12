@@ -38,15 +38,15 @@ export function RevertedMessages() {
   if (revertedMessages.length === 0 || isChatInputExpanded) return null;
 
   return (
-    <div className='@container relative mx-auto w-full max-w-[720px]'>
+    <div className='@container relative'>
       <div className='mx-1 not-last:mb-2 @sm:mx-3'>
         <Disclosure
           isExpanded={isExpanded}
           onExpandedChange={setIsExpanded}
-          className='border-separator dark:border-separator/70 bg-surface overflow-hidden rounded-xl border'
+          className='border-separator bg-surface overflow-hidden rounded-xl border'
         >
           <Disclosure.Heading>
-            <Disclosure.Trigger className='group hover:bg-default w-full px-3 py-2 text-sm transition-colors'>
+            <Disclosure.Trigger className='group w-full px-3 py-2 text-sm transition-colors'>
               <div className='flex items-center justify-between gap-2'>
                 Reverted messages: {revertedMessages.length}
                 <Icon

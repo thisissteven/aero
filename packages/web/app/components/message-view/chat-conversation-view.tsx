@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 
+import { InfoIcon } from '@aero/ui';
+
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
@@ -72,21 +74,24 @@ export function ChatConversationView({
               />
             )}
             {item.type === 'assistant-error' && (
-              <div className='relative pt-4'>
-                <div className='absolute top-0 left-0 h-full pt-4'>
-                  <div className='bg-danger h-full w-1'></div>
+              <div className='relative pt-4 pb-2'>
+                <div className='text-danger bg-danger-soft border-danger-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
+                  <InfoIcon className='size-4 font-normal' />
+                  <div className='align-middle'>{item.message}</div>
                 </div>
-                <div className='text-danger bg-danger-soft border-danger-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
-                  {item.message}
+              </div>
+            )}
+            {item.type === 'assistant-turn-aborted' && (
+              <div className='relative pt-4 pb-2'>
+                <div className='text-accent bg-accent-soft border-accent-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
+                  <InfoIcon className='size-4 font-normal' />
+                  <div className='align-middle'>{item.message}</div>
                 </div>
               </div>
             )}
             {item.type === 'assistant-usage-exceeded' && (
-              <div className='relative pt-2'>
-                <div className='absolute top-0 left-0 h-full pt-2'>
-                  <div className='bg-warning h-full w-1'></div>
-                </div>
-                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-r-lg border px-4 py-2 text-sm'>
+              <div className='relative py-2'>
+                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-lg border px-4 py-2 text-sm'>
                   <div>
                     <b>{item.title}</b>
                   </div>

@@ -198,7 +198,7 @@
 .segment__indicator {
   z-index: -1;
   border-radius: var(--radius-3xl);
-  @apply bg-segment/60 backdrop-blur-sm;
+  @apply bg-segment/60 dark:bg-accent/60 backdrop-blur-sm;
   width: 100%;
   height: 100%;
   box-shadow: var(--shadow-surface);

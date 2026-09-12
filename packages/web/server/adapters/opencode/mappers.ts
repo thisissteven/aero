@@ -25,7 +25,7 @@ import type {
 import { withOpencodeClientV2 } from '@/server/adapters/opencode/client';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { directoryExists, getSkillScope } from '@/server/helper';
-import { normalizePath } from '@/server/shared';
+import { normalizePath, toPascalCase } from '@/server/shared';
 import type {
   ExtendedGlobalSession,
   ExtendedSessionV2,
@@ -390,8 +390,10 @@ export function toAeroPart(p: Part): AeroPart {
 
       // Extract duration whenever time.start & time.end exist (completed/error)
       let duration: number | undefined = undefined;
+      let end: number | undefined = undefined;
       if ('time' in state && 'end' in state.time && state.time.end) {
         duration = Math.max(0.1, (state.time.end - state.time.start) / 1000);
+        end = state.time.end;
       }
 
       return {
@@ -407,6 +409,7 @@ export function toAeroPart(p: Part): AeroPart {
         attachments:
           state.status === 'completed' ? state.attachments : undefined,
         duration,
+        end,
         metadata: 'metadata' in state ? state.metadata : p.metadata,
       };
     }
@@ -498,11 +501,21 @@ export function toAeroMessage(entry: {
           }
         : undefined,
     createdAt: entry.info.time?.created ?? Date.now(),
-    agent: entry.info.agent,
-    mode: entry.info.role === 'assistant' ? entry.info.mode : undefined,
-    modelID: entry.info.role === 'assistant' ? entry.info.modelID : undefined,
+    agent: toPascalCase(entry.info.agent),
+    mode:
+      entry.info.role === 'assistant'
+        ? toPascalCase(entry.info.mode)
+        : undefined,
+    modelID:
+      entry.info.role === 'assistant'
+        ? toPascalCase(entry.info.modelID.split('/').at(-1) ?? '')
+        : undefined,
     providerID:
       entry.info.role === 'assistant' ? entry.info.providerID : undefined,
+    variant:
+      entry.info.role === 'assistant'
+        ? toPascalCase(entry.info.variant ?? '')
+        : undefined,
   };
 }
 

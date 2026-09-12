@@ -2,10 +2,10 @@ import {
   ArrowRightArrowLeft,
   CircleDashed,
   CircleTree,
-  CodePullRequest,
   File,
   FileCode,
   Globe,
+  LogoGithub,
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
@@ -16,20 +16,21 @@ import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export const collapsibleNav = [
   {
+    id: 'git',
+    icon: <Icon data={CircleTree} className='-scale-y-100' size={18} />,
+    label: 'Git',
+    description: 'Commits, branches, and pull requests',
+  },
+  {
     id: 'context',
     icon: <Icon data={CircleDashed} size={18} />,
     label: 'Context',
     description: 'Session context and token usage',
   },
-  {
-    id: 'git',
-    icon: <Icon data={CircleTree} size={18} />,
-    label: 'Git',
-    description: 'Commits, branches, and pull requests',
-  },
+
   {
     id: 'pr',
-    icon: <Icon data={CodePullRequest} size={18} />,
+    icon: <Icon data={LogoGithub} size={18} />,
     label: 'Pull Request',
     description:
       'Create, review, and merge the pull request for the current branch',
@@ -80,15 +81,14 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
     <aside className='relative h-full w-12 shrink-0 max-sm:hidden'>
       {(!!activeItem || isStatusPanelOpen) && (
         <div
-          className='border-separator dark:border-separator/70 absolute inset-0 top-0 right-0 h-14 border-b'
+          className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
           aria-hidden
         ></div>
       )}
       <div
         className={cn(
           'mt-14 flex h-full flex-col gap-2 pt-4',
-          (!!activeItem || isStatusPanelOpen) &&
-            'border-separator dark:border-separator/70 border-l',
+          (!!activeItem || isStatusPanelOpen) && 'border-separator border-l',
         )}
       >
         {collapsibleNav.map((item) => {

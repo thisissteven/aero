@@ -237,7 +237,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
 
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden'>
-      <div className='bg-background border-separator dark:border-separator/70 sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3 backdrop-blur'>
+      <div className='bg-background border-separator sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3 backdrop-blur'>
         <div
           className='text-foreground flex min-w-0 items-center gap-1 truncate text-xs font-medium'
           title={displayedPath}

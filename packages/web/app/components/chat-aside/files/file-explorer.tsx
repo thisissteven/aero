@@ -33,7 +33,7 @@ export function FileExplorer({
     <div className={className}>
       <FileTree
         model={model}
-        className='border-separator dark:border-separator/70 h-full border-l pt-1'
+        className='border-separator h-full border-l pt-1'
         style={
           {
             height: '100%',

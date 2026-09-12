@@ -11,7 +11,7 @@ import {
 const STATUS_ITEMS: { key: StatusItemKey; label: string }[] = [
   { key: 'session', label: 'Session Status' },
   { key: 'project', label: 'Project Status' },
-  { key: 'usage', label: 'Usage Status' },
+  // { key: 'usage', label: 'Usage Status' },
   { key: 'subagent', label: 'Subagent Status' },
   { key: 'task', label: 'Task Status' },
   { key: 'mcp', label: 'MCP Status' },

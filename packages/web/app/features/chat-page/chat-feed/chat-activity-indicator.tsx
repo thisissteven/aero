@@ -163,7 +163,7 @@ export const ChatActivityIndicator = React.memo(
         <div
           role='status'
           aria-live='polite'
-          className='flex shrink-0 items-center gap-2 px-2 pb-2'
+          className='border-separator absolute mx-3 my-1 flex shrink-0 items-center gap-2 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
         >
           <PixelLoader />
 

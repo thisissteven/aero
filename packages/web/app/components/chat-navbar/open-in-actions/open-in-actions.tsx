@@ -67,18 +67,18 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
   const selectedApp = apps.find((app) => app.id === selectedAppId);
 
   return (
-    <div className='border-separator bg-surface inline-flex items-center rounded-lg border p-0.5'>
+    <div className='border-separator bg-surface/60 dark:bg-surface inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
 
       <Tooltip>
         <IconButton
           aria-label='Open project'
           onPress={async () => await openApp(projectPath, selectedAppId)}
-          className='h-7 w-7'
+          className='h-6 w-7 opacity-100 hover:opacity-100'
         >
           <AppIcon app={selectedApp} fallbackId={selectedAppId} />
         </IconButton>
-        <Tooltip.Content>
+        <Tooltip.Content offset={6}>
           {selectedApp
             ? `Open project in ${selectedApp.label}`
             : 'Open project'}
@@ -87,7 +87,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options' className='h-7 w-7'>
+        <IconButton aria-label='Open in options' className='h-6 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 

@@ -103,7 +103,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
           ) : (
             <div className='w-full min-w-0'>
               <span className='block w-4/5 truncate text-left md:w-full'>
-                {elapsedTime ?? preview}
+                {preview}
               </span>
             </div>
           )

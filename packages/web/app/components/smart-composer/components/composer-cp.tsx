@@ -13,6 +13,7 @@ import { CommandPaletteItem } from '@/app/components/smart-composer/components/c
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
+import { capitalizeFirstLetter, toPascalCase } from '@/server/shared';
 
 import type { SearchItem } from '../smart-composer-helpers';
 
@@ -71,12 +72,13 @@ export function ComposerCommandPalette({
         content: (
           <div className='max-w-sm p-2'>
             <div className='mb-1 text-sm font-medium'>
-              {item.triggerChar}
-              {item.value}
+              {toPascalCase(item.value)}
             </div>
 
             {description && (
-              <p className='text-muted text-xs leading-4'>{description}</p>
+              <p className='text-muted text-xs leading-4'>
+                {capitalizeFirstLetter(description)}
+              </p>
             )}
           </div>
         ),
@@ -273,7 +275,7 @@ export function ComposerCommandPalette({
       className={cn(
         'fixed z-50',
         'max-w-[min(480px,calc(100vw-32px))] min-w-60',
-        'border-separator dark:border-separator/70 rounded-xl border',
+        'border-separator rounded-xl border',
         'bg-overlay/60 text-overlay-foreground overflow-hidden backdrop-blur-sm',
       )}
     >
@@ -293,7 +295,7 @@ export function ComposerCommandPalette({
             <React.Fragment key={group}>
               <div
                 className={cn(
-                  'border-separator dark:border-separator/70 mb-1 border-b',
+                  'border-separator mb-1 border-b',
                   'px-3 py-1.5',
                   'text-[11px] font-medium uppercase',
                   'text-muted',
@@ -333,7 +335,7 @@ export function ComposerCommandPalette({
         )}
       </ScrollShadow>
 
-      <div className='text-muted border-separator dark:border-separator/70 relative flex items-center gap-3 border-t p-1.5'>
+      <div className='text-muted border-separator relative flex items-center gap-3 border-t p-1.5'>
         <div className='flex items-center gap-2'>
           <div className='flex items-center gap-0.5'>
             <Kbd className='h-5 rounded-md px-1.5 text-xs'>

@@ -20,23 +20,14 @@ export function composerSubmitBefore() {
   const segments = serializeEditor(editor);
   const text = buildText(segments);
 
-  const shellText =
-    state.mode === 'shell'
-      ? text
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .join(' && ')
-      : text;
-
   const payload: ComposerPayload =
     state.mode === 'shell'
       ? {
-          text: shellText,
+          text,
           segments: [
             {
               type: 'shell',
-              text: shellText,
+              text,
             },
           ],
         }

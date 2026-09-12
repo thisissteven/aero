@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, subscribeWithSelector } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 
 import { getSetting, updateSetting } from '@/app/hooks/api/settings';
 import { SearchableModel } from '@/app/lib/model';
@@ -82,152 +82,132 @@ async function loadVariantForModel(
 }
 
 export const useChatSettingsStore = create<ChatSettingsState>()(
-  subscribeWithSelector(
-    persist(
-      (set, get) => ({
-        selectedVariant: undefined,
+  persist(
+    (set, get) => ({
+      selectedVariant: undefined,
 
-        selectedModel: null,
-        selectedAgent: null,
+      selectedModel: null,
+      selectedAgent: null,
 
-        favoriteModelIds: [],
+      favoriteModelIds: [],
 
-        modelAgentSheetOpen: false,
-        modelAgentSheetSelection: 'agent',
+      modelAgentSheetOpen: false,
+      modelAgentSheetSelection: 'agent',
 
-        setSelectedVariant: (selectedVariant) => {
-          const selectedModel = get().selectedModel;
+      setSelectedVariant: (selectedVariant) => {
+        const selectedModel = get().selectedModel;
 
-          if (!selectedModel) return;
+        if (!selectedModel) return;
 
-          ++variantLoadVersion;
+        ++variantLoadVersion;
 
-          set({
-            selectedVariant,
-          });
+        set({
+          selectedVariant,
+        });
 
-          void persistVariant(selectedModel.model.id, selectedVariant);
-        },
+        void persistVariant(selectedModel.model.id, selectedVariant);
+      },
 
-        cycleVariant: (direction = 1) => {
-          const { selectedModel, selectedVariant } = get();
+      cycleVariant: (direction = 1) => {
+        const { selectedModel, selectedVariant } = get();
 
-          if (!selectedModel) return;
+        if (!selectedModel) return;
 
-          const variants = Object.keys(selectedModel.model.variants ?? {});
+        const variants = Object.keys(selectedModel.model.variants ?? {});
 
-          if (variants.length === 0) return;
+        if (variants.length === 0) return;
 
-          const currentIndex = selectedVariant
-            ? variants.indexOf(selectedVariant)
-            : -1;
+        const currentIndex = selectedVariant
+          ? variants.indexOf(selectedVariant)
+          : -1;
 
-          const nextIndex =
-            currentIndex === -1
-              ? direction === 1
-                ? 0
-                : variants.length - 1
-              : (currentIndex + direction + variants.length) % variants.length;
+        const nextIndex =
+          currentIndex === -1
+            ? direction === 1
+              ? 0
+              : variants.length - 1
+            : (currentIndex + direction + variants.length) % variants.length;
 
-          const nextVariant = variants[nextIndex];
+        const nextVariant = variants[nextIndex];
 
-          ++variantLoadVersion;
+        ++variantLoadVersion;
 
-          set({
-            selectedVariant: nextVariant,
-          });
+        set({
+          selectedVariant: nextVariant,
+        });
 
-          void persistVariant(selectedModel.model.id, nextVariant);
-        },
+        void persistVariant(selectedModel.model.id, nextVariant);
+      },
 
-        setSelectedModel: (selectedModel) => {
-          const previousVariant = get().selectedVariant;
+      setSelectedModel: (selectedModel) => {
+        const previousVariant = get().selectedVariant;
 
-          ++variantLoadVersion;
+        ++variantLoadVersion;
 
-          set({
-            selectedModel,
-          });
+        set({
+          selectedModel,
+        });
 
-          void loadVariantForModel(selectedModel, previousVariant);
-        },
+        void loadVariantForModel(selectedModel, previousVariant);
+      },
 
-        setSelectedAgent: (selectedAgent) =>
-          set({
-            selectedAgent,
-          }),
-
-        toggleFavoriteModel: (modelId) =>
-          set((state) => {
-            const exists = state.favoriteModelIds.includes(modelId);
-
-            return {
-              favoriteModelIds: exists
-                ? state.favoriteModelIds.filter((id) => id !== modelId)
-                : [...state.favoriteModelIds, modelId],
-            };
-          }),
-
-        isFavoriteModel: (modelId) => get().favoriteModelIds.includes(modelId),
-
-        setFavoriteModelIds: (favoriteModelIds) => {
-          set({
-            favoriteModelIds,
-          });
-        },
-
-        setModelAgentSheetOpen: (open) =>
-          set({
-            modelAgentSheetOpen: open,
-          }),
-
-        setModelAgentSheetSelection: (selection) =>
-          set({
-            modelAgentSheetSelection: selection,
-          }),
-      }),
-
-      {
-        name: 'chat-input-settings-storage',
-
-        partialize: (state) => ({
-          selectedVariant: state.selectedVariant,
-          selectedModel: state.selectedModel,
-          selectedAgent: state.selectedAgent,
-          favoriteModelIds: state.favoriteModelIds,
+      setSelectedAgent: (selectedAgent) =>
+        set({
+          selectedAgent,
         }),
 
-        onRehydrateStorage: () => {
-          return () => {
-            const state = useChatSettingsStore.getState();
+      toggleFavoriteModel: (modelId) =>
+        set((state) => {
+          const exists = state.favoriteModelIds.includes(modelId);
 
-            if (state.selectedModel) {
-              void loadVariantForModel(
-                state.selectedModel,
-                state.selectedVariant,
-              );
-            }
+          return {
+            favoriteModelIds: exists
+              ? state.favoriteModelIds.filter((id) => id !== modelId)
+              : [...state.favoriteModelIds, modelId],
           };
-        },
+        }),
+
+      isFavoriteModel: (modelId) => get().favoriteModelIds.includes(modelId),
+
+      setFavoriteModelIds: (favoriteModelIds) => {
+        set({
+          favoriteModelIds,
+        });
       },
-    ),
+
+      setModelAgentSheetOpen: (open) =>
+        set({
+          modelAgentSheetOpen: open,
+        }),
+
+      setModelAgentSheetSelection: (selection) =>
+        set({
+          modelAgentSheetSelection: selection,
+        }),
+    }),
+
+    {
+      name: 'chat-input-settings-storage',
+
+      partialize: (state) => ({
+        selectedVariant: state.selectedVariant,
+        selectedModel: state.selectedModel,
+        selectedAgent: state.selectedAgent,
+        favoriteModelIds: state.favoriteModelIds,
+      }),
+
+      onRehydrateStorage: () => {
+        return () => {
+          const state = useChatSettingsStore.getState();
+
+          if (state.selectedModel) {
+            void loadVariantForModel(
+              state.selectedModel,
+              state.selectedVariant,
+            );
+          }
+        };
+      },
+    },
   ),
-);
-
-useChatSettingsStore.subscribe(
-  (state) => state.selectedModel?.model.id,
-  (modelId, previousModelId) => {
-    if (!modelId || modelId === previousModelId) {
-      return;
-    }
-
-    const state = useChatSettingsStore.getState();
-
-    if (!state.selectedModel) {
-      return;
-    }
-
-    // The selectedVariant is intentionally NOT cleared.
-    void loadVariantForModel(state.selectedModel, state.selectedVariant);
-  },
 );

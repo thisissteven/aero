@@ -29,7 +29,7 @@ export function TaskStatusContent({ sessionId }: { sessionId: string }) {
   ).length;
 
   return (
-    <div className='border-separator dark:border-separator/70 border-b py-3'>
+    <div className='border-separator border-b py-3'>
       {/* Title Header */}
       <div className='mb-2.5 flex items-center justify-between px-3'>
         <div className='flex items-center gap-1'>
@@ -38,7 +38,7 @@ export function TaskStatusContent({ sessionId }: { sessionId: string }) {
             Tasks
           </Typography>
         </div>
-        <Typography type='body-xs' className='text-muted font-mono'>
+        <Typography type='body-xs' className='text-muted'>
           {completedCount}/{todos.length}
         </Typography>
       </div>

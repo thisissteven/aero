@@ -103,7 +103,7 @@ export function ChainOfThoughtTrigger({
             {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
           </div>
 
-          <div className='flex min-w-0 flex-1 justify-start transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
+          <div className='text-muted flex min-w-0 flex-1 justify-start transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
             {preview}
           </div>
         </div>

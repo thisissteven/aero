@@ -35,7 +35,7 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
           className='max-w-full rounded-none border-none bg-transparent shadow-none'
           allowEscape
         >
-          <Command.InputGroup className='border-separator dark:border-separator/70 border-b'>
+          <Command.InputGroup className='border-separator border-b'>
             <Command.InputGroup.Prefix>
               <Icon data={Magnifier} className='size-3.5' />
             </Command.InputGroup.Prefix>

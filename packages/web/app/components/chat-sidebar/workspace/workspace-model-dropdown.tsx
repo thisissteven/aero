@@ -120,7 +120,7 @@ export function WorkspaceModelDropdown({
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
-          <div className='bg-overlay/60 text-overlay-foreground border-separator dark:border-separator/60 flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
+          <div className='bg-overlay/60 text-overlay-foreground border-separator flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
             {onAddProviderClick && (
               <AddProviderRow onClick={onAddProviderClick} />
             )}

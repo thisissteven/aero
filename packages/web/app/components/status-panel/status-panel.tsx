@@ -9,7 +9,6 @@ import { ProjectStatus } from '@/app/components/status-panel/project-status';
 import { SessionStatus } from '@/app/components/status-panel/session-status';
 import { SubagentStatus } from '@/app/components/status-panel/subagent-status';
 import { TaskStatus } from '@/app/components/status-panel/task-status';
-import { UsageStatus } from '@/app/components/status-panel/usage-status';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export const StatusPanel = React.memo(function StatusPanel() {
@@ -18,10 +17,9 @@ export const StatusPanel = React.memo(function StatusPanel() {
   if (!isOpen) return null;
 
   return (
-    <div className='border-separator dark:border-separator/70 h-full scrollbar-thin overflow-x-hidden overflow-y-auto border-l'>
+    <div className='border-separator bg-surface h-full scrollbar-thin overflow-x-hidden overflow-y-auto border-l'>
       <SessionStatus />
       <ProjectStatus />
-      <UsageStatus />
       <SubagentStatus />
       <TaskStatus />
       <McpStatus />
@@ -124,10 +122,10 @@ export const StatusPanelFloating = React.memo(function StatusPanel() {
       }
       className='fixed top-0 left-0 z-40 animate-[fade-in_150ms_ease-out] cursor-grab p-2 select-none active:cursor-grabbing'
     >
-      <div className='bg-background/70 border-separator dark:border-separator/70 shadow-surface w-[280px] overflow-hidden rounded-xl border backdrop-blur-sm'>
+      <div className='bg-surface/60 border-separator shadow-surface w-[280px] overflow-hidden rounded-xl border backdrop-blur-sm'>
         <div
           onPointerDown={handlePointerDown}
-          className='flex h-8 items-center justify-center border-b'
+          className='border-separator -70 flex h-8 items-center justify-center border-b'
         >
           <div
             className='text-muted-foreground flex items-center gap-0.5 rounded px-2 py-1'
@@ -137,10 +135,9 @@ export const StatusPanelFloating = React.memo(function StatusPanel() {
           </div>
         </div>
 
-        <div className='max-h-[40svh] min-h-[min(320px,calc(100svh-48px))] cursor-default scrollbar-thin overflow-x-hidden overflow-y-auto'>
+        <div className='max-h-[calc(100svh-48px)] min-h-[min(320px,calc(100svh-48px))] cursor-default scrollbar-thin overflow-x-hidden overflow-y-auto'>
           <SessionStatus />
           <ProjectStatus />
-          <UsageStatus />
           <SubagentStatus />
           <TaskStatus />
           <McpStatus />

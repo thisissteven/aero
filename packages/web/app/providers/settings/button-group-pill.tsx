@@ -71,7 +71,7 @@ function ButtonGroupPillButton<T extends string>({
       variant={isActive ? 'secondary' : 'outline'}
       onPress={() => onValueChange(value)}
       className={cn(
-        'border-separator dark:border-separator/70 border transition-none',
+        'border-separator border transition-none',
         isActive
           ? 'hover:bg-default border-transparent'
           : 'hover:bg-transparent',

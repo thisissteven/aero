@@ -12,7 +12,7 @@ import { useMemo, useState } from 'react';
 import { Command } from '@aero/ui';
 
 import { useAgentsCompact } from '@/app/hooks/api/capabilities';
-import { capitalizeFirstLetter } from '@/app/lib/file';
+import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 

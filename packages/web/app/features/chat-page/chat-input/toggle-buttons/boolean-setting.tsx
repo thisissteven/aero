@@ -27,7 +27,7 @@ export function BooleanSettingToggleButton({
           aria-label={label}
           variant='ghost'
           size='sm'
-          className={cn('rounded-lg', !enabled && 'text-muted', className)}
+          className={cn('rounded-lg', !enabled && '', className)}
           isSelected={enabled}
           isDisabled={isDisabled}
           onPress={onPress}

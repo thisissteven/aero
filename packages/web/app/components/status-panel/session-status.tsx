@@ -13,7 +13,7 @@ function ContextUsage() {
 
   const { data } = useSessionContext(undefined, sessionId);
 
-  const percentage = Math.round(data?.context?.usedPercentage ?? 0);
+  const percentage = data?.context?.usedPercentage.toFixed(1);
 
   return (
     <div className='mt-2'>
@@ -21,7 +21,7 @@ function ContextUsage() {
         <Typography type='body-xs' color='muted'>
           Context
         </Typography>
-        <Typography type='body-xs' className='text-muted font-mono'>
+        <Typography type='body-xs' className='text-muted'>
           {percentage}%
         </Typography>
       </div>
@@ -31,7 +31,7 @@ function ContextUsage() {
         className='w-full'
         minValue={0}
         maxValue={100}
-        value={Math.min(100, Math.max(0, percentage))}
+        value={Math.min(100, Math.max(0, Number(percentage)))}
       >
         <ProgressBar.Track className='h-1.5'>
           <ProgressBar.Fill />
@@ -45,7 +45,7 @@ export function SessionStatus() {
   const isVisible = useStatusPanelStore((state) => state.visibleItems.session);
 
   return (
-    <div className='border-separator dark:border-separator/70 border-b p-3'>
+    <div className='border-separator border-b p-3'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <Typography type='body-sm' className='text-foreground font-medium'>

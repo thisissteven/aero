@@ -1,7 +1,7 @@
-import { Shapes3 } from '@gravity-ui/icons';
+import { DisplayPulse } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
 
-import { Tooltip } from '@aero/ui';
+import { cn, Tooltip } from '@aero/ui';
 
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -23,15 +23,16 @@ export function StatusPanelToggle() {
       <IconButton
         onPress={() => toggleIsOpen()}
         svgSize='xs'
-        className={
+        className={cn(
           isOpen
-            ? 'text-foreground bg-default/60'
-            : 'text-muted/60 hover:text-muted/60 active:text-muted'
-        }
+            ? 'bg-transparent opacity-80'
+            : 'text-muted opacity-100 hover:opacity-100',
+          'h-7.25 w-7 transition',
+        )}
       >
-        <Shapes3 />
+        <DisplayPulse className='size-4' />
       </IconButton>
-      <Tooltip.Content>
+      <Tooltip.Content offset={4}>
         {isOpen ? 'Hide work status' : 'Show work status'}
       </Tooltip.Content>
     </Tooltip>

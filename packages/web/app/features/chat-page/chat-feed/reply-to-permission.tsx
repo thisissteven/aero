@@ -220,14 +220,14 @@ export const ReplyToPermission = React.memo(() => {
 
   return (
     <div
-      className={`@container mx-auto grid w-full px-3 transition-[grid-template-rows,opacity] duration-200 ease-in-out md:max-w-[720px] ${
+      className={`@container mx-auto grid w-full px-3 transition-[grid-template-rows,opacity] duration-200 ease-in-out ${
         isExiting
           ? 'grid-rows-[0fr] opacity-0'
           : 'animate-in fade-in slide-in-from-bottom-2 grid-rows-[1fr] opacity-100 duration-200'
       }`}
     >
       <div className='overflow-hidden pb-3'>
-        <div className='bg-surface text-surface-foreground border-separator dark:border-separator/70 flex flex-col gap-3 rounded-xl border p-4'>
+        <div className='bg-surface text-surface-foreground border-separator flex flex-col gap-3 rounded-xl border p-4'>
           {/* Permission Header */}
           <div className='text-foreground text-sm leading-5 font-medium'>
             Allow Agent to <span className='font-semibold'>{actionTitle}</span>?
@@ -235,7 +235,7 @@ export const ReplyToPermission = React.memo(() => {
 
           {/* Code Snippet Box */}
           {codeSnippet && (
-            <div className='bg-default/50 border-separator dark:border-separator/70 max-h-40 overflow-auto rounded-lg border p-2.5 font-mono text-xs break-all whitespace-pre-wrap'>
+            <div className='bg-default/50 border-separator max-h-40 overflow-auto rounded-lg border p-2.5 font-mono text-xs break-all whitespace-pre-wrap'>
               <code>{codeSnippet}</code>
             </div>
           )}
@@ -248,10 +248,10 @@ export const ReplyToPermission = React.memo(() => {
               size='sm'
               isDisabled={isPendingReply || isExiting}
               onPress={() => handleReply('reject')}
-              className='flex items-center gap-0 rounded-lg pr-0 pl-2'
+              className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
               Deny
-              <Kbd variant='light'>
+              <Kbd variant='light' className='rounded-md text-xs'>
                 <Kbd.Content>Esc</Kbd.Content>
               </Kbd>
             </Button>
@@ -262,12 +262,12 @@ export const ReplyToPermission = React.memo(() => {
               size='sm'
               isDisabled={isPendingReply || isExiting}
               onPress={() => handleReply('always')}
-              className='flex items-center gap-0 rounded-lg pr-0 pl-2'
+              className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
               Always allow for session
-              <Kbd variant='light'>
+              <Kbd variant='light' className='rounded-md text-xs'>
                 <Kbd.Abbr keyValue='command' />
-                <Kbd.Abbr keyValue='enter' />
+                <Kbd.Abbr keyValue='enter' className='text-sm' />
               </Kbd>
             </Button>
 
@@ -277,11 +277,11 @@ export const ReplyToPermission = React.memo(() => {
               variant='outline'
               isDisabled={isPendingReply || isExiting}
               onPress={() => handleReply('once')}
-              className='flex items-center gap-0 rounded-lg pr-0 pl-2'
+              className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
               Allow once
-              <Kbd variant='light'>
-                <Kbd.Abbr keyValue='enter' />
+              <Kbd variant='light' className='rounded-md text-xs'>
+                <Kbd.Abbr keyValue='enter' className='text-sm' />
               </Kbd>
             </Button>
           </div>

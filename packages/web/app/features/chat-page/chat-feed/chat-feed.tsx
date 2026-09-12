@@ -123,7 +123,12 @@ export const ChatFeed = forwardRef<
             flatItems={flatItems}
             onScroll={handleScroll}
           />
-          <div className='has-[:not(:empty)]:border-t-secondary mx-auto max-w-[720px] has-[:not(:empty)]:border-y has-[:not(:empty)]:py-4'>
+          <div
+            className={cn(
+              'mx-auto max-w-[720px]',
+              flatItems.length > 0 ? '-mt-5' : 'mt-5',
+            )}
+          >
             <ReplyToQuestion />
             <ReplyToPermission />
             <RevertedMessages />

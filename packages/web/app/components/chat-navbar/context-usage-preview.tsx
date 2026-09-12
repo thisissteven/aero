@@ -6,7 +6,6 @@ import { IconButton } from '@/app/components/ui/icon-button';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { formatCompactNumber } from '@/app/lib/number';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
-import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface PercentageCircleIconProps {
   percentage: number;
@@ -65,11 +64,9 @@ export function ContextUsagePreview() {
     strict: false,
   });
 
-  const statusPanelOpen = useStatusPanelStore((state) => state.isOpen);
-
   const { data } = useSessionContext(undefined, sessionId);
 
-  if (!sessionId || !data || statusPanelOpen) {
+  if (!sessionId || !data) {
     return null;
   }
 
@@ -79,13 +76,12 @@ export function ContextUsagePreview() {
         onPress={() => toggleOpenRightPanel('context')}
         isIconOnly={false}
         svgSize='sm'
+        className='h-7.25 px-2 opacity-80'
       >
         <PercentageCircleIcon percentage={data.context.usedPercentage} />
-        <span className='text-muted/50'>
-          {Math.round(data.context.usedPercentage)}%
-        </span>
+        <span>{data.context.usedPercentage.toFixed(1)}%</span>
       </IconButton>
-      <Tooltip.Content>
+      <Tooltip.Content offset={4}>
         <div className='p-0.5 text-sm'>
           <div className='flex gap-2'>
             <div>Used Tokens:</div>

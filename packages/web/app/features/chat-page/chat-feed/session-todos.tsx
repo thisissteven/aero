@@ -29,7 +29,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   if (tasksCompleted) {
     return (
-      <div className='mx-2 mb-2 ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm'>
+      <div className='mx-2 mb-2 ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm @max-md:hidden'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
           All tasks completed
         </span>
@@ -40,7 +40,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm @max-md:hidden'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle @max-md:hidden'>
           {inProgress.length > 0
             ? inProgress[0].content
