@@ -1,7 +1,9 @@
+import { ChevronsDown } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { ReactNode, RefObject, useMemo } from 'react';
 import React from 'react';
 
+import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
@@ -160,33 +162,63 @@ export const ChatActivityIndicator = React.memo(
         `}
         </style>
 
-        <div
+        <PixelLoader />
+
+        <span
+          className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
+          style={{
+            backgroundImage:
+              'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
+            backgroundSize: '200% 100%',
+            animation: 'chat-activity-shimmer 1.4s linear infinite',
+            color: 'var(--ink)',
+          }}
+        >
+          {label}
+        </span>
+
+        {startedAt !== null && (
+          <span className='text-muted-foreground mt-0.5 font-mono text-xs tabular-nums'>
+            {formatElapsed(elapsed)}
+          </span>
+        )}
+      </>
+    );
+  },
+);
+
+export const WithScrollToBottomWrapper = React.memo(
+  function WithScrollToBottomWrapper({
+    scrollRef,
+    subscribeScroll,
+    children,
+  }: {
+    scrollRef: RefObject<HTMLElement | null>;
+    subscribeScroll: (callback: () => void) => () => void;
+    children: ReactNode;
+  }) {
+    const { scrollToBottom, showButton } = useScrollToBottomButton({
+      scrollRef,
+      subscribeScroll,
+    });
+
+    const status = useChatStore((state) => state.activeSession.status);
+
+    if (status.type === 'idle' && !showButton) return null;
+
+    return (
+      <div className='absolute left-0 -translate-y-full'>
+        <button
           role='status'
           aria-live='polite'
-          className='border-separator absolute mx-3 my-1 flex shrink-0 items-center gap-2 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
+          className='border-separator mx-2 mb-1 flex shrink-0 items-center gap-1 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
+          disabled={!showButton}
+          onClick={scrollToBottom}
         >
-          <PixelLoader />
-
-          <span
-            className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
-            style={{
-              backgroundImage:
-                'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
-              backgroundSize: '200% 100%',
-              animation: 'chat-activity-shimmer 1.4s linear infinite',
-              color: 'var(--ink)',
-            }}
-          >
-            {label}
-          </span>
-
-          {startedAt !== null && (
-            <span className='text-muted-foreground mt-0.5 font-mono text-xs tabular-nums'>
-              {formatElapsed(elapsed)}
-            </span>
-          )}
-        </div>
-      </>
+          {showButton && <ChevronsDown className='size-3.5' />}
+          {children}
+        </button>
+      </div>
     );
   },
 );

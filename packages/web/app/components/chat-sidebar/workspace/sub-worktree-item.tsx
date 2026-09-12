@@ -52,7 +52,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
       textValue={worktree.name}
       className='group pr-0! before:opacity-0'
     >
-      <Sidebar.MenuItemContent className='relative ml-0 flex-1 gap-2 bg-transparent group-hover:bg-transparent'>
+      <Sidebar.MenuItemContent className='relative -ml-1 flex-1 gap-2 bg-transparent group-hover:bg-transparent'>
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
           <Icon data={CircleTree} size={14} />
         </Sidebar.MenuIcon>

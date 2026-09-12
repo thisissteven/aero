@@ -41,9 +41,7 @@ export function VariantsDropdown() {
       >
         <Icon data={Sparkles} className='size-3.5' />
 
-        {selectedVariant
-          ? capitalizeFirstLetter(selectedVariant)
-          : 'Select Variant'}
+        {selectedVariant ? capitalizeFirstLetter(selectedVariant) : 'Default'}
       </Button>
 
       <Popover.Content className='w-48 rounded-xl p-0' placement='top right'>

@@ -8,7 +8,7 @@ export function InfoTooltip({ children }: { children: React.ReactNode }) {
   return (
     <Tooltip>
       <Tooltip.Trigger>
-        <span className='text-muted hover:text-foreground transition-colors'>
+        <span className='text-muted/50 hover:text-foreground/80 transition'>
           <Icon data={CircleInfo} className='size-3.5' />
         </span>
       </Tooltip.Trigger>

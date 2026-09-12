@@ -335,7 +335,8 @@
     gap: calc(var(--spacing, 0.25rem) * 0.5);
     --tw-outline-style: none;
     forced-color-adjust: none;
-    --sidebar-menu-indent: calc(var(--spacing) * 4);
+    --sidebar-menu-indent-first: calc((var(--spacing) * 4) - 0.5px);
+    --sidebar-menu-indent: calc((var(--spacing) * 4));
     --sidebar-menu-guide-color: currentcolor;
     outline-style: none;
     flex-direction: column;
@@ -519,7 +520,7 @@
   }
 
   .sidebar__menu-item[aria-level='2'] {
-    --sidebar-menu-item-offset: var(--sidebar-menu-indent);
+    --sidebar-menu-item-offset: var(--sidebar-menu-indent-first);
     --sidebar-menu-guide-count: 1;
   }
 

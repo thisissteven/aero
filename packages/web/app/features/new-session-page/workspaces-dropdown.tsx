@@ -59,7 +59,7 @@ export function WorkspacesDropdown() {
         </div>
       </Dropdown.Trigger>
       <Dropdown.Popover
-        className='w-44 overflow-x-hidden max-sm:min-w-44'
+        className='max-w-80 overflow-x-hidden max-sm:min-w-44'
         placement='top start'
       >
         <Dropdown.Menu>

@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@aero/ui';
 
+import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom';
 import {
-  ScrollToBottomButton,
-  useRegisterScrollContainer,
-} from '@/app/components/scroll-to-bottom';
-import { ChatActivityIndicator } from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
+  ChatActivityIndicator,
+  WithScrollToBottomWrapper,
+} from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
 import {
   ChatFeed,
   type ChatFeedRef,
@@ -106,27 +106,22 @@ export function ChatPage({
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
-            <div className='flex flex-wrap items-end justify-between gap-2'>
-              <ChatActivityIndicator />
-
-              <div className='@container absolute left-0 flex w-full flex-1 shrink-0 flex-col items-end'>
-                <SessionTodos sessionId={sessionId} />
-                <SessionDiff workspace={workspace} />
-              </div>
-            </div>
-          </OfflineWrapper>
-
-          <div className='pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2'>
-            <ScrollToBottomButton
-              key={sessionId}
+            <WithScrollToBottomWrapper
               scrollRef={{
                 get current() {
                   return feedRef.current?.scrollRef.current ?? null;
                 },
               }}
               subscribeScroll={subscribeScroll}
-            />
-          </div>
+            >
+              <ChatActivityIndicator />
+            </WithScrollToBottomWrapper>
+
+            <div className='absolute right-0 -translate-y-full'>
+              <SessionTodos sessionId={sessionId} />
+              <SessionDiff workspace={workspace} />
+            </div>
+          </OfflineWrapper>
 
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>

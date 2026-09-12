@@ -96,7 +96,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
       textValue={root.name}
       className='group'
     >
-      <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent group-hover:bg-transparent'>
+      <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent pl-0 group-hover:bg-transparent'>
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
           {!workspace.selectedIcon ? (
             <Icon
@@ -133,7 +133,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
           )}
         </Sidebar.MenuIcon>
 
-        <Sidebar.MenuTrigger className='absolute inset-0 flex h-full w-full items-center justify-start pl-3 opacity-0 transition group-hover:opacity-100'>
+        <Sidebar.MenuTrigger className='absolute inset-0 flex h-full w-full items-center justify-start pl-1 opacity-0 transition group-hover:opacity-100'>
           <Sidebar.MenuIndicator />
         </Sidebar.MenuTrigger>
 
