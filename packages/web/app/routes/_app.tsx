@@ -13,7 +13,7 @@ import {
   SettingsModal,
   useTheme,
 } from '@/app/providers';
-import { GlobalTooltip } from '@/app/providers/GlobalTooltipProvider';
+import { GlobalTooltip } from '@/app/providers/global-tooltip/GlobalTooltipProvider';
 import { KeyPressProvider } from '@/app/providers/key-press';
 import { PathnameHandler } from '@/app/providers/PathnameHandler';
 import { PreloadProvider } from '@/app/providers/PreloadProvider';

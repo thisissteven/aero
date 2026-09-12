@@ -407,7 +407,7 @@ function AppLayoutResizable({
       onCollapse={() => setSidebarOpen(false)}
       onExpand={() => setSidebarOpen(true)}
     >
-      <div className='from-accent/40 via-accent/15 absolute inset-0 -z-10 h-40 w-full bg-gradient-to-br to-transparent'></div>
+      <div className='from-accent/40 via-accent/10 absolute inset-0 -z-10 h-full w-full bg-gradient-to-br to-transparent blur-xl'></div>
       {sidebar}
     </Resizable.Panel>
   ) : null;

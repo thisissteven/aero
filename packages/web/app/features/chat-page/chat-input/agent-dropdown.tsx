@@ -1,35 +1,14 @@
-import {
-  Bulb,
-  Check,
-  FaceRobot,
-  Magnifier,
-  PersonWorker,
-  PlanetEarth,
-} from '@gravity-ui/icons';
+import { Check, Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Button, Command, Popover } from '@aero/ui';
 
+import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { useAgentsCompact } from '@/app/hooks/api/capabilities';
 import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from './chat-settings-store';
-
-function getAgentIconData(name?: string) {
-  switch (name?.toLowerCase()) {
-    case 'build':
-      return PersonWorker;
-    case 'plan':
-      return Bulb;
-    case 'explore':
-      return Magnifier;
-    case 'general':
-      return PlanetEarth;
-    default:
-      return FaceRobot;
-  }
-}
 
 export function AgentDropdown() {
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);

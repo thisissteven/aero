@@ -3,40 +3,18 @@
 import { cn, Separator } from '@heroui/react';
 import { handleLinkClick, useRouter } from '@react-aria/utils';
 import type { ComponentPropsWithRef, ReactElement, RefObject } from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ToggleButton } from 'react-aria-components';
 
 import { useAppLayout } from './app-layout';
+import {
+  NavbarContext,
+  NavbarMaxWidth,
+  NavbarPosition,
+  NavbarSize,
+  useNavbar,
+} from '../hooks/useNavbar';
 
-export type NavbarPosition = 'floating' | 'static' | 'sticky';
-export type NavbarSize = 'lg' | 'md' | 'sm';
-export type NavbarMaxWidth = '2xl' | 'full' | 'lg' | 'md' | 'sm' | 'xl';
-export interface NavbarContextValue {
-  height: string;
-  isHidden: boolean;
-  isMenuOpen: boolean;
-  maxWidth: NavbarMaxWidth;
-  navigate?: ((href: string) => void) | undefined;
-  setMenuOpen: (open: boolean) => void;
-  size: NavbarSize;
-}
-const Context = createContext<NavbarContextValue>({
-  height: '4rem',
-  isHidden: false,
-  isMenuOpen: false,
-  setMenuOpen: () => {},
-  maxWidth: 'lg',
-  size: 'md',
-});
-export const useNavbar = (): NavbarContextValue => useContext(Context);
 export interface NavbarRootProps extends ComponentPropsWithRef<'nav'> {
   defaultMenuOpen?: boolean;
   height?: string;
@@ -121,7 +99,7 @@ export function NavbarRoot({
     [height, hidden, maxWidth, menuOpen, resolvedNavigate, setMenuOpen, size],
   );
   return (
-    <Context value={value}>
+    <NavbarContext value={value}>
       <nav
         {...props}
         ref={navRef}
@@ -134,7 +112,7 @@ export function NavbarRoot({
       >
         {children}
       </nav>
-    </Context>
+    </NavbarContext>
   );
 }
 export type NavbarHeaderProps = ComponentPropsWithRef<'header'>;

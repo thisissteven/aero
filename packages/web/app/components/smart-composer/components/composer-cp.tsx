@@ -4,7 +4,6 @@ import React, {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 
 import { cn, Kbd, ScrollShadow } from '@aero/ui';
@@ -12,7 +11,7 @@ import { cn, Kbd, ScrollShadow } from '@aero/ui';
 import { CommandPaletteItem } from '@/app/components/smart-composer/components/composer-cp-item';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
-import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
+import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 import { capitalizeFirstLetter, toPascalCase } from '@/server/shared';
 
 import type { SearchItem } from '../smart-composer-helpers';
@@ -21,8 +20,11 @@ interface CommandPaletteProps {
   open: boolean;
   results: SearchItem[];
   selectedIndex: number;
+  scrollIndex: number;
   caretRect: CaretRect | null;
   onSelect: (item: SearchItem) => void;
+  onHover: (index: number) => void;
+  onHoverReset: () => void;
   close: () => void;
 }
 
@@ -32,17 +34,14 @@ export function ComposerCommandPalette({
   open,
   results,
   selectedIndex,
+  scrollIndex,
   caretRect,
   onSelect,
+  onHover,
+  onHoverReset,
   close,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
-
-  const [activeIndex, setActiveIndex] = useState(selectedIndex);
-
-  // After keyboard navigation, don't let a stationary pointer
-  // take control back until the pointer actually moves.
-  const ignoreHoverRef = useRef(false);
 
   const showTooltip = useTooltipStore((s) => s.showTooltip);
   const hideTooltip = useTooltipStore((s) => s.hideTooltip);
@@ -146,7 +145,9 @@ export function ComposerCommandPalette({
     };
   }, [open, position]);
 
-  // Only keyboard navigation controls scrolling.
+  // Only keyboard navigation controls scrolling — scrollIndex only ever
+  // moves via moveSelection, so hovering an item never scrolls the list,
+  // even though hover and keyboard nav share selectedIndex for highlight.
   // Respect scroll-py-* by explicitly accounting for the list's
   // computed scrollPaddingTop/Bottom when changing scrollTop.
   useLayoutEffect(() => {
@@ -162,7 +163,7 @@ export function ComposerCommandPalette({
 
     const list = palette.querySelector<HTMLElement>('[role="listbox"]');
     const item = list?.querySelector<HTMLElement>(
-      `[data-index="${selectedIndex}"]`,
+      `[data-index="${scrollIndex}"]`,
     );
 
     if (!list || !item) {
@@ -184,18 +185,7 @@ export function ComposerCommandPalette({
     } else if (itemRect.bottom > visibleBottom) {
       list.scrollTop += itemRect.bottom - visibleBottom;
     }
-  }, [open, selectedIndex]);
-
-  // Keyboard navigation always wins over the mouse.
-  // The pointer must physically move before hover can take control again.
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    ignoreHoverRef.current = true;
-    setActiveIndex(selectedIndex);
-  }, [selectedIndex, open]);
+  }, [open, scrollIndex]);
 
   // A real pointer movement hands control back to the mouse.
   useEffect(() => {
@@ -203,26 +193,22 @@ export function ComposerCommandPalette({
       return;
     }
 
-    const handlePointerMove = () => {
-      ignoreHoverRef.current = false;
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointermove', onHoverReset);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointermove', onHoverReset);
     };
-  }, [open]);
+  }, [open, onHoverReset]);
 
-  // Keep the tooltip attached to the currently active item.
-  // Hide it when the active item does not provide a tooltip.
+  // Keep the tooltip attached to the currently selected item.
+  // Hide it when that item does not provide a tooltip.
   useLayoutEffect(() => {
-    if (!open || activeIndex < 0) {
+    if (!open || selectedIndex < 0) {
       return;
     }
 
     const palette = paletteRef.current;
-    const item = flatResults[activeIndex];
+    const item = flatResults[selectedIndex];
 
     if (!palette || !item) {
       hideTooltip();
@@ -239,7 +225,7 @@ export function ComposerCommandPalette({
     }
 
     const element = palette.querySelector<HTMLElement>(
-      `[data-index="${activeIndex}"]`,
+      `[data-index="${selectedIndex}"]`,
     );
 
     if (!element) {
@@ -248,20 +234,13 @@ export function ComposerCommandPalette({
     }
 
     showItemTooltip(item, element);
-  }, [open, activeIndex, flatResults, showItemTooltip, hideTooltip]);
+  }, [open, selectedIndex, flatResults, showItemTooltip, hideTooltip]);
 
   useEffect(() => {
     if (!open) {
       hideTooltip();
     }
   }, [open, hideTooltip]);
-
-  useEffect(() => {
-    if (!open) {
-      setActiveIndex(selectedIndex);
-      ignoreHoverRef.current = false;
-    }
-  }, [open, selectedIndex]);
 
   if (!open) {
     return null;
@@ -276,7 +255,7 @@ export function ComposerCommandPalette({
         'fixed z-50',
         'max-w-[min(480px,calc(100vw-32px))] min-w-60',
         'border-separator rounded-xl border',
-        'bg-overlay/60 text-overlay-foreground overflow-hidden backdrop-blur-sm',
+        'bg-overlay/80 text-overlay-foreground overflow-hidden backdrop-blur-sm',
       )}
     >
       <ScrollShadow
@@ -306,7 +285,7 @@ export function ComposerCommandPalette({
 
               {items.map((item) => {
                 const index = flatIndex++;
-                const active = index === activeIndex;
+                const active = index === selectedIndex;
 
                 return (
                   <CommandPaletteItem
@@ -315,13 +294,7 @@ export function ComposerCommandPalette({
                     index={index}
                     active={active}
                     onSelect={onSelect}
-                    onHover={(hoveredIndex) => {
-                      if (ignoreHoverRef.current) {
-                        return;
-                      }
-
-                      setActiveIndex(hoveredIndex);
-                    }}
+                    onHover={onHover}
                     onShowTooltip={showItemTooltip}
                   />
                 );

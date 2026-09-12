@@ -1,5 +1,5 @@
 import { useParams } from '@tanstack/react-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useCapabilities } from '@/app/hooks/api/capabilities';
@@ -244,7 +244,20 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   const [activeTrigger, setActiveTrigger] = useState<TriggerState | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // Mirrors selectedIndex but only ever moves via moveSelection. The palette
+  // uses this — not selectedIndex — to trigger scroll-into-view, so hovering
+  // an item (which also writes selectedIndex, for highlight/keyboard sync)
+  // never scrolls the list.
+  const [scrollIndex, setScrollIndex] = useState(0);
   const [caretRect, setCaretRect] = useState<CaretRect | null>(null);
+
+  // Keyboard navigation always wins over a stationary mouse. Set on every
+  // keyboard move; cleared only by a real pointer movement (see
+  // clearHoverSuppression, wired to a window pointermove listener by the
+  // palette). This lives here — not in the palette component — because
+  // moveSelection is the only place that actually knows a move originated
+  // from the keyboard rather than from a hover.
+  const ignoreHoverRef = useRef(false);
 
   const { sessionId } = useParams({ strict: false });
   const { data: session } = useSession(undefined, sessionId);
@@ -314,7 +327,9 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     setComposerOpen(false);
     setActiveTrigger(null);
     setSelectedIndex(0);
+    setScrollIndex(0);
     setCaretRect(null);
+    ignoreHoverRef.current = false;
   }, []);
 
   const sync = useCallback(() => {
@@ -344,7 +359,7 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     setComposerOpen(true);
   }, [close, detectTrigger, editorRef]);
 
-  const visibleFiles = isWorkMode ? files : [];
+  const visibleFiles = isWorkMode || sessionId ? files : [];
 
   const search = useMemo(() => {
     const agents = capabilities?.agents ?? [];
@@ -372,14 +387,40 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
 
   const moveSelection = useCallback(
     (direction: 1 | -1) => {
-      setSelectedIndex((current) => {
-        if (!results.length) return 0;
+      ignoreHoverRef.current = true;
 
-        return (current + direction + results.length) % results.length;
+      setSelectedIndex((current) => {
+        if (!results.length) {
+          setScrollIndex(0);
+          return 0;
+        }
+
+        const next = (current + direction + results.length) % results.length;
+
+        setScrollIndex(next);
+
+        return next;
       });
     },
     [results.length],
   );
+
+  // Hover sets the SAME index keyboard nav uses, so an arrow key press
+  // after a hover continues from wherever the mouse left off instead of
+  // resuming from a stale, independently-tracked index. Suppressed while
+  // ignoreHoverRef is set, so the item that slides under a stationary
+  // cursor during keyboard-driven scrolling doesn't steal selection back.
+  const setHoverIndex = useCallback((index: number) => {
+    if (ignoreHoverRef.current) {
+      return;
+    }
+
+    setSelectedIndex(index);
+  }, []);
+
+  const clearHoverSuppression = useCallback(() => {
+    ignoreHoverRef.current = false;
+  }, []);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -407,21 +448,27 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
       activeTrigger,
       results,
       selectedIndex,
+      scrollIndex,
       selectedItem,
       caretRect,
       sync,
       close,
       moveSelection,
+      setHoverIndex,
+      clearHoverSuppression,
     }),
     [
       activeTrigger,
       caretRect,
+      clearHoverSuppression,
       close,
       moveSelection,
       composerOpen,
       results,
+      scrollIndex,
       selectedIndex,
       selectedItem,
+      setHoverIndex,
       sync,
     ],
   );

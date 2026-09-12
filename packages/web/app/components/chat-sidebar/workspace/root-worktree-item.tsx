@@ -3,9 +3,9 @@ import { memo, useMemo, useState } from 'react';
 import { Sidebar } from '@aero/ui';
 
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
-import { dedupeById } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { AeroWorktreeSummary } from '@/server/services/harness/types';
+import { dedupeById } from '@/server/shared';
 
 export interface RootWorktreeItemProps {
   idPrefix: string;

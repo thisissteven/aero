@@ -12,7 +12,7 @@ import {
   useWorkspacesSidebarStore,
 } from '@/app/components/chat-sidebar/sidebar-store';
 import { SelectWorkspaceSession } from '@/app/components/chat-sidebar/workspace/workspace-actions';
-import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
+import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
 import {
   useRecentsSessionRenameStore,

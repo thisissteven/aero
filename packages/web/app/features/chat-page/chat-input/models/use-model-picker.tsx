@@ -1,5 +1,5 @@
+import { buildModelVirtualItems } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
 import {
-  buildModelVirtualItems,
   ModelEmptyState,
   ModelVirtualList,
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';

@@ -41,18 +41,15 @@ import {
 } from '@/app/hooks/api/sessions';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
+import { getCheckboxVariant } from '@/app/lib/constants';
 import { copyButtonCss } from '@/app/lib/file';
-import { Theme, useTheme } from '@/app/providers';
-import { useGlobalModalStore } from '@/app/providers/GlobalModal';
+import { useTheme } from '@/app/providers';
+import { useGlobalModalStore } from '@/app/providers/global-modal/global-modal-store';
 import {
   useNavbarSessionRenameStore,
   useRecentsSessionRenameStore,
   useWorkspacesSessionRenameStore,
 } from '@/app/stores/session-rename';
-
-export function getCheckboxVariant(theme: Theme) {
-  return theme === 'dark' ? 'secondary' : 'primary';
-}
 
 export function RecentsToggleEditModeButton() {
   const isEditMode = useRecentsSidebarStore((state) => state.isEditMode);

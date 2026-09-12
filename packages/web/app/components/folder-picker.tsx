@@ -16,12 +16,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 import { Button, Checkbox, Label, Modal, SearchField } from '@aero/ui';
 
-import { useGlobalModalStore } from '@/app/providers';
+import { useGlobalModalStore } from '@/app/providers/global-modal/global-modal-store';
+import { useFolderPickerStore } from '@/app/stores/folder-picker-store';
 
 interface DirectoryEntry {
   name: string;
@@ -43,23 +42,6 @@ interface FolderNavigatorProps {
   onSelect?: (path: string) => void;
   onClose?: () => void;
 }
-
-interface FolderPickerStore {
-  lastSelectedPath: string;
-  setLastSelectedPath: (path: string) => void;
-}
-
-export const useFolderPickerStore = create<FolderPickerStore>()(
-  persist(
-    (set) => ({
-      lastSelectedPath: '',
-      setLastSelectedPath: (path: string) => set({ lastSelectedPath: path }),
-    }),
-    {
-      name: 'aero-folder-picker-storage',
-    },
-  ),
-);
 
 export function FolderPicker({
   endpoint = '/api/folder-picker',

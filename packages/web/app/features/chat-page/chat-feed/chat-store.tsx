@@ -6,7 +6,7 @@ import {
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
-import { useScrollController } from '@/app/components/scroll-to-bottom';
+import { useScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';

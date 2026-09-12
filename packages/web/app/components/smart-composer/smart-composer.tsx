@@ -117,6 +117,9 @@ export const SmartComposer = React.memo(function SmartComposer({
         caretRect={palette.caretRect}
         onSelect={handlePaletteSelect}
         close={palette.close}
+        onHover={palette.setHoverIndex}
+        onHoverReset={palette.clearHoverSuppression}
+        scrollIndex={palette.scrollIndex}
       />
     </div>
   );

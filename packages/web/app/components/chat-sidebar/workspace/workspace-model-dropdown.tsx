@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { cn, Command, Popover } from '@aero/ui';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
+import { buildModelVirtualItems } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
 import {
   AddProviderRow,
-  buildModelVirtualItems,
   ModelEmptyState,
   ModelInfoPanelCard,
   ModelPickerFooter,
@@ -17,7 +17,7 @@ import {
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { SearchableModel } from '@/app/lib/model';
-import { useTooltipStore } from '@/app/providers/GlobalTooltipProvider';
+import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 
 export interface WorkspaceModelDropdownProps {
   value?: string | null; // e.g., model ID stored in workspace config

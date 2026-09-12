@@ -3,7 +3,7 @@ import { useParams } from '@tanstack/react-router';
 import { ReactNode, RefObject, useMemo } from 'react';
 import React from 'react';
 
-import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom';
+import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';

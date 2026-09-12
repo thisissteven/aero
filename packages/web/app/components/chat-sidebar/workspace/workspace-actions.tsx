@@ -9,7 +9,6 @@ import { Button, Checkbox, Dropdown, Label, Modal, toast } from '@aero/ui';
 import {
   ArchiveBulkSessionsConfirmationModal,
   DeleteBulkSessionsConfirmationModal,
-  getCheckboxVariant,
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
@@ -17,8 +16,10 @@ import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
 import { useDeleteWorkspace, workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { getCheckboxVariant } from '@/app/lib/constants';
 import { copyButtonCss } from '@/app/lib/file';
-import { queryClient, useGlobalModalStore, useTheme } from '@/app/providers';
+import { queryClient, useTheme } from '@/app/providers';
+import { useGlobalModalStore } from '@/app/providers/global-modal/global-modal-store';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 import { EditWorkspaceModal } from './edit-workspace-modal/edit-workspace-modal';

@@ -33,7 +33,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
 
   return (
     <ChatMessage.Assistant className='group py-0'>
-      <ChatMessage.Body className='pe-0 pt-2 pb-1'>
+      <ChatMessage.Body className='space-y-1 pe-0 pt-2 pb-1'>
         <div className='flex flex-wrap items-center gap-2 select-none'>
           {modelID && (
             <span className='text-foreground flex shrink-0 items-center text-xs'>

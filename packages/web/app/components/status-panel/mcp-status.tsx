@@ -65,7 +65,7 @@ function McpServerItem({ name, status, directory }: McpServerItemProps) {
       >
         {({ isSelected }) => (
           <Switch.Content>
-            <Switch.Control className={isSelected ? 'bg-success/80' : ''}>
+            <Switch.Control className={isSelected ? 'bg-accent' : ''}>
               <Switch.Thumb>
                 <Switch.Icon>
                   {isSelected ? (

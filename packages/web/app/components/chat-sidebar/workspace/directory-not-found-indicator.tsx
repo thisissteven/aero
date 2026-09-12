@@ -3,7 +3,7 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { cn, Sidebar } from '@aero/ui';
 
-import { useWorkspaceItemDropdownStore } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown';
+import { useWorkspaceItemDropdownStore } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 
 export function DirectoryNotFoundIndicator({

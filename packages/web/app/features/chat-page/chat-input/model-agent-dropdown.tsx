@@ -2,10 +2,11 @@ import { Icon } from '@gravity-ui/uikit';
 
 import { Button, Sheet } from '@aero/ui';
 
+import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';
 import { capitalizeFirstLetter } from '@/server/shared';
 
-import { AgentPicker, getAgentIconData } from './agents/agent-picker';
+import { AgentPicker } from './agents/agent-picker';
 import { useChatSettingsStore } from './chat-settings-store';
 import { ModelPicker } from './models/model-picker';
 

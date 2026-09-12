@@ -1,6 +1,5 @@
 import { EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { create } from 'zustand';
 
 import { Dropdown, Separator } from '@aero/ui';
 
@@ -10,20 +9,9 @@ import {
   DeleteWorkspace,
   EditWorkspace,
 } from '@/app/components/chat-sidebar/workspace/workspace-actions';
+import { useWorkspaceItemDropdownStore } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
-
-interface WorkspaceItemDropdownState {
-  dropdownOpen: string;
-  setDropdownOpen: (open: string) => void;
-}
-
-export const useWorkspaceItemDropdownStore = create<WorkspaceItemDropdownState>(
-  (set) => ({
-    dropdownOpen: '',
-    setDropdownOpen: (open) => set({ dropdownOpen: open }),
-  }),
-);
 
 export function WorkspaceItemDropdown({
   workspace,

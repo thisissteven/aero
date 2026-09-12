@@ -27,12 +27,9 @@ export function CommandPaletteItem({
 }: CommandPaletteItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseEnter = () => {
+  const handleMouseMove = () => {
     const element = itemRef.current;
-
-    if (!element) {
-      return;
-    }
+    if (!element) return;
 
     onHover(index);
     onShowTooltip(item, element);
@@ -68,9 +65,9 @@ export function CommandPaletteItem({
       className={cn(
         'group flex cursor-pointer items-center',
         'rounded-md px-3 py-2',
-        active && 'bg-surface-hover/50',
+        active && 'bg-default/60 backdrop-blur-sm',
       )}
-      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
       onMouseDown={(event) => {
         event.preventDefault();
         onSelect(item);

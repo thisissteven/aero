@@ -5,6 +5,17 @@ import { create, StateCreator } from 'zustand';
 
 import { Button, Modal } from '@aero/ui';
 
+interface GlobalModalState {
+  isOpen: boolean;
+  options: {
+    children?: ReactNode;
+  };
+  openModal: (options: { children?: ReactNode }) => void;
+  closeModal: () => void;
+  setOpen: (isOpen: boolean) => void;
+  toggleOpen: (options: { children?: ReactNode }) => void;
+}
+
 const defaultChildren = (
   <Modal.Dialog className='sm:max-w-[360px]'>
     <Modal.CloseTrigger />
@@ -30,18 +41,7 @@ const defaultChildren = (
   </Modal.Dialog>
 );
 
-interface ConfirmationStore {
-  isOpen: boolean;
-  options: {
-    children?: ReactNode;
-  };
-  openModal: (options: { children?: ReactNode }) => void;
-  closeModal: () => void;
-  setOpen: (isOpen: boolean) => void;
-  toggleOpen: (options: { children?: ReactNode }) => void;
-}
-
-const globalModalSlice: StateCreator<ConfirmationStore> = (set) => ({
+const globalModalSlice: StateCreator<GlobalModalState> = (set) => ({
   isOpen: false,
   options: {
     children: defaultChildren,
@@ -76,42 +76,6 @@ const globalModalSlice: StateCreator<ConfirmationStore> = (set) => ({
     }),
 });
 
-export const useGlobalModalStore = create<ConfirmationStore>(globalModalSlice);
+export const useGlobalModalStore = create<GlobalModalState>(globalModalSlice);
 export const useGlobalModalStoreOuter =
-  create<ConfirmationStore>(globalModalSlice);
-
-export function GlobalModal() {
-  const isOpen = useGlobalModalStore((state) => state.isOpen);
-  const setOpen = useGlobalModalStore((state) => state.setOpen);
-  const options = useGlobalModalStore((state) => state.options);
-
-  return (
-    <Modal isOpen={isOpen} onOpenChange={setOpen}>
-      <Modal.Backdrop
-        onWheelCapture={(event) => {
-          event.stopPropagation();
-        }}
-      >
-        <Modal.Container>{options.children}</Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
-}
-
-export function GlobalModalOuter() {
-  const isOpen = useGlobalModalStoreOuter((state) => state.isOpen);
-  const setOpen = useGlobalModalStoreOuter((state) => state.setOpen);
-  const options = useGlobalModalStoreOuter((state) => state.options);
-
-  return (
-    <Modal isOpen={isOpen} onOpenChange={setOpen}>
-      <Modal.Backdrop
-        onWheelCapture={(event) => {
-          event.stopPropagation();
-        }}
-      >
-        <Modal.Container>{options.children}</Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
-}
+  create<GlobalModalState>(globalModalSlice);

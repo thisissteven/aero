@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@aero/ui';
 
-import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom';
+import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,

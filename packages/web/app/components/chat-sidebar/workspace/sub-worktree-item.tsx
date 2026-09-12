@@ -9,13 +9,13 @@ import {
   CopyDirectoryPath,
   DeleteWorktree,
 } from '@/app/components/chat-sidebar/workspace/workspace-actions';
-import { dedupeById } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import { useSessions } from '@/app/hooks/api/sessions';
 import {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
 } from '@/server/services/harness/types';
+import { dedupeById } from '@/server/shared';
 
 import { OpenIsolatedWorkspace } from '../session/session-actions';
 
