@@ -49,7 +49,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
                 <span className='text-foreground text-xs'>/{variant}</span>
               )}
               {agent && (
-                <span className='text-foreground ml-1 text-xs'>on {agent}</span>
+                <span className='text-accent ml-1 text-xs'>@{agent}</span>
               )}
             </span>
           )}

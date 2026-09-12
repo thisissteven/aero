@@ -415,6 +415,22 @@ export interface SendShellCommandInput {
   command?: string;
 }
 
+export interface SendCommandInput {
+  agent?: string;
+  model?: string;
+  arguments?: string;
+  command?: string;
+  variant?: string;
+  parts?: Array<{
+    id?: string;
+    type: 'file';
+    mime: string;
+    filename?: string;
+    url: string;
+    source?: FilePartSource;
+  }>;
+}
+
 export interface CreateWorkspaceInput {
   name?: string;
   directory: string;
@@ -525,6 +541,11 @@ export interface HarnessAdapter {
   sendShellCommand(
     sessionId: string,
     input: SendShellCommandInput,
+    directory: string,
+  ): boolean;
+  sendCommand(
+    sessionId: string,
+    input: SendCommandInput,
     directory: string,
   ): boolean;
   sendMessageSync(

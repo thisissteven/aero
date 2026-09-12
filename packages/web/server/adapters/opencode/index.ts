@@ -64,11 +64,13 @@ import { unwrap } from './unwrap';
 
 export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
   async function scanAndSyncWorkspaces(): Promise<AeroWorkspaceSummary[]> {
-    const sdkSessions = unwrap(
-      await withOpencodeClientV2((client) =>
-        client.v2.session.list({ limit: GET_ALL_LIMIT, order: 'asc' }),
-      ),
-    );
+    const sdkSessions = await withOpencodeClientV2(async (client) => {
+      const sessions = unwrap(
+        await client.v2.session.list({ limit: GET_ALL_LIMIT, order: 'asc' }),
+      );
+
+      return sessions;
+    });
 
     const sessions = sdkSessions.data.filter(
       (session) => !session.time.archived,
@@ -101,11 +103,13 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       let worktreePaths: string[] = [];
 
       try {
-        const wtResult = unwrap(
-          await withOpencodeClientV2((client) =>
-            client.worktree.list({ directory: primaryDir }),
-          ),
-        );
+        const wtResult = await withOpencodeClientV2(async (client) => {
+          const worktrees = unwrap(
+            await client.worktree.list({ directory: primaryDir }),
+          );
+
+          return worktrees;
+        });
 
         worktreePaths = wtResult.map(normalizePath);
       } catch {
@@ -291,16 +295,18 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       archived = true,
       childSessions = false,
     }: ListSessionsParams) {
-      const sessions = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.v2.session.list({
+      const sessions = await withOpencodeClientV2(async (client) => {
+        const sessions = unwrap(
+          await client.v2.session.list({
             directory: directory ? normalizePath(directory) : undefined,
             cursor,
             limit,
             search,
           }),
-        ),
-      );
+        );
+
+        return sessions;
+      });
 
       const items = sessions.data
         .filter((session) => {
@@ -317,14 +323,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listArchivedSessions() {
-      const sessions = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.experimental.session.list({
+      const sessions = await withOpencodeClientV2(async (client) => {
+        const archivedSessions = unwrap(
+          await client.experimental.session.list({
             limit: GET_ALL_LIMIT,
             archived: true,
           }),
-        ),
-      );
+        );
+
+        return archivedSessions;
+      });
 
       return sessions
         .filter((session) => session.time.archived)
@@ -332,9 +340,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async revertSession(sessionID, messageID) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.revert({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.revert({
             sessionID,
             messageID,
           }),
@@ -345,9 +353,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async unrevertSession(sessionID) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.unrevert({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.unrevert({
             sessionID,
           }),
         ),
@@ -357,9 +365,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async createSession(input) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.create({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.create({
             title: input.title,
             directory: input.directory,
           }),
@@ -407,12 +415,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async listSessionChildren(sessionID) {
       const children = await withOpencodeClientV2(async (client) => {
-        return unwrap(
+        const children = unwrap(
           await client.session.children({
             sessionID,
           }),
         );
+
+        return children;
       });
+
       return children.map(toAeroSessionV2);
     },
 
@@ -429,21 +440,19 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async deleteSession(sessionID) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.delete({ sessionID }),
-        ),
+      return await withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.delete({ sessionID })),
       );
     },
 
     async shareSession(sessionID) {
       return withOpencodeClientV2(async (client) => {
-        const sessionDetails = await client.session.get({ sessionID });
+        const sessionDetails = unwrap(await client.session.get({ sessionID }));
 
         const session = unwrap(
           await client.session.share({
             sessionID,
-            directory: sessionDetails.data?.directory,
+            directory: sessionDetails?.directory,
           }),
         );
 
@@ -451,7 +460,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           await client.session.update({
             sessionID,
             metadata: {
-              ...sessionDetails.data?.metadata,
+              ...sessionDetails?.metadata,
               sharedUrl: session.share?.url,
             },
           }),
@@ -463,19 +472,21 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async unshareSession(sessionID) {
       return withOpencodeClientV2(async (client) => {
-        const sessionDetails = await client.session.get({ sessionID });
+        const sessionDetails = unwrap(await client.session.get({ sessionID }));
 
-        await client.session.unshare({
-          sessionID,
-          directory: sessionDetails.data?.directory,
-        });
+        unwrap(
+          await client.session.unshare({
+            sessionID,
+            directory: sessionDetails?.directory,
+          }),
+        );
 
         const updatedSession = unwrap(
           await client.session.update({
             sessionID,
-            directory: sessionDetails.data?.directory,
+            directory: sessionDetails?.directory,
             metadata: {
-              ...sessionDetails.data?.metadata,
+              ...sessionDetails?.metadata,
               sharedUrl: undefined,
             },
           }),
@@ -493,7 +504,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           Promise.all(
             sessionIDs.map((sessionID) =>
               limit(async () => {
-                await client.session.delete({ sessionID });
+                unwrap(await client.session.delete({ sessionID }));
               }),
             ),
           ),
@@ -506,100 +517,80 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listAgents(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.app.agents({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.app.agents({ directory })),
       );
 
       return entries.map(toAeroAgent);
     },
 
     async listAgentsCompact(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.app.agents({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.app.agents({ directory })),
       );
 
       return entries.filter((agent) => !agent.hidden).map(toAeroAgentCompact);
     },
 
     async listMCPs(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.mcp.status({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.mcp.status({ directory })),
       );
 
       return entries;
     },
 
     async addMCP({ directory, name, config }) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.mcp.add({ directory, name, config }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.mcp.add({ directory, name, config })),
       );
 
       return entries;
     },
 
     async removeMCP({ directory, name }) {
-      const entry = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.mcp.auth.remove({ name, directory }),
-        ),
+      const entry = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.mcp.auth.remove({ name, directory })),
       );
 
       return entry.success;
     },
 
     async connectMCP({ directory, name }) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.mcp.connect({ directory, name }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.mcp.connect({ directory, name })),
       );
 
       return entries;
     },
 
     async disconnectMCP({ directory, name }) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.mcp.disconnect({ directory, name }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.mcp.disconnect({ directory, name })),
       );
 
       return entries;
     },
 
     async listSkills(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.app.skills({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.app.skills({ directory })),
       );
 
       return entries.map(toAeroSkill);
     },
 
     async listSkillsCompact(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.app.skills({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.app.skills({ directory })),
       );
 
       return entries.map(toAeroSkillCompact);
     },
 
     async listCommands(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.command.list({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.command.list({ directory })),
       );
 
       return entries
@@ -608,10 +599,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listCommandsCompact(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.command.list({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.command.list({ directory })),
       );
 
       return entries
@@ -620,29 +609,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listConfiguredProviders(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.config.providers({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.config.providers({ directory })),
       );
 
       return entries.providers.map(toAeroProvider);
     },
 
     async listWorktreeNames(directory) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.worktree.list({ directory }),
-        ),
+      return await withOpencodeClientV2(async (client) =>
+        unwrap(await client.worktree.list({ directory })),
       );
     },
 
     async createWorktree(directory, name) {
       await ensureGitHead(directory);
 
-      const entry = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.worktree.create({
+      const entry = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.worktree.create({
             directory,
             worktreeCreateInput: {
               name,
@@ -676,9 +661,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async removeWorktreeItem(directory, worktreeDirectory) {
       try {
-        const ok = unwrap(
-          await withOpencodeClientV2((client) =>
-            client.worktree.remove({
+        const ok = await withOpencodeClientV2(async (client) =>
+          unwrap(
+            await client.worktree.remove({
               directory: directory,
               worktreeRemoveInput: {
                 directory: worktreeDirectory,
@@ -703,9 +688,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async setApiKey(provider, apiKey) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.auth.set({
+      return withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.auth.set({
             providerID: provider,
             auth: {
               type: 'api',
@@ -717,47 +702,39 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listTools(provider, model, directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.tool.list({ directory, model, provider }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.tool.list({ directory, model, provider })),
       );
 
       return entries.map(toAeroTool);
     },
 
     async listProviders(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.provider.list({ directory }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.provider.list({ directory })),
       );
 
       return entries.all.map(toAeroProvider);
     },
 
     async listMessages(sessionID) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.messages({ sessionID }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.messages({ sessionID })),
       );
 
       return entries.map(toAeroMessage);
     },
 
     async listTodos(sessionID) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.todo({ sessionID }),
-        ),
+      return withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.todo({ sessionID })),
       );
     },
 
     async updateActiveModel(model, directory) {
-      const config = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.config.update({
+      const config = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.config.update({
             directory,
             config: {
               model,
@@ -769,9 +746,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listAwaitingPermissions(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.permission.list({
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.permission.list({
             directory,
           }),
         ),
@@ -780,9 +757,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async replyToPermission(requestID, directory, reply) {
-      const ok = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.permission.reply({
+      const ok = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.permission.reply({
             requestID,
             directory,
             reply,
@@ -793,9 +770,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listQuestions(directory) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.question.list({
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.question.list({
             directory,
           }),
         ),
@@ -804,9 +781,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async replyToQuestion(requestID, answers, directory) {
-      const ok = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.question.reply({
+      const ok = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.question.reply({
             requestID,
             answers,
             directory,
@@ -817,9 +794,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async rejectQuestion(requestID, directory) {
-      const ok = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.question.reject({
+      const ok = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.question.reject({
             requestID,
             directory,
           }),
@@ -829,16 +806,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async any() {
-      return unwrap(
-        await withOpencodeClientV2((client) => client.config.get({})),
+      return withOpencodeClientV2(async (client) =>
+        unwrap(await client.config.get({})),
       );
     },
 
     async listTocs(sessionID) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.messages({ sessionID }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.messages({ sessionID })),
       );
 
       const messages = entries.map(toAeroMessage);
@@ -933,9 +908,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async archiveSession(sessionID) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.update({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.update({
             sessionID,
             time: {
               archived: Date.now(),
@@ -956,12 +931,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           Promise.all(
             sessionIDs.map((sessionID) =>
               limit(async () => {
-                await client.session.update({
-                  sessionID,
-                  time: {
-                    archived: archivedTime,
-                  },
-                });
+                unwrap(
+                  await client.session.update({
+                    sessionID,
+                    time: {
+                      archived: archivedTime,
+                    },
+                  }),
+                );
               }),
             ),
           ),
@@ -974,9 +951,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async unarchiveSession(sessionID) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.update({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.update({
             sessionID,
             time: {
               archived: 0,
@@ -996,12 +973,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           Promise.all(
             sessionIDs.map((sessionID) =>
               limit(async () => {
-                await client.session.update({
-                  sessionID,
-                  time: {
-                    archived: undefined,
-                  },
-                });
+                unwrap(
+                  await client.session.update({
+                    sessionID,
+                    time: {
+                      archived: undefined,
+                    },
+                  }),
+                );
               }),
             ),
           ),
@@ -1014,29 +993,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async getSessionMessage(sessionID, messageID) {
-      const entry = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.message({ sessionID, messageID }),
-        ),
+      const entry = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.message({ sessionID, messageID })),
       );
 
       return toAeroMessage(entry);
     },
 
     async getSessionContext(sessionID) {
-      const entries = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.messages({ sessionID }),
-        ),
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.session.messages({ sessionID })),
       );
 
       return toAeroSessionContextDetails(entries);
     },
 
     async forkSession(sessionID, messageID) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.fork({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.fork({
             sessionID,
             messageID,
           }),
@@ -1047,9 +1022,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async renameSession({ sessionId, title }) {
-      const session = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.update({
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.update({
             sessionID: sessionId,
             title,
           }),
@@ -1060,9 +1035,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async getSessionDiff(input) {
-      const diff = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.diff({
+      const diff = withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.diff({
             sessionID: input.sessionID,
             messageID: input.messageID,
             directory: input.directory,
@@ -1074,11 +1049,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async getConfig(directory) {
-      return unwrap(
-        await withOpencodeClientV2((client) =>
-          client.config.get({ directory }),
-        ),
+      return await withOpencodeClientV2(async (client) =>
+        unwrap(await client.config.get({ directory })),
       );
+    },
+
+    sendCommand(sessionID, input, directory) {
+      withOpencodeClientV2(async (client) => {
+        // client.session.command({
+        //   sessionID,
+        //   directory,
+        //   agent: input.agent,
+        //   command: input.command,
+        //   parts: [],
+        // }),
+        const file = await client.file.read({ directory, path: '' });
+        return; //
+      });
+
+      return true;
     },
 
     sendShellCommand(sessionID, input, directory) {
@@ -1115,7 +1104,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           system: input.system,
           agent: input.agent,
           variant: input.variant,
-          // tools:
         }),
       );
 
@@ -1123,9 +1111,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async sendMessageSync(sessionID, input) {
-      const { info, parts } = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.session.prompt({
+      const { info, parts } = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.prompt({
             sessionID,
             parts: input.parts.map((p) =>
               p.type === 'text'
@@ -1149,9 +1137,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     async listFilesInDirectory(input) {
-      const files = unwrap(
-        await withOpencodeClientV2((client) =>
-          client.v2.fs.find({
+      const files = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.v2.fs.find({
             query: input.query,
             limit: input.limit,
             location: {

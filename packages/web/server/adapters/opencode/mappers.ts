@@ -501,7 +501,7 @@ export function toAeroMessage(entry: {
           }
         : undefined,
     createdAt: entry.info.time?.created ?? Date.now(),
-    agent: toPascalCase(entry.info.agent),
+    agent: entry.info.agent,
     mode:
       entry.info.role === 'assistant'
         ? toPascalCase(entry.info.mode)

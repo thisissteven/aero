@@ -12,6 +12,7 @@ import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   useAbortSession,
+  useSendCommand,
   useSendMessage,
   useSendShellCommand,
   useSession,
@@ -39,6 +40,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const { sessionId } = useParams({ strict: false });
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
+  const { mutate: sendCommand } = useSendCommand(undefined);
   const { mutate: abortSession } = useAbortSession(undefined);
   const { data: session } = useSession(undefined, sessionId);
 
@@ -53,7 +55,8 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const handleSend = useCallback(
     async (sessionId: string) => {
       composerSubmitBefore();
-      const text = useComposerStore.getState().payload?.text;
+      const payload = useComposerStore.getState().payload;
+      const text = payload?.text;
 
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
@@ -78,7 +81,13 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
         return;
       }
 
+      const segments = payload.segments;
+      const isEmpty = segments.length === 0;
+      if (isEmpty) return;
+
       const isShellMode = useComposerStore.getState().mode === 'shell';
+      const isCommand =
+        segments[0].type === 'token' && segments[0].token.type === 'command';
 
       try {
         if (isShellMode) {
@@ -90,6 +99,16 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
             },
             agent: selectedAgent?.name,
             command: text,
+          });
+        } else if (isCommand) {
+          sendCommand({
+            sessionId,
+            model: selectedModel.model.id,
+            agent: selectedAgent?.name,
+            variant: selectedVariant,
+            command: '',
+            arguments: '',
+            parts: [],
           });
         } else {
           sendMessage({

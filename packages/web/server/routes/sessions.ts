@@ -734,6 +734,46 @@ const sessions = new Hono()
     },
   )
 
+  // POST /api/sessions/:id/command?harnessId=...
+  .post(
+    '/:id/command',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator(
+      'json',
+      z.object({
+        agent: z.string().optional(),
+        model: z.string().optional(),
+        arguments: z.string().optional(),
+        command: z.string().optional(),
+        variant: z.string().optional(),
+        system: z.string().optional(),
+        parts: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              type: z.literal('file'),
+              mime: z.string(),
+              filename: z.string().optional(),
+              url: z.string(),
+              source: z.any().optional(),
+            }),
+          )
+          .optional(),
+      }),
+    ),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const body = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+      const ok = harness.sendCommand(id, body, session.workspace);
+      return c.json(ok);
+    },
+  )
+
   // POST /api/sessions/:id/shell?harnessId=...
   .post(
     '/:id/shell',

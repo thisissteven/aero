@@ -1,7 +1,9 @@
+import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import {
   AeroAgentCompact,
   AeroCommandCompact,
   AeroSkillCompact,
+  SendCommandInput,
 } from '@/server/services/harness/types';
 
 const SNIPPETS = [
@@ -182,20 +184,35 @@ export function unifiedSearch(
   }
 
   if (trigger === '/') {
-    const commands = query === '' ? data.commands.slice(0, 5) : data.commands;
+    const segments = useComposerStore.getState().segments;
 
-    for (const command of commands) {
-      if (matches(command.name, q)) {
-        results.push(
-          createItem(
-            `command:${command.name}`,
-            command.name,
-            'command',
-            '/',
-            'COMMANDS',
-            command,
-          ),
-        );
+    const nonEmptySegments = segments.filter(
+      (segment) =>
+        segment.type === 'token' ||
+        (segment.type === 'text' && segment.text.trim().length > 0),
+    );
+
+    const canAddCommand =
+      nonEmptySegments.length === 1 &&
+      nonEmptySegments[0].type === 'text' &&
+      nonEmptySegments[0].text.startsWith('/');
+
+    if (canAddCommand) {
+      const commands = query === '' ? data.commands.slice(0, 5) : data.commands;
+
+      for (const command of commands) {
+        if (matches(command.name, q)) {
+          results.push(
+            createItem(
+              `command:${command.name}`,
+              command.name,
+              'command',
+              '/',
+              'COMMANDS',
+              command,
+            ),
+          );
+        }
       }
     }
 
@@ -239,4 +256,68 @@ export function unifiedSearch(
     groups,
     flat: results,
   };
+}
+
+export function extractCommandPayload(segments: ComposerSegment[]) {
+  let command: string | undefined;
+  const argumentTexts: string[] = [];
+  const parts: SendCommandInput['parts'] = [];
+
+  for (const segment of segments) {
+    if (segment.type === 'text') {
+      const trimmed = segment.text.trim();
+      if (trimmed) {
+        argumentTexts.push(trimmed);
+      }
+    } else if (segment.type === 'token') {
+      const { token } = segment;
+
+      if (token.type === 'command') {
+        // e.g., token.value = "explain" or "/explain"
+        command = token.value.replace(/^\//, '');
+      } else if (token.type === 'file') {
+        const path = token.value; // e.g. "src/index.ts"
+        const filename = path.split('/').pop() || path;
+        const ext = filename.split('.').pop()?.toLowerCase() || '';
+
+        parts.push({
+          type: 'file',
+          filename,
+          url: path, // Uses file path as fallback identifier
+          mime: getMimeFromExtension(ext),
+          source: {
+            type: 'file',
+            path,
+            text: {
+              value: `@${token.label || filename}`,
+              start: 0,
+              end: 0,
+            },
+          },
+        });
+      }
+    }
+  }
+
+  return {
+    command: command || '',
+    arguments: argumentTexts.join(' '),
+    parts,
+  };
+}
+
+// Simple mime inference helper
+function getMimeFromExtension(ext: string): string {
+  const mimeMap: Record<string, string> = {
+    ts: 'text/typescript',
+    tsx: 'text/typescript-jsx',
+    js: 'text/javascript',
+    jsx: 'text/javascript-jsx',
+    json: 'application/json',
+    py: 'text/x-python',
+    md: 'text/markdown',
+    html: 'text/html',
+    css: 'text/css',
+  };
+  return mimeMap[ext] || 'text/plain';
 }

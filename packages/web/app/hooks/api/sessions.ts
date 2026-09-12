@@ -55,8 +55,11 @@ type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<
   typeof $individualSession.message.$post
 >['json'];
-type SendshellCommandInput = InferRequestType<
+type SendShellCommandInput = InferRequestType<
   typeof $individualSession.shell.$post
+>['json'];
+type SendCommandInput = InferRequestType<
+  typeof $individualSession.command.$post
 >['json'];
 
 export type SessionsPageResponse = InferResponseType<
@@ -501,10 +504,36 @@ export function useForkSession(
   });
 }
 
+export function useSendCommand(harnessId: string | undefined) {
+  return useMutation({
+    mutationFn: async (
+      input: SendCommandInput & {
+        sessionId: string;
+      },
+    ) => {
+      const res = await $individualSession.command.$post({
+        param: {
+          id: input.sessionId,
+        },
+        query: {
+          harnessId,
+        },
+        json: input,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to send command');
+      }
+
+      return res.json();
+    },
+  });
+}
+
 export function useSendShellCommand(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (
-      input: SendshellCommandInput & {
+      input: SendShellCommandInput & {
         sessionId: string;
       },
     ) => {
@@ -519,7 +548,7 @@ export function useSendShellCommand(harnessId: string | undefined) {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to send message');
+        throw new Error('Failed to send shell command');
       }
 
       return res.json();
