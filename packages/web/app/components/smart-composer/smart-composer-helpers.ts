@@ -258,7 +258,14 @@ export function unifiedSearch(
   };
 }
 
-export function extractCommandPayload(segments: ComposerSegment[]) {
+export function extractCommandPayload(
+  segments:
+    | ComposerSegment[]
+    | {
+        type: 'shell';
+        text: string;
+      }[],
+) {
   let command: string | undefined;
   const argumentTexts: string[] = [];
   const parts: SendCommandInput['parts'] = [];

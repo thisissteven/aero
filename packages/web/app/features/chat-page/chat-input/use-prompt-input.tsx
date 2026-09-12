@@ -7,6 +7,7 @@ import {
   composerSubmitAfter,
   composerSubmitBefore,
 } from '@/app/components/smart-composer/components/composer-submit';
+import { extractCommandPayload } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
@@ -101,14 +102,20 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
             command: text,
           });
         } else if (isCommand) {
+          const {
+            command,
+            arguments: args,
+            parts,
+          } = extractCommandPayload(segments);
+
           sendCommand({
             sessionId,
-            model: selectedModel.model.id,
+            model: `${selectedModel.providerId}/${selectedModel.model.id}`,
             agent: selectedAgent?.name,
             variant: selectedVariant,
-            command: '',
-            arguments: '',
-            parts: [],
+            command,
+            arguments: args,
+            parts,
           });
         } else {
           sendMessage({
