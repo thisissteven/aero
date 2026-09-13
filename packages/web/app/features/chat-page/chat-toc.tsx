@@ -1,9 +1,8 @@
+import { FloatingToc } from '@aero/ui';
 import React, { useMemo } from 'react';
 
-import { FloatingToc } from '@aero/ui';
-
 import { useSessionToc } from '@/app/hooks/api/sessions';
-import { Route } from '@/app/routes/_app/sessions/$sessionId';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export const ChatTocSection = React.memo(function ChatTocSection({
   activeGroupIndex,
@@ -12,7 +11,7 @@ export const ChatTocSection = React.memo(function ChatTocSection({
   activeGroupIndex: number;
   onSelectTocItem: (groupIndex: number) => void;
 }) {
-  const { sessionId } = Route.useParams();
+  const sessionId = useSessionId();
   const { data: tocItems = [] } = useSessionToc(undefined, sessionId);
 
   const activeTocIndex = useMemo(() => {

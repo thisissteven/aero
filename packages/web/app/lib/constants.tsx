@@ -5,6 +5,8 @@ import {
   File,
   FileCode,
   Globe,
+  LayoutSplitSideContentLeft,
+  LayoutSplitSideContentRight,
   LogoGithub,
   Terminal,
 } from '@gravity-ui/icons';
@@ -68,6 +70,12 @@ export const collapsibleNav = [
     icon: <Icon data={Globe} size={18} />,
     label: 'Browser',
     description: 'Built-in web browser',
+  },
+  {
+    id: 'side-chat',
+    icon: <Icon data={LayoutSplitSideContentRight} size={18} />,
+    label: 'Side chat',
+    description: 'Pull up a side chat view to watch your subagent work',
   },
 ] as const;
 

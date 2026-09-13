@@ -1,11 +1,9 @@
-import { useParams } from '@tanstack/react-router';
-import { useEffect } from 'react';
-
 import { Button, Modal, Separator, toast } from '@aero/ui';
-
+import { useEffect } from 'react';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { useUpdateWorkspace } from '@/app/hooks/api/workspaces';
 import { queryClient, useGlobalModalStore } from '@/app/providers';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 import { EditWorkspaceActions } from './edit-workspace-actions';
@@ -33,7 +31,7 @@ export function EditWorkspaceModal({
     workspace.id,
   );
 
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   const handleSave = () => {
     const { name, selectedColor, selectedIcon, defaultModel, directory } =

@@ -1,19 +1,22 @@
 import { cn, IconButton, Typography } from '@aero/ui';
 import { Pin, PinFill } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessionPinnedMessages } from '@/app/hooks/api/sessions';
 import {
   usePinnedSessionMessage,
   useUpdateSetting,
 } from '@/app/hooks/api/settings';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useChatScrollStore } from '@/app/stores/chat-scroll-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function PinnedMessageStatus() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   const isVisible = useStatusPanelStore(
     (state) => state.visibleItems.pinnedMessage,
@@ -31,7 +34,7 @@ export function PinnedMessageStatusContent({
 }) {
   const { data: pinnedSessionMessages } = useSessionPinnedMessages(sessionId);
 
-  const turns = useChatStore((state) => state.activeSession.turns);
+  const turns = useSessionRuntime(sessionId, (runtime) => runtime.turns);
 
   const userTurns = useMemo(() => {
     return turns.map((turn, index) => ({
@@ -96,7 +99,7 @@ export function PinnedMessageStatusContent({
 }
 
 function MessageActionsPin({ messageId }: { messageId: string }) {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data } = usePinnedSessionMessage(sessionId, messageId);
   const { mutateAsync: updateSetting } = useUpdateSetting();
 

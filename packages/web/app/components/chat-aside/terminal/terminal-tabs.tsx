@@ -1,11 +1,11 @@
 import { cn, IconButton } from '@aero/ui';
 import { Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import React from 'react';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 import { SessionStatusDot } from './session-status-dot';
 import {
@@ -19,7 +19,7 @@ export function TerminalTabs() {
   const activeSessionId = useActiveSessionId();
   const { addSession, removeSession, setActiveSession } = useTerminalActions();
 
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
   const { data: keys } = useWorkspacesKeys();
 

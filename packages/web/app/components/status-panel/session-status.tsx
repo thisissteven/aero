@@ -1,14 +1,11 @@
 import { ProgressBar, Typography } from '@aero/ui';
-import { useParams } from '@tanstack/react-router';
-
 import { DisplayPopover } from '@/app/components/status-panel/display-popover';
 import { useSessionContext } from '@/app/hooks/api/sessions';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 function ContextUsage() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data } = useSessionContext(undefined, sessionId);
 

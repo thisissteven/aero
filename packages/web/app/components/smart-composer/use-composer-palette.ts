@@ -1,11 +1,10 @@
-import { useParams } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useCapabilities } from '@/app/hooks/api/capabilities';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
 import { useDebounce } from '@/app/hooks/useDebounce';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 import { TRIGGER_CHARS, unifiedSearch } from './smart-composer-helpers';
 import { useComposerStore } from './smart-composer-store';
@@ -259,7 +258,7 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   // from the keyboard rather than from a hover.
   const ignoreHoverRef = useRef(false);
 
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
 
   const isFileTrigger = activeTrigger?.char === '@';

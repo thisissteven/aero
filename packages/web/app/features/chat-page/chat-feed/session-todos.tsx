@@ -28,7 +28,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   if (tasksCompleted) {
     return (
-      <div className='mx-2 mb-2 ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm @max-md:hidden'>
+      <div className='px-2 mb-1 w-fit ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm @max-md:hidden backdrop-blur-sm rounded-full border border-separator py-1'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
           All tasks completed
         </span>
@@ -65,7 +65,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
       <Popover.Content
         placement='top right'
         className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
-        crossOffset={8}
+        offset={4}
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>

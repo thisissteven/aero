@@ -1,9 +1,9 @@
 import { cn, Disclosure, IconButton, toast } from '@aero/ui';
 import { ArrowUturnCcwRight, ChevronDown, CodeFork } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   sessionKeys,
   useForkSession,
@@ -12,11 +12,13 @@ import {
 } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { queryClient } from '@/app/providers';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function RevertedMessages() {
-  const { sessionId } = useParams({ strict: false });
-  const revertedMessages = useChatStore(
-    (state) => state.activeSession.revertedMessages,
+  const sessionId = useSessionId();
+  const revertedMessages = useSessionRuntime(
+    sessionId,
+    (runtime) => runtime.revertedMessages,
   );
 
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);

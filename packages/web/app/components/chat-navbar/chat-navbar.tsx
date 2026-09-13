@@ -9,8 +9,6 @@ import {
 } from '@aero/ui';
 import { Ellipsis, LayoutSideContent } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
-
 import { ContextUsagePreview } from '@/app/components/chat-navbar/context-usage-preview';
 import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
 import { PanelActions } from '@/app/components/chat-navbar/panel-actions/panel-actions';
@@ -30,6 +28,7 @@ import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/sessi
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { OfflineAlert } from '@/app/providers';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
 import type { ChatActivePage } from '../../data/chat';
 
@@ -138,9 +137,7 @@ function SessionTitle({
 }
 
 function SessionsNavbarContent() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data: session, isPending } = useSession(undefined, sessionId);
 

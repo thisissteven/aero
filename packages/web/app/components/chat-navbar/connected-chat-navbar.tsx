@@ -3,9 +3,8 @@ import { useMemo } from 'react';
 
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
-
-import { ChatNavbar } from './chat-navbar';
 import { resolveChatActivePage } from '../../data/chat';
+import { ChatNavbar } from './chat-navbar';
 
 export function ConnectedChatNavbar() {
   const { pathname } = useLocation();

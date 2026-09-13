@@ -1,10 +1,9 @@
+import { Button, Checkbox, Dropdown, Label, Modal, toast } from '@aero/ui';
 import { Archive, Check, Copy, Pencil, TrashBin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
-
-import { Button, Checkbox, Dropdown, Label, Modal, toast } from '@aero/ui';
 
 import {
   ArchiveBulkSessionsConfirmationModal,
@@ -12,7 +11,7 @@ import {
 } from '@/app/components/chat-sidebar/session/session-actions';
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
-import { sessionKeys, SessionsPageResponse } from '@/app/hooks/api/sessions';
+import { SessionsPageResponse, sessionKeys } from '@/app/hooks/api/sessions';
 import { useDeleteWorkspace, workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
@@ -20,8 +19,8 @@ import { getCheckboxVariant } from '@/app/lib/constants';
 import { copyButtonCss } from '@/app/lib/file';
 import { queryClient, useTheme } from '@/app/providers';
 import { useGlobalModalStore } from '@/app/providers/global-modal/global-modal-store';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
-
 import { EditWorkspaceModal } from './edit-workspace-modal/edit-workspace-modal';
 
 export function WorkspacesToggleEditModeButton() {
@@ -258,7 +257,7 @@ function DeleteWorktreeConfirmationModal({
   workspaceId: string;
   workspaceDirectory: string;
 }) {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   const { mutateAsync } = useDeleteWorktree();
 

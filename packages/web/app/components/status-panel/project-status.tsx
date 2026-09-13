@@ -1,11 +1,10 @@
 import { Typography } from '@aero/ui';
 import { CircleTree, File } from '@gravity-ui/icons';
-import { useParams } from '@tanstack/react-router';
-
 import { useGitCurrentBranch, useGitDiff } from '@/app/hooks/api/git';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function ProjectStatus() {
@@ -17,7 +16,7 @@ export function ProjectStatus() {
 }
 
 export function ProjectStatusContent() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
   const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
 
@@ -33,7 +32,7 @@ export function ProjectStatusContent() {
 }
 
 function ProjectStatusHeader() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
   const { data: keys } = useWorkspacesKeys();
 
@@ -55,7 +54,7 @@ function ProjectStatusHeader() {
 }
 
 function CurrentBranch() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
   const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
 
@@ -72,7 +71,7 @@ function CurrentBranch() {
 }
 
 function FilesChanged() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
   const { data: diffData } = useGitDiff(session?.workspace);
 

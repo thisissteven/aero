@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
+import { SideChatPanel } from '@/app/components/chat-aside/side-chat/side-chat-panel';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
 import { collapsibleNav } from '@/app/lib/constants';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -110,6 +111,8 @@ export function ChatAsidePanel() {
               <ContextPanel />
             ) : activeNavItem === 'files' ? (
               <FileExplorerPanel />
+            ) : activeNavItem === 'side-chat' ? (
+              <SideChatPanel />
             ) : (
               <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
                 Content body: {activeNavData?.label}

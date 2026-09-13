@@ -1,6 +1,6 @@
 import { ToastProvider } from '@aero/ui';
-import { createFileRoute, Outlet } from '@tanstack/react-router';
-
+import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
+import { ReactNode } from 'react';
 import { ChatShell } from '@/app/components/chat-shell';
 import { usePoolReady } from '@/app/hooks/api/pool';
 import { I18nProvider } from '@/app/hooks/i18n';
@@ -16,6 +16,10 @@ import { GlobalTooltip } from '@/app/providers/global-tooltip/GlobalTooltipProvi
 import { KeyPressProvider } from '@/app/providers/key-press';
 import { PathnameHandler } from '@/app/providers/PathnameHandler';
 import { PreloadProvider } from '@/app/providers/PreloadProvider';
+import {
+  SessionIdProvider,
+  useSessionId,
+} from '@/app/providers/SessionIdProvider';
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -49,9 +53,7 @@ function AppLayout() {
         <KeyPressProvider />
         <PreloadProvider />
         <PathnameHandler />
-        <ChatShell>
-          <Outlet />
-        </ChatShell>
+        <Page />
         <ToastProvider placement='bottom end' width={280} />
         <GlobalTooltip />
         <GlobalModal />
@@ -59,5 +61,16 @@ function AppLayout() {
         <SettingsModal />
       </I18nProvider>
     </QueryProvider>
+  );
+}
+
+function Page() {
+  const { sessionId } = useParams({ strict: false });
+  return (
+    <SessionIdProvider value={sessionId}>
+      <ChatShell>
+        <Outlet />
+      </ChatShell>
+    </SessionIdProvider>
   );
 }

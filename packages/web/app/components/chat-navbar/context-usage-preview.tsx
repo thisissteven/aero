@@ -1,7 +1,7 @@
 import { IconButton, Tooltip } from '@aero/ui';
-import { useParams } from '@tanstack/react-router';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { formatCompactNumber } from '@/app/lib/number';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 interface PercentageCircleIconProps {
@@ -57,9 +57,7 @@ export function ContextUsagePreview() {
     (state) => state.openClosePanelWithShortcut,
   );
 
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data } = useSessionContext(undefined, sessionId);
 

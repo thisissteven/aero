@@ -1,11 +1,12 @@
 import { Chip, Typography } from '@aero/ui';
 import { CircleTree } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { useSessionChildren, useSessionStatus } from '@/app/hooks/api/sessions';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 import { toPascalCase } from '@/server/shared';
 
@@ -17,7 +18,7 @@ export function SubagentStatus() {
 }
 
 function SubagentStatusContent() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data: children = [] } = useSessionChildren(undefined, sessionId);
   const navigate = useNavigate();
 

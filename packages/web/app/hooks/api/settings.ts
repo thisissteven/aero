@@ -1,9 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
-
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import type {
   AeroSettingPath,
   AeroSettingUpdate,
@@ -163,7 +162,7 @@ export function useGoalMode(sessionId: string) {
 }
 
 export function useChatInputExpanded() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const resolvedSessionId = sessionId ?? NEW_SESSION_PAGE_SESSION_ID;
   const { data } = useSetting(['chatInputExpanded', resolvedSessionId]);
   return data?.value ?? false;

@@ -1,20 +1,18 @@
-import { useParams } from '@tanstack/react-router';
-import { memo, useMemo } from 'react';
-import { VList } from 'virtua';
-
 import {
-  cn,
   CodeBlock,
+  cn,
   Disclosure,
   Label,
   ProgressBar,
   Skeleton,
   Typography,
 } from '@aero/ui';
-
+import { memo, useMemo } from 'react';
+import { VList } from 'virtua';
 import { CodeBlockContent } from '@/app/components/tool-call-view/tools';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
 import { formatDateTimeFull } from '@/app/lib/date';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useKeepMountedStoreContext } from '@/app/stores/keep-mounted';
 import { AeroSessionContextDetails } from '@/server/services/harness/types';
 
@@ -36,9 +34,7 @@ function formatTime(timestamp: number): string {
 }
 
 export function ContextPanel() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data: contextDetails, isLoading } = useSessionContext(
     undefined,

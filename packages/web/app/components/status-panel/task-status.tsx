@@ -1,13 +1,12 @@
 import { cn, Typography } from '@aero/ui';
 import { CircleCheck, CircleStop, ListCheck } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
-
 import { useSessionTodos } from '@/app/hooks/api/sessions';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function TaskStatus() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   const isVisible = useStatusPanelStore((state) => state.visibleItems.task);
 

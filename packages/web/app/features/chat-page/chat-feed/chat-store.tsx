@@ -50,7 +50,8 @@ interface SessionRuntime {
 }
 
 interface ChatStore {
-  activeSessionId: string | null;
+  activeSessionId: string | undefined;
+  activeSideChatSessionId: string | undefined;
   activeSession: SessionRuntime;
 
   sessions: Record<string, SessionRuntime>;
@@ -1099,7 +1100,8 @@ export const useChatStore = create<ChatStore>()(
       const pendingPartUpdates = new Map<string, AeroPart[]>();
 
       return {
-        activeSessionId: null,
+        activeSessionId: undefined,
+        activeSideChatSessionId: undefined,
         activeSession: createEmptyRuntime(),
         sessions: {},
         runningSessions: [],
@@ -1459,3 +1461,18 @@ export const useChatStore = create<ChatStore>()(
     },
   ),
 );
+
+export function useSessionRuntime<T>(
+  sessionId: string | undefined,
+  selector: (session: SessionRuntime) => T,
+): T {
+  return useChatStore((state) => {
+    if (!sessionId) return selector(createEmptyRuntime());
+
+    const session = state.sessions[sessionId];
+
+    if (!session) return selector(createEmptyRuntime());
+
+    return selector(session);
+  });
+}

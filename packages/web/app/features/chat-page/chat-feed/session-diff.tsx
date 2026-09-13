@@ -64,6 +64,7 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
       <Popover.Content
         placement='top right'
         className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
+        offset={4}
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>

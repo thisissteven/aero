@@ -9,7 +9,7 @@ import {
   Volume,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import {
   sessionKeys,
   useForkSession,
@@ -21,11 +21,11 @@ import {
 } from '@/app/hooks/api/settings';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { queryClient } from '@/app/providers';
-import { Route } from '@/app/routes/_app/sessions/$sessionId';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSpeechStore } from '@/app/stores/speech';
 
 export function MessageActionsPin({ messageId }: { messageId: string }) {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { data } = usePinnedSessionMessage(sessionId, messageId);
   const { mutateAsync: updateSetting } = useUpdateSetting();
 
@@ -59,7 +59,7 @@ export function MessageActionsPin({ messageId }: { messageId: string }) {
 }
 
 export function MessageActionsRevert({ messageId }: { messageId: string }) {
-  const { sessionId } = Route.useParams();
+  const sessionId = useSessionId();
   const { mutateAsync } = useRevertSession(undefined, sessionId);
 
   return (
@@ -89,7 +89,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
 }
 
 export function MessageActionsFork({ messageId }: { messageId: string }) {
-  const { sessionId } = Route.useParams();
+  const sessionId = useSessionId();
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
 
   const navigate = useNavigate();

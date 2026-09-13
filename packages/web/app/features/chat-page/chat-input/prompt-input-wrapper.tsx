@@ -1,13 +1,13 @@
-import { useNavigate, useParams } from '@tanstack/react-router';
-import { ReactNode, useState } from 'react';
-
 import { PromptInput, toast } from '@aero/ui';
+import { useNavigate } from '@tanstack/react-router';
+import { ReactNode, useState } from 'react';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { usePromptInput } from '@/app/features/chat-page/chat-input/use-prompt-input';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useCreateSession } from '@/app/hooks/api/sessions';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function NewSessionPromptInputWrapper({
   children,
@@ -98,7 +98,7 @@ export function ActiveSessionPromptInputWrapper({
     isPending,
   } = usePromptInput({ isDisabled });
 
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   return (
     <PromptInput

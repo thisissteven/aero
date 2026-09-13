@@ -1,12 +1,14 @@
 import { ChevronsDown } from '@gravity-ui/icons';
-import { useParams } from '@tanstack/react-router';
 import React, { ReactNode, RefObject, useMemo } from 'react';
-
 import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom-button';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import type {
   AeroConversationTurn,
   AeroSessionStatus,
@@ -101,15 +103,17 @@ function PixelLoader() {
 
 export const ChatActivityIndicator = React.memo(
   function ChatActivityIndicator() {
-    const turns = useChatStore((state) => state.activeSession.turns);
-    const status = useChatStore((state) => state.activeSession.status);
-    const startedAt = useChatStore(
-      (state) => state.activeSession.streamStartedAt,
+    const sessionId = useSessionId();
+
+    const turns = useSessionRuntime(sessionId, (runtime) => runtime.turns);
+    const status = useSessionRuntime(sessionId, (runtime) => runtime.status);
+    const startedAt = useSessionRuntime(
+      sessionId,
+      (runtime) => runtime.streamStartedAt,
     );
 
     const elapsed = useElapsedTime(startedAt, status.type !== 'idle');
 
-    const { sessionId } = useParams({ strict: false });
     const { data: session } = useSession(undefined, sessionId);
 
     const isSubagent = Boolean(session?.parentId);
@@ -120,9 +124,7 @@ export const ChatActivityIndicator = React.memo(
       [role, turns, status],
     );
 
-    const isChatInputExpanded = useChatInputExpanded();
-
-    if (!label || isChatInputExpanded) {
+    if (!label) {
       return null;
     }
 
@@ -201,9 +203,12 @@ export const WithScrollToBottomWrapper = React.memo(
       subscribeScroll,
     });
 
-    const status = useChatStore((state) => state.activeSession.status);
+    const sessionId = useSessionId();
+    const status = useSessionRuntime(sessionId, (runtime) => runtime.status);
+    const isChatInputExpanded = useChatInputExpanded();
 
     if (status.type === 'idle' && !showButton) return null;
+    if (isChatInputExpanded) return null;
 
     return (
       <div className='absolute left-0 -translate-y-full'>

@@ -1,15 +1,13 @@
 import { cn, IconButton, Tooltip } from '@aero/ui';
 import { DisplayPulse } from '@gravity-ui/icons';
-import { useParams } from '@tanstack/react-router';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function StatusPanelToggle() {
   const isOpen = useStatusPanelStore((state) => state.isOpen);
   const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   if (!sessionId) {
     return null;

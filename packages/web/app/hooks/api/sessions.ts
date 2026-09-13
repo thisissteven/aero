@@ -11,11 +11,10 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
 import type { InferRequestType, InferResponseType } from 'hono/client';
-
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
   AeroQuestionAnswer,
@@ -186,7 +185,7 @@ export function useSessionStatus(
 }
 
 export function useSessionDirectory() {
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
 
   const { data: session } = useSession(undefined, sessionId);
 

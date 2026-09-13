@@ -1,14 +1,13 @@
 import { Button } from '@aero/ui';
 import { Kbd } from '@heroui/react';
-import { useParams } from '@tanstack/react-router';
 import React, { useEffect, useMemo, useRef } from 'react';
-
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useReplyToPermission,
   useSessionPermissions,
 } from '@/app/hooks/api/sessions';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { normalizePath } from '@/server/shared';
 
 export type EditToolNames =
@@ -21,9 +20,7 @@ export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
 
 export const ReplyToPermission = React.memo(() => {
-  const { sessionId: activeSessionId } = useParams({
-    strict: false,
-  });
+  const activeSessionId = useSessionId();
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 

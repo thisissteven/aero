@@ -1,6 +1,7 @@
 import { cn, Tooltip, Typography } from '@aero/ui';
-
+import { useSessionChildren } from '@/app/hooks/api/sessions';
 import { collapsibleNav, NavItemId } from '@/app/lib/constants';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 interface ChatAsideProps {
   activeItem: NavItemId | null;
@@ -8,6 +9,11 @@ interface ChatAsideProps {
 }
 
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
+  const sessionId = useSessionId();
+  const { data: sessionChildren } = useSessionChildren(undefined, sessionId);
+
+  const hasChildren = sessionChildren && sessionChildren.length > 0;
+
   return (
     <aside className='relative h-full w-12 shrink-0 max-sm:hidden bg-surface/30'>
       <div
@@ -22,6 +28,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
       >
         {collapsibleNav.map((item) => {
           const isActive = activeItem === item.id;
+          if (item.id === 'side-chat' && !hasChildren) return null;
           return (
             <Tooltip key={item.id}>
               <Tooltip.Trigger aria-label={item.label}>

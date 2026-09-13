@@ -1,8 +1,5 @@
-import { useParams } from '@tanstack/react-router';
-import { useCallback, useState } from 'react';
-
 import { toast } from '@aero/ui';
-
+import { useCallback, useState } from 'react';
 import {
   composerSubmitAfter,
   composerSubmitBefore,
@@ -20,6 +17,7 @@ import {
 } from '@/app/hooks/api/sessions';
 import { useDoubleKeyPress } from '@/app/hooks/useDoubleKeyPress';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
@@ -38,7 +36,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   );
 
   const [isAborting, setIsAborting] = useState(false);
-  const { sessionId } = useParams({ strict: false });
+  const sessionId = useSessionId();
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: sendCommand } = useSendCommand(undefined);

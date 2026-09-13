@@ -6,9 +6,7 @@ import {
   CircleCheck,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import React, { useEffect, useMemo, useState } from 'react';
-
 import type {
   QuestionOption,
   QuestionPart,
@@ -20,11 +18,10 @@ import {
   useSessionQuestions,
 } from '@/app/hooks/api/sessions';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export const ReplyToQuestion = React.memo(() => {
-  const { sessionId: activeSessionId } = useParams({
-    strict: false,
-  });
+  const activeSessionId = useSessionId();
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 

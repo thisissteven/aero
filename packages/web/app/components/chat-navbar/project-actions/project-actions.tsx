@@ -18,7 +18,6 @@ import {
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { useBrowserStore } from '@/app/components/chat-aside/browser/browser-store';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
@@ -31,6 +30,7 @@ import { useSession } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 interface DetectedApp {
@@ -51,9 +51,7 @@ async function openApp(path: string, appId: string): Promise<boolean> {
 }
 
 export function ProjectActions() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data: session } = useSession(undefined, sessionId);
 

@@ -1,13 +1,15 @@
 // chat-feed.tsx
 
+import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
-import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
-
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { SelectionPopover } from '@/app/components/selection-popover';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
 import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
@@ -15,6 +17,7 @@ import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use
 import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
 import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatFeedRef {
@@ -37,11 +40,19 @@ export const ChatFeed = forwardRef<
 
   const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const flatItems = useChatStore((state) => state.activeSession.flatItems);
-  const groupFlatIndex = useChatStore(
-    (state) => state.activeSession.groupFlatIndex,
+  const sessionId = useSessionId();
+  const flatItems = useSessionRuntime(
+    sessionId,
+    (runtime) => runtime.flatItems,
   );
-  const isStreaming = useChatStore((state) => state.activeSession.isStreaming);
+  const groupFlatIndex = useSessionRuntime(
+    sessionId,
+    (runtime) => runtime.groupFlatIndex,
+  );
+  const isStreaming = useSessionRuntime(
+    sessionId,
+    (runtime) => runtime.isStreaming,
+  );
 
   const { subscribeScroll } = useScrollSubscription(scrollRef);
 
@@ -71,7 +82,9 @@ export const ChatFeed = forwardRef<
 
       scrollToIndex: (groupIndex: number) => {
         const targetFlatIndex =
-          useChatStore.getState().activeSession.groupFlatIndex[groupIndex];
+          useChatStore.getState().sessions[sessionId].groupFlatIndex[
+            groupIndex
+          ];
 
         const handle = virtualizerRef.current;
 

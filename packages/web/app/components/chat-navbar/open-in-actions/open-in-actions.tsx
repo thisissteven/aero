@@ -8,13 +8,13 @@ import {
   Terminal,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
 import { useRef } from 'react';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 interface DetectedApp {
   id: string;
@@ -34,9 +34,7 @@ async function openApp(path: string, appId: string): Promise<boolean> {
 }
 
 export function OpenInActions() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data: session } = useSession(undefined, sessionId);
 

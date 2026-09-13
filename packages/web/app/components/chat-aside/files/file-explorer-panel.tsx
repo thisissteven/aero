@@ -1,17 +1,13 @@
-import { useParams } from '@tanstack/react-router';
-import { useState } from 'react';
-
 import { Skeleton } from '@aero/ui';
-
+import { useState } from 'react';
 import { FileContentPane } from '@/app/components/chat-aside/files/file-content-pane';
 import { FileExplorer } from '@/app/components/chat-aside/files/file-explorer';
 import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function FileExplorerPanel() {
-  const { sessionId } = useParams({
-    strict: false,
-  });
+  const sessionId = useSessionId();
 
   const { data: session, isLoading } = useSession(undefined, sessionId);
 
