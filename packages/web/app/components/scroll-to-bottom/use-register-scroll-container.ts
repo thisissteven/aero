@@ -1,17 +1,20 @@
 import { RefObject, useEffect } from 'react';
-
-import { useScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
+import { StoreApi, UseBoundStore } from 'zustand';
+import { ScrollControllerState } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 
 export function useRegisterScrollContainer(
   scrollRef: RefObject<HTMLDivElement | null> | null,
+  useStore: UseBoundStore<StoreApi<ScrollControllerState>>,
 ) {
   useEffect(() => {
     if (scrollRef) {
-      useScrollController.getState().setScrollRef(scrollRef);
+      useStore
+        .getState()
+        .setScrollRef(scrollRef as RefObject<HTMLElement | null>);
     }
 
     return () => {
-      useScrollController.setState({ scrollRef: null });
+      useStore.setState({ scrollRef: null });
     };
-  }, [scrollRef]);
+  }, [scrollRef, useStore]);
 }

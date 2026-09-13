@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-
 import { ChatPage } from '@/app/features/chat-page';
 import {
   useChatStore,
@@ -15,8 +14,26 @@ import { useSessionStream } from '@/app/hooks/api/stream-event';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function SessionPage() {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
   const sessionId = useSessionId();
 
+  const { session, turns, notFound } = useSessionPage(sessionId);
+
+  return (
+    <div ref={setContainer} className='relative h-full overflow-hidden'>
+      {container && <ModelAgentDropdownSheet container={container} />}
+      <ChatPage
+        sessionId={sessionId}
+        workspace={session?.workspace}
+        groups={turns}
+        notFound={notFound}
+      />
+    </div>
+  );
+}
+
+export function useSessionPage(sessionId: string) {
   const { data: session, isLoading: isSessionLoading } = useSession(
     undefined,
     sessionId,
@@ -106,17 +123,9 @@ export function SessionPage() {
 
   const notFound = !session && !isSessionLoading;
 
-  const [container, setContainer] = useState<HTMLDivElement | null>(null);
-
-  return (
-    <div ref={setContainer} className='relative h-full overflow-hidden'>
-      {container && <ModelAgentDropdownSheet container={container} />}
-      <ChatPage
-        sessionId={sessionId}
-        workspace={session?.workspace}
-        groups={turns}
-        notFound={notFound}
-      />
-    </div>
-  );
+  return {
+    session,
+    turns,
+    notFound,
+  };
 }

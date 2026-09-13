@@ -1,7 +1,6 @@
+import { Button, cn, IconChevronDown, Tooltip } from '@aero/ui';
 import type { RefObject } from 'react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-
-import { Button, cn, IconChevronDown, Tooltip } from '@aero/ui';
 
 import { useScrollToBottom } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom';
 
@@ -24,7 +23,7 @@ export const ScrollToBottomButton = memo(function ScrollToBottomButton({
     null,
   );
 
-  const scrollToBottom = useScrollToBottom();
+  const scrollToBottom = useScrollToBottom('main');
 
   const threshold = 100;
 

@@ -6,12 +6,14 @@ interface UseScrollToBottomButtonProps {
   scrollRef: RefObject<HTMLElement | null>;
   subscribeScroll: (callback: () => void) => () => void;
   threshold?: number;
+  type: 'main' | 'side';
 }
 
 export function useScrollToBottomButton({
   scrollRef,
   subscribeScroll,
   threshold = 100,
+  type,
 }: UseScrollToBottomButtonProps) {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showButton, setShowButton] = useState(false);
@@ -20,7 +22,7 @@ export function useScrollToBottomButton({
     null,
   );
 
-  const scrollToBottom = useScrollToBottom();
+  const scrollToBottom = useScrollToBottom(type);
 
   const clearShowButtonTimeout = useCallback(() => {
     if (showButtonTimeoutRef.current !== null) {

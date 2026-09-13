@@ -2,6 +2,7 @@ import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
+import { useMainScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,
@@ -17,7 +18,7 @@ import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { OfflineWrapper } from '@/app/providers';
-import { useChatScrollStore } from '@/app/stores/chat-scroll-store';
+import { useMainChatScrollStore } from '@/app/stores/chat-scroll-store';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatPageProps {
@@ -39,7 +40,7 @@ export function ChatPage({
   );
 
   const feedRef = useRef<ChatFeedRef | null>(null);
-  const registerScrollToIndex = useChatScrollStore(
+  const registerScrollToIndex = useMainChatScrollStore(
     (state) => state.registerScrollToIndex,
   );
 
@@ -57,7 +58,7 @@ export function ChatPage({
   }, [groups.length, registerScrollToIndex]);
 
   const handleSelectTocItem = useCallback((groupIndex: number) => {
-    useChatScrollStore.getState().scrollToIndex(groupIndex);
+    useMainChatScrollStore.getState().scrollToIndex(groupIndex);
   }, []);
 
   /**
@@ -78,7 +79,10 @@ export function ChatPage({
     [],
   );
 
-  useRegisterScrollContainer(feedRef.current?.scrollRef ?? null);
+  useRegisterScrollContainer(
+    feedRef.current?.scrollRef ?? null,
+    useMainScrollController,
+  );
 
   return (
     <div
@@ -116,6 +120,7 @@ export function ChatPage({
                 },
               }}
               subscribeScroll={subscribeScroll}
+              type='main'
             >
               <ChatActivityIndicator />
             </WithScrollToBottomWrapper>

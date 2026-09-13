@@ -6,7 +6,10 @@ import {
 } from '@/app/components/smart-composer/components/composer-submit';
 import { extractCommandPayload } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   useAbortSession,
@@ -43,9 +46,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const { mutate: abortSession } = useAbortSession(undefined);
   const { data: session } = useSession(undefined, sessionId);
 
-  const status = useChatStore((state) =>
-    sessionId ? (state.sessions[sessionId]?.status?.type ?? 'idle') : 'idle',
-  );
+  const status = useSessionRuntime(sessionId, (runtime) => runtime.status.type);
 
   const isPending = status !== 'idle';
 

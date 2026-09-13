@@ -1,10 +1,7 @@
 import { ChevronsDown } from '@gravity-ui/icons';
 import React, { ReactNode, RefObject, useMemo } from 'react';
 import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom-button';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
@@ -193,14 +190,17 @@ export const WithScrollToBottomWrapper = React.memo(
     scrollRef,
     subscribeScroll,
     children,
+    type,
   }: {
     scrollRef: RefObject<HTMLElement | null>;
     subscribeScroll: (callback: () => void) => () => void;
     children: ReactNode;
+    type: 'main' | 'side';
   }) {
     const { scrollToBottom, showButton } = useScrollToBottomButton({
       scrollRef,
       subscribeScroll,
+      type,
     });
 
     const sessionId = useSessionId();

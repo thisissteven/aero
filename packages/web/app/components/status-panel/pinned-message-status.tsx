@@ -2,17 +2,14 @@ import { cn, IconButton, Typography } from '@aero/ui';
 import { Pin, PinFill } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessionPinnedMessages } from '@/app/hooks/api/sessions';
 import {
   usePinnedSessionMessage,
   useUpdateSetting,
 } from '@/app/hooks/api/settings';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
-import { useChatScrollStore } from '@/app/stores/chat-scroll-store';
+import { useMainChatScrollStore } from '@/app/stores/chat-scroll-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function PinnedMessageStatus() {
@@ -86,7 +83,7 @@ export function PinnedMessageStatusContent({
               type='body-xs'
               className='text-muted hover:text-foreground cursor-pointer truncate transition-colors hover:underline'
               onClick={() => {
-                useChatScrollStore.getState().scrollToIndex(turn.index);
+                useMainChatScrollStore.getState().scrollToIndex(turn.index);
               }}
             >
               {turn.text}

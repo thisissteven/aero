@@ -2,6 +2,7 @@ import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
+import { useSideScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,
@@ -10,20 +11,16 @@ import {
   ChatFeed,
   type ChatFeedRef,
 } from '@/app/features/chat-page/chat-feed/chat-feed';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
-import { useSession } from '@/app/hooks/api/sessions';
+import { useSessionPage } from '@/app/features/session-page';
 import { OfflineWrapper } from '@/app/providers';
 import {
   SessionIdProvider,
   useSessionId,
 } from '@/app/providers/SessionIdProvider';
-import { useChatScrollStore } from '@/app/stores/chat-scroll-store';
+import { useSideChatScrollStore } from '@/app/stores/chat-scroll-store';
 
 export function SideChatPanel() {
   return (
@@ -33,19 +30,18 @@ export function SideChatPanel() {
   );
 }
 
-function SideChatPage() {
+export function SideChatPage() {
   const sessionId = useSessionId();
 
-  const { data: session } = useSession(undefined, sessionId);
+  const { session, turns: groups } = useSessionPage(sessionId);
   const workspace = session?.workspace;
 
-  const groups = useSessionRuntime(sessionId, (runtime) => runtime.turns);
   const [activeGroupIndex, setActiveGroupIndex] = useState(() =>
     Math.max(groups.length - 1, 0),
   );
 
   const feedRef = useRef<ChatFeedRef | null>(null);
-  const registerScrollToIndex = useChatScrollStore(
+  const registerScrollToIndex = useSideChatScrollStore(
     (state) => state.registerScrollToIndex,
   );
 
@@ -63,7 +59,7 @@ function SideChatPage() {
   }, [groups.length, registerScrollToIndex]);
 
   const handleSelectTocItem = useCallback((groupIndex: number) => {
-    useChatScrollStore.getState().scrollToIndex(groupIndex);
+    useSideChatScrollStore.getState().scrollToIndex(groupIndex);
   }, []);
 
   /**
@@ -84,7 +80,10 @@ function SideChatPage() {
     [],
   );
 
-  useRegisterScrollContainer(feedRef.current?.scrollRef ?? null);
+  useRegisterScrollContainer(
+    feedRef.current?.scrollRef ?? null,
+    useSideScrollController,
+  );
 
   return (
     <div
@@ -116,6 +115,7 @@ function SideChatPage() {
                 },
               }}
               subscribeScroll={subscribeScroll}
+              type='side'
             >
               <ChatActivityIndicator />
             </WithScrollToBottomWrapper>

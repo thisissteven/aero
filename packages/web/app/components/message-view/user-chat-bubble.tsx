@@ -1,3 +1,4 @@
+import { ChatMessage, cn } from '@aero/ui';
 import {
   memo,
   useEffect,
@@ -6,8 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-
-import { ChatMessage, cn } from '@aero/ui';
 
 import {
   MessageActionsCopy,

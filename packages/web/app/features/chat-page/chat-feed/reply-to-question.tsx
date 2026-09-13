@@ -11,7 +11,10 @@ import type {
   QuestionOption,
   QuestionPart,
 } from '@/app/components/tool-call-view/tools/tool-types';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useRejectQuestion,
   useReplyToQuestion,
@@ -26,46 +29,44 @@ export const ReplyToQuestion = React.memo(() => {
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
   const isAwaitingQuestion = useChatStore((state) => {
-    if (!activeSessionId) {
-      return false;
-    }
-
+    if (!activeSessionId) return false;
     return state.awaitingQuestions.includes(activeSessionId);
   });
 
-  const questionPart = useChatStore((state) => {
-    if (!activeSessionId || !isAwaitingQuestion) {
-      return null;
-    }
+  const questionPart = useSessionRuntime(
+    activeSessionId,
+    (runtime): QuestionPart | null => {
+      if (!isAwaitingQuestion || !runtime) {
+        return null;
+      }
 
-    const runtime = state.sessions[activeSessionId];
+      for (
+        let turnIndex = runtime.turns.length - 1;
+        turnIndex >= 0;
+        turnIndex--
+      ) {
+        const turn = runtime.turns[turnIndex];
 
-    if (!runtime) {
-      return null;
-    }
-
-    for (
-      let turnIndex = runtime.turns.length - 1;
-      turnIndex >= 0;
-      turnIndex--
-    ) {
-      const turn = runtime.turns[turnIndex];
-
-      for (let partIndex = turn.parts.length - 1; partIndex >= 0; partIndex--) {
-        const part = turn.parts[partIndex];
-
-        if (
-          part.type === 'tool' &&
-          part.toolName === 'question' &&
-          part.status === 'running'
+        for (
+          let partIndex = turn.parts.length - 1;
+          partIndex >= 0;
+          partIndex--
         ) {
-          return part as QuestionPart;
+          const part = turn.parts[partIndex];
+
+          if (
+            part.type === 'tool' &&
+            part.toolName === 'question' &&
+            part.status === 'running'
+          ) {
+            return part as QuestionPart;
+          }
         }
       }
-    }
 
-    return null;
-  });
+      return null;
+    },
+  );
 
   const {
     data: sessionQuestions = [],

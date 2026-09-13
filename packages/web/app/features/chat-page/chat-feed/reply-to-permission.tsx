@@ -1,7 +1,7 @@
 import { Button } from '@aero/ui';
 import { Kbd } from '@heroui/react';
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useReplyToPermission,
   useSessionPermissions,
@@ -25,12 +25,7 @@ export const ReplyToPermission = React.memo(() => {
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
   // 1. Get latest permission from chat store
-  const storePermission = useChatStore((state) => {
-    if (!activeSessionId) {
-      return null;
-    }
-
-    const runtime = state.sessions[activeSessionId];
+  const storePermission = useSessionRuntime(activeSessionId, (runtime) => {
     if (!runtime || !runtime.permissions || runtime.permissions.length === 0) {
       return null;
     }
@@ -72,13 +67,13 @@ export const ReplyToPermission = React.memo(() => {
     : currentPermissionRequest;
 
   // 4. Find matching tool call from store using callID
-  const targetToolCall = useChatStore((state) => {
-    if (!activeSessionId || !permissionRequest) {
-      return null;
-    }
-
-    const runtime = state.sessions[activeSessionId];
-    if (!runtime || !runtime.turns || runtime.turns.length === 0) {
+  const targetToolCall = useSessionRuntime(activeSessionId, (runtime) => {
+    if (
+      !permissionRequest ||
+      !runtime ||
+      !runtime.turns ||
+      runtime.turns.length === 0
+    ) {
       return null;
     }
 

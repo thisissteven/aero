@@ -6,7 +6,10 @@ import {
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
-import { useScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
+import {
+  useMainScrollController,
+  useSideScrollController,
+} from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
@@ -180,17 +183,23 @@ function buildRuntime(
   };
 }
 
+const EMPTY_RUNTIME: SessionRuntime = Object.freeze({
+  status: IDLE,
+  streamStartedAt: null,
+  usageExceeded: undefined,
+  hasLiveStatus: false,
+  hasHydrated: false,
+  messageTurnIds: {},
+  permissions: [],
+  flatItems: [],
+  groupFlatIndex: [],
+  isStreaming: false,
+  revertedMessages: [],
+  turns: [],
+});
+
 function createEmptyRuntime(): SessionRuntime {
-  return {
-    ...buildRuntime([], false),
-    status: IDLE,
-    streamStartedAt: null,
-    usageExceeded: undefined,
-    hasLiveStatus: false,
-    hasHydrated: false,
-    messageTurnIds: {},
-    permissions: [],
-  };
+  return EMPTY_RUNTIME;
 }
 
 function getRuntime(
@@ -831,19 +840,26 @@ function handleMessagePartUpdated(
   }
 
   if (
-    state.activeSessionId === sessionId &&
     lastTurn?.role === 'user' &&
     part.messageID === lastTurn.id &&
     part.type === 'text'
   ) {
-    queryClient.invalidateQueries({
-      queryKey: sessionKeys.toc(undefined, sessionId),
-    });
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        useScrollController.getState().scrollToBottom();
+    if (state.activeSessionId === sessionId) {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.toc(undefined, sessionId),
       });
-    });
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          useMainScrollController.getState().scrollToBottom();
+        });
+      });
+    } else {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          useSideScrollController.getState().scrollToBottom();
+        });
+      });
+    }
   }
 
   const runtime = updatePartInRuntime(current, event, part, revertMessageId);
