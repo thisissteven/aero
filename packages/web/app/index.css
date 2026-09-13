@@ -1,17 +1,26 @@
-@import 'tailwindcss';
-@import '@aero/ui/styles';
-@source './components/**/*.tsx';
-@source './features/**/*.tsx';
-@source './routes/**/*.tsx';
+@import "tailwindcss";
+@import "@aero/ui/styles";
+@source "./components/**/*.tsx";
+@source "./features/**/*.tsx";
+@source "./routes/**/*.tsx";
 
 @layer base {
   button:not(:disabled),
-  [role='button']:not(:disabled) {
+  [role="button"]:not(:disabled) {
     cursor: pointer;
   }
 }
 
 @layer components {
+  .kbd-accent {
+    @apply bg-accent/20! text-accent dark:bg-accent/20! dark:text-accent;
+  }
+
+  .checkbox__control,
+  .checkbox--secondary .checkbox__control {
+    @apply bg-accent/20!;
+  }
+
   .skeleton {
     @apply opacity-70 dark:opacity-30;
   }
@@ -32,8 +41,8 @@
     @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
   }
 
-  [data-slot='menu-item']:hover,
-  [data-slot='list-box-item']:hover {
+  [data-slot="menu-item"]:hover,
+  [data-slot="list-box-item"]:hover {
     @apply bg-default/50! backdrop-blur-sm;
   }
 
@@ -60,30 +69,30 @@
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('./assets/fonts/DMSans-VariableFont_opsz,wght.ttf')
-    format('truetype');
+  font-family: "DM Sans";
+  src: url("./assets/fonts/DMSans-VariableFont_opsz,wght.ttf")
+    format("truetype");
   font-weight: 100 1000;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'DM Sans';
-  src: url('./assets/fonts/DMSans-Italic-VariableFont_opsz,wght.ttf')
-    format('truetype');
+  font-family: "DM Sans";
+  src: url("./assets/fonts/DMSans-Italic-VariableFont_opsz,wght.ttf")
+    format("truetype");
   font-weight: 100 1000;
   font-style: italic;
   font-display: swap;
 }
 
 @theme {
-  --font-sans: 'DM Sans', sans-serif;
+  --font-sans: "DM Sans", sans-serif;
   --scroll-shadow-size: 360px;
 }
 
 /* Hide stray cursor/textarea used for xterm/ghostty keyboard focus */
-textarea[aria-label='Terminal input'],
+textarea[aria-label="Terminal input"],
 div[ref] textarea {
   caret-color: transparent !important;
   left: -9999px !important;

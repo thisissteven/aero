@@ -1,7 +1,6 @@
 import { ChevronsDown } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
-import { ReactNode, RefObject, useMemo } from 'react';
-import React from 'react';
+import React, { ReactNode, RefObject, useMemo } from 'react';
 
 import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -178,7 +177,7 @@ export const ChatActivityIndicator = React.memo(
         </span>
 
         {startedAt !== null && (
-          <span className='text-muted-foreground mt-0.5 font-mono text-xs tabular-nums'>
+          <span className='text-muted-foreground mt-0.5 text-xs tabular-nums'>
             {formatElapsed(elapsed)}
           </span>
         )}
@@ -211,7 +210,7 @@ export const WithScrollToBottomWrapper = React.memo(
         <button
           role='status'
           aria-live='polite'
-          className='border-separator mx-2 mb-1 flex shrink-0 items-center gap-1 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
+          className='border-separator text-muted mx-2 mb-1 flex shrink-0 items-center gap-1 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
           disabled={!showButton}
           onClick={scrollToBottom}
         >

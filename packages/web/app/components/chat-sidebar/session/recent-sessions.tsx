@@ -1,5 +1,3 @@
-import { memo } from 'react';
-
 import {
   cn,
   ListLayout,
@@ -8,6 +6,7 @@ import {
   Spinner,
   Virtualizer,
 } from '@aero/ui';
+import { memo } from 'react';
 
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
@@ -52,7 +51,7 @@ export const RecentChats = memo(function Recents({
 
   return (
     <>
-      <div className='px-2 pt-2'>
+      <div className='pl-3 pr-2 pt-2'>
         <Sidebar.GroupLabel className='flex items-center justify-between'>
           Recent Sessions
           <RecentsToggleEditModeButton />

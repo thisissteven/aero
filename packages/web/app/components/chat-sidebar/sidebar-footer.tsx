@@ -1,4 +1,16 @@
 import {
+  Badge,
+  Kbd,
+  KbdKey,
+  Link,
+  Modal,
+  ScrollShadow,
+  Sidebar,
+  Tooltip,
+  Typography,
+  useSidebar,
+} from '@aero/ui';
+import {
   ArrowsExpandVertical,
   Bars,
   Boxes3,
@@ -30,19 +42,6 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import React from 'react';
 
-import {
-  Badge,
-  Kbd,
-  KbdKey,
-  Link,
-  Modal,
-  ScrollShadow,
-  Sidebar,
-  Tooltip,
-  Typography,
-  useSidebar,
-} from '@aero/ui';
-
 import { IconButton } from '@/app/components/ui/icon-button';
 import { useOpencodeVersion } from '@/app/hooks/api/pool';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
@@ -64,6 +63,7 @@ export function SidebarFooter() {
             }}
             slot='close'
             svgSize='sm'
+            color='accent'
           >
             <Icon data={Gear} />
           </IconButton>
@@ -82,6 +82,7 @@ export function SidebarFooter() {
             }
             slot='close'
             svgSize='sm'
+            color='accent'
           >
             <Icon data={Keyboard} />
           </IconButton>
@@ -100,6 +101,7 @@ export function SidebarFooter() {
             }
             slot='close'
             svgSize='sm'
+            color='accent'
           >
             <Icon data={CircleInfo} />
           </IconButton>

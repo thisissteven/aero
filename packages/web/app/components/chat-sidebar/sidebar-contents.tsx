@@ -1,8 +1,7 @@
+import { Kbd, Sidebar } from '@aero/ui';
 import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { memo, useTransition } from 'react';
-
-import { Kbd, Sidebar } from '@aero/ui';
 
 import { RightSidebarview } from '@/app/components/chat-sidebar/right-sidebar-view';
 import { RecentChats } from '@/app/components/chat-sidebar/session/recent-sessions';
@@ -72,7 +71,7 @@ export const SidebarContents = memo(function SidebarContents({
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
                   <Sidebar.MenuChip>
-                    <Kbd className='text-[11px]'>⌘K</Kbd>
+                    <Kbd className='text-[11px] kbd-accent'>⌘K</Kbd>
                   </Sidebar.MenuChip>
                 </Sidebar.MenuItem>
 

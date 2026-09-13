@@ -1,8 +1,7 @@
+import { Chip } from '@aero/ui';
 import { FaceRobot } from '@gravity-ui/icons';
 import { useNavigate } from '@tanstack/react-router';
 import { memo } from 'react';
-
-import { Chip } from '@aero/ui';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { SubagentPart } from '@/app/components/tool-call-view/tools/tool-types';
@@ -33,7 +32,7 @@ export const SubagentToolView = memo(
         <Chip
           size='sm'
           variant='primary'
-          className='h-5 shrink-0 px-1.5 text-[10px] font-medium capitalize'
+          className='h-5 shrink-0 px-1.5 text-xs font-medium'
         >
           @{subagentType}
         </Chip>

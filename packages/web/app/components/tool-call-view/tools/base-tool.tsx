@@ -1,3 +1,11 @@
+import {
+  AdaptiveCodeBlockCode,
+  AdaptiveCodeBlockCodeProps,
+  Alert,
+  CodeBlock,
+  cn,
+  Disclosure,
+} from '@aero/ui';
 import { Icon } from '@gravity-ui/uikit';
 import type {
   TargetAndTransition,
@@ -7,15 +15,6 @@ import type {
 } from 'motion/react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { memo, ReactNode, SVGProps, useRef } from 'react';
-
-import {
-  AdaptiveCodeBlockCode,
-  AdaptiveCodeBlockCodeProps,
-  Alert,
-  cn,
-  CodeBlock,
-  Disclosure,
-} from '@aero/ui';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
@@ -239,14 +238,16 @@ export function TextEffect({
   const stagger = defaultStaggerTimes[per] / speedReveal;
   const baseDuration = 0.3 / speedSegment;
 
-  const customStagger = hasTransition(variants?.container?.visible ?? {})
-    ? (variants?.container?.visible as TargetAndTransition).transition
-        ?.staggerChildren
+  const visibleVariant = variants?.container?.visible as
+    | TargetAndTransition
+    | undefined;
+
+  const customStagger = hasTransition(visibleVariant ?? {})
+    ? visibleVariant?.transition?.staggerChildren
     : undefined;
 
-  const customDelay = hasTransition(variants?.container?.visible ?? {})
-    ? (variants?.container?.visible as TargetAndTransition).transition
-        ?.delayChildren
+  const customDelay = hasTransition(visibleVariant ?? {})
+    ? visibleVariant?.transition?.delayChildren
     : undefined;
 
   const computedVariants = {
@@ -483,7 +484,9 @@ export function BaseTool({
                   'text-muted flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
                   getAnimationClass(),
                 )}
-                style={getAnimationStyle(4)}
+                style={
+                  previewType === 'path' ? getAnimationStyle(4) : undefined
+                }
               >
                 {preview ? (
                   previewType === 'path' && typeof preview === 'string' ? (
@@ -550,7 +553,10 @@ export function BaseTool({
 
               <Alert
                 status='danger'
-                className='bg-transparent p-0 pt-4 shadow-none'
+                className={cn(
+                  'bg-transparent p-0 pt-4 shadow-none',
+                  !hasCodeContent && 'pb-2',
+                )}
               >
                 <Alert.Content>
                   <Alert.Description className='text-danger'>

@@ -1,15 +1,13 @@
 'use client';
 
+import { ButtonRoot, cn } from '@aero/ui';
 import type { ComponentPropsWithoutRef } from 'react';
 
-import { ButtonRoot, cn } from '@aero/ui';
-
-export interface IconButtonProps extends Omit<
-  ComponentPropsWithoutRef<typeof ButtonRoot>,
-  'size'
-> {
+export interface IconButtonProps
+  extends Omit<ComponentPropsWithoutRef<typeof ButtonRoot>, 'size'> {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   svgSize?: 'xs' | 'sm' | 'lg';
+  color?: 'default' | 'accent';
 }
 
 export const IconButton = ({
@@ -18,6 +16,7 @@ export const IconButton = ({
   size = 'xs',
   svgSize = 'xs',
   variant = 'ghost',
+  color = 'default',
   isIconOnly = true,
   ...props
 }: IconButtonProps) => {
@@ -37,6 +36,7 @@ export const IconButton = ({
           'rounded-md',
           variant === 'ghost' &&
             'opacity-50 hover:opacity-80 active:opacity-80',
+          color === 'accent' && 'text-accent-soft-foreground',
         ],
         className,
       ])}

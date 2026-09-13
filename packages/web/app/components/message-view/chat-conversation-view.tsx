@@ -1,7 +1,6 @@
+import { InfoIcon } from '@aero/ui';
 import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
-
-import { InfoIcon } from '@aero/ui';
 
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
@@ -76,7 +75,7 @@ export function ChatConversationView({
             {item.type === 'assistant-error' && (
               <div className='relative pt-4 pb-2'>
                 <div className='text-danger bg-danger-soft border-danger-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
-                  <InfoIcon className='size-4 font-normal' />
+                  <InfoIcon className='size-4 font-normal shrink-0' />
                   <div className='align-middle'>{item.message}</div>
                 </div>
               </div>
@@ -84,7 +83,7 @@ export function ChatConversationView({
             {item.type === 'assistant-turn-aborted' && (
               <div className='relative pt-4 pb-2'>
                 <div className='text-accent bg-accent-soft border-accent-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
-                  <InfoIcon className='size-4 font-normal' />
+                  <InfoIcon className='size-4 font-normal shrink-0' />
                   <div className='align-middle'>{item.message}</div>
                 </div>
               </div>
