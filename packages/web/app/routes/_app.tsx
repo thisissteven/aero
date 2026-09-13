@@ -1,6 +1,5 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router';
-
 import { ToastProvider } from '@aero/ui';
+import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 import { ChatShell } from '@/app/components/chat-shell';
 import { usePoolReady } from '@/app/hooks/api/pool';

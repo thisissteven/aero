@@ -1,8 +1,7 @@
+import { cn, Popover } from '@aero/ui';
 import { ChevronDown, PencilToLine } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
-
-import { cn, Popover } from '@aero/ui';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
@@ -39,7 +38,7 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none @max-md:hidden'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none @max-md:hidden border border-separator'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed

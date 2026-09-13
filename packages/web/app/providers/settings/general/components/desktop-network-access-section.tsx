@@ -1,9 +1,8 @@
 // components/desktop-network-access-section.tsx
 
 import { Button, Checkbox, Input, Label, Typography } from '@aero/ui';
-
-import { InfoTooltip } from './info-tooltip';
 import { useGeneralStore } from '../general-store';
+import { InfoTooltip } from './info-tooltip';
 
 export function DesktopNetworkAccessSection() {
   return (

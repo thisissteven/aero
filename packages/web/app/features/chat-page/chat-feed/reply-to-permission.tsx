@@ -1,8 +1,7 @@
+import { Button } from '@aero/ui';
 import { Kbd } from '@heroui/react';
 import { useParams } from '@tanstack/react-router';
 import React, { useEffect, useMemo, useRef } from 'react';
-
-import { Button } from '@aero/ui';
 
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
@@ -13,7 +12,10 @@ import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 import { normalizePath } from '@/server/shared';
 
 export type EditToolNames =
-  'edit' | 'multiedit' | 'str_replace' | 'str_replace_based_edit_tool';
+  | 'edit'
+  | 'multiedit'
+  | 'str_replace'
+  | 'str_replace_based_edit_tool';
 export type WriteToolNames = 'write' | 'create' | 'file_write';
 export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';

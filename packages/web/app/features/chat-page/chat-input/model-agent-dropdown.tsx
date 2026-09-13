@@ -1,6 +1,5 @@
-import { Icon } from '@gravity-ui/uikit';
-
 import { Button, Sheet } from '@aero/ui';
+import { Icon } from '@gravity-ui/uikit';
 
 import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';

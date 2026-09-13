@@ -1,6 +1,5 @@
-import { useParams } from '@tanstack/react-router';
-
 import { ProgressBar, Typography } from '@aero/ui';
+import { useParams } from '@tanstack/react-router';
 
 import { DisplayPopover } from '@/app/components/status-panel/display-popover';
 import { useSessionContext } from '@/app/hooks/api/sessions';
@@ -33,7 +32,7 @@ function ContextUsage() {
         maxValue={100}
         value={Math.min(100, Math.max(0, Number(percentage)))}
       >
-        <ProgressBar.Track className='h-1.5'>
+        <ProgressBar.Track className='h-1.5 bg-accent/10 backdrop-blur-sm'>
           <ProgressBar.Fill />
         </ProgressBar.Track>
       </ProgressBar>

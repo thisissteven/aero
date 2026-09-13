@@ -1,9 +1,8 @@
+import { cn, toast } from '@aero/ui';
 import { Check, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-import { cn, toast } from '@aero/ui';
 
 import { sessionKeys, useRenameSession } from '@/app/hooks/api/sessions';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
@@ -142,7 +141,7 @@ export function SessionTitleEditable({
             onClick={(e) => e.stopPropagation()}
             type='submit'
             className={cn(
-              'bg-surface-secondary dark:bg-surface hover:bg-surface-hover dark:hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
+              'bg-default/40 backdrop-blur-sm cursor-pointer rounded-md p-1 transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
               buttonClassName,
             )}
           >
@@ -152,7 +151,7 @@ export function SessionTitleEditable({
             disabled={isPending}
             type='button'
             className={cn(
-              'bg-surface-secondary dark:bg-surface hover:bg-surface-hover dark:hover:bg-surface-hover cursor-pointer rounded-md p-1 backdrop-blur-sm transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
+              'bg-default/40 backdrop-blur-sm cursor-pointer rounded-md p-1 transition active:scale-95 disabled:pointer-events-none disabled:opacity-50',
               buttonClassName,
             )}
             onClick={(e) => {

@@ -71,7 +71,7 @@ export const SidebarContents = memo(function SidebarContents({
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
                   <Sidebar.MenuChip>
-                    <Kbd className='text-[11px] kbd-accent'>⌘K</Kbd>
+                    <Kbd className='text-[11px]'>⌘K</Kbd>
                   </Sidebar.MenuChip>
                 </Sidebar.MenuItem>
 

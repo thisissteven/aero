@@ -28,7 +28,7 @@ export function ChatInput({
       <PromptInput.Shell
         className={cn(
           'border-separator @container relative border',
-          isShellMode && 'border-accent/20 dark:border-accent/15',
+          isShellMode && 'border-separator dark:border-separator',
         )}
         inert={isDisabled}
       >

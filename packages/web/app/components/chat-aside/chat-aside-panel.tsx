@@ -1,3 +1,5 @@
+import type { PanelImperativeHandle } from '@aero/ui';
+import { Resizable } from '@aero/ui';
 import {
   ChevronsCollapseUpRight,
   ChevronsExpandUpRight,
@@ -5,9 +7,6 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useRef } from 'react';
-
-import type { PanelImperativeHandle } from '@aero/ui';
-import { Resizable } from '@aero/ui';
 
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
@@ -63,7 +62,7 @@ export function ChatAsidePanel() {
         maxSize={isExpanded ? '100%' : '70%'}
         groupResizeBehavior='preserve-pixel-size'
       >
-        <aside className='flex h-full flex-col'>
+        <aside className='flex h-full flex-col bg-surface/30 backdrop-blur-sm'>
           <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
             <div className='flex items-center gap-2'>
               <span className='flex size-4 place-items-center'>

@@ -1,7 +1,6 @@
+import { Typography } from '@aero/ui';
 import { ArrowsRotateRight, Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Typography } from '@aero/ui';
 
 export function UsageStatus() {
   return (

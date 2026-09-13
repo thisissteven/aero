@@ -1,3 +1,4 @@
+import { cn, IconButton, Tooltip, toast } from '@aero/ui';
 import {
   ArrowUturnCcwLeft,
   Check,
@@ -9,10 +10,6 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate, useParams } from '@tanstack/react-router';
-
-import { cn, toast, Tooltip } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import {
   sessionKeys,
   useForkSession,

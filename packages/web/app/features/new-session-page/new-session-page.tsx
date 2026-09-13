@@ -1,6 +1,5 @@
-import { useState } from 'react';
-
 import { cn, PromptInput } from '@aero/ui';
+import { useState } from 'react';
 
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
@@ -56,7 +55,7 @@ export function NewSessionPage() {
                 <PromptInput.Shell
                   className={cn(
                     'border-separator @container relative border',
-                    isShellMode && 'border-accent/20 dark:border-accent/15',
+                    isShellMode && 'border-separator dark:border-separator',
                   )}
                 >
                   <div className='absolute top-2 right-2'>

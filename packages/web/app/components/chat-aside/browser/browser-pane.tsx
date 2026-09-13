@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Button, cn, toast } from '@aero/ui';
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,8 +12,6 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Button, cn, toast } from '@aero/ui';
-
 import {
   CachedProxyTarget,
   formatAgentationContext,
@@ -21,9 +20,9 @@ import {
   isPreviewElementMetadata,
   normalizeBrowserUrl,
   PreviewBridgeMessage,
-  previewProxyTargetCache,
   PreviewSelection,
   PreviewSelectionPreview,
+  previewProxyTargetCache,
 } from '@/app/components/chat-aside/browser/browser-helpers';
 import { IconBtn } from '@/app/components/chat-aside/browser/icon-btn';
 import { LocalhostPorts } from '@/app/components/chat-aside/browser/localhost-ports';
@@ -866,7 +865,7 @@ export function BrowserPane({
 
         {/* Global Loading Overlay */}
         {tab.isLoading && (
-          <div className='bg-background/70 text-muted absolute inset-0 flex items-center justify-center text-sm'>
+          <div className='text-muted absolute inset-0 flex items-center justify-center text-sm'>
             Loading...
           </div>
         )}

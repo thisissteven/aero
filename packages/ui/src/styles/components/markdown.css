@@ -193,8 +193,8 @@
       Menlo,
       Monaco,
       Consolas,
-      'Liberation Mono',
-      'Courier New',
+      "Liberation Mono",
+      "Courier New",
       monospace
     );
     font-size: 0.875em;
@@ -202,32 +202,28 @@
     overflow-wrap: break-word;
   }
 
-  /*
-   * Streaming text
-   *
-   * The Markdown renderer adds `.t-stream-w` to newly rendered words.
-   * The animation runs once when each span enters the DOM.
-   */
-  .markdown .t-stream-w {
-    opacity: 0;
-    filter: blur(1px);
-    animation: t-stream-word-in 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* GPU-accelerated smooth trailing fade effect during active streaming */
+  /* Creates a continuous, sweeping 'wave' across incoming words */
+  /* Animated trailing characters as text streams in */
+  .markdown__stream-tail {
+    display: inline;
+    animation: markdown-tail-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: opacity, transform;
   }
 
-  @keyframes t-stream-word-in {
-    from {
-      opacity: 0;
-      filter: blur(1px);
+  @keyframes markdown-tail-reveal {
+    0% {
+      opacity: 0.2;
+      transform: translateY(3px);
     }
-
-    to {
+    100% {
       opacity: 1;
-      filter: blur(0);
+      transform: translateY(0px);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .markdown .t-stream-w {
+    .markdown .t-stream-active {
       animation: none;
       opacity: 1;
       filter: none;
@@ -236,23 +232,23 @@
 }
 
 @property --tw-leading {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-font-weight {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-space-y-reverse {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0;
 }
 
 @property --tw-border-style {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: solid;
 }

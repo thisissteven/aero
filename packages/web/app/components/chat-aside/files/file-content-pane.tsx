@@ -1,9 +1,8 @@
+import { cn } from '@aero/ui';
 import { Text } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { File as PierreFile } from '@pierre/diffs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-import { cn } from '@aero/ui';
 
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 import { FileTypeIcon } from '@/app/components/file-type-icon';

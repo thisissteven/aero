@@ -1,8 +1,5 @@
+import { IconButton, Tooltip } from '@aero/ui';
 import { useParams } from '@tanstack/react-router';
-
-import { Tooltip } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { formatCompactNumber } from '@/app/lib/number';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';

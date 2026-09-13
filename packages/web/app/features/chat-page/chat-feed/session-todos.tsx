@@ -1,8 +1,7 @@
+import { cn, Popover } from '@aero/ui';
 import { ChevronDown, CircleCheck, CircleStop, Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
-
-import { cn, Popover } from '@aero/ui';
 
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
@@ -40,7 +39,7 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm @max-md:hidden'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm @max-md:hidden border border-separator'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle @max-md:hidden'>
           {inProgress.length > 0
             ? inProgress[0].content

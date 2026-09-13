@@ -8,14 +8,21 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { createContext, memo, useContext, useMemo, useRef } from 'react';
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-
-import { CodeBlock } from './code-block';
 import { useAutoScroll } from '../hooks';
+import { CodeBlock } from './code-block';
 
 interface MarkdownFileContextValue {
   isFile?: (path: string) => boolean;
@@ -27,7 +34,7 @@ export const MarkdownFileContext = createContext<MarkdownFileContextValue>({});
 type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps;
 
 const MarkdownCode = memo(function MarkdownCode({
-  children,
+  children = '',
   className,
   node,
   ...props
@@ -95,103 +102,93 @@ export const defaultComponents: Components = {
 };
 
 /**
- * Rehype plugin that wraps rendered text nodes in word spans.
- *
- * This runs after Markdown has been parsed, so Markdown syntax remains intact.
- * Code blocks and inline code are intentionally skipped.
+ * Throttles stream updates to the display refresh rate (rAF)
+ * for buttery-smooth character reveals without layout thrashing.
  */
-function rehypeStreamingWords() {
-  return function transformer(tree: HastRoot) {
-    visitTextNodes(tree);
-  };
-}
+function useBufferedStream(rawContent: string, isStreaming: boolean): string {
+  const [displayedContent, setDisplayedContent] = useState(rawContent);
+  const targetRef = useRef(rawContent);
+  targetRef.current = rawContent;
 
-type HastRoot = {
-  type: string;
-  children?: HastNode[];
-};
-
-type HastNode = {
-  type: string;
-  tagName?: string;
-  value?: string;
-  properties?: Record<string, unknown>;
-  children?: HastNode[];
-};
-
-function visitTextNodes(node: HastNode, insideCode = false): void {
-  if (!node.children) return;
-
-  const nextChildren: HastNode[] = [];
-
-  const isCodeElement =
-    node.type === 'element' &&
-    (node.tagName === 'code' || node.tagName === 'pre');
-
-  const nextInsideCode = insideCode || isCodeElement;
-
-  for (const child of node.children) {
-    if (child.type === 'text' && !nextInsideCode) {
-      const tokens = splitTextIntoTokens(child.value ?? '');
-
-      for (const token of tokens) {
-        if (!token) continue;
-
-        if (/^\s+$/.test(token)) {
-          nextChildren.push({
-            type: 'text',
-            value: token,
-          });
-          continue;
-        }
-
-        nextChildren.push({
-          type: 'element',
-          tagName: 'span',
-          properties: {
-            className: ['t-stream-w'],
-          },
-          children: [
-            {
-              type: 'text',
-              value: token,
-            },
-          ],
-        });
-      }
-
-      continue;
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayedContent(rawContent);
+      return;
     }
 
-    visitTextNodes(child, nextInsideCode);
-    nextChildren.push(child);
-  }
+    let frameId: number;
+    const step = () => {
+      setDisplayedContent((prev) => {
+        const target = targetRef.current;
+        if (prev === target) return prev;
 
-  node.children = nextChildren;
-}
+        const diff = target.length - prev.length;
+        if (diff <= 0) return target;
 
-function splitTextIntoTokens(value: string): string[] {
-  return value.split(/(\s+)/);
+        // Slow down the stagger speed: append only 1-2 characters per rAF frame (~60-120 chars/sec)
+        const stepSize = Math.min(diff, 2);
+        return target.slice(0, prev.length + stepSize);
+      });
+
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [isStreaming, rawContent]);
+
+  return isStreaming ? displayedContent : rawContent;
 }
 
 export interface MemoizedBlockProps {
   components: Components;
   content: string;
-  streaming?: boolean;
+  isStreamingBlock?: boolean;
 }
 
 export const MemoizedBlock = memo(
   function MemoizedBlock({
     components,
     content,
-    streaming = false,
+    isStreamingBlock = false,
   }: MemoizedBlockProps): ReactElement {
+    const streamingComponents = useMemo(() => {
+      if (!isStreamingBlock) return components;
+
+      return {
+        ...components,
+        text({ children }: { children?: React.ReactNode }) {
+          if (typeof children !== 'string') return <>{children}</>;
+
+          const splitIndex = Math.max(0, children.length - 3);
+          const stableBody = children.slice(0, splitIndex);
+          const activeTail = children.slice(splitIndex);
+
+          if (!activeTail) return <>{children}</>;
+
+          return (
+            <>
+              {stableBody}
+              <span
+                key={`tail-${children.length}`}
+                className='markdown__stream-tail'
+              >
+                {activeTail}
+              </span>
+            </>
+          );
+        },
+      };
+    }, [components, isStreamingBlock]);
+
     return (
-      <div className='markdown__block' data-slot='markdown-block'>
+      <div
+        className={cn('markdown__block', isStreamingBlock && 't-stream-active')}
+        data-slot='markdown-block'
+      >
         <ReactMarkdown
-          components={components}
+          components={streamingComponents}
           remarkPlugins={[remarkGfm, remarkMath]}
-          rehypePlugins={streaming ? [rehypeStreamingWords] : undefined}
         >
           {content}
         </ReactMarkdown>
@@ -201,13 +198,11 @@ export const MemoizedBlock = memo(
   (prev, next) =>
     prev.content === next.content &&
     prev.components === next.components &&
-    prev.streaming === next.streaming,
+    prev.isStreamingBlock === next.isStreamingBlock,
 );
 
-export interface MarkdownProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children'
-> {
+export interface MarkdownProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   children: string;
   components?: Partial<Components>;
   id: string;
@@ -219,15 +214,18 @@ export interface MarkdownProps extends Omit<
 
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
   function Markdown({
-    children,
+    children = '',
     className,
     components,
+    id,
     isFile,
     onFileClick,
     streaming = false,
     scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
+    const bufferedContent = useBufferedStream(children, streaming);
+
     const renderers = useMemo(
       () => ({
         ...defaultComponents,
@@ -243,6 +241,26 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       }),
       [isFile, onFileClick],
     );
+
+    // Split stream content into distinct block chunks (by double newlines)
+    // to preserve DOM stability for completed paragraphs.
+    const blocks = useMemo(() => {
+      if (!streaming) return [bufferedContent];
+
+      const parts = bufferedContent.split(/(\n\n+)/);
+      const result: string[] = [];
+      let current = '';
+
+      for (let i = 0; i < parts.length; i++) {
+        current += parts[i];
+        if (i % 2 === 1 || i === parts.length - 1) {
+          if (current) result.push(current);
+          current = '';
+        }
+      }
+
+      return result.length > 0 ? result : [bufferedContent];
+    }, [bufferedContent, streaming]);
 
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -261,11 +279,17 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
             ref={scrollRef as RefObject<HTMLDivElement>}
             {...props}
           >
-            <MemoizedBlock
-              components={renderers}
-              content={children}
-              streaming={streaming}
-            />
+            {blocks.map((blockContent, index) => {
+              const isLast = index === blocks.length - 1;
+              return (
+                <MemoizedBlock
+                  key={`${id}-block-${index}`}
+                  components={renderers}
+                  content={blockContent}
+                  isStreamingBlock={streaming && isLast}
+                />
+              );
+            })}
           </div>
         </MarkdownFileContext.Provider>
       </div>

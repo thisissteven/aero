@@ -1,9 +1,6 @@
+import { cn, IconButton, toast } from '@aero/ui';
 import { ArrowsRotateRight } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { cn, toast } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useReloadOpencode } from '@/app/hooks/api/pool';
 
 export function ReloadOpencode() {

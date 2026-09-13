@@ -1,7 +1,6 @@
+import { cn } from '@aero/ui';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-
-import { cn } from '@aero/ui';
 
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';

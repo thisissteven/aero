@@ -2,8 +2,7 @@ import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import net from 'node:net';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
-import path from 'node:path';
+import path, { join } from 'node:path';
 import simpleGit from 'simple-git';
 import z from 'zod';
 
@@ -264,13 +263,13 @@ export function getSkillScope(location: string): SkillScope {
 
   const normalized = location.replaceAll('\\', '/');
 
-  if (/\/\.opencode\/skills\//i.test(normalized)) {
-    return 'project';
-  }
-
   if (/\/\.config\/opencode\/skills\//i.test(normalized)) {
     return 'global';
   }
 
-  return 'global';
+  if (/\/\.opencode\/skills\//i.test(normalized)) {
+    return 'project';
+  }
+
+  return 'project';
 }

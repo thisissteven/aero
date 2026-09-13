@@ -52,12 +52,12 @@
     -ms-overflow-style: none; /* IE/Edge */
   }
 
-  .floating-toc__trigger[data-placement='left'] {
+  .floating-toc__trigger[data-placement="left"] {
     align-items: flex-start;
   }
 
   .floating-toc__trigger:focus-visible:not(:focus),
-  .floating-toc__trigger[data-focus-visible='true'] {
+  .floating-toc__trigger[data-focus-visible="true"] {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0
       calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow:
@@ -80,12 +80,12 @@
     display: flex;
   }
 
-  [data-placement='left'] > .floating-toc__bar {
+  [data-placement="left"] > .floating-toc__bar {
     justify-content: flex-start;
   }
 
   .floating-toc__bar::after {
-    content: '';
+    content: "";
     border-radius: calc(var(--radius) * 0.5);
     @apply bg-border/80 backdrop-blur-sm;
     transition-property: all;
@@ -95,19 +95,21 @@
     );
     --tw-duration: 0.15s;
     width: calc(
-      var(--floating-toc-bar-width) - (var(--floating-toc-level, 1) - 1) *
-        var(--floating-toc-bar-level-step)
+      var(--floating-toc-bar-width) -
+      (var(--floating-toc-level, 1) - 1) *
+      var(--floating-toc-bar-level-step)
     );
     height: var(--floating-toc-bar-height);
     transition-duration: 0.15s;
     display: block;
   }
 
-  .floating-toc__bar[data-active='true']::after {
+  .floating-toc__bar[data-active="true"]::after {
     background-color: var(--accent);
     width: calc(
       var(--floating-toc-bar-active-width) -
-        (var(--floating-toc-level, 1) - 1) * var(--floating-toc-bar-level-step)
+      (var(--floating-toc-level, 1) - 1) *
+      var(--floating-toc-bar-level-step)
     );
     height: var(--floating-toc-bar-active-height);
   }
@@ -131,7 +133,7 @@
     overflow-y: auto;
   }
 
-  .floating-toc__content[data-entering='true'] {
+  .floating-toc__content[data-entering="true"] {
     animation: enter var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -144,7 +146,7 @@
     --tw-enter-scale: 0.97;
   }
 
-  .floating-toc__content[data-exiting='true'] {
+  .floating-toc__content[data-exiting="true"] {
     animation: exit var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -157,58 +159,58 @@
     --tw-exit-scale: 0.97;
   }
 
-  .floating-toc__content[data-placement='bottom'][data-entering='true'] {
+  .floating-toc__content[data-placement="bottom"][data-entering="true"] {
     --tw-enter-translate-y: calc(1 * var(--spacing) * -1);
   }
 
-  .floating-toc__content[data-placement='top'][data-entering='true'] {
+  .floating-toc__content[data-placement="top"][data-entering="true"] {
     --tw-enter-translate-y: calc(1 * var(--spacing));
   }
 
-  .floating-toc__content[data-placement='left'][data-entering='true'] {
+  .floating-toc__content[data-placement="left"][data-entering="true"] {
     --tw-enter-translate-x: calc(1 * var(--spacing));
   }
 
-  .floating-toc__content[data-placement='right'][data-entering='true'] {
+  .floating-toc__content[data-placement="right"][data-entering="true"] {
     --tw-enter-translate-x: calc(1 * var(--spacing) * -1);
   }
 
-  .floating-toc__content[data-exiting='true'],
-  .floating-toc__content[data-entering='true'] {
+  .floating-toc__content[data-exiting="true"],
+  .floating-toc__content[data-entering="true"] {
     will-change: opacity, transform;
   }
 
   :is(
-    .floating-toc__content[data-exiting='true'],
-    .floating-toc__content[data-entering='true']
-  ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *),
+    .floating-toc__content[data-exiting="true"],
+    .floating-toc__content[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *),
   :is(
-      .floating-toc__content[data-exiting='true'],
-      .floating-toc__content[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::before,
+    .floating-toc__content[data-exiting="true"],
+    .floating-toc__content[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::before,
   :is(
-      .floating-toc__content[data-exiting='true'],
-      .floating-toc__content[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::after {
+    .floating-toc__content[data-exiting="true"],
+    .floating-toc__content[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::after {
     animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     :is(
-      .floating-toc__content[data-exiting='true'],
-      .floating-toc__content[data-entering='true']
-    ):not(:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)),
+        .floating-toc__content[data-exiting="true"],
+        .floating-toc__content[data-entering="true"]
+      ):not(:is([data-reduce-motion="true"], [data-reduce-motion="true"] *)),
     :is(
-        .floating-toc__content[data-exiting='true'],
-        .floating-toc__content[data-entering='true']
+        .floating-toc__content[data-exiting="true"],
+        .floating-toc__content[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::before,
     :is(
-        .floating-toc__content[data-exiting='true'],
-        .floating-toc__content[data-entering='true']
+        .floating-toc__content[data-exiting="true"],
+        .floating-toc__content[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::after {
       animation: none;
     }
@@ -235,8 +237,9 @@
     outline-style: none;
     align-items: center;
     padding-inline-start: calc(
-      0.75rem + (var(--floating-toc-level, 1) - 1) *
-        var(--floating-toc-item-indent)
+      0.75rem +
+      (var(--floating-toc-level, 1) - 1) *
+      var(--floating-toc-item-indent)
     );
     display: flex;
     position: relative;
@@ -244,22 +247,22 @@
 
   @media (hover: hover) {
     .floating-toc__item:hover,
-    .floating-toc__item[data-hovered='true'] {
-      @apply bg-default/60 backdrop-blur-sm;
+    .floating-toc__item[data-hovered="true"] {
+      @apply bg-default/40 backdrop-blur-sm;
     }
   }
 
-  .floating-toc__item[data-focused='true'] {
-    @apply bg-default/60 backdrop-blur-sm;
+  .floating-toc__item[data-focused="true"] {
+    @apply bg-default/40 backdrop-blur-sm;
   }
 
   .floating-toc__item:active,
-  .floating-toc__item[data-pressed='true'] {
-    @apply bg-default-hover/60 backdrop-blur-sm;
+  .floating-toc__item[data-pressed="true"] {
+    @apply bg-default-hover/40 backdrop-blur-sm;
   }
 
   .floating-toc__item:focus-visible:not(:focus),
-  .floating-toc__item[data-focus-visible='true'] {
+  .floating-toc__item[data-focus-visible="true"] {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0
       calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow:
@@ -275,103 +278,103 @@
   }
 
   .floating-toc__item:disabled,
-  .floating-toc__item[aria-disabled='true'] {
+  .floating-toc__item[aria-disabled="true"] {
     opacity: var(--disabled-opacity);
     cursor: var(--cursor-disabled);
     pointer-events: none;
   }
 
-  .floating-toc__item[data-active='true'] {
+  .floating-toc__item[data-active="true"] {
     color: var(--accent);
   }
 }
 
 @property --tw-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-inset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-ring-inset {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-offset-width {
-  syntax: '<length>';
+  syntax: "<length>";
   inherits: false;
   initial-value: 0;
 }
 
 @property --tw-ring-offset-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: #fff;
 }
 
 @property --tw-ring-offset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-duration {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ease {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 

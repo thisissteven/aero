@@ -1,7 +1,6 @@
+import { Command } from '@aero/ui';
 import { Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Command } from '@aero/ui';
 
 import {
   ModelPickerList,

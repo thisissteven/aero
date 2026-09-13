@@ -1,6 +1,5 @@
-import { useRef } from 'react';
-
 import { cn } from '@aero/ui';
+import { useRef } from 'react';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { TOKEN_COLOR_MAP } from '@/app/components/smart-composer/smart-composer-dom';
@@ -65,7 +64,7 @@ export function CommandPaletteItem({
       className={cn(
         'group flex cursor-pointer items-center',
         'rounded-md px-3 py-2',
-        active && 'bg-default/60 backdrop-blur-sm',
+        active && 'bg-default/40 backdrop-blur-sm',
       )}
       onMouseMove={handleMouseMove}
       onMouseDown={(event) => {

@@ -1,4 +1,12 @@
 import {
+  Command,
+  cn,
+  IconButton,
+  Kbd,
+  ListLayout,
+  Virtualizer,
+} from '@aero/ui';
+import {
   Check,
   ChevronDown,
   ChevronRight,
@@ -9,11 +17,7 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
-
-import { cn, Command, Kbd, ListLayout, Virtualizer } from '@aero/ui';
-
 import { ProviderLogo } from '@/app/components/provider-logo';
-import { IconButton } from '@/app/components/ui/icon-button';
 import { ModelVirtualItem } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
 import {
   formatCapabilities,

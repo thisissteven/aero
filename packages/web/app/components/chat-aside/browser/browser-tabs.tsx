@@ -1,7 +1,6 @@
+import { IconButton } from '@aero/ui';
 import { Globe, Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 
 import {
   useActiveBrowserTabId,
@@ -15,7 +14,7 @@ export function BrowserTabs() {
   const { addTab, removeTab, setActiveTab } = useBrowserActions();
 
   return (
-    <div className='bg-background flex items-center gap-1 px-1 py-1'>
+    <div className='flex items-center gap-1 px-1 py-1'>
       <div className='flex flex-1 items-center gap-1 overflow-x-auto'>
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
@@ -26,8 +25,8 @@ export function BrowserTabs() {
               onClick={() => setActiveTab(tab.id)}
               className={
                 isActive
-                  ? 'bg-default text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
-                  : 'text-muted hover:bg-default hover:text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
+                  ? 'bg-default/60 text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
+                  : 'text-muted hover:bg-default/60 hover:text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
               }
             >
               <Icon data={Globe} size={14} className='shrink-0 opacity-70' />

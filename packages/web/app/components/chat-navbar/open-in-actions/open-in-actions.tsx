@@ -1,3 +1,4 @@
+import { Dropdown, IconButton, Label, Separator, Tooltip } from '@aero/ui';
 import {
   Check,
   ChevronDown,
@@ -9,11 +10,7 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 import { useRef } from 'react';
-
-import { Dropdown, Label, Separator, Tooltip } from '@aero/ui';
-
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';

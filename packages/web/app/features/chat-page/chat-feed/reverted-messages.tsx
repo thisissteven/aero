@@ -1,11 +1,8 @@
+import { cn, Disclosure, IconButton, toast } from '@aero/ui';
 import { ArrowUturnCcwRight, ChevronDown, CodeFork } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useState } from 'react';
-
-import { cn, Disclosure, toast } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   sessionKeys,

@@ -49,7 +49,7 @@
     position: fixed;
   }
 
-  .command__backdrop[data-entering='true'] {
+  .command__backdrop[data-entering="true"] {
     animation: enter var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -61,7 +61,7 @@
     --tw-enter-opacity: 0;
   }
 
-  .command__backdrop[data-exiting='true'] {
+  .command__backdrop[data-exiting="true"] {
     animation: exit var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -73,42 +73,42 @@
     --tw-exit-opacity: 0;
   }
 
-  .command__backdrop[data-exiting='true'],
-  .command__backdrop[data-entering='true'] {
+  .command__backdrop[data-exiting="true"],
+  .command__backdrop[data-entering="true"] {
     will-change: opacity;
   }
 
   :is(
-    .command__backdrop[data-exiting='true'],
-    .command__backdrop[data-entering='true']
-  ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *),
+    .command__backdrop[data-exiting="true"],
+    .command__backdrop[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *),
   :is(
-      .command__backdrop[data-exiting='true'],
-      .command__backdrop[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::before,
+    .command__backdrop[data-exiting="true"],
+    .command__backdrop[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::before,
   :is(
-      .command__backdrop[data-exiting='true'],
-      .command__backdrop[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::after {
+    .command__backdrop[data-exiting="true"],
+    .command__backdrop[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::after {
     animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     :is(
-      .command__backdrop[data-exiting='true'],
-      .command__backdrop[data-entering='true']
-    ):not(:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)),
+        .command__backdrop[data-exiting="true"],
+        .command__backdrop[data-entering="true"]
+      ):not(:is([data-reduce-motion="true"], [data-reduce-motion="true"] *)),
     :is(
-        .command__backdrop[data-exiting='true'],
-        .command__backdrop[data-entering='true']
+        .command__backdrop[data-exiting="true"],
+        .command__backdrop[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::before,
     :is(
-        .command__backdrop[data-exiting='true'],
-        .command__backdrop[data-entering='true']
+        .command__backdrop[data-exiting="true"],
+        .command__backdrop[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::after {
       animation: none;
     }
@@ -135,19 +135,19 @@
   .command__backdrop--opaque:is(
     .dark,
     .dark *,
-    [data-theme='dark'],
-    [data-theme='dark'] *
+    [data-theme="dark"],
+    [data-theme="dark"] *
   ) {
     background-color: #0009;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__backdrop--opaque:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    ) {
+        .dark,
+        .dark *,
+        [data-theme="dark"],
+        [data-theme="dark"] *
+      ) {
       background-color: color-mix(
         in oklab,
         var(--color-black, #000) 60%,
@@ -157,17 +157,17 @@
   }
 
   .command__backdrop--opaque:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    )::before,
+    .dark,
+    .dark *,
+    [data-theme="dark"],
+    [data-theme="dark"] *
+  )::before,
   .command__backdrop--opaque:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    )::after {
+    .dark,
+    .dark *,
+    [data-theme="dark"],
+    [data-theme="dark"] *
+  )::after {
     background-color: #0009;
   }
 
@@ -175,14 +175,14 @@
     .command__backdrop--opaque:is(
         .dark,
         .dark *,
-        [data-theme='dark'],
-        [data-theme='dark'] *
+        [data-theme="dark"],
+        [data-theme="dark"] *
       )::before,
     .command__backdrop--opaque:is(
         .dark,
         .dark *,
-        [data-theme='dark'],
-        [data-theme='dark'] *
+        [data-theme="dark"],
+        [data-theme="dark"] *
       )::after {
       background-color: color-mix(
         in oklab,
@@ -194,7 +194,7 @@
 
   @media (prefers-color-scheme: dark) {
     .command__backdrop--opaque:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--opaque {
       background-color: #0009;
@@ -202,7 +202,7 @@
 
     @supports (color: color-mix(in lab, red, red)) {
       .command__backdrop--opaque:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--opaque {
         background-color: color-mix(
@@ -214,11 +214,11 @@
     }
 
     .command__backdrop--opaque:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--opaque::before,
     .command__backdrop--opaque:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--opaque::after {
       background-color: #0009;
@@ -226,11 +226,11 @@
 
     @supports (color: color-mix(in lab, red, red)) {
       .command__backdrop--opaque:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--opaque::before,
       .command__backdrop--opaque:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--opaque::after {
         background-color: color-mix(
@@ -273,19 +273,19 @@
   .command__backdrop--blur:is(
     .dark,
     .dark *,
-    [data-theme='dark'],
-    [data-theme='dark'] *
+    [data-theme="dark"],
+    [data-theme="dark"] *
   ) {
     background-color: #0009;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__backdrop--blur:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    ) {
+        .dark,
+        .dark *,
+        [data-theme="dark"],
+        [data-theme="dark"] *
+      ) {
       background-color: color-mix(
         in oklab,
         var(--color-black, #000) 60%,
@@ -295,17 +295,17 @@
   }
 
   .command__backdrop--blur:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    )::before,
+    .dark,
+    .dark *,
+    [data-theme="dark"],
+    [data-theme="dark"] *
+  )::before,
   .command__backdrop--blur:is(
-      .dark,
-      .dark *,
-      [data-theme='dark'],
-      [data-theme='dark'] *
-    )::after {
+    .dark,
+    .dark *,
+    [data-theme="dark"],
+    [data-theme="dark"] *
+  )::after {
     background-color: #0009;
   }
 
@@ -313,14 +313,14 @@
     .command__backdrop--blur:is(
         .dark,
         .dark *,
-        [data-theme='dark'],
-        [data-theme='dark'] *
+        [data-theme="dark"],
+        [data-theme="dark"] *
       )::before,
     .command__backdrop--blur:is(
         .dark,
         .dark *,
-        [data-theme='dark'],
-        [data-theme='dark'] *
+        [data-theme="dark"],
+        [data-theme="dark"] *
       )::after {
       background-color: color-mix(
         in oklab,
@@ -332,7 +332,7 @@
 
   @media (prefers-color-scheme: dark) {
     .command__backdrop--blur:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--blur {
       background-color: #0009;
@@ -340,7 +340,7 @@
 
     @supports (color: color-mix(in lab, red, red)) {
       .command__backdrop--blur:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--blur {
         background-color: color-mix(
@@ -352,11 +352,11 @@
     }
 
     .command__backdrop--blur:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--blur::before,
     .command__backdrop--blur:not(
-        :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+        :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
       )
       .command__backdrop--blur::after {
       background-color: #0009;
@@ -364,11 +364,11 @@
 
     @supports (color: color-mix(in lab, red, red)) {
       .command__backdrop--blur:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--blur::before,
       .command__backdrop--blur:not(
-          :is(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *)
+          :is(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *)
         )
         .command__backdrop--blur::after {
         background-color: color-mix(
@@ -391,7 +391,7 @@
     display: flex;
   }
 
-  .command__container[data-entering='true'] {
+  .command__container[data-entering="true"] {
     animation: enter var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -405,7 +405,7 @@
     transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  .command__container[data-exiting='true'] {
+  .command__container[data-exiting="true"] {
     animation: exit var(--tw-animation-duration, var(--tw-duration, 0.15s))
       var(--tw-ease, ease) var(--tw-animation-delay, 0s)
       var(--tw-animation-iteration-count, 1)
@@ -418,42 +418,42 @@
     transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  .command__container[data-exiting='true'],
-  .command__container[data-entering='true'] {
+  .command__container[data-exiting="true"],
+  .command__container[data-entering="true"] {
     will-change: opacity, transform;
   }
 
   :is(
-    .command__container[data-exiting='true'],
-    .command__container[data-entering='true']
-  ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *),
+    .command__container[data-exiting="true"],
+    .command__container[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *),
   :is(
-      .command__container[data-exiting='true'],
-      .command__container[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::before,
+    .command__container[data-exiting="true"],
+    .command__container[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::before,
   :is(
-      .command__container[data-exiting='true'],
-      .command__container[data-entering='true']
-    ):is([data-reduce-motion='true'], [data-reduce-motion='true'] *)::after {
+    .command__container[data-exiting="true"],
+    .command__container[data-entering="true"]
+  ):is([data-reduce-motion="true"], [data-reduce-motion="true"] *)::after {
     animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     :is(
-      .command__container[data-exiting='true'],
-      .command__container[data-entering='true']
-    ):not(:is([data-reduce-motion='true'], [data-reduce-motion='true'] *)),
+        .command__container[data-exiting="true"],
+        .command__container[data-entering="true"]
+      ):not(:is([data-reduce-motion="true"], [data-reduce-motion="true"] *)),
     :is(
-        .command__container[data-exiting='true'],
-        .command__container[data-entering='true']
+        .command__container[data-exiting="true"],
+        .command__container[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::before,
     :is(
-        .command__container[data-exiting='true'],
-        .command__container[data-entering='true']
+        .command__container[data-exiting="true"],
+        .command__container[data-entering="true"]
       ):not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::after {
       animation: none;
     }
@@ -474,29 +474,29 @@
   }
 
   .command__dialog:is(
-    [data-reduce-motion='true'],
-    [data-reduce-motion='true'] *
+    [data-reduce-motion="true"],
+    [data-reduce-motion="true"] *
   ),
   .command__dialog:is(
-      [data-reduce-motion='true'],
-      [data-reduce-motion='true'] *
-    )::before,
+    [data-reduce-motion="true"],
+    [data-reduce-motion="true"] *
+  )::before,
   .command__dialog:is(
-      [data-reduce-motion='true'],
-      [data-reduce-motion='true'] *
-    )::after {
+    [data-reduce-motion="true"],
+    [data-reduce-motion="true"] *
+  )::after {
     transition-property: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .command__dialog:not(
-      :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
-    ),
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
+      ),
     .command__dialog:not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::before,
     .command__dialog:not(
-        :is([data-reduce-motion='true'], [data-reduce-motion='true'] *)
+        :is([data-reduce-motion="true"], [data-reduce-motion="true"] *)
       )::after {
       transition-property: none;
     }
@@ -518,7 +518,7 @@
     }
   }
 
-  .command__input-group [data-slot='command-input-group-input'] {
+  .command__input-group [data-slot="command-input-group-input"] {
     min-width: calc(var(--spacing, 0.25rem) * 0);
     padding-inline: calc(var(--spacing, 0.25rem) * 4);
     padding-block: calc(var(--spacing, 0.25rem) * 3);
@@ -534,32 +534,32 @@
     flex: 1;
   }
 
-  .command__input-group [data-slot='command-input-group-input']::placeholder {
+  .command__input-group [data-slot="command-input-group-input"]::placeholder {
     color: var(--muted);
   }
 
   .command__input-group
-    [data-slot='command-input-group-input']::-webkit-search-cancel-button {
+    [data-slot="command-input-group-input"]::-webkit-search-cancel-button {
     appearance: none;
   }
 
   .command__input-group
-    [data-slot='command-input-group-input']::-webkit-search-decoration {
+    [data-slot="command-input-group-input"]::-webkit-search-decoration {
     appearance: none;
   }
 
-  .command__input-group:has([data-slot='command-input-group-prefix'])
-    [data-slot='command-input-group-input'] {
+  .command__input-group:has([data-slot="command-input-group-prefix"])
+    [data-slot="command-input-group-input"] {
     padding-inline-start: calc(var(--spacing, 0.25rem) * 0);
   }
 
-  .command__input-group:has([data-slot='command-input-group-suffix'])
-    [data-slot='command-input-group-input'] {
+  .command__input-group:has([data-slot="command-input-group-suffix"])
+    [data-slot="command-input-group-input"] {
     padding-inline-end: calc(var(--spacing, 0.25rem) * 0);
   }
 
-  .command__input-group[data-empty='true']
-    [data-slot='command-input-group-clear-button'] {
+  .command__input-group[data-empty="true"]
+    [data-slot="command-input-group-clear-button"] {
     pointer-events: none;
     opacity: 0;
   }
@@ -571,7 +571,7 @@
     margin-inline-end: calc(var(--spacing, 0.25rem) * 3);
   }
 
-  .command__input-group-clear-button [data-slot='close-button-icon'] {
+  .command__input-group-clear-button [data-slot="close-button-icon"] {
     width: calc(var(--spacing, 0.25rem) * 3);
     height: calc(var(--spacing, 0.25rem) * 3);
   }
@@ -638,21 +638,21 @@
 
   @media (hover: hover) {
     .command__item:hover,
-    .command__item[data-hovered='true'] {
-      background-color: color-mix(in srgb, var(--default) 50%, transparent);
+    .command__item[data-hovered="true"] {
+      @apply bg-default/40;
     }
   }
 
-  .command__item[data-focused='true'] {
-    background-color: color-mix(in srgb, var(--default) 50%, transparent);
+  .command__item[data-focused="true"] {
+    @apply bg-default/40;
   }
 
   .command__item:active,
-  .command__item[data-pressed='true'] {
-    background-color: color-mix(in srgb, var(--default-hover) 50%, transparent);
+  .command__item[data-pressed="true"] {
+    @apply bg-default-hover/40;
   }
 
-  .command__item[data-disabled='true'] {
+  .command__item[data-disabled="true"] {
     opacity: 0.5;
     cursor: default;
   }
@@ -725,12 +725,12 @@
   }
 
   .command__footer {
-    @apply bg-default/50 backdrop-blur-sm;
+    @apply bg-default/40 backdrop-blur-sm;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
     .command__footer {
-      @apply bg-default/50 backdrop-blur-sm;
+      @apply bg-default/40 backdrop-blur-sm;
     }
   }
 
@@ -777,147 +777,147 @@
 }
 
 @property --tw-duration {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ease {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-blur {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-brightness {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-contrast {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-grayscale {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-hue-rotate {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-invert {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-opacity {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-saturate {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-backdrop-sepia {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-inset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-ring-inset {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-offset-width {
-  syntax: '<length>';
+  syntax: "<length>";
   inherits: false;
   initial-value: 0;
 }
 
 @property --tw-ring-offset-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: #fff;
 }
 
 @property --tw-ring-offset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-border-style {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: solid;
 }
 
 @property --tw-font-weight {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 

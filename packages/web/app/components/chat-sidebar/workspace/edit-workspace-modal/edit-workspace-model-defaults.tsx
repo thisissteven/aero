@@ -1,10 +1,7 @@
+import { IconButton, Label, Tooltip } from '@aero/ui';
 import { ArrowRotateLeft, CircleQuestion } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Label, Tooltip } from '@aero/ui';
-
 import { WorkspaceModelDropdown } from '@/app/components/chat-sidebar/workspace/workspace-model-dropdown';
-import { IconButton } from '@/app/components/ui/icon-button';
 
 import { useEditWorkspaceStore } from './edit-workspace-store';
 

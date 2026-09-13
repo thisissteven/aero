@@ -1,13 +1,11 @@
 'use client';
 import {
-  Button as HeroButton,
   cn,
-  ScrollShadow,
+  Button as HeroButton,
   Separator as HeroSeparator,
+  ScrollShadow,
   Tooltip,
 } from '@heroui/react';
-import { SidebarLeftIcon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
 import React, {
   Children,
@@ -30,9 +28,9 @@ import {
   TreeItemContent,
   TreeSection,
 } from 'react-aria-components';
-
-import { Sheet } from './sheet';
 import { IconChevronRight } from '../heroui-icons';
+import { IconButton } from './icon-button';
+import { Sheet } from './sheet';
 
 export type SidebarSide = 'left' | 'right';
 export type SidebarVariant = 'floating' | 'inset' | 'sidebar';
@@ -324,9 +322,8 @@ export function SidebarContent({
     />
   );
 }
-export interface SidebarMenuProps<
-  T extends object = object,
-> extends ComponentPropsWithRef<typeof Tree<T>> {
+export interface SidebarMenuProps<T extends object = object>
+  extends ComponentPropsWithRef<typeof Tree<T>> {
   closeMobileOnAction?: boolean;
   reduceMotion?: boolean;
   showGuideLines?: boolean | 'hover';
@@ -421,9 +418,8 @@ export function SidebarMenuHeader({
     </Header>
   );
 }
-export interface SidebarMenuItemProps extends ComponentPropsWithRef<
-  typeof TreeItem
-> {
+export interface SidebarMenuItemProps
+  extends ComponentPropsWithRef<typeof TreeItem> {
   closeMobileOnAction?: boolean;
   forceReload?: boolean;
   href?: string;
@@ -713,18 +709,14 @@ export function SidebarTrigger({
 }: SidebarTriggerProps): ReactElement {
   const { toggleSidebar } = useSidebar();
   return (
-    <HeroButton
+    <IconButton
       {...props}
-      isIconOnly
       data-slot='sidebar-trigger'
-      size='sm'
-      variant='ghost'
+      svgSize='sm'
       onPress={toggleSidebar}
     >
-      {children ?? (
-        <HugeiconsIcon aria-hidden='true' icon={SidebarLeftIcon} size={16} />
-      )}
-    </HeroButton>
+      {children}
+    </IconButton>
   );
 }
 export function SidebarRail(

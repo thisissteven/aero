@@ -1,9 +1,8 @@
+import { cn, Dropdown, Separator, Sidebar, Spinner } from '@aero/ui';
 import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-
-import { cn, Dropdown, Separator, Sidebar, Spinner } from '@aero/ui';
 
 import {
   ArchiveSession,
@@ -185,7 +184,7 @@ export function SessionItemSummary({
           sessionId={session.id}
           sessionTitle={session.title}
           className='text-sm font-medium'
-          buttonClassName='dark:bg-surface-secondary'
+          buttonClassName='bg-default/80'
           iconSize={12}
         />
       )}

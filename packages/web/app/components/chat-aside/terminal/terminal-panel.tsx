@@ -1,8 +1,7 @@
+import { IconButton } from '@aero/ui';
 import { ArrowsRotateRight, Paperclip } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useRef } from 'react';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 
 import {
   TerminalInstance,
@@ -48,7 +47,7 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
   }, [activeHandle, onAttachToChat]);
 
   return (
-    <div className='bg-background flex h-full flex-col overflow-hidden'>
+    <div className='flex h-full flex-col overflow-hidden'>
       <div className='border-separator flex scrollbar-thin items-center justify-between overflow-x-auto border-b'>
         <TerminalTabs />
         <div className='flex shrink-0 items-center gap-1 pr-1'>

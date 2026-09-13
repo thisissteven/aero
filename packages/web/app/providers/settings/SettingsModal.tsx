@@ -1,3 +1,4 @@
+import { Modal, SearchField } from '@aero/ui';
 import {
   Bell,
   Book,
@@ -25,8 +26,6 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { SVGProps, useEffect, useRef, useState } from 'react';
-
-import { Modal, SearchField } from '@aero/ui';
 
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
@@ -185,7 +184,7 @@ export function SettingsModal() {
         return (
           <div key={idx} className='flex flex-col gap-1'>
             {section.title && (
-              <span className='text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
+              <span className='max-md:text-foreground/80 text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
                 {section.title}
               </span>
             )}
@@ -198,14 +197,16 @@ export function SettingsModal() {
                   className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm ${
                     isActive
                       ? 'bg-surface-secondary text-surface-foreground font-medium'
-                      : 'text-muted hover:bg-surface-secondary'
+                      : 'max-md:text-foreground/80 text-muted hover:bg-surface-secondary'
                   }`}
                 >
                   <div className='flex items-center gap-2.5'>
                     <Icon data={item.icon} />
                     <span
                       className={`${
-                        isActive ? 'text-surface-foreground' : 'text-muted'
+                        isActive
+                          ? 'text-surface-foreground'
+                          : 'max-md:text-foreground/80 text-muted'
                       }`}
                     >
                       {item.label}

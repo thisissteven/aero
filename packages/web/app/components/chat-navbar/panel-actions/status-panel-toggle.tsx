@@ -1,9 +1,6 @@
+import { cn, IconButton, Tooltip } from '@aero/ui';
 import { DisplayPulse } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
-
-import { cn, Tooltip } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function StatusPanelToggle() {

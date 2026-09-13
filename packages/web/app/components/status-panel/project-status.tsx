@@ -1,7 +1,6 @@
+import { Typography } from '@aero/ui';
 import { CircleTree, File } from '@gravity-ui/icons';
 import { useParams } from '@tanstack/react-router';
-
-import { Typography } from '@aero/ui';
 
 import { useGitCurrentBranch, useGitDiff } from '@/app/hooks/api/git';
 import { useSession } from '@/app/hooks/api/sessions';

@@ -25,7 +25,7 @@ export function BrowserPanel({ onAttachToChat }: BrowserPanelProps) {
   }, [tabs.length, addTab]);
 
   return (
-    <div className='border-separator bg-background flex h-full flex-col overflow-hidden'>
+    <div className='border-separator flex h-full flex-col overflow-hidden'>
       <div className='border-separator flex scrollbar-thin items-center overflow-x-auto border-b'>
         <BrowserTabs />
       </div>

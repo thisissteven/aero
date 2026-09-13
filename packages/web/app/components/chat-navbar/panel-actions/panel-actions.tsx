@@ -1,4 +1,5 @@
 import {
+  cn,
   Dropdown,
   IconButton,
   Label,
@@ -12,6 +13,7 @@ import {
   CircleDashed,
   Code,
   Copy,
+  DisplayPulse,
   Folder,
   Play,
   Stop,
@@ -32,6 +34,7 @@ import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
+import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface DetectedApp {
   id: string;
@@ -50,7 +53,7 @@ async function openApp(path: string, appId: string): Promise<boolean> {
   return res.ok;
 }
 
-export function ProjectActions() {
+export function PanelActions() {
   const { sessionId } = useParams({
     strict: false,
   });
@@ -61,14 +64,10 @@ export function ProjectActions() {
 
   if (!sessionId || !workspace) return null;
 
-  return <ProjectActionsContent projectPath={workspace} />;
+  return <PanelActionsContent projectPath={workspace} />;
 }
 
-export function ProjectActionsContent({
-  projectPath,
-}: {
-  projectPath: string;
-}) {
+export function PanelActionsContent({ projectPath }: { projectPath: string }) {
   const { selectedAppId, setSelectedAppId } = useOpenInStore();
 
   const handleSelect = async (appId: string) => {
@@ -81,72 +80,28 @@ export function ProjectActionsContent({
     (a: DetectedApp) => a.available,
   );
 
-  // Script execution hooks
-  const { data: scriptStatus, refetch: refetchStatus } =
-    useScriptStatus(projectPath);
-  const { mutateAsync: runScript, isPending } = useRunScript();
-  const { mutateAsync: stopScript } = useStopScript();
-
-  const status = scriptStatus?.status ?? 'idle';
-  const isStarting = isPending || status === 'starting';
-  const isRunning = status === 'running';
-
-  const [runningTabId, setRunningTabId] = useState('');
-
-  const handlePrimaryAction = async () => {
-    if (isRunning) {
-      await stopScript(projectPath);
-      useBrowserStore.getState().actions.removeTab(runningTabId);
-      setRunningTabId('');
-    } else if (!isStarting) {
-      try {
-        const res = (await runScript(projectPath)) as any;
-        // If a script URL was instantly detected, you can open it automatically or show it
-        if (res?.url) {
-          useSidePanelStore.getState().openPanel();
-          useSidePanelStore.getState().setActiveNavItem('browser');
-          const tab = useBrowserStore.getState().tabs.find((tab) => !tab.url);
-          if (tab) {
-            useBrowserStore.getState().actions.setActiveTab(tab.id);
-            useBrowserStore.getState().actions.navigate(tab.id, res.url);
-            setRunningTabId(tab.id);
-          } else {
-            const tabId = useBrowserStore.getState().actions.addTab(res.url);
-            setRunningTabId(tabId);
-          }
-        }
-      } catch {
-        toast.warning('No dev script discovered');
-      }
-    }
-    refetchStatus();
-  };
-
-  // Determine which icon to display based on state
-  let primaryIcon = <Play />;
-  let tooltipText = 'Auto discover dev script';
-
-  if (isStarting) {
-    primaryIcon = <CircleDashed className='animate-spin' />;
-    tooltipText = 'Starting script...';
-  } else if (isRunning) {
-    primaryIcon = <Stop className='text-accent' />;
-    tooltipText = 'Stop running script';
-  }
+  const isOpen = useStatusPanelStore((state) => state.isOpen);
+  const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 
   return (
     <div className='border-separator bg-surface/60 dark:bg-surface inline-flex items-center rounded-lg border p-0.5'>
       {/* Dynamic Primary Action Button */}
       <Tooltip>
         <IconButton
-          aria-label={tooltipText}
-          onPress={handlePrimaryAction}
-          isDisabled={isStarting}
-          className='text-foreground h-6 w-7 opacity-80 disabled:opacity-80'
+          aria-label={isOpen ? 'Hide work status' : 'Show work status'}
+          onPress={toggleIsOpen}
+          className={cn(
+            'h-6 w-7',
+            isOpen
+              ? 'text-accent opacity-100 hover:opacity-100 active:opacity-100'
+              : 'hover:opacity-50 active:opacity-50',
+          )}
         >
-          {primaryIcon}
+          <DisplayPulse />
         </IconButton>
-        <Tooltip.Content offset={6}>{tooltipText}</Tooltip.Content>
+        <Tooltip.Content offset={6}>
+          {isOpen ? 'Hide work status' : 'Show work status'}
+        </Tooltip.Content>
       </Tooltip>
 
       {/* Dropdown Menu */}

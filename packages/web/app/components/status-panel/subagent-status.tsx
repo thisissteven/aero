@@ -1,8 +1,7 @@
+import { Chip, Typography } from '@aero/ui';
 import { CircleTree } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate, useParams } from '@tanstack/react-router';
-
-import { Chip, Typography } from '@aero/ui';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { useSessionChildren, useSessionStatus } from '@/app/hooks/api/sessions';

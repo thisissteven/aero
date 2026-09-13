@@ -1,7 +1,6 @@
 import { cn, Tooltip, Typography } from '@aero/ui';
 
 import { collapsibleNav, NavItemId } from '@/app/lib/constants';
-import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface ChatAsideProps {
   activeItem: NavItemId | null;
@@ -9,20 +8,16 @@ interface ChatAsideProps {
 }
 
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
-  const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
-
   return (
-    <aside className='relative h-full w-12 shrink-0 max-sm:hidden'>
-      {(!!activeItem || isStatusPanelOpen) && (
-        <div
-          className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
-          aria-hidden
-        ></div>
-      )}
+    <aside className='relative h-full w-12 shrink-0 max-sm:hidden bg-surface/30'>
+      <div
+        className='border-separator absolute inset-0 top-0 right-0 h-14 border-b'
+        aria-hidden
+      ></div>
       <div
         className={cn(
           'mt-14 flex h-full flex-col gap-2 pt-4',
-          (!!activeItem || isStatusPanelOpen) && 'border-separator border-l',
+          'border-separator border-l',
         )}
       >
         {collapsibleNav.map((item) => {

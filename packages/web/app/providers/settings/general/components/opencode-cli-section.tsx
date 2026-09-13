@@ -1,11 +1,10 @@
 // components/opencode-cli-section.tsx
-import { Folder } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
 
 import { Button, Checkbox, Input, Label, Typography } from '@aero/ui';
-
-import { InfoTooltip } from './info-tooltip';
+import { Folder } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useGeneralStore } from '../general-store';
+import { InfoTooltip } from './info-tooltip';
 
 export function OpenCodeCliSection() {
   return (
@@ -31,7 +30,7 @@ function BinaryPathInput() {
   const setBinaryPath = useGeneralStore((s) => s.setBinaryPath);
 
   return (
-    <div className='grid grid-cols-2'>
+    <div className='max-sm:grid-cols-1 max-sm:gap-2 grid grid-cols-2'>
       <div className='flex items-center gap-1.5'>
         <Label>OpenCode Binary Path</Label>
         <InfoTooltip>Path to executable binary file.</InfoTooltip>

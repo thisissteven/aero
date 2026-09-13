@@ -1,8 +1,7 @@
+import { cn, Typography } from '@aero/ui';
 import { CircleCheck, CircleStop, ListCheck } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
-
-import { cn, Typography } from '@aero/ui';
 
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';

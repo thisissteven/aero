@@ -1,11 +1,8 @@
+import { cn, IconButton } from '@aero/ui';
 import { Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 import React from 'react';
-
-import { cn } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
@@ -43,7 +40,7 @@ export function TerminalTabs() {
   return (
     <div
       className={cn(
-        'bg-background flex items-center gap-1 py-1',
+        'flex items-center gap-1 py-1',
         sessions.length > 0 ? 'px-1' : 'px-0',
       )}
     >
@@ -57,8 +54,8 @@ export function TerminalTabs() {
               onClick={() => setActiveSession(session.id)}
               className={
                 isActive
-                  ? 'bg-default text-accent-soft-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
-                  : 'text-muted hover:bg-default hover:text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
+                  ? 'bg-default/60 text-accent-soft-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
+                  : 'text-muted hover:bg-default/60 hover:text-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm'
               }
             >
               <SessionStatusDot sessionId={session.id} />

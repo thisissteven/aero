@@ -1,10 +1,7 @@
+import { cn, IconButton, Input, Label } from '@aero/ui';
 import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { cn, Input, Label } from '@aero/ui';
-
 import { FolderPicker } from '@/app/components/folder-picker';
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useGlobalModalStoreOuter } from '@/app/providers';
 
 import { useEditWorkspaceStore } from './edit-workspace-store';

@@ -1,3 +1,4 @@
+import { cn, Kbd, ScrollShadow } from '@aero/ui';
 import React, {
   useCallback,
   useEffect,
@@ -5,8 +6,6 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
-
-import { cn, Kbd, ScrollShadow } from '@aero/ui';
 
 import { CommandPaletteItem } from '@/app/components/smart-composer/components/composer-cp-item';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';

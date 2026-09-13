@@ -1,8 +1,7 @@
+import { Command, cn, Popover } from '@aero/ui';
 import { ChevronDown } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useState } from 'react';
-
-import { cn, Command, Popover } from '@aero/ui';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { buildModelVirtualItems } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';

@@ -17,7 +17,7 @@ export const StatusPanel = React.memo(function StatusPanel() {
   if (!isOpen) return null;
 
   return (
-    <div className='border-separator bg-surface h-full scrollbar-thin overflow-x-hidden overflow-y-auto border-l'>
+    <div className='border-separator bg-surface/30 backdrop-blur-sm h-full scrollbar-thin overflow-x-hidden overflow-y-auto border-l'>
       <SessionStatus />
       <ProjectStatus />
       <SubagentStatus />
@@ -122,7 +122,7 @@ export const StatusPanelFloating = React.memo(function StatusPanel() {
       }
       className='fixed top-0 left-0 z-40 animate-[fade-in_150ms_ease-out] cursor-grab p-2 select-none active:cursor-grabbing'
     >
-      <div className='bg-surface/60 border-separator shadow-surface w-[280px] overflow-hidden rounded-xl border backdrop-blur-sm'>
+      <div className='bg-surface/80 border-separator shadow-surface w-[280px] overflow-hidden rounded-xl border backdrop-blur-sm'>
         <div
           onPointerDown={handlePointerDown}
           className='border-separator -70 flex h-8 items-center justify-center border-b'

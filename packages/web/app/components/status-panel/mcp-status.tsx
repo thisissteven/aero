@@ -1,8 +1,7 @@
+import { Typography } from '@aero/ui';
 import { Check, LogoMcp, Power } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { Switch } from '@heroui/react';
-
-import { Typography } from '@aero/ui';
 
 import { useConnectMCP, useDisconnectMCP, useMCPs } from '@/app/hooks/api/mcp';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';

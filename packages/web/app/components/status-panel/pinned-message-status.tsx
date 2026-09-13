@@ -1,11 +1,8 @@
+import { cn, IconButton, Typography } from '@aero/ui';
 import { Pin, PinFill } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
-
-import { cn, Typography } from '@aero/ui';
-
-import { IconButton } from '@/app/components/ui/icon-button';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessionPinnedMessages } from '@/app/hooks/api/sessions';
 import {

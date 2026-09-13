@@ -12,15 +12,6 @@
 }
 
 @layer components {
-  .kbd-accent {
-    @apply bg-accent/20! text-accent dark:bg-accent/20! dark:text-accent;
-  }
-
-  .checkbox__control,
-  .checkbox--secondary .checkbox__control {
-    @apply bg-accent/20!;
-  }
-
   .skeleton {
     @apply opacity-70 dark:opacity-30;
   }
@@ -43,7 +34,7 @@
 
   [data-slot="menu-item"]:hover,
   [data-slot="list-box-item"]:hover {
-    @apply bg-default/50! backdrop-blur-sm;
+    @apply bg-default/40! backdrop-blur-sm;
   }
 
   .separator {
@@ -235,4 +226,23 @@ div[ref] canvas,
 
 .animate-marquee {
   animation: marquee 3s ease-in-out infinite alternate;
+}
+
+/* Smooth trailing animation for preview text while tools are actively streaming */
+.tool-preview__stream-tail {
+  display: inline;
+  animation: tool-preview-tail-reveal 0.35s cubic-bezier(0.16, 1, 0.3, 1)
+    forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes tool-preview-tail-reveal {
+  0% {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
 }

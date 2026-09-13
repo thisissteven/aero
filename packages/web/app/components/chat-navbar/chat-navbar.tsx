@@ -1,7 +1,3 @@
-import { Ellipsis } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
-import { useParams } from '@tanstack/react-router';
-
 import {
   AppLayout,
   cn,
@@ -11,11 +7,15 @@ import {
   Sidebar,
   Skeleton,
 } from '@aero/ui';
+import { Ellipsis, LayoutSideContent } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
+import { useParams } from '@tanstack/react-router';
 
 import { ContextUsagePreview } from '@/app/components/chat-navbar/context-usage-preview';
 import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
+import { PanelActions } from '@/app/components/chat-navbar/panel-actions/panel-actions';
+import { StatusPanelToggle } from '@/app/components/chat-navbar/panel-actions/status-panel-toggle';
 import { ProjectActions } from '@/app/components/chat-navbar/project-actions/project-actions';
-import { StatusPanelToggle } from '@/app/components/chat-navbar/status-panel-toggle';
 import {
   ArchiveSession,
   CopySessionId,
@@ -31,7 +31,6 @@ import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
 import { OfflineAlert } from '@/app/providers';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
-
 import type { ChatActivePage } from '../../data/chat';
 
 export interface ChatNavbarProps {
@@ -44,13 +43,13 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
   const isSessions = activePage.kind === 'sessions';
 
   return (
-    <Navbar maxWidth='full' className='relative h-14 bg-transparent'>
-      {isAsideExpanded && (
-        <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b max-sm:hidden'></div>
-      )}
+    <Navbar maxWidth='full' className='relative h-14 bg-surface/30'>
+      <div className='border-separator absolute bottom-0 left-0 h-0 w-full border-b'></div>
       <Navbar.Header className='overflow-hidden pr-0'>
         <AppLayout.MenuToggle className='shrink-0' />
-        <Sidebar.Trigger className='shrink-0' />
+        <Sidebar.Trigger>
+          <LayoutSideContent />
+        </Sidebar.Trigger>
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
         <Navbar.Spacer />
@@ -58,10 +57,10 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         <div className='flex items-center gap-2 max-md:hidden'>
           <div className='flex items-center gap-1'>
             <ContextUsagePreview />
-            <StatusPanelToggle />
           </div>
           <ProjectActions />
           <OpenInActions />
+          <PanelActions />
         </div>
       </Navbar.Header>
     </Navbar>

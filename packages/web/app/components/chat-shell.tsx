@@ -1,8 +1,7 @@
+import { AppLayout, Resizable } from '@aero/ui';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
-
-import { AppLayout, Resizable } from '@aero/ui';
 
 import { StatusAsidePanel } from '@/app/components/chat-aside/status-aside-panel';
 import { useRestoreSessionStreams } from '@/app/hooks/api/stream-event';

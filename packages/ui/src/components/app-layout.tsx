@@ -41,7 +41,8 @@ const Context = createContext<AppLayoutContextValue | null>(null);
 export const useAppLayout = (): AppLayoutContextValue | null =>
   useContext(Context);
 export type AppLayoutResizeBehavior =
-  'preserve-pixel-size' | 'preserve-relative-size';
+  | 'preserve-pixel-size'
+  | 'preserve-relative-size';
 export interface AppLayoutProps extends ComponentPropsWithRef<'div'> {
   aside?: ReactNode;
   asideDefaultSize?: number | string;
@@ -139,10 +140,12 @@ const syncPanelState = (
     if (open && collapsed) panel.expand();
     if (!open && !collapsed) panel.collapse();
   } catch (error) {
-    if (!(
-      error instanceof Error &&
-      error.message.startsWith('Panel constraints not found for Panel ')
-    )) {
+    if (
+      !(
+        error instanceof Error &&
+        error.message.startsWith('Panel constraints not found for Panel ')
+      )
+    ) {
       throw error;
     }
   }
@@ -395,7 +398,7 @@ function AppLayoutResizable({
   const sidebarSection = sidebarResizable ? (
     <Resizable.Panel
       collapsible
-      className='app-layout__sidebar-panel relative'
+      className='app-layout__sidebar-panel'
       collapsedSize={0}
       defaultSize={sidebarDefaultSize}
       groupResizeBehavior={sidebarResizeBehavior}
@@ -407,7 +410,6 @@ function AppLayoutResizable({
       onCollapse={() => setSidebarOpen(false)}
       onExpand={() => setSidebarOpen(true)}
     >
-      <div className='from-accent/40 via-accent/10 absolute inset-0 -z-10 h-full w-full bg-gradient-to-br to-transparent blur-xl'></div>
       {sidebar}
     </Resizable.Panel>
   ) : null;
@@ -546,9 +548,8 @@ const withTooltip = (
   ) : (
     trigger
   );
-export interface AppLayoutMenuToggleProps extends ComponentPropsWithRef<
-  typeof Button
-> {
+export interface AppLayoutMenuToggleProps
+  extends ComponentPropsWithRef<typeof Button> {
   tooltip?: ReactNode;
   tooltipProps?: AppLayoutTooltipProps;
 }
@@ -584,9 +585,8 @@ export function AppLayoutMenuToggle({
     tooltipProps,
   );
 }
-export interface AppLayoutAsideTriggerProps extends ComponentPropsWithRef<
-  typeof Button
-> {
+export interface AppLayoutAsideTriggerProps
+  extends ComponentPropsWithRef<typeof Button> {
   closedTooltip?: ReactNode;
   openTooltip?: ReactNode;
   tooltipProps?: AppLayoutTooltipProps;
