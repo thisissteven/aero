@@ -2,11 +2,17 @@
   "css.validate": false,
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
+  "editor.defaultFormatter": "biomejs.biome",
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
   },
-  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
-  "[postcss]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[postcss]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
   "tailwindCSS.classAttributes": [
     "class",
     "className",
@@ -21,14 +27,13 @@
   "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
   "tailwindCSS.lint.cssConflict": "ignore",
   "js/ts.preferences.importModuleSpecifier": "non-relative",
-  "js/ts.tsdk.path": "node_modules\\typescript\\lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
 
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
     "apps/docs": true,
     "apps/storybook": true,
-    // "packages/ui": true,
     "packages/cli": true
   },
 
@@ -36,7 +41,6 @@
     "**/node_modules": true,
     "apps/docs": true,
     "apps/storybook": true,
-    // "packages/ui": true,
     "packages/cli": true
   },
 

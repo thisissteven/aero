@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from 'react';
  * Custom hook to throttle a function execution in React.
  * Guarantees leading execution and ensures trailing execution so final state changes aren't missed.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export function useThrottledCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number,

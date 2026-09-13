@@ -1,8 +1,8 @@
-import type { Context } from 'hono';
 import { randomBytes } from 'node:crypto';
 import { openAsBlob } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
+import type { Context } from 'hono';
 
 import { buildBridgeScript } from './bridge-script';
 import {
@@ -197,7 +197,6 @@ async function fetchUpstream(
       redirect: 'manual',
       signal: buildUpstreamSignal(c),
       proxy,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     // Ownership of `release` now passes to the caller (proxyRequest),

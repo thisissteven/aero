@@ -70,7 +70,10 @@ export interface AeroSessionSummary {
 }
 
 export type AeroPartUserMessage =
-  TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput;
+  | TextPartInput
+  | FilePartInput
+  | AgentPartInput
+  | SubtaskPartInput;
 
 export type AeroPartRequest =
   | {
@@ -561,7 +564,6 @@ export interface HarnessAdapter {
   getVcsStatus(directory: string): Promise<AeroVcsStatus[]>;
   getVcsInfo(directory: string): Promise<AeroVcsInfo>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any(sessionId: string): Promise<any>;
 
   getSessionMessage(sessionId: string, messageId: string): Promise<AeroMessage>;

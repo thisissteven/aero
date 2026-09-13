@@ -42,7 +42,6 @@ export async function getAllAdapters(): Promise<HarnessAdapter[]> {
     if (res.status === 'fulfilled') {
       adapters.push(res.value);
     } else {
-      // eslint-disable-next-line no-console
       console.warn('[Harness Registry] Adapter failed to load:', res.reason);
     }
   }

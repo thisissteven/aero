@@ -79,7 +79,6 @@ export const useSpeechStore = create<SpeechState>((set, get) => {
 
     play: (id: string, text: string) => {
       if (!isBrowser) {
-        // eslint-disable-next-line no-console
         console.warn(
           'SpeechSynthesis API is not supported in this environment.',
         );

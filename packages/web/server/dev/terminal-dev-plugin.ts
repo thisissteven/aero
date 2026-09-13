@@ -54,7 +54,7 @@ export function devWebSocketPlugin(): Plugin {
               10,
             );
             const cwd = url.searchParams.get('cwd') || undefined;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             attachPtyToSocket(ws as any, sessionId, cols, rows, reset, cwd);
           });
           return;

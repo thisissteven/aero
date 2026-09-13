@@ -15,7 +15,7 @@ export const client = hc<AppType>('/');
  */
 export async function throwResponseError(res: {
   status: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   json: () => Promise<any>;
   text: () => Promise<string>;
 }): Promise<never> {

@@ -29,7 +29,6 @@ serve({
   port: TERMINAL_PORT,
 });
 
-// eslint-disable-next-line no-console
 console.log(
   `[terminal-server] WebSocket server listening on http://localhost:${TERMINAL_PORT}`,
 );

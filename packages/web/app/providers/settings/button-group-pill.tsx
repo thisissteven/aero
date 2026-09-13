@@ -1,6 +1,5 @@
-import { createContext, ReactNode, useContext } from 'react';
-
 import { Button, ButtonGroup, ButtonProps, cn } from '@aero/ui';
+import { createContext, ReactNode, useContext } from 'react';
 
 interface ButtonGroupPillContextValue<T extends string> {
   value: T;
@@ -8,7 +7,6 @@ interface ButtonGroupPillContextValue<T extends string> {
 }
 
 const ButtonGroupPillContext =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createContext<ButtonGroupPillContextValue<any> | null>(null);
 
 function useButtonGroupPillContext<T extends string>() {
@@ -49,10 +47,8 @@ function ButtonGroupPillRoot<T extends string>({
   );
 }
 
-interface ButtonGroupPillButtonProps<T extends string> extends Omit<
-  ButtonProps,
-  'variant' | 'onPress'
-> {
+interface ButtonGroupPillButtonProps<T extends string>
+  extends Omit<ButtonProps, 'variant' | 'onPress'> {
   value: T;
   children: ReactNode;
 }

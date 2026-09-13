@@ -26,7 +26,6 @@ export function debounce<T extends (...args: never[]) => unknown>(
     }
 
     timeout = setTimeout(() => {
-      // eslint-disable-next-line no-console
       Promise.resolve(fn(...args)).catch(console.error);
     }, delay);
   };

@@ -390,7 +390,6 @@ export function buildFlatConversationItems(
     const hasFooter =
       !isTurnStreaming && (turn.parts.length > 0 || !!turn.error);
     if (hasFooter) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const lastPart = turn.parts[turn.parts.length - 2] as any;
       const endTimeRaw = lastPart?.time?.end ?? lastPart?.end;
 

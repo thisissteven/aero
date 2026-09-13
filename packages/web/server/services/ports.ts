@@ -161,7 +161,6 @@ export async function getListeningPorts(): Promise<OpenPort[]> {
     } else {
       throw new Error(`Unsupported operating system: ${platform}`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // Command return code 1 often means "no matches found" from grep/findstr
     if (error.code === 1) {

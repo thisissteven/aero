@@ -1,3 +1,4 @@
+import { Dropdown, Label, Separator, Tooltip, toast } from '@aero/ui';
 import {
   Check,
   ChevronDown,
@@ -12,8 +13,6 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useParams } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
-
-import { Dropdown, Label, Separator, toast, Tooltip } from '@aero/ui';
 
 import { useBrowserStore } from '@/app/components/chat-aside/browser/browser-store';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
@@ -96,7 +95,6 @@ export function ProjectActionsContent({
       setRunningTabId('');
     } else if (!isStarting) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const res = (await runScript(projectPath)) as any;
         // If a script URL was instantly detected, you can open it automatically or show it
         if (res?.url) {
