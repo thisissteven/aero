@@ -16,7 +16,7 @@ export function HeroText() {
 
   if (selectedWorkspace && state === 'work') {
     return (
-      <div className='flex flex-col items-center gap-2 text-center'>
+      <div className='flex max-w-[720px] flex-col items-center gap-2 text-center'>
         <h2 className='text-foreground text-3xl font-normal tracking-tight'>
           What are we working on in{' '}
           <TextShimmer className='shimmer-accent font-medium tracking-normal'>

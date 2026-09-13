@@ -11,9 +11,7 @@ import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 import { toPascalCase } from '@/server/shared';
 
 export function SubagentStatus() {
-  const isVisible = useStatusPanelStore(
-    (state) => state.visibleItems.contextSources,
-  );
+  const isVisible = useStatusPanelStore((state) => state.visibleItems.subagent);
 
   if (!isVisible) return null;
   return <SubagentStatusContent />;

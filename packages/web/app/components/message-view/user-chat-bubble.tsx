@@ -36,8 +36,18 @@ export const UserChatBubble = memo(
     const text = useMemo(
       () =>
         turn.parts
-          .filter((part) => part.type === 'text' || part.type === 'compaction')
-          .map((part) => (part.type === 'text' ? part.text : '/compact'))
+          .filter(
+            (part) =>
+              part.type === 'text' ||
+              part.type === 'subtask' ||
+              part.type === 'compaction',
+          )
+          .map((part) => {
+            if (part.type === 'text') return part.text;
+            if (part.type === 'compaction') return '/compact';
+            if (part.type === 'subtask') return part.prompt;
+            return undefined;
+          })
           .join(''),
       [turn.parts],
     );

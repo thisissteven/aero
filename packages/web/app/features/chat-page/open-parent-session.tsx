@@ -13,7 +13,7 @@ export function OpenParentSession({ sessionId }: { sessionId: string }) {
   if (!session || !session?.parentId) return null;
 
   return (
-    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2'>
+    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2 overflow-hidden'>
       <Button
         variant='outline'
         isIconOnly={false}

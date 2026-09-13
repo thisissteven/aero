@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { NavItemId } from '@/app/components/chat-aside/chat-aside';
+import { NavItemId } from '@/app/lib/constants';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 interface SidePanelState {

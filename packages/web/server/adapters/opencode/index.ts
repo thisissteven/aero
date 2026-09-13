@@ -1055,58 +1055,63 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     sendCommand(sessionID, input, directory) {
-      console.log('called', input);
-      withOpencodeClientV2((client) =>
-        client.session.command({
-          sessionID,
-          directory,
-          model: input.model,
-          agent: input.agent,
-          variant: input.variant,
-          command: input.command,
-          arguments: input.arguments,
-          parts: input.parts,
-        }),
+      withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.command({
+            sessionID,
+            directory,
+            model: input.model,
+            agent: input.agent,
+            variant: input.variant,
+            command: input.command,
+            arguments: input.arguments,
+            parts: input.parts,
+          }),
+        ),
       );
 
       return true;
     },
 
     sendShellCommand(sessionID, input, directory) {
-      withOpencodeClientV2((client) =>
-        client.session.shell({
-          sessionID,
-          directory,
-          model: input.model
-            ? {
-                providerID: input.model.providerId,
-                modelID: input.model.modelId,
-              }
-            : undefined,
-          agent: input.agent,
-          command: input.command,
-        }),
+      withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.shell({
+            sessionID,
+            directory,
+            model: input.model
+              ? {
+                  providerID: input.model.providerId,
+                  modelID: input.model.modelId,
+                }
+              : undefined,
+            agent: input.agent,
+            command: input.command,
+          }),
+        ),
       );
 
       return true;
     },
 
     sendMessage(sessionID, input, directory) {
-      withOpencodeClientV2((client) =>
-        client.session.prompt({
-          sessionID,
-          directory,
-          parts: input.parts,
-          model: input.model
-            ? {
-                providerID: input.model.providerId,
-                modelID: input.model.modelId,
-              }
-            : undefined,
-          system: input.system,
-          agent: input.agent,
-          variant: input.variant,
-        }),
+      withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.prompt({
+            sessionID,
+            directory,
+            parts: input.parts,
+            model: input.model
+              ? {
+                  providerID: input.model.providerId,
+                  modelID: input.model.modelId,
+                }
+              : undefined,
+            system: input.system,
+            agent: input.agent,
+            variant: input.variant,
+          }),
+        ),
       );
 
       return true;
@@ -1157,19 +1162,11 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
     async abortSession(sessionID) {
       await withOpencodeClientV2(async (client) => {
-        // const session = unwrap(
-        //   await client.session.get({
-        //     sessionID,
-        //   }),
-        // );
-
-        await client.session.abort({
-          sessionID,
-        });
-
-        // await client.instance.dispose({
-        //   directory: session.directory,
-        // });
+        unwrap(
+          await client.session.abort({
+            sessionID,
+          }),
+        );
       });
 
       return true;
@@ -1179,11 +1176,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       const { sessionId, signal, onConnected } = options;
 
       const { node } = await getOpencodeStreamingClientV2();
-
-      console.log('[OPENCODE STREAM START]', {
-        node: node.port,
-        sessionId,
-      });
 
       const controller = new AbortController();
 
