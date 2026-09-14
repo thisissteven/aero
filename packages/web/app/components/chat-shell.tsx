@@ -50,11 +50,11 @@ export function ChatShell({ children }: ChatShellProps) {
             <ChatMainContentPanel>{children}</ChatMainContentPanel>
             <StatusAsidePanel />
             <ChatAsidePanel />
+            <ConnectedChatAside />
           </Resizable>
         </AppLayout>
       </div>
 
-      <ConnectedChatAside />
       <CommandPalette />
     </div>
   );

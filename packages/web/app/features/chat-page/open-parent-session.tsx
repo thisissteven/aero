@@ -1,8 +1,7 @@
+import { Button } from '@aero/ui';
 import { ArrowUturnCcwLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
-
-import { Button } from '@aero/ui';
 
 import { useSession } from '@/app/hooks/api/sessions';
 

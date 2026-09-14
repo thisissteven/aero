@@ -27,6 +27,7 @@ export const $individualSession = honoClient.api.sessions[':id'];
 
 export const sessionKeys = {
   merged: () => ['sessions', 'default'] as const,
+  subagentSessions: () => ['subagentSessions', 'default'] as const,
   allArchived: (harnessId?: string) =>
     ['sessions', harnessId ?? 'default', 'all-archived'] as const,
   detail: (harnessId: string | undefined, sessionId: string) =>
@@ -73,6 +74,7 @@ interface UseSessionsOptions {
   initialSessions?: AeroSessionSummary[];
   archived?: boolean;
   childSessions?: boolean;
+  childSessionsOnly?: boolean;
 }
 
 export function useSessions({
@@ -82,6 +84,7 @@ export function useSessions({
   limit,
   archived,
   childSessions,
+  childSessionsOnly,
 }: UseSessionsOptions = {}) {
   return useInfiniteQuery({
     queryKey: [
@@ -89,6 +92,7 @@ export function useSessions({
       search,
       ...(directory ? ['directory', directory] : []),
       childSessions,
+      childSessionsOnly,
     ],
     initialPageParam: undefined as string | undefined,
     placeholderData: keepPreviousData,
@@ -101,6 +105,7 @@ export function useSessions({
           directory,
           archived: archived ? 'true' : 'false',
           childSessions: childSessions ? 'true' : 'false',
+          childSessionsOnly: childSessionsOnly ? 'true' : 'false',
         },
       });
 

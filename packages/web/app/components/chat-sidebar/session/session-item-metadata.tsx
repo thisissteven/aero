@@ -25,7 +25,9 @@ export function SessionItemMetadata({
     keys[session.workspace]?.name ?? getLastPathName(session.workspace);
 
   return (
-    <div className='text-muted flex items-center gap-1 text-xs'>
+    // 1. Added `min-w-0` and `w-full` to allow flex children to shrink
+    <div className='text-muted flex w-full min-w-0 items-center gap-1 text-xs'>
+      {/* 2. `shrink-0` keeps time/prefix visible */}
       <span className='shrink-0'>
         {time
           ? formatCompactRelativeTime(session.updatedAt, true) + ' at '
@@ -33,24 +35,31 @@ export function SessionItemMetadata({
             ? 'Subagent session at '
             : ' at '}
       </span>
+
       {!isWorktree(session.workspace) && (
-        <span className='truncate font-bold'>
+        // 3. `truncate` + `min-w-0` allows the workspace title to cut off
+        <span className='min-w-0 truncate font-bold'>
           {isStandaloneSession ? 'Standalone Session' : workspaceTitle}
           {session.readOnly && ' (read only)'}
         </span>
       )}
+
       {isWorktree(session.workspace) && (
-        <div className='flex items-center gap-1'>
-          {isStandaloneSession ? 'Standalone Session' : workspaceTitle}
-          <Icon data={CircleTree} size={12} />
-          <span className='truncate font-bold'>
+        // 4. Added `min-w-0` to nested flex wrapper
+        <div className='flex min-w-0 items-center gap-1'>
+          <span className='shrink-0'>
+            {isStandaloneSession ? 'Standalone Session' : workspaceTitle}
+          </span>
+          <Icon className='shrink-0' data={CircleTree} size={12} />
+          <span className='min-w-0 truncate font-bold'>
             {getLastPathName(session.workspace)}
             {session.readOnly && ' (read only)'}
           </span>
         </div>
       )}
+
       {session.archived && (
-        <span className='truncate font-bold'>{' (archived)'}</span>
+        <span className='shrink-0 font-bold'>{' (archived)'}</span>
       )}
     </div>
   );

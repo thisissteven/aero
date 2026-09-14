@@ -27,128 +27,140 @@ export interface ChatFeedRef {
   subscribeScroll: (cb: () => void) => () => void;
 }
 
-export const ChatFeed = forwardRef<
-  ChatFeedRef,
-  {
-    groups: AeroConversationTurn[];
-    onActiveGroupIndexChange: (index: number) => void;
-  }
->(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
-  const virtualizerRef = useRef<VirtualizerHandle>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+export const ChatFeed = React.memo(
+  forwardRef<
+    ChatFeedRef,
+    {
+      groups: AeroConversationTurn[];
+      onActiveGroupIndexChange: (index: number) => void;
+    }
+  >(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
+    const virtualizerRef = useRef<VirtualizerHandle>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
 
-  const scrollbarWidth = useScrollbarWidth(scrollRef);
+    const scrollbarWidth = useScrollbarWidth(scrollRef);
 
-  const sessionId = useSessionId();
-  const flatItems = useSessionRuntime(
-    sessionId,
-    (runtime) => runtime.flatItems,
-  );
-  const groupFlatIndex = useSessionRuntime(
-    sessionId,
-    (runtime) => runtime.groupFlatIndex,
-  );
-  const isStreaming = useSessionRuntime(
-    sessionId,
-    (runtime) => runtime.isStreaming,
-  );
-
-  const { subscribeScroll } = useScrollSubscription(scrollRef);
-
-  const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
-
-  const { handleScroll, beginProgrammaticScroll, endProgrammaticScroll } =
-    useTocScrollTracker(
-      groups,
-      groupFlatIndex,
-      virtualizerRef,
-      onActiveGroupIndexChange,
+    const sessionId = useSessionId();
+    const flatItems = useSessionRuntime(
+      sessionId,
+      (runtime) => runtime.flatItems,
+    );
+    const groupFlatIndex = useSessionRuntime(
+      sessionId,
+      (runtime) => runtime.groupFlatIndex,
+    );
+    const isStreaming = useSessionRuntime(
+      sessionId,
+      (runtime) => runtime.isStreaming,
     );
 
-  useAutoScroll({
-    scrollRef,
-    contentRef,
-    isStreaming,
-    enabled: isReady,
-  });
+    const { subscribeScroll } = useScrollSubscription(scrollRef);
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      virtualizerRef,
+    const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
+
+    const { handleScroll, beginProgrammaticScroll, endProgrammaticScroll } =
+      useTocScrollTracker(
+        groups,
+        groupFlatIndex,
+        virtualizerRef,
+        onActiveGroupIndexChange,
+      );
+
+    useAutoScroll({
       scrollRef,
-      subscribeScroll,
+      contentRef,
+      isStreaming,
+      enabled: isReady,
+    });
 
-      scrollToIndex: (groupIndex: number) => {
-        const targetFlatIndex =
-          useChatStore.getState().sessions[sessionId].groupFlatIndex[
-            groupIndex
-          ];
+    useImperativeHandle(
+      ref,
+      () => ({
+        virtualizerRef,
+        scrollRef,
+        subscribeScroll,
 
-        const handle = virtualizerRef.current;
+        scrollToIndex: (groupIndex: number) => {
+          const targetFlatIndex =
+            useChatStore.getState().sessions[sessionId].groupFlatIndex[
+              groupIndex
+            ];
 
-        if (targetFlatIndex === undefined || !handle) {
-          return;
-        }
+          const handle = virtualizerRef.current;
 
-        onActiveGroupIndexChange(groupIndex);
+          if (targetFlatIndex === undefined || !handle) {
+            return;
+          }
 
-        beginProgrammaticScroll();
+          onActiveGroupIndexChange(groupIndex);
 
-        handle.scrollToIndex(targetFlatIndex, {
-          align: 'start',
-          smooth: false,
-          offset: -24,
-        });
+          beginProgrammaticScroll();
 
-        requestAnimationFrame(() => {
-          endProgrammaticScroll();
-        });
-      },
-    }),
-    [
-      beginProgrammaticScroll,
-      endProgrammaticScroll,
-      onActiveGroupIndexChange,
-      subscribeScroll,
-    ],
-  );
+          handle.scrollToIndex(targetFlatIndex, {
+            align: 'start',
+            smooth: false,
+            offset: -24,
+          });
 
-  return (
-    <div
-      className={cn(
-        'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-        !isReady ? 'pointer-events-none opacity-0' : 'opacity-100',
-      )}
-      style={{
-        paddingLeft: `${scrollbarWidth}px`,
-      }}
-    >
-      <ScrollShadow
-        ref={scrollRef}
-        className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
+          requestAnimationFrame(() => {
+            endProgrammaticScroll();
+          });
+        },
+      }),
+      [
+        beginProgrammaticScroll,
+        endProgrammaticScroll,
+        onActiveGroupIndexChange,
+        subscribeScroll,
+      ],
+    );
+
+    return (
+      <div
+        className={cn(
+          'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
+          !isReady ? 'pointer-events-none opacity-0' : 'opacity-100',
+          flatItems.length === 0 && 'opacity-100 pointer-events-auto',
+        )}
+        style={{
+          paddingLeft: `${scrollbarWidth}px`,
+        }}
       >
-        <div ref={contentRef} className='pb-9'>
-          <ChatConversationView
-            virtualizerRef={virtualizerRef}
-            scrollRef={scrollRef}
-            flatItems={flatItems}
-            onScroll={handleScroll}
-          />
-          <div
-            className={cn(
-              'mx-auto max-w-[720px]',
-              flatItems.length > 0 ? '-mt-5' : 'mt-5',
-            )}
-          >
-            <ReplyToQuestion />
-            <ReplyToPermission />
-            <RevertedMessages />
+        <ScrollShadow
+          ref={scrollRef}
+          className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
+        >
+          <div ref={contentRef} className='pb-9'>
+            <ChatConversationView
+              virtualizerRef={virtualizerRef}
+              scrollRef={scrollRef}
+              flatItems={flatItems}
+              onScroll={handleScroll}
+            />
+            <div
+              className={cn(
+                'mx-auto max-w-[720px]',
+                flatItems.length > 0 ? '-mt-5' : 'mt-5',
+              )}
+            >
+              <ReplyToQuestion />
+              <ReplyToPermission />
+              <RevertedMessages />
+            </div>
+            <SelectionPopover containerRef={contentRef} />
           </div>
-          <SelectionPopover containerRef={contentRef} />
-        </div>
-      </ScrollShadow>
-    </div>
-  );
-});
+        </ScrollShadow>
+        <ScrollTracker virtualizerRef={virtualizerRef} />
+      </div>
+    );
+  }),
+);
+
+function ScrollTracker({
+  virtualizerRef,
+}: {
+  virtualizerRef: React.RefObject<VirtualizerHandle | null>;
+}) {
+  return null;
+}

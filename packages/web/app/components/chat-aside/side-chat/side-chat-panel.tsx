@@ -1,6 +1,8 @@
 import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import { OpenSubagentsList } from '@/app/components/chat-aside/side-chat/open-subagents-list';
+import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
+import { SubagentsList } from '@/app/components/chat-aside/side-chat/subagents-list';
 import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
 import { useSideScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import {
@@ -14,6 +16,7 @@ import {
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
+import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { useSessionPage } from '@/app/features/session-page';
 import { OfflineWrapper } from '@/app/providers';
 import {
@@ -23,9 +26,11 @@ import {
 import { useSideChatScrollStore } from '@/app/stores/chat-scroll-store';
 
 export function SideChatPanel() {
+  const sessionId = useSideChatStore((state) => state.sessionId);
+  const view = useSideChatStore((state) => state.view);
   return (
-    <SessionIdProvider value='ses_f6d142386ffepx0qHY6pomlRXp'>
-      <SideChatPage />
+    <SessionIdProvider value={sessionId}>
+      {view === 'detail' ? <SideChatPage /> : <SubagentsList />}
     </SessionIdProvider>
   );
 }
@@ -33,7 +38,7 @@ export function SideChatPanel() {
 export function SideChatPage() {
   const sessionId = useSessionId();
 
-  const { session, turns: groups } = useSessionPage(sessionId);
+  const { session, turns: groups, notFound } = useSessionPage(sessionId);
   const workspace = session?.workspace;
 
   const [activeGroupIndex, setActiveGroupIndex] = useState(() =>
@@ -91,19 +96,25 @@ export function SideChatPage() {
         'ease relative flex h-[calc(100svh-56px-48px)] flex-col justify-center overflow-hidden',
       )}
     >
-      <>
-        <ChatTocSection
-          activeGroupIndex={activeGroupIndex}
-          onSelectTocItem={handleSelectTocItem}
-        />
+      {notFound ? (
+        <SessionNotFound sessionId={sessionId} />
+      ) : (
+        <>
+          <OpenSubagentsList />
 
-        <ChatFeed
-          key={sessionId}
-          groups={groups}
-          ref={feedRef}
-          onActiveGroupIndexChange={setActiveGroupIndex}
-        />
-      </>
+          <ChatTocSection
+            activeGroupIndex={activeGroupIndex}
+            onSelectTocItem={handleSelectTocItem}
+          />
+
+          <ChatFeed
+            key={sessionId}
+            groups={groups}
+            ref={feedRef}
+            onActiveGroupIndexChange={setActiveGroupIndex}
+          />
+        </>
+      )}
 
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>

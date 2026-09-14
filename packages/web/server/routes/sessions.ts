@@ -57,12 +57,20 @@ const sessions = new Hono()
         z.object({
           archived: z.stringbool().optional(),
           childSessions: z.stringbool().optional(),
+          childSessionsOnly: z.stringbool().optional(),
         }),
       ),
     ),
     async (c) => {
-      const { cursor, limit, search, directory, archived, childSessions } =
-        c.req.valid('query');
+      const {
+        cursor,
+        limit,
+        search,
+        directory,
+        archived,
+        childSessions,
+        childSessionsOnly,
+      } = c.req.valid('query');
       const adapters = await getAllAdapters();
 
       const result = await listSessionsAcrossAdapters(adapters, {
@@ -72,6 +80,7 @@ const sessions = new Hono()
         directory,
         archived,
         childSessions,
+        childSessionsOnly,
       });
 
       return c.json(result);
@@ -849,12 +858,6 @@ const sessions = new Hono()
       const { id } = c.req.valid('param');
       const { harnessId } = c.req.valid('query');
 
-      console.log('[ABORT REQUEST]', {
-        sessionId: id,
-        harnessId,
-        time: Date.now(),
-      });
-
       const harness = await getActiveAdapter(harnessId);
       const ok = await harness.abortSession(id);
       return c.json({ ok });
@@ -879,10 +882,6 @@ const sessions = new Hono()
         const controller = new AbortController();
 
         stream.onAbort(() => {
-          console.log('[ABORT REQUEST di streamSSE stream.onAbort]', {
-            harnessId,
-            time: Date.now(),
-          });
           controller.abort();
         });
 
@@ -914,10 +913,6 @@ const sessions = new Hono()
             });
           }
         } finally {
-          console.log('[ABORT REQUEST di streamSSE finally]', {
-            harnessId,
-            time: Date.now(),
-          });
           controller.abort();
           await iterator.return?.();
         }

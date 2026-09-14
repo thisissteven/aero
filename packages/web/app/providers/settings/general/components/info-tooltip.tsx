@@ -13,7 +13,9 @@ export function InfoTooltip({ children }: { children: React.ReactNode }) {
         </span>
       </Tooltip.Trigger>
       <Tooltip.Content offset={8}>
-        <Typography type='body-xs'>{children}</Typography>
+        <Typography type='body-xs' className='leading-4'>
+          {children}
+        </Typography>
       </Tooltip.Content>
     </Tooltip>
   );

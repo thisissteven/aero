@@ -2,6 +2,17 @@ import type { AeroEvent, StreamEventsOptions } from '../harness/types';
 
 interface StreamEventsHarness {
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
+  /**
+   * Optional. If the harness is backed by a process pool that can be
+   * torn down and rebuilt (e.g. `/restart`), it should return a
+   * monotonically increasing id for "the currently running process"
+   * (see OpencodeServerPool.getGeneration). When present, the hub uses
+   * this to detect that a reconnect landed on a *different* process
+   * than the one existing subscribers were created against, and force
+   * -closes those subscribers instead of leaving them queued on a
+   * session that can never emit again.
+   */
+  getGeneration?(): number;
 }
 
 interface Subscriber {
@@ -78,6 +89,13 @@ class SessionEventHub {
 
   private shutdownTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * The harness generation (see StreamEventsHarness.getGeneration) as
+   * of the last successful upstream connection. `null` means we have
+   * never connected yet, so there is nothing to invalidate.
+   */
+  private lastGeneration: number | null = null;
+
   constructor(getHarness: () => Promise<StreamEventsHarness>) {
     this.getHarness = getHarness;
   }
@@ -143,6 +161,45 @@ class SessionEventHub {
     });
   }
 
+  /**
+   * Called whenever the upstream connection is (re)established,
+   * whether that's the very first connection or a reconnect after a
+   * drop. If the harness reports a generation that differs from the
+   * one we last connected against, the process backing this hub has
+   * been replaced (e.g. a pool `/restart`) — any subscriber created
+   * before this point is listening for a sessionId that can never
+   * exist on the new process, so it must be force-closed rather than
+   * left to hang indefinitely.
+   */
+  private handleConnected(harness: StreamEventsHarness) {
+    const generation = harness.getGeneration?.();
+
+    if (generation !== undefined) {
+      if (this.lastGeneration !== null && generation !== this.lastGeneration) {
+        this.invalidateStaleSubscribers(generation);
+      }
+
+      this.lastGeneration = generation;
+    }
+
+    this.resolveReady?.();
+    this.resolveReady = null;
+    this.rejectReady = null;
+    this.readyPromise = null;
+  }
+
+  private invalidateStaleSubscribers(newGeneration: number) {
+    const stale = [...this.subscribers];
+
+    if (stale.length === 0) {
+      return;
+    }
+
+    for (const subscriber of stale) {
+      this.removeSubscriber(subscriber);
+    }
+  }
+
   private async runUpstream() {
     let reconnectDelay = RECONNECT_INITIAL_MS;
 
@@ -159,10 +216,7 @@ class SessionEventHub {
             signal: controller.signal,
 
             onConnected: () => {
-              this.resolveReady?.();
-              this.resolveReady = null;
-              this.rejectReady = null;
-              this.readyPromise = null;
+              this.handleConnected(harness);
             },
           })) {
             if (controller.signal.aborted) {
@@ -179,7 +233,7 @@ class SessionEventHub {
           }
 
           throw new Error('OpenCode global event stream ended unexpectedly');
-        } catch (error) {
+        } catch (_error) {
           if (controller.signal.aborted || this.subscribers.size === 0) {
             break;
           }
@@ -189,11 +243,6 @@ class SessionEventHub {
           this.rejectReady = null;
 
           this.ensureReadyPromise();
-
-          console.warn(
-            `[SessionEventHub] upstream disconnected; reconnecting in ${reconnectDelay}ms`,
-            error,
-          );
 
           const reconnect = await delay(reconnectDelay, controller.signal);
 
@@ -284,11 +333,6 @@ class SessionEventHub {
     }
 
     if (subscriber.queue.length >= MAX_QUEUE_SIZE) {
-      console.warn('[SessionEventHub] closing slow subscriber', {
-        sessionId: subscriber.sessionId,
-        queueSize: subscriber.queue.length,
-      });
-
       this.removeSubscriber(subscriber);
 
       return;
@@ -362,6 +406,8 @@ class SessionEventHub {
       ),
 
       upstreamConnected: this.upstreamController !== null,
+
+      generation: this.lastGeneration,
     };
   }
 }

@@ -1,5 +1,5 @@
 import type { PanelImperativeHandle } from '@aero/ui';
-import { Resizable } from '@aero/ui';
+import { Resizable, Skeleton } from '@aero/ui';
 import {
   ChevronsCollapseUpRight,
   ChevronsExpandUpRight,
@@ -12,8 +12,11 @@ import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel'
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
 import { SideChatPanel } from '@/app/components/chat-aside/side-chat/side-chat-panel';
+import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
-import { collapsibleNav } from '@/app/lib/constants';
+import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
+import { useSession } from '@/app/hooks/api/sessions';
+import { collapsibleNav, NavItem } from '@/app/lib/constants';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function ChatAsidePanel() {
@@ -65,13 +68,8 @@ export function ChatAsidePanel() {
       >
         <aside className='flex h-full flex-col bg-surface/30 backdrop-blur-sm'>
           <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
-            <div className='flex items-center gap-2'>
-              <span className='flex size-4 place-items-center'>
-                {activeNavData?.icon}
-              </span>
-              <span className='text-sm font-medium'>
-                {activeNavData?.label}
-              </span>
+            <div className='flex items-center gap-2 overflow-hidden'>
+              <ChatAsideHeader activeNavData={activeNavData} />
             </div>
 
             <div className='flex items-center gap-1.5'>
@@ -122,5 +120,49 @@ export function ChatAsidePanel() {
         </aside>
       </Resizable.Panel>
     </>
+  );
+}
+
+function ChatAsideHeader({ activeNavData }: { activeNavData?: NavItem }) {
+  const isSubagentDetail =
+    useSideChatStore((state) => state.view === 'detail') &&
+    activeNavData?.id === 'side-chat';
+
+  if (isSubagentDetail) {
+    return <SubagentTitle />;
+  }
+
+  return (
+    <>
+      <span className='flex size-4 place-items-center'>
+        {activeNavData?.icon}
+      </span>
+      <span className='text-sm font-medium'>{activeNavData?.label}</span>
+    </>
+  );
+}
+
+function SubagentTitle() {
+  const sessionId = useSideChatStore((state) => state.sessionId);
+  const { data: session, isLoading } = useSession(undefined, sessionId);
+
+  if (isLoading) {
+    return (
+      <div className='space-y-1'>
+        <Skeleton className='h-2 w-40 bg-default' />
+        <Skeleton className='h-2 w-30 bg-default' />
+      </div>
+    );
+  }
+
+  if (!session) return null;
+
+  return (
+    <div className='min-w-0 mt-1.5'>
+      <div className='text-xs font-medium truncate min-w-0'>
+        {session?.title}
+      </div>
+      <SessionItemMetadata session={session} />
+    </div>
   );
 }

@@ -62,14 +62,18 @@ export const SidebarContents = memo(function SidebarContents({
                   <Sidebar.MenuIcon>
                     <Comment className='size-4' />
                   </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>New Session</Sidebar.MenuLabel>
+                  <Sidebar.MenuLabel className='-ml-1'>
+                    New Session
+                  </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
 
                 <Sidebar.MenuItem textValue='Search' onPress={onSearch}>
                   <Sidebar.MenuIcon>
                     <Magnifier className='size-4' />
                   </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
+                  <Sidebar.MenuLabel className='-ml-1'>
+                    Search
+                  </Sidebar.MenuLabel>
                   <Sidebar.MenuChip>
                     <Kbd className='text-[11px]'>⌘K</Kbd>
                   </Sidebar.MenuChip>
@@ -88,7 +92,9 @@ export const SidebarContents = memo(function SidebarContents({
                   <Sidebar.MenuIcon>
                     <Folder className='size-4' />
                   </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>Workspaces</Sidebar.MenuLabel>
+                  <Sidebar.MenuLabel className='-ml-1'>
+                    Workspaces
+                  </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
 
                 <Sidebar.MenuItem
@@ -101,7 +107,9 @@ export const SidebarContents = memo(function SidebarContents({
                   <Sidebar.MenuIcon>
                     <PlugWire className='size-4' />
                   </Sidebar.MenuIcon>
-                  <Sidebar.MenuLabel>Plugins</Sidebar.MenuLabel>
+                  <Sidebar.MenuLabel className='-ml-1'>
+                    Plugins
+                  </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
               </Sidebar.Menu>
             </Sidebar.Group>

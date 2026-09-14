@@ -7,6 +7,7 @@ import {
   getOpencodeStreamingClientV2,
   withOpencodeClientV2,
 } from '@/server/adapters/opencode/client';
+import { opencodePoolV2 } from '@/server/adapters/opencode/pool';
 import { parseSseEventEnvelope } from '@/server/adapters/opencode/sse-envelope';
 import {
   AERO_DIR,
@@ -42,7 +43,6 @@ import {
   removeWorktreeFromWorkspace,
   updateWorkspace,
 } from '@/server/storage/workspaces';
-
 import {
   toAeroAgent,
   toAeroAgentCompact,
@@ -164,6 +164,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
   return {
     id: 'opencode',
+
+    getGeneration: () => opencodePoolV2.getGeneration(),
 
     async listWorkspaces({
       cursor,
@@ -294,6 +296,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       search,
       archived = true,
       childSessions = false,
+      childSessionsOnly = false,
     }: ListSessionsParams) {
       const sessions = await withOpencodeClientV2(async (client) => {
         const sessions = unwrap(
@@ -308,9 +311,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         return sessions;
       });
 
+      if (childSessionsOnly) {
+        const childSessions = sessions.data
+          .filter((session) => {
+            if (!session.parentID) return false;
+            return true;
+          })
+          .map(toAeroSessionV2Info);
+
+        return {
+          items: childSessions,
+          nextCursor: sessions.cursor?.next,
+        };
+      }
+
       const items = sessions.data
         .filter((session) => {
+          // filter out archived sessions
           if (!archived && session.time.archived) return false;
+          // filter out child sessions
           if (!childSessions && session.parentID) return false;
           return true;
         })

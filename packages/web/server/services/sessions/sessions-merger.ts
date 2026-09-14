@@ -43,6 +43,7 @@ export async function listSessionsAcrossAdapters(
     search,
     childSessions,
     archived,
+    childSessionsOnly,
   } = params;
 
   const offset = decodeCursor(cursor);
@@ -55,6 +56,7 @@ export async function listSessionsAcrossAdapters(
     limit: GET_ALL_LIMIT,
     archived,
     childSessions,
+    childSessionsOnly,
   };
 
   const results = await Promise.allSettled(

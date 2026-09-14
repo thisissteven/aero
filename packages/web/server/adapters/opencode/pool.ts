@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
 
+import { execFileSync } from 'node:child_process';
+import { createServer as createNetServer } from 'node:net';
 import {
   createOpencodeClient as createClientV2,
   createOpencodeServer as createServerV2,
 } from '@opencode-ai/sdk/v2';
-import { execFileSync } from 'node:child_process';
-import { createServer as createNetServer } from 'node:net';
 
 import { installAeroPlugin } from '@/server/adapters/opencode/plugin';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
@@ -30,6 +30,7 @@ export interface PoolStats {
   poolSize: number;
   totalActiveRequests: number;
   healthyNodesCount: number;
+  generation: number;
   nodes: Array<{
     id: number;
     port: number;
@@ -40,7 +41,7 @@ export interface PoolStats {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function isPortOpen(port: number, host = '127.0.0.1'): Promise<boolean> {
+function _isPortOpen(port: number, host = '127.0.0.1'): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createNetServer();
     server.once('error', () => resolve(false));
@@ -51,7 +52,7 @@ function isPortOpen(port: number, host = '127.0.0.1'): Promise<boolean> {
   });
 }
 
-function resolveOpenCodeExecutable(): string | undefined {
+function _resolveOpenCodeExecutable(): string | undefined {
   try {
     const cmd = process.platform === 'win32' ? 'where.exe' : 'which';
     return (
@@ -77,6 +78,16 @@ export class OpencodeServerPool<
   private initPromise: Promise<void> | null = null;
   private shuttingDown = false;
   private activeToken = crypto.randomUUID();
+
+  /**
+   * Bumped every time `this.node` is replaced with a freshly booted
+   * process — whether via a normal startup, `/restart`, or
+   * `recoverNode`. Any session that existed on a prior generation's
+   * process is gone and can never emit events again; consumers
+   * (SessionEventHub) use this to detect that their upstream identity
+   * changed and invalidate anything tied to the old process.
+   */
+  private generation = 0;
 
   constructor(
     private readonly createServerFn: (opts: {
@@ -123,17 +134,18 @@ export class OpencodeServerPool<
               isHealthy: true,
               isRecovering: false,
             };
+            // A brand new process is now backing this pool. Anything
+            // that identified the "old" process (session ids, event
+            // subscriptions) is stale as of this instant.
+            this.generation++;
             return;
           } catch {
             await sleep(250);
           }
         }
         server.close?.();
-      } catch (err) {
-        console.error(
-          `[OpenCode Pool ${this.versionLabel}] Initialization failed:`,
-          err,
-        );
+      } catch (_err) {
+        //
       }
     })().finally(() => {
       this.initPromise = null;
@@ -203,12 +215,25 @@ export class OpencodeServerPool<
     return token === this.activeToken;
   }
 
+  /**
+   * Monotonically increasing id for the currently running process.
+   * Consumers that hold long-lived state tied to "the current
+   * process" (e.g. an event-stream subscriber keyed by sessionId)
+   * should snapshot this value on connect and compare it on every
+   * reconnect to detect that the process — and therefore any session
+   * that lived on it — is gone.
+   */
+  public getGeneration(): number {
+    return this.generation;
+  }
+
   public async getStats(): Promise<PoolStats> {
     const isHealthy = Boolean(this.node?.isHealthy && !this.node?.isRecovering);
     return {
       poolSize: this.node ? 1 : 0,
       totalActiveRequests: this.node?.activeRequests ?? 0,
       healthyNodesCount: isHealthy ? 1 : 0,
+      generation: this.generation,
       nodes: this.node
         ? [
             {

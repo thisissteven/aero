@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
-
 import { Resizable } from '@aero/ui';
+import type { ReactNode } from 'react';
 
 export function ChatMainContentPanel({ children }: { children: ReactNode }) {
   return (

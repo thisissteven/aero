@@ -10,13 +10,12 @@ import type {
 import { memo, useMemo, useRef } from 'react';
 import type { Components } from 'react-markdown';
 import { Virtualizer } from 'virtua';
-
+import { useAutoScroll } from '../hooks';
 import {
   defaultComponents,
   MarkdownFileContext,
   MemoizedBlock,
 } from './markdown';
-import { useAutoScroll } from '../hooks';
 
 /**
  * Splits markdown into top-level blocks on blank-line boundaries, keeping
@@ -80,10 +79,8 @@ function splitMarkdownIntoBlocks(markdown: string): string[] {
   return blocks.length > 0 ? blocks : [markdown];
 }
 
-export interface VirtualizedMarkdownProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children'
-> {
+export interface VirtualizedMarkdownProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   children: string;
   components?: Partial<Components>;
   id: string;
@@ -140,15 +137,18 @@ export const VirtualizedMarkdown: NamedExoticComponent<VirtualizedMarkdownProps>
             itemSize={itemSize}
             scrollRef={scrollRef}
           >
-            {(block, index) => (
-              <div key={`${id}-${index}`} className='mb-4'>
-                <MemoizedBlock
-                  components={renderers}
-                  content={block}
-                  streaming={streaming}
-                />
-              </div>
-            )}
+            {(block, index) => {
+              const isLast = index === blocks.length - 1;
+              return (
+                <div key={`${id}-block-${index}`} className='mb-4'>
+                  <MemoizedBlock
+                    components={renderers}
+                    content={block}
+                    isStreamingBlock={streaming && isLast}
+                  />
+                </div>
+              );
+            }}
           </Virtualizer>
         </div>
       </MarkdownFileContext.Provider>

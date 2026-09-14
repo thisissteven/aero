@@ -2,11 +2,10 @@ import {
   ArrowRightArrowLeft,
   CircleDashed,
   CircleTree,
+  Comment,
   File,
   FileCode,
   Globe,
-  LayoutSplitSideContentLeft,
-  LayoutSplitSideContentRight,
   LogoGithub,
   Terminal,
 } from '@gravity-ui/icons';
@@ -73,10 +72,11 @@ export const collapsibleNav = [
   },
   {
     id: 'side-chat',
-    icon: <Icon data={LayoutSplitSideContentRight} size={18} />,
-    label: 'Side chat',
+    icon: <Icon data={Comment} size={18} />,
+    label: 'Subagents History',
     description: 'Pull up a side chat view to watch your subagent work',
   },
 ] as const;
 
-export type NavItemId = (typeof collapsibleNav)[number]['id'];
+export type NavItem = (typeof collapsibleNav)[number];
+export type NavItemId = NavItem['id'];

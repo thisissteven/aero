@@ -460,6 +460,7 @@ export interface ListSessionsParams extends BasePaginationParams {
   directory?: string;
   archived?: boolean;
   childSessions?: boolean;
+  childSessionsOnly?: boolean;
 }
 
 export interface PaginatedResponse<T> {
@@ -565,6 +566,7 @@ export interface HarnessAdapter {
   getVcsInfo(directory: string): Promise<AeroVcsInfo>;
 
   any(sessionId: string): Promise<any>;
+  getGeneration(): number;
 
   getSessionMessage(sessionId: string, messageId: string): Promise<AeroMessage>;
   getSessionStatus(directory: string): Promise<{

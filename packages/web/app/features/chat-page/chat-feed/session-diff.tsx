@@ -38,7 +38,7 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none @max-md:hidden border border-separator'>
+      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none @max-md:hidden border border-separator w-fit ml-auto'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed
