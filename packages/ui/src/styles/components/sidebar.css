@@ -45,7 +45,7 @@
 
   .sidebar {
     top: calc(var(--spacing, 0.25rem) * 0);
-    @apply bg-surface/30 border-separator backdrop-blur-sm;
+    @apply bg-surface/30 border-separator;
     --sidebar-width: 240px;
     --sidebar-width-collapsed: 48px;
     --sidebar-duration: 0.2s;
@@ -499,7 +499,7 @@
   @media (hover: hover) {
     .sidebar__menu-item:hover .sidebar__menu-item-content,
     .sidebar__menu-item[data-hovered="true"] .sidebar__menu-item-content {
-      @apply bg-default/50 backdrop-blur-sm;
+      @apply bg-default/50;
     }
   }
 
@@ -547,7 +547,7 @@
       :has(.sidebar__menu-actions [aria-expanded="true"])
     )
     .sidebar__menu-item-content {
-    @apply bg-default/70 backdrop-blur-sm;
+    @apply bg-default/70;
   }
 
   .sidebar__menu-item[data-current="true"] .sidebar__menu-label {

@@ -1,7 +1,7 @@
-import { CircleQuestion, Plus } from '@gravity-ui/icons';
+import { Button, Label } from '@aero/ui';
+import { Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Button, Label, Tooltip } from '@aero/ui';
+import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 
 export function EditWorkspaceActions() {
   return (
@@ -9,14 +9,10 @@ export function EditWorkspaceActions() {
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-1.5 font-medium'>
           <Label>Actions</Label>
-          <Tooltip>
-            <Tooltip.Trigger>
-              <Icon data={CircleQuestion} size={16} />
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-              Custom automated workflows for this workspace
-            </Tooltip.Content>
-          </Tooltip>
+
+          <InfoTooltip>
+            Custom automated workflows for this workspace
+          </InfoTooltip>
         </div>
         <Button size='sm' variant='secondary'>
           <Icon data={Plus} size={16} />

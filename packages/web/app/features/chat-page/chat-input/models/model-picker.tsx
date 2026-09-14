@@ -1,11 +1,8 @@
 import { Command } from '@aero/ui';
 import { Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import {
-  ModelPickerList,
-  useModelPicker,
-} from '@/app/features/chat-page/chat-input/models/use-model-picker';
+import { ModelPickerList } from '@/app/features/chat-page/chat-input/models/model-picker-list';
+import { useModelPicker } from '@/app/features/chat-page/chat-input/models/use-model-picker';
 
 interface ModelPickerProps {
   onModelSelect?: () => void;

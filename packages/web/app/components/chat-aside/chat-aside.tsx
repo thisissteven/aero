@@ -29,7 +29,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
                   onClick={() => onSelect(item.id)}
                   className={`flex w-full items-center justify-center py-1.5 transition ${
                     isActive
-                      ? 'text-accent-soft-foreground opacity-100'
+                      ? 'text-accent opacity-100'
                       : 'opacity-50 hover:opacity-80'
                   }`}
                 >

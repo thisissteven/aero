@@ -45,7 +45,7 @@ export function ModelDropdown() {
     collapsedGroups,
     toggleGroupCollapse,
     isModelVisible,
-  } = useModelDirectory({ favoriteModelIds });
+  } = useModelDirectory();
 
   useModelSelectionSync(searchableModels, {
     selectedModel,

@@ -1,9 +1,8 @@
+import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
 import { Check, Folder, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
-
-import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
-
+import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';
 import { FolderPicker } from '@/app/components/folder-picker';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
@@ -102,7 +101,7 @@ export function WorkspacesDropdown() {
                   onPress={() => setSelectedWorkspace(workspace)}
                 >
                   <div className='flex items-center gap-1'>
-                    <Icon size={14} data={Folder} className='shrink-0' />
+                    <WorkspaceIcon workspace={workspace} />
                     <Label>{workspace.name}</Label>
                   </div>
                   {selectedWorkspace?.directory === workspace.directory && (

@@ -40,6 +40,7 @@ export function MessageActionsPin({ messageId }: { messageId: string }) {
             value: !pinned,
           });
         }}
+        className={cn(pinned && 'opacity-100 hover:opacity-100')}
       >
         <Icon
           data={pinned ? PinFill : Pin}

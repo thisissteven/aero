@@ -76,6 +76,9 @@ const workspaces = new Hono()
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
           worktrees: [],
+          defaultModel: item.defaultModel,
+          selectedColor: item.selectedColor,
+          selectedIcon: item.selectedIcon,
         })),
         nextCursor: result.nextCursor,
       };

@@ -1,8 +1,8 @@
-import { IconButton, Label, Tooltip } from '@aero/ui';
-import { ArrowRotateLeft, CircleQuestion } from '@gravity-ui/icons';
+import { IconButton, Label } from '@aero/ui';
+import { ArrowRotateLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { WorkspaceModelDropdown } from '@/app/components/chat-sidebar/workspace/workspace-model-dropdown';
-
+import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 import { useEditWorkspaceStore } from './edit-workspace-store';
 
 export function EditWorkspaceModelDefaults() {
@@ -13,14 +13,9 @@ export function EditWorkspaceModelDefaults() {
     <div className='flex flex-col gap-3'>
       <div className='flex items-center gap-1.5 font-medium'>
         <Label>Defaults for new chats</Label>
-        <Tooltip>
-          <Tooltip.Trigger className='inline-flex cursor-pointer'>
-            <Icon data={CircleQuestion} size={16} />
-          </Tooltip.Trigger>
-          <Tooltip.Content>
-            Default AI settings for new conversations in this workspace
-          </Tooltip.Content>
-        </Tooltip>
+        <InfoTooltip>
+          Default AI settings for new conversations in this workspace
+        </InfoTooltip>
       </div>
       <div className='flex flex-col gap-2'>
         <Label>Project Model</Label>

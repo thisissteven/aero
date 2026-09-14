@@ -1,4 +1,4 @@
 export * from './global-modal';
-export * from './QueryProvider';
+export * from './query-client';
 export * from './settings';
 export * from './theme';

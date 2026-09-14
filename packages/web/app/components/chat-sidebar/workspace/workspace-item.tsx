@@ -1,8 +1,7 @@
+import { Sidebar } from '@aero/ui';
 import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
-
-import { Sidebar } from '@aero/ui';
 
 import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/workspace/directory-not-found-indicator';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@/app/components/chat-sidebar/workspace/edit-workspace-modal/edit-workspace-constants';
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
+import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';
 import { WorkspaceItemDropdown } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown';
 import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
@@ -46,9 +46,6 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
 
   const workspaceIdPrefix = `${idPrefix}-${workspace.id}`;
 
-  const isCustomIcon =
-    !PROJECT_ICON_MAP[workspace.selectedIcon as keyof typeof PROJECT_ICON_MAP];
-
   return (
     <Sidebar.MenuItem
       {...props}
@@ -58,39 +55,7 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
     >
       <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent pl-0 group-hover:bg-transparent'>
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
-          {!workspace.selectedIcon ? (
-            <Icon
-              data={Folder}
-              size={14}
-              style={{
-                color:
-                  ACCENT_COLORS_MAP[
-                    workspace.selectedColor as keyof typeof ACCENT_COLORS_MAP
-                  ] ?? workspace.selectedColor,
-              }}
-            />
-          ) : isCustomIcon ? (
-            <img
-              src={workspace.selectedIcon}
-              alt={workspace.name}
-              className='size-3.5'
-            />
-          ) : (
-            <Icon
-              data={
-                PROJECT_ICON_MAP[
-                  workspace.selectedIcon as keyof typeof PROJECT_ICON_MAP
-                ]
-              }
-              style={{
-                color:
-                  ACCENT_COLORS_MAP[
-                    workspace.selectedColor as keyof typeof ACCENT_COLORS_MAP
-                  ] ?? workspace.selectedColor,
-              }}
-              size={14}
-            />
-          )}
+          <WorkspaceIcon workspace={workspace} />
         </Sidebar.MenuIcon>
 
         <Sidebar.MenuTrigger className='absolute inset-0 flex h-full w-full items-center justify-start pl-1 opacity-0 transition group-hover:opacity-100'>

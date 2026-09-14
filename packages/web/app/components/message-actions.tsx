@@ -1,3 +1,4 @@
+import { Button } from '@aero/ui';
 import {
   ArrowsRotateLeft,
   Copy,
@@ -5,8 +6,6 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from '@gravity-ui/icons';
-
-import { Button } from '@aero/ui';
 
 interface MessageActionsProps {
   variant: 'full' | 'minimal';
@@ -20,7 +19,6 @@ export function MessageActions({ variant }: MessageActionsProps) {
         className='text-muted opacity-50'
         size='sm'
         variant='ghost'
-        onPress={() => {}}
       >
         <Copy className='size-4' />
       </Button>
@@ -31,7 +29,6 @@ export function MessageActions({ variant }: MessageActionsProps) {
             className='text-muted opacity-50'
             size='sm'
             variant='ghost'
-            onPress={() => {}}
           >
             <ThumbsUp className='size-4' />
           </Button>
@@ -40,7 +37,6 @@ export function MessageActions({ variant }: MessageActionsProps) {
             className='text-muted opacity-50'
             size='sm'
             variant='ghost'
-            onPress={() => {}}
           >
             <ThumbsDown className='size-4' />
           </Button>
@@ -49,7 +45,6 @@ export function MessageActions({ variant }: MessageActionsProps) {
             className='text-muted opacity-50'
             size='sm'
             variant='ghost'
-            onPress={() => {}}
           >
             <ArrowsRotateLeft className='size-4' />
           </Button>
@@ -60,7 +55,6 @@ export function MessageActions({ variant }: MessageActionsProps) {
         className='text-muted opacity-50'
         size='sm'
         variant='ghost'
-        onPress={() => {}}
       >
         <Ellipsis className='size-4' />
       </Button>

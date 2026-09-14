@@ -1,24 +1,14 @@
 import { cn, IconButton, Tooltip } from '@aero/ui';
 import { LayoutSplitSideContentRight, SquareBars } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useSession } from '@/app/hooks/api/sessions';
-import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function PanelActions() {
-  const sessionId = useSessionId();
-
-  const { data: session } = useSession(undefined, sessionId);
-
-  const workspace = session?.workspace;
-
-  if (!sessionId || !workspace) return null;
-
-  return <PanelActionsContent projectPath={workspace} />;
+  return <PanelActionsContent />;
 }
 
-export function PanelActionsContent({ projectPath }: { projectPath: string }) {
+export function PanelActionsContent() {
   const isOpen = useStatusPanelStore((state) => state.isOpen);
   const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 

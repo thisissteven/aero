@@ -56,3 +56,23 @@ export function useModelSelectionSync(
     }
   }, [searchableModels, favoriteModelIds, setFavoriteModelIds]);
 }
+
+export function useModelSelectionSyncFavorites(
+  searchableModels: SearchableModel[],
+  {
+    favoriteModelIds,
+    setFavoriteModelIds,
+  }: Omit<UseModelSelectionSyncOptions, 'selectedModel' | 'setSelectedModel'>,
+) {
+  useEffect(() => {
+    if (!favoriteModelIds || !setFavoriteModelIds) return;
+    if (searchableModels.length === 0 || favoriteModelIds.length === 0) return;
+
+    const validIds = new Set(searchableModels.map(({ model }) => model.id));
+    const stillValid = favoriteModelIds.filter((id) => validIds.has(id));
+
+    if (stillValid.length !== favoriteModelIds.length) {
+      setFavoriteModelIds(stillValid);
+    }
+  }, [searchableModels, favoriteModelIds, setFavoriteModelIds]);
+}

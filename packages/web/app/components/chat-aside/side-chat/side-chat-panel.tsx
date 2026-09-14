@@ -17,7 +17,7 @@ import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
-import { useSessionPage } from '@/app/features/session-page';
+import { useSessionPage } from '@/app/features/new-session-page/use-session-page';
 import { OfflineWrapper } from '@/app/providers';
 import {
   SessionIdProvider,

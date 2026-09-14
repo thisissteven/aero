@@ -4,6 +4,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useState } from 'react';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
+import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { buildModelVirtualItems } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
 import {
   AddProviderRow,
@@ -15,6 +16,7 @@ import {
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
+import { useModelSelectionSyncFavorites } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
 import { SearchableModel } from '@/app/lib/model';
 import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 
@@ -34,7 +36,18 @@ export function WorkspaceModelDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const hideTooltip = useTooltipStore((state) => state.hideTooltip);
 
-  // No favorites for this picker — favoriteModelIds is simply omitted.
+  const favoriteModelIds = useChatSettingsStore(
+    (state) => state.favoriteModelIds,
+  );
+
+  const toggleFavoriteModel = useChatSettingsStore(
+    (state) => state.toggleFavoriteModel,
+  );
+
+  const setFavoriteModelIds = useChatSettingsStore(
+    (state) => state.setFavoriteModelIds,
+  );
+
   const {
     searchableModels,
     searchQuery,
@@ -76,6 +89,16 @@ export function WorkspaceModelDropdown({
   useEffect(() => {
     clearIfStale(isModelVisible);
   }, [clearIfStale, isModelVisible]);
+
+  useModelSelectionSyncFavorites(searchableModels, {
+    favoriteModelIds,
+    setFavoriteModelIds,
+  });
+
+  const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
+    event.stopPropagation();
+    toggleFavoriteModel(modelId);
+  };
 
   return (
     <Popover
@@ -141,9 +164,11 @@ export function WorkspaceModelDropdown({
                   <ModelVirtualList
                     items={items}
                     selectedModelId={selectedModelEntry?.model.id}
+                    favoriteModelIds={favoriteModelIds}
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroupCollapse}
                     onSelect={selectModel}
+                    onToggleFavorite={toggleFavorite}
                     onActivate={activateModel}
                   />
                 )}

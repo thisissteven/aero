@@ -1,86 +1,49 @@
-import { useCallback, useMemo, useState } from 'react';
-
+// useModelDirectory.ts
+import { useEffect, useMemo } from 'react';
+import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useConfiguredProviders } from '@/app/hooks/api/providers';
-import { ModelItem, ProviderGroup, SearchableModel } from '@/app/lib/model';
+import { SearchableModel } from '@/app/lib/model';
 
-export interface UseModelDirectoryOptions {
-  /**
-   * When provided, models whose id appears in this list are pulled out
-   * into `favoriteModels` and excluded from `groupedProviders`. Omit
-   * entirely for pickers that don't support favorites (e.g. the
-   * workspace default-model dropdown).
-   */
-  favoriteModelIds?: string[];
-}
-
-export interface UseModelDirectoryResult {
-  searchableModels: SearchableModel[];
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  favoriteModels: SearchableModel[];
-  groupedProviders: ProviderGroup[];
-  totalResults: number;
-  collapsedGroups: Set<string>;
-  toggleGroupCollapse: (groupId: string) => void;
-  /** True if a model id is present in the current (search-filtered) result set. */
-  isModelVisible: (modelId: string) => boolean;
-}
-
-const EMPTY_FAVORITES: string[] = [];
-
-export function useModelDirectory({
-  favoriteModelIds = EMPTY_FAVORITES,
-}: UseModelDirectoryOptions = {}): UseModelDirectoryResult {
+export function useModelDirectory() {
   const { data: providersData } = useConfiguredProviders();
+  const setProvidersData = useChatSettingsStore((s) => s.setProvidersData);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    new Set(),
+  useEffect(() => {
+    setProvidersData(providersData);
+  }, [providersData, setProvidersData]);
+
+  const searchableModels = useChatSettingsStore((s) => s.searchableModels);
+  const searchQuery = useChatSettingsStore((s) => s.searchQuery);
+  const favoriteModelIds = useChatSettingsStore((s) => s.favoriteModelIds);
+  const collapsedGroups = useChatSettingsStore((s) => s.collapsedGroups);
+
+  const setSearchQuery = useChatSettingsStore((s) => s.setSearchQuery);
+  const toggleGroupCollapse = useChatSettingsStore(
+    (s) => s.toggleGroupCollapse,
   );
 
-  const searchableModels = useMemo<SearchableModel[]>(() => {
-    if (!providersData) return [];
-
-    const byId = new Map<string, SearchableModel>();
-    for (const provider of providersData) {
-      for (const model of Object.values(provider.models) as ModelItem[]) {
-        if (!byId.has(model.id)) {
-          byId.set(model.id, {
-            model,
-            providerId: provider.id,
-            providerName: provider.name,
-          });
-        }
-      }
-    }
-    return [...byId.values()];
-  }, [providersData]);
-
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-
+  // Compute derived state using useMemo so references stay STABLE across renders
   const filteredModels = useMemo(() => {
-    if (!normalizedSearch) return searchableModels;
+    const normalized = searchQuery.trim().toLowerCase();
+    if (!normalized) return searchableModels;
 
     return searchableModels.filter(
       ({ model, providerName }) =>
-        model.name.toLowerCase().includes(normalizedSearch) ||
-        model.id.toLowerCase().includes(normalizedSearch) ||
-        providerName.toLowerCase().includes(normalizedSearch),
+        model.name.toLowerCase().includes(normalized) ||
+        model.id.toLowerCase().includes(normalized) ||
+        providerName.toLowerCase().includes(normalized),
     );
-  }, [searchableModels, normalizedSearch]);
+  }, [searchableModels, searchQuery]);
 
-  const favoriteModels = useMemo(
-    () =>
-      favoriteModelIds.length === 0
-        ? []
-        : filteredModels.filter(({ model }) =>
-            favoriteModelIds.includes(model.id),
-          ),
-    [filteredModels, favoriteModelIds],
-  );
+  const favoriteModels = useMemo(() => {
+    if (favoriteModelIds.length === 0) return [];
+    return filteredModels.filter(({ model }) =>
+      favoriteModelIds.includes(model.id),
+    );
+  }, [filteredModels, favoriteModelIds]);
 
-  const groupedProviders = useMemo<ProviderGroup[]>(() => {
-    const groups = new Map<string, ProviderGroup>();
+  const groupedProviders = useMemo(() => {
+    const groups = new Map();
 
     for (const entry of filteredModels) {
       if (favoriteModelIds.includes(entry.model.id)) continue;
@@ -102,28 +65,16 @@ export function useModelDirectory({
 
   const totalResults =
     favoriteModels.length +
-    groupedProviders.reduce(
-      (total, provider) => total + provider.models.length,
-      0,
-    );
+    groupedProviders.reduce((acc, g) => acc + g.models.length, 0);
 
-  const toggleGroupCollapse = useCallback((groupId: string) => {
-    setCollapsedGroups((previous) => {
-      const next = new Set(previous);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  }, []);
-
-  const isModelVisible = useCallback(
-    (modelId: string) =>
-      favoriteModels.some(({ model }) => model.id === modelId) ||
-      groupedProviders.some((group) =>
-        group.models.some(({ model }) => model.id === modelId),
+  const isModelVisible = (modelId: string) =>
+    favoriteModels.some(({ model }) => model.id === modelId) ||
+    groupedProviders.some((g) =>
+      g.models.some(
+        ({ model }: { model: SearchableModel['model'] }) =>
+          model.id === modelId,
       ),
-    [favoriteModels, groupedProviders],
-  );
+    );
 
   return {
     searchableModels,

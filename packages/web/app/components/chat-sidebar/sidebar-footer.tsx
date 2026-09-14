@@ -121,7 +121,7 @@ export function AboutModal() {
 
       <Modal.Header className='flex flex-col items-center space-y-3 pt-2 text-center'>
         {/* Logo Container */}
-        <div className='bg-surface-secondary border-accent/15 flex h-16 w-16 items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
+        <div className='bg-surface-secondary border-secondary flex h-16 w-16 items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
           <img
             src={
               resolvedTheme === 'dark'
@@ -449,7 +449,7 @@ export function ShortcutsModal() {
 
                       {/* Shortcut Keys */}
                       <div className='flex items-center gap-1'>
-                        <Kbd className='bg-surface-secondary text-foreground border-accent/15'>
+                        <Kbd className='bg-surface-secondary text-foreground border-secondary'>
                           {item.keys.map((key, idx) => (
                             <React.Fragment key={idx}>
                               {idx > 0 && (
@@ -470,7 +470,7 @@ export function ShortcutsModal() {
             ))}
 
             {/* Pro Tips Section */}
-            <div className='border-accent/15 bg-surface-secondary/60 space-y-2 rounded-xl border p-4 backdrop-blur-sm'>
+            <div className='border-secondary bg-surface-secondary/60 space-y-2 rounded-xl border p-4 backdrop-blur-sm'>
               <div className='flex items-center gap-2'>
                 <Icon data={Keyboard} />
                 <Typography
