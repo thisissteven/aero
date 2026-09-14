@@ -1,6 +1,7 @@
 import { cn, Spinner } from '@aero/ui';
 import { VList } from 'virtua';
 import { SubagentStatusItem } from '@/app/components/status-panel/subagent-status-item';
+import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
@@ -17,15 +18,20 @@ export function SubagentsList() {
     isFetchingNextPage,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
+  const runningSessions = useChatStore((state) => state.runningSessions);
+
   return (
     <div className='overflow-hidden relative h-[calc(100svh-56px-48px)]'>
       <VList className='p-2 scrollbar-thin'>
         {sessions.map((session) => {
+          const status = runningSessions.includes(session.id)
+            ? 'busy'
+            : undefined;
           return (
             <SubagentStatusItem
               key={session.id}
               session={session}
-              status={undefined}
+              status={status}
             />
           );
         })}

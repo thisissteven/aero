@@ -271,7 +271,7 @@ export function ModelInfoPanelCard({
     <div
       style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
       className={cn(
-        'bg-overlay/60 text-overlay-foreground border-separator absolute w-64 space-y-2 rounded-xl border p-3 text-xs backdrop-blur-sm transition-all duration-75',
+        'bg-overlay text-overlay-foreground border-separator absolute w-64 space-y-2 rounded-xl border p-3 text-xs transition-all duration-75',
         side === 'right' ? 'left-full ml-2' : 'right-full mr-2',
       )}
     >

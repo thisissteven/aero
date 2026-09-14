@@ -1,5 +1,6 @@
 import { cn, IconButton, Tooltip } from '@aero/ui';
 import { LayoutSplitSideContentRight, SquareBars } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -33,13 +34,13 @@ export function PanelActionsContent({ projectPath }: { projectPath: string }) {
           aria-label={isOpen ? 'Hide work status' : 'Show work status'}
           onPress={toggleIsOpen}
           className={cn(
-            'h-6 w-7',
+            'h-6 w-7 [&_svg]:!size-4',
             isOpen
               ? 'text-accent opacity-100 hover:opacity-100 active:opacity-100'
               : 'hover:opacity-50 active:opacity-50',
           )}
         >
-          <SquareBars />
+          <Icon data={SquareBars} />
         </IconButton>
         <Tooltip.Content offset={6}>
           {isOpen ? 'Hide work status' : 'Show work status'}
@@ -51,13 +52,13 @@ export function PanelActionsContent({ projectPath }: { projectPath: string }) {
           aria-label='Open side panel'
           onPress={() => toggleSidePanelIsOpen()}
           className={cn(
-            'h-6 w-7',
+            'h-6 w-7 [&_svg]:!size-4',
             isSidePanelOpen
               ? 'text-accent opacity-100 hover:opacity-100 active:opacity-100'
               : 'hover:opacity-50 active:opacity-50',
           )}
         >
-          <LayoutSplitSideContentRight />
+          <Icon data={LayoutSplitSideContentRight} />
         </IconButton>
         <Tooltip.Content offset={6}>
           {isSidePanelOpen ? 'Hide side panel' : 'Show side panel'}

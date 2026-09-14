@@ -2,7 +2,7 @@ import {
   ArrowRightArrowLeft,
   CircleDashed,
   CircleTree,
-  Comment,
+  FaceRobot,
   File,
   FileCode,
   Globe,
@@ -72,7 +72,7 @@ export const collapsibleNav = [
   },
   {
     id: 'side-chat',
-    icon: <Icon data={Comment} size={18} />,
+    icon: <Icon data={FaceRobot} size={18} />,
     label: 'Subagents History',
     description: 'Pull up a side chat view to watch your subagent work',
   },

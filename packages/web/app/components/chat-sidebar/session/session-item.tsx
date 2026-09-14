@@ -1,18 +1,16 @@
+import { Sidebar, useSidebar } from '@aero/ui';
 import { useNavigate } from '@tanstack/react-router';
 import { memo, useRef, useTransition } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sidebar, useSidebar } from '@aero/ui';
-
 import { SelectSession } from '@/app/components/chat-sidebar/session/session-actions';
-import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { SessionItemSummary } from '@/app/components/chat-sidebar/session/session-item-summary';
 import {
   useRecentsSidebarStore,
   useWorkspacesSidebarStore,
 } from '@/app/components/chat-sidebar/sidebar-store';
 import { SelectWorkspaceSession } from '@/app/components/chat-sidebar/workspace/workspace-actions';
-import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
+import { useSessionTooltip } from '@/app/hooks/useSessionTooltip';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
 import {
   useRecentsSessionRenameStore,
@@ -50,6 +48,7 @@ export const ChatSidebarSessionItem = memo(
     const lastPressTimeRef = useRef<number>(0);
 
     const { setMobileOpen } = useSidebar();
+    const tooltipProps = useSessionTooltip(session);
 
     const handlePress = () => {
       const now = Date.now();
@@ -80,27 +79,6 @@ export const ChatSidebarSessionItem = memo(
       (state) => state.isEditMode,
     );
 
-    const itemRef = useRef<HTMLDivElement>(null);
-    const showTooltip = useTooltipStore((s) => s.showTooltip);
-    const hideTooltip = useTooltipStore((s) => s.hideTooltip);
-
-    const handleMouseEnter = () => {
-      if (itemRef.current) {
-        const rect = itemRef.current.getBoundingClientRect();
-
-        showTooltip({
-          content: (
-            <div className='p-2'>
-              <p className='text-sm'>{session.title}</p>
-              <SessionItemMetadata session={session} />
-            </div>
-          ),
-          rect,
-          isInteractive: true,
-        });
-      }
-    };
-
     return (
       <Sidebar.MenuItem
         {...props}
@@ -109,9 +87,9 @@ export const ChatSidebarSessionItem = memo(
         textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
         className='group relative'
-        ref={itemRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={hideTooltip}
+        ref={tooltipProps.itemRef}
+        onMouseEnter={tooltipProps.handleMouseEnter}
+        onMouseLeave={tooltipProps.handleMouseLeave}
       >
         {isEditModeRecents && from === 'recents' && (
           <SelectSession sessionId={session.id} />
@@ -156,6 +134,7 @@ export const WorkspaceSessionItem = memo(
     const lastPressTimeRef = useRef<number>(0);
 
     const { setMobileOpen } = useSidebar();
+    const tooltipProps = useSessionTooltip(session);
 
     const handlePress = () => {
       const now = Date.now();
@@ -180,27 +159,6 @@ export const WorkspaceSessionItem = memo(
 
     const isEditMode = useWorkspacesSidebarStore((state) => state.isEditMode);
 
-    const itemRef = useRef<HTMLDivElement>(null);
-    const showTooltip = useTooltipStore((s) => s.showTooltip);
-    const hideTooltip = useTooltipStore((s) => s.hideTooltip);
-
-    const handleMouseEnter = () => {
-      if (itemRef.current) {
-        const rect = itemRef.current.getBoundingClientRect();
-
-        showTooltip({
-          content: (
-            <div className='p-2'>
-              <p className='text-sm'>{session.title}</p>
-              <SessionItemMetadata session={session} />
-            </div>
-          ),
-          rect,
-          isInteractive: true,
-        });
-      }
-    };
-
     return (
       <Sidebar.MenuItem
         {...props}
@@ -209,9 +167,9 @@ export const WorkspaceSessionItem = memo(
         textValue={`${idPrefix}${session.title}`}
         onPress={handlePress}
         className='group relative [--sidebar-menu-guide-count:1] [--sidebar-menu-item-offset:16px]'
-        ref={itemRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={hideTooltip}
+        ref={tooltipProps.itemRef}
+        onMouseEnter={tooltipProps.handleMouseEnter}
+        onMouseLeave={tooltipProps.handleMouseLeave}
       >
         {isEditMode && <SelectWorkspaceSession sessionId={session.id} />}
         <SessionItemSummary

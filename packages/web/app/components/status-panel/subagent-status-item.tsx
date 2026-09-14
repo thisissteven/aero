@@ -1,6 +1,7 @@
 import { Chip, Typography } from '@aero/ui';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { ProviderLogo } from '@/app/components/provider-logo';
+import { useSessionTooltip } from '@/app/hooks/useSessionTooltip';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import {
@@ -16,6 +17,8 @@ export function SubagentStatusItem({
   session: AeroSessionSummary;
   status: AeroSessionStatus['type'] | undefined;
 }) {
+  const tooltipProps = useSessionTooltip<HTMLButtonElement>(session);
+
   return (
     <button
       type='button'
@@ -25,6 +28,9 @@ export function SubagentStatusItem({
         useSidePanelStore.getState().setIsOpen(true);
       }}
       className='hover:bg-default/60 backdrop-blur-sm w-full overflow-hidden flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors'
+      ref={tooltipProps.itemRef}
+      onMouseEnter={tooltipProps.handleMouseEnter}
+      onMouseLeave={tooltipProps.handleMouseLeave}
     >
       <div className='min-w-0 flex-1 space-y-1'>
         <Typography

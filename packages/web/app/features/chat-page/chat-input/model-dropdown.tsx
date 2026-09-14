@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-
 import { Button, Command, Popover } from '@aero/ui';
+import { useEffect, useState } from 'react';
 
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { buildModelVirtualItems } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
