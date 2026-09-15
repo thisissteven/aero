@@ -1,11 +1,9 @@
 import { cn } from '@aero/ui';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { OpenSubagentsList } from '@/app/components/chat-aside/side-chat/open-subagents-list';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { SubagentsList } from '@/app/components/chat-aside/side-chat/subagents-list';
-import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
-import { useSideScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,
@@ -77,19 +75,6 @@ export function SideChatPage() {
   const handleScrollToBottom = useCallback(() => {
     feedRef.current?.scrollToBottom(true);
   }, []);
-
-  // Stable getter object — identity never changes, so useRegisterScrollContainer's
-  // effect runs once. See chat-page.tsx for the rationale.
-  const feedScrollRef = useMemo(
-    () => ({
-      get current() {
-        return feedRef.current?.scrollRef.current ?? null;
-      },
-    }),
-    [],
-  );
-
-  useRegisterScrollContainer(feedScrollRef, useSideScrollController);
 
   return (
     <div

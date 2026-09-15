@@ -60,10 +60,8 @@ const mergeRefs =
     }
   };
 
-export interface ChatConversationRootProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children'
-> {
+export interface ChatConversationRootProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   children: ReactNode;
   /** Scroll behavior used on initial mount. @default "smooth" */
   initial?: ChatConversationScrollBehavior;
@@ -209,7 +207,8 @@ export function ChatConversationRoot({
   );
 }
 
-export interface ChatConversationContentProps extends ComponentPropsWithRef<'div'> {
+export interface ChatConversationContentProps
+  extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
 
@@ -269,9 +268,8 @@ export function ChatConversationScrollAnchor({
   );
 }
 
-export interface ChatConversationScrollButtonProps extends ComponentPropsWithRef<
-  typeof Button
-> {
+export interface ChatConversationScrollButtonProps
+  extends ComponentPropsWithRef<typeof Button> {
   tooltip?: ReactNode;
 }
 

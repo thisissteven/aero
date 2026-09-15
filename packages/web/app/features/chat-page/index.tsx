@@ -1,10 +1,8 @@
 // chat-page.tsx
 
 import { cn } from '@aero/ui';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
-import { useMainScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,
@@ -72,22 +70,6 @@ export function ChatPage({
   const handleScrollToBottom = useCallback(() => {
     feedRef.current?.scrollToBottom(true);
   }, []);
-
-  // Stable ref object for the scroll container. `feedRef.current` is null on
-  // first render, so we can't pass `feedRef.current.scrollRef` directly — we
-  // pass a getter object whose identity never changes. The registration
-  // effect runs once, and every read of `.current` resolves against the
-  // live feed ref.
-  const feedScrollRef = useMemo(
-    () => ({
-      get current() {
-        return feedRef.current?.scrollRef.current ?? null;
-      },
-    }),
-    [],
-  );
-
-  useRegisterScrollContainer(feedScrollRef, useMainScrollController);
 
   return (
     <div
