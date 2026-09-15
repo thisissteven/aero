@@ -96,9 +96,9 @@ export function WorkspacesDropdown() {
                   className='justify-between gap-1'
                   onPress={() => setSelectedWorkspace(workspace)}
                 >
-                  <div className='flex items-center gap-1'>
+                  <div className='flex items-center gap-1.5'>
                     <WorkspaceIcon workspace={workspace} />
-                    <Label>{workspace.name}</Label>
+                    <Label className='font-normal'>{workspace.name}</Label>
                   </div>
                   {selectedWorkspace?.directory === workspace.directory && (
                     <Icon size={14} data={Check} className='shrink-0' />

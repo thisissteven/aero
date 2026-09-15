@@ -17,6 +17,7 @@ interface TerminalPanelProps {
 export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
   const sessions = useTerminalSessions();
   const activeSessionId = useActiveSessionId();
+
   const instanceRefs = useRef(new Map<string, TerminalInstanceHandle>());
   const refCallbacks = useRef(
     new Map<string, (handle: TerminalInstanceHandle | null) => void>(),
@@ -25,40 +26,53 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
   function getRefCallback(sessionId: string) {
     if (!refCallbacks.current.has(sessionId)) {
       refCallbacks.current.set(sessionId, (handle) => {
-        if (handle) instanceRefs.current.set(sessionId, handle);
-        else instanceRefs.current.delete(sessionId);
+        if (handle) {
+          instanceRefs.current.set(sessionId, handle);
+        } else {
+          instanceRefs.current.delete(sessionId);
+        }
       });
     }
+
     return refCallbacks.current.get(sessionId)!;
   }
 
-  const activeHandle = activeSessionId
-    ? instanceRefs.current.get(activeSessionId)
-    : undefined;
+  const handleRefresh = useCallback(() => {
+    if (!activeSessionId) {
+      return;
+    }
 
-  const handleRefresh = useCallback(
-    () => activeHandle?.reconnect(),
-    [activeHandle],
-  );
+    instanceRefs.current.get(activeSessionId)?.reconnect();
+  }, [activeSessionId]);
 
   const handleAttach = useCallback(() => {
-    const text = activeHandle?.getSelection();
-    if (text) onAttachToChat?.(text);
-  }, [activeHandle, onAttachToChat]);
+    if (!activeSessionId) {
+      return;
+    }
+
+    const text = instanceRefs.current.get(activeSessionId)?.getSelection();
+
+    if (text) {
+      onAttachToChat?.(text);
+    }
+  }, [activeSessionId, onAttachToChat]);
 
   return (
     <div className='flex h-full flex-col overflow-hidden'>
       <div className='border-separator flex scrollbar-thin items-center justify-between overflow-x-auto border-b'>
         <TerminalTabs />
+
         <div className='flex shrink-0 items-center gap-1 pr-1'>
           <IconButton onPress={handleRefresh} isDisabled={!activeSessionId}>
             <Icon data={ArrowsRotateRight} />
           </IconButton>
+
           <IconButton onPress={handleAttach} isDisabled={!activeSessionId}>
             <Icon data={Paperclip} />
           </IconButton>
         </div>
       </div>
+
       <div className='relative min-h-0 flex-1 overflow-hidden p-2'>
         {sessions.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center text-sm'>

@@ -6,7 +6,6 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
 import { devWebSocketPlugin } from './server/dev/terminal-dev-plugin';
-import { autoCleanupPlugin } from './server/routes/discovery';
 
 function previewHostPlugin(): Plugin {
   return {
@@ -72,7 +71,6 @@ export default defineConfig({
     }),
 
     previewHostPlugin(),
-    autoCleanupPlugin(),
 
     devServer({
       entry: 'server/index.ts',

@@ -1,8 +1,10 @@
-import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
 import fs from 'node:fs';
 import path from 'node:path';
-import simpleGit from 'simple-git';
+import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
+
+import simpleGit, { type SimpleGit } from 'simple-git';
+
 import { z } from 'zod';
 
 import { parseWorktreePorcelainBrief } from '@/server/helper';
@@ -34,30 +36,78 @@ export class InvalidGitRepositoryError extends Error {
   }
 }
 
-export async function resolveGitDir(inputPath: string): Promise<string> {
-  // 1. Convert to an absolute path & normalize relative segments
-  const absolutePath = path.resolve(inputPath);
+const gitOptions = {
+  maxConcurrentProcesses: 1,
+};
 
-  // 2. Normalize Windows path separators
-  const normalizedPath = absolutePath.replace(/\\/g, '/').replace(/\/$/, '');
+const gitClients = new Map<string, SimpleGit>();
 
-  // 3. Ensure the folder exists on disk
-  if (!fs.existsSync(normalizedPath)) {
-    throw new DirectoryNotFoundError(normalizedPath);
+const repositoryValidationCache = new Map<
+  string,
+  {
+    isRepo: boolean;
+    expiresAt: number;
   }
+>();
 
-  // 4. Ensure it's actually inside a valid Git repository
-  const isRepo = await simpleGit(normalizedPath).checkIsRepo();
+const REPOSITORY_VALIDATION_TTL = 5_000;
 
-  if (!isRepo) {
-    throw new InvalidGitRepositoryError(normalizedPath);
-  }
-
-  return normalizedPath;
+function normalizePath(inputPath: string): string {
+  return path.resolve(inputPath).replace(/\\/g, '/').replace(/\/$/, '');
 }
 
-// Zod is only responsible for validating request shape.
-// Filesystem / Git validation happens in resolveGitDir().
+function getGitClient(directory: string): SimpleGit {
+  const existing = gitClients.get(directory);
+
+  if (existing) {
+    return existing;
+  }
+
+  const client = simpleGit(directory, gitOptions);
+
+  gitClients.set(directory, client);
+
+  return client;
+}
+
+export async function resolveGitDir(inputPath: string): Promise<string> {
+  const directory = normalizePath(inputPath);
+
+  if (!fs.existsSync(directory)) {
+    throw new DirectoryNotFoundError(directory);
+  }
+
+  const stat = fs.statSync(directory);
+
+  if (!stat.isDirectory()) {
+    throw new DirectoryNotFoundError(directory);
+  }
+
+  return directory;
+}
+
+async function isGitRepository(directory: string): Promise<boolean> {
+  const now = Date.now();
+  const cached = repositoryValidationCache.get(directory);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.isRepo;
+  }
+
+  const isRepo = await getGitClient(directory).checkIsRepo();
+
+  repositoryValidationCache.set(directory, {
+    isRepo,
+    expiresAt: now + REPOSITORY_VALIDATION_TTL,
+  });
+
+  return isRepo;
+}
+
+async function getGitDirectory(inputDirectory: string): Promise<string> {
+  return resolveGitDir(inputDirectory);
+}
+
 const gitDirectorySchema = z.string().min(1, 'Directory path is required');
 
 const gitDirectoryQuerySchema = z.object({
@@ -76,18 +126,7 @@ const checkoutBodySchema = z.object({
   createBranch: z.boolean().optional(),
 });
 
-/**
- * Resolve and validate the Git directory from the request.
- */
-async function getGitDirectory(inputDirectory: string): Promise<string> {
-  return resolveGitDir(inputDirectory);
-}
-
 const git = new Hono()
-
-  /**
-   * Convert known application errors into a consistent API response.
-   */
   .onError((err, c) => {
     if (err instanceof DirectoryNotFoundError) {
       return c.json(
@@ -117,7 +156,6 @@ const git = new Hono()
       );
     }
 
-    // Let Zod validation errors keep their normal behavior.
     if (err instanceof z.ZodError) {
       return c.json(
         {
@@ -147,7 +185,8 @@ const git = new Hono()
   })
 
   // GET /api/git/error-code?directory=/path/to/repo
-  // Returns only the Git directory validation error code, if any.
+  //
+  // This is the only endpoint that explicitly performs repository validation.
   .get('/error-code', async (c) => {
     const directory = c.req.query('directory');
 
@@ -160,37 +199,21 @@ const git = new Hono()
       );
     }
 
-    try {
-      await resolveGitDir(directory);
+    const resolvedDirectory = await resolveGitDir(directory);
 
-      return c.json({
-        code: null,
-      } as const);
-    } catch (err) {
-      if (err instanceof DirectoryNotFoundError) {
-        return c.json({
-          code: 'DIRECTORY_NOT_FOUND',
-        } as const);
-      }
+    const isRepo = await isGitRepository(resolvedDirectory);
 
-      if (err instanceof InvalidGitRepositoryError) {
-        return c.json({
-          code: 'INVALID_GIT_REPOSITORY',
-        } as const);
-      }
-
-      throw err;
-    }
+    return c.json({
+      code: isRepo ? null : 'INVALID_GIT_REPOSITORY',
+    } as const);
   })
 
   // GET /api/git/current?directory=/path/to/repo
-  // Returns current branch
   .get('/current', zValidator('query', gitDirectoryQuerySchema), async (c) => {
     const { directory: inputDirectory } = c.req.valid('query');
     const directory = await getGitDirectory(inputDirectory);
 
-    const gitClient = simpleGit(directory);
-    const status = await gitClient.status();
+    const status = await getGitClient(directory).status();
 
     return c.json({
       currentBranch: status.current,
@@ -198,13 +221,11 @@ const git = new Hono()
   })
 
   // GET /api/git/status?directory=/path/to/repo
-  // Returns untracked, modified, staged, additions, deletions
   .get('/status', zValidator('query', gitDirectoryQuerySchema), async (c) => {
     const { directory: inputDirectory } = c.req.valid('query');
     const directory = await getGitDirectory(inputDirectory);
 
-    const gitClient = simpleGit(directory);
-    const status = await gitClient.status();
+    const status = await getGitClient(directory).status();
 
     return c.json({
       currentBranch: status.current,
@@ -232,8 +253,7 @@ const git = new Hono()
       const { directory: inputDirectory } = c.req.valid('query');
       const directory = await getGitDirectory(inputDirectory);
 
-      const gitClient = simpleGit(directory);
-      const rawWorktrees = await gitClient.raw([
+      const rawWorktrees = await getGitClient(directory).raw([
         'worktree',
         'list',
         '--porcelain',
@@ -256,25 +276,26 @@ const git = new Hono()
     ),
     async (c) => {
       const { directory: inputDirectory, filePath } = c.req.valid('query');
-
       const directory = await getGitDirectory(inputDirectory);
-      const gitClient = simpleGit(directory);
+      const gitClient = getGitClient(directory);
 
-      // Target HEAD to include BOTH staged and unstaged changes
       const diffOptions = filePath
         ? ['HEAD', '--numstat', '--', filePath]
         : ['HEAD', '--numstat'];
 
       const patchOptions = filePath ? ['HEAD', '--', filePath] : ['HEAD'];
 
-      // Fetch diff stats against HEAD and fetch status for untracked files
-      const [numstatRaw, patch, status] = await Promise.all([
-        gitClient.diff(diffOptions),
-        gitClient.diff(patchOptions),
-        gitClient.status(),
-      ]);
+      /*
+       * Deliberately run these sequentially.
+       *
+       * Since the client is shared per repository and configured with
+       * maxConcurrentProcesses: 1, this keeps all Git operations for the
+       * same repository serialized across concurrent HTTP requests too.
+       */
+      const numstatRaw = await gitClient.diff(diffOptions);
+      const patch = await gitClient.diff(patchOptions);
+      const status = await gitClient.status();
 
-      // Parse --numstat output (tracked staged + unstaged)
       const changedFilesMap = new Map<
         string,
         {
@@ -297,36 +318,36 @@ const git = new Hono()
 
           changedFilesMap.set(relPath, {
             path: relPath,
-            additions: additions === '-' ? 0 : parseInt(additions, 10),
-            deletions: deletions === '-' ? 0 : parseInt(deletions, 10),
+            additions: additions === '-' ? 0 : Number.parseInt(additions, 10),
+            deletions: deletions === '-' ? 0 : Number.parseInt(deletions, 10),
           });
         });
 
-      // Account for untracked / newly created files
       for (const untrackedFile of status.not_added) {
         if (filePath && untrackedFile !== filePath) {
           continue;
         }
 
-        if (!changedFilesMap.has(untrackedFile)) {
-          try {
-            const fullPath = path.join(directory, untrackedFile);
-            const content = fs.readFileSync(fullPath, 'utf-8');
-            const lineCount = content.split('\n').length;
+        if (changedFilesMap.has(untrackedFile)) {
+          continue;
+        }
 
-            changedFilesMap.set(untrackedFile, {
-              path: untrackedFile,
-              additions: lineCount,
-              deletions: 0,
-            });
-          } catch {
-            // Binary or unreadable file
-            changedFilesMap.set(untrackedFile, {
-              path: untrackedFile,
-              additions: 0,
-              deletions: 0,
-            });
-          }
+        try {
+          const fullPath = path.join(directory, untrackedFile);
+          const content = fs.readFileSync(fullPath, 'utf-8');
+          const lineCount = content.split('\n').length;
+
+          changedFilesMap.set(untrackedFile, {
+            path: untrackedFile,
+            additions: lineCount,
+            deletions: 0,
+          });
+        } catch {
+          changedFilesMap.set(untrackedFile, {
+            path: untrackedFile,
+            additions: 0,
+            deletions: 0,
+          });
         }
       }
 
@@ -342,17 +363,16 @@ const git = new Hono()
     const { directory: inputDirectory } = c.req.valid('query');
     const directory = await getGitDirectory(inputDirectory);
 
-    const gitClient = simpleGit(directory);
-    const branches = await gitClient.branchLocal();
+    const branches = await getGitClient(directory).branchLocal();
 
     return c.json({
       current: branches.current,
       all: branches.all,
-      branches: Object.values(branches.branches).map((b) => ({
-        name: b.name,
-        current: b.current,
-        commit: b.commit,
-        label: b.label,
+      branches: Object.values(branches.branches).map((branch) => ({
+        name: branch.name,
+        current: branch.current,
+        commit: branch.commit,
+        label: branch.label,
       })),
     });
   })
@@ -362,7 +382,7 @@ const git = new Hono()
     const { directory: inputDirectory, message, files } = c.req.valid('json');
 
     const directory = await getGitDirectory(inputDirectory);
-    const gitClient = simpleGit(directory);
+    const gitClient = getGitClient(directory);
 
     if (files && files.length > 0) {
       await gitClient.add(files);
@@ -389,7 +409,7 @@ const git = new Hono()
     } = c.req.valid('json');
 
     const directory = await getGitDirectory(inputDirectory);
-    const gitClient = simpleGit(directory);
+    const gitClient = getGitClient(directory);
 
     if (createBranch) {
       await gitClient.checkoutLocalBranch(target);
