@@ -1,5 +1,6 @@
 import { cn } from '@aero/ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+
 import { OpenSubagentsList } from '@/app/components/chat-aside/side-chat/open-subagents-list';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { SubagentsList } from '@/app/components/chat-aside/side-chat/subagents-list';
@@ -28,6 +29,7 @@ import { useSideChatScrollStore } from '@/app/stores/chat-scroll-store';
 export function SideChatPanel() {
   const sessionId = useSideChatStore((state) => state.sessionId);
   const view = useSideChatStore((state) => state.view);
+
   return (
     <SessionIdProvider value={sessionId}>
       {view === 'detail' ? <SideChatPage /> : <SubagentsList />}
@@ -41,54 +43,53 @@ export function SideChatPage() {
   const { session, turns: groups, notFound } = useSessionPage(sessionId);
   const workspace = session?.workspace;
 
-  const [activeGroupIndex, setActiveGroupIndex] = useState(() =>
-    Math.max(groups.length - 1, 0),
-  );
-
   const feedRef = useRef<ChatFeedRef | null>(null);
+
   const registerScrollToIndex = useSideChatScrollStore(
     (state) => state.registerScrollToIndex,
   );
+  const registerScrollToBottom = useSideChatScrollStore(
+    (state) => state.registerScrollToBottom,
+  );
 
+  // Register once. No dependency on groups.length — the callback dereferences
+  // feedRef.current at invocation time and the feed handles clamping.
   useEffect(() => {
-    registerScrollToIndex((groupIndex: number) => {
-      const clamped = Math.min(
-        Math.max(groupIndex, 0),
-        Math.max(groups.length - 1, 0),
-      );
-
-      feedRef.current?.scrollToIndex(clamped);
+    registerScrollToIndex((groupIndex) => {
+      feedRef.current?.scrollToIndex(groupIndex);
     });
 
     return () => registerScrollToIndex(null);
-  }, [groups.length, registerScrollToIndex]);
+  }, [registerScrollToIndex]);
+
+  useEffect(() => {
+    registerScrollToBottom(() => {
+      feedRef.current?.scrollToBottom(true);
+    });
+
+    return () => registerScrollToBottom(null);
+  }, [registerScrollToBottom]);
 
   const handleSelectTocItem = useCallback((groupIndex: number) => {
     useSideChatScrollStore.getState().scrollToIndex(groupIndex);
   }, []);
 
-  /**
-   * When switching sessions, start at the latest group.
-   *
-   * Also handles the initial async hydration.
-   */
-  useEffect(() => {
-    setActiveGroupIndex(Math.max(groups.length - 1, 0));
-  }, [sessionId, groups.length]);
+  const handleScrollToBottom = useCallback(() => {
+    feedRef.current?.scrollToBottom(true);
+  }, []);
 
-  const subscribeScroll = useCallback(
-    (cb: () => void) =>
-      feedRef.current?.subscribeScroll(cb) ??
-      (() => {
-        //
-      }),
+  // Stable getter object — identity never changes, so useRegisterScrollContainer's
+  // effect runs once. See chat-page.tsx for the rationale.
+  const feedScrollRef = useMemo(
+    () => ({
+      get current() {
+        return feedRef.current?.scrollRef.current ?? null;
+      },
+    }),
     [],
   );
 
-  useRegisterScrollContainer(
-    feedRef.current?.scrollRef ?? null,
-    useSideScrollController,
-  );
+  useRegisterScrollContainer(feedScrollRef, useSideScrollController);
 
   return (
     <div
@@ -102,17 +103,9 @@ export function SideChatPage() {
         <>
           <OpenSubagentsList />
 
-          <ChatTocSection
-            activeGroupIndex={activeGroupIndex}
-            onSelectTocItem={handleSelectTocItem}
-          />
+          <ChatTocSection onSelectTocItem={handleSelectTocItem} />
 
-          <ChatFeed
-            key={sessionId}
-            groups={groups}
-            ref={feedRef}
-            onActiveGroupIndexChange={setActiveGroupIndex}
-          />
+          <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
         </>
       )}
 
@@ -120,13 +113,8 @@ export function SideChatPage() {
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
             <WithScrollToBottomWrapper
-              scrollRef={{
-                get current() {
-                  return feedRef.current?.scrollRef.current ?? null;
-                },
-              }}
-              subscribeScroll={subscribeScroll}
               type='side'
+              onScrollToBottom={handleScrollToBottom}
             >
               <ChatActivityIndicator />
             </WithScrollToBottomWrapper>
@@ -137,7 +125,7 @@ export function SideChatPage() {
             </div>
           </OfflineWrapper>
 
-          <div className='text-muted text-sm text-center py-4'>
+          <div className='text-muted text-center py-4 text-sm'>
             Subagent sessions cannot be prompted.
           </div>
         </div>

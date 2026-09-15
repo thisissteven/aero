@@ -2,8 +2,11 @@ import { create, StateCreator } from 'zustand';
 
 export interface ChatScrollState {
   scrollToIndexFn: ((index: number) => void) | null;
+  scrollToBottomFn: (() => void) | null;
   registerScrollToIndex: (fn: ((index: number) => void) | null) => void;
+  registerScrollToBottom: (fn: (() => void) | null) => void;
   scrollToIndex: (index: number) => void;
+  scrollToBottom: () => void;
 }
 
 export const createChatScrollSlice: StateCreator<
@@ -13,9 +16,14 @@ export const createChatScrollSlice: StateCreator<
   ChatScrollState
 > = (set, get) => ({
   scrollToIndexFn: null,
+  scrollToBottomFn: null,
   registerScrollToIndex: (fn) => set({ scrollToIndexFn: fn }),
+  registerScrollToBottom: (fn) => set({ scrollToBottomFn: fn }),
   scrollToIndex: (index) => {
     get().scrollToIndexFn?.(index);
+  },
+  scrollToBottom: () => {
+    get().scrollToBottomFn?.();
   },
 });
 

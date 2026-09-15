@@ -1,7 +1,12 @@
+// chat-activity-indicator.tsx
+
 import { ChevronsDown } from '@gravity-ui/icons';
-import React, { ReactNode, RefObject, useMemo } from 'react';
-import { useScrollToBottomButton } from '@/app/components/scroll-to-bottom/use-scroll-to-bottom-button';
-import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useChatStore,
+  useSessionRuntime,
+  useSessionScroll,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
@@ -10,6 +15,10 @@ import type {
   AeroConversationTurn,
   AeroSessionStatus,
 } from '@/server/services/harness/types';
+
+// ---------------------------------------------------------------------------
+// ChatActivityIndicator — unchanged
+// ---------------------------------------------------------------------------
 
 function getActivityLabel(
   role: string,
@@ -185,42 +194,93 @@ export const ChatActivityIndicator = React.memo(
   },
 );
 
+// ---------------------------------------------------------------------------
+// WithScrollToBottomWrapper — rewritten
+// ---------------------------------------------------------------------------
+
+const SHOW_BUTTON_DELAY_MS = 300;
+
 export const WithScrollToBottomWrapper = React.memo(
   function WithScrollToBottomWrapper({
-    scrollRef,
-    subscribeScroll,
+    onScrollToBottom,
     children,
     type,
   }: {
-    scrollRef: RefObject<HTMLElement | null>;
-    subscribeScroll: (callback: () => void) => () => void;
+    onScrollToBottom: () => void;
     children: ReactNode;
     type: 'main' | 'side';
   }) {
-    const { scrollToBottom, showButton } = useScrollToBottomButton({
-      scrollRef,
-      subscribeScroll,
-      type,
-    });
-
     const sessionId = useSessionId();
+
+    // Two primitive selectors so Zustand's Object.is check short-circuits
+    // re-renders that don't change either value.
+    const isAtBottom = useSessionScroll(sessionId, (s) => s.isAtBottom);
+    const unreadCount = useSessionScroll(sessionId, (s) => s.unreadCount);
+
     const status = useSessionRuntime(sessionId, (runtime) => runtime.status);
     const isChatInputExpanded = useChatInputExpanded();
+
+    // Local UI-only state: the button appears 300ms after the user leaves
+    // the bottom, and disappears immediately on return. Keeping this local
+    // avoids the store having to encode a presentation timing rule.
+    const [showButton, setShowButton] = useState(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      if (isAtBottom) {
+        if (timeoutRef.current !== null) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        setShowButton(false);
+        return;
+      }
+
+      if (timeoutRef.current !== null) return;
+
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        // Re-read from the store: the user may have returned to the bottom
+        // during the 300ms window, in which case we don't show the button.
+        const current = useChatStore.getState().scrollBySession[sessionId];
+        if (current?.isAtBottom === false) {
+          setShowButton(true);
+        }
+      }, SHOW_BUTTON_DELAY_MS);
+
+      return () => {
+        if (timeoutRef.current !== null) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
+    }, [isAtBottom, sessionId]);
 
     if (status.type === 'idle' && !showButton) return null;
     if (isChatInputExpanded) return null;
 
+    const hasUnread = showButton && unreadCount > 0;
+    const displayUnread = unreadCount > 99 ? '99+' : String(unreadCount);
+
     return (
-      <div className='absolute left-0 -translate-y-full'>
+      <div
+        className='absolute left-0 -translate-y-full'
+        data-scroll-to-bottom-type={type}
+      >
         <button
           role='status'
           aria-live='polite'
           className='border-separator text-muted mx-2 mb-1 flex shrink-0 items-center gap-1 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
           disabled={!showButton}
-          onClick={scrollToBottom}
+          onClick={showButton ? onScrollToBottom : undefined}
         >
           {showButton && <ChevronsDown className='size-3.5' />}
           {children}
+          {hasUnread && (
+            <span className='bg-foreground text-background rounded-full px-1.5 text-[10px] font-medium tabular-nums leading-[14px]'>
+              {displayUnread}
+            </span>
+          )}
         </button>
       </div>
     );

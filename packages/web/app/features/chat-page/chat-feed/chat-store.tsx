@@ -6,13 +6,14 @@ import {
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
-import {
-  useMainScrollController,
-  useSideScrollController,
-} from '@/app/components/scroll-to-bottom/use-scroll-controller';
+
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
+import {
+  useMainChatScrollStore,
+  useSideChatScrollStore,
+} from '@/app/stores/chat-scroll-store';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import type {
   AeroConversationTurn,
@@ -31,6 +32,24 @@ interface PendingDelta {
 type RevertedMessage = {
   preview: string;
   messageId: string;
+};
+
+export interface SessionScrollState {
+  /** Auto-scroll follows streaming output? */
+  pinned: boolean;
+  /** Within BOTTOM_THRESHOLD of the bottom? Drives the scroll-to-bottom button. */
+  isAtBottom: boolean;
+  /** New flat items since the user left the bottom. */
+  unreadCount: number;
+  /** Group index of the topmost visible user message. Drives TOC highlight. */
+  activeGroupIndex: number;
+}
+
+const EMPTY_SCROLL: SessionScrollState = {
+  pinned: true,
+  isAtBottom: true,
+  unreadCount: 0,
+  activeGroupIndex: 0,
 };
 
 interface SessionRuntime {
@@ -58,6 +77,12 @@ interface ChatStore {
   activeSession: SessionRuntime;
 
   sessions: Record<string, SessionRuntime>;
+
+  scrollBySession: Record<string, SessionScrollState>;
+
+  patchScroll: (sessionId: string, patch: Partial<SessionScrollState>) => void;
+
+  resetScroll: (sessionId: string) => void;
 
   runningSessions: string[];
   awaitingQuestions: string[];
@@ -850,13 +875,13 @@ function handleMessagePartUpdated(
       });
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          useMainScrollController.getState().scrollToBottom();
+          useMainChatScrollStore.getState().scrollToBottom();
         });
       });
     } else {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          useSideScrollController.getState().scrollToBottom();
+          useSideChatScrollStore.getState().scrollToBottom();
         });
       });
     }
@@ -1120,6 +1145,48 @@ export const useChatStore = create<ChatStore>()(
         activeSideChatSessionId: undefined,
         activeSession: createEmptyRuntime(),
         sessions: {},
+
+        scrollBySession: {},
+
+        patchScroll: (sessionId, patch) => {
+          set((state) => {
+            const current = state.scrollBySession[sessionId] ?? EMPTY_SCROLL;
+
+            let changed = false;
+
+            for (const key of Object.keys(patch) as Array<
+              keyof SessionScrollState
+            >) {
+              if (current[key] !== patch[key]) {
+                changed = true;
+                break;
+              }
+            }
+
+            if (!changed) return state;
+
+            return {
+              scrollBySession: {
+                ...state.scrollBySession,
+                [sessionId]: { ...current, ...patch },
+              },
+            };
+          });
+        },
+
+        resetScroll: (sessionId) => {
+          set((state) => {
+            if (state.scrollBySession[sessionId] === undefined) {
+              return state;
+            }
+
+            const next = { ...state.scrollBySession };
+            delete next[sessionId];
+
+            return { scrollBySession: next };
+          });
+        },
+
         runningSessions: [],
         awaitingQuestions: [],
         unreadSessions: [],
@@ -1447,8 +1514,12 @@ export const useChatStore = create<ChatStore>()(
               [sessionId]: createEmptyRuntime(),
             };
 
+            const scrollBySession = { ...state.scrollBySession };
+            delete scrollBySession[sessionId];
+
             return {
               sessions,
+              scrollBySession,
               activeSession:
                 state.activeSessionId === sessionId
                   ? sessions[sessionId]
@@ -1491,4 +1562,17 @@ export function useSessionRuntime<T>(
 
     return selector(session);
   });
+}
+
+export function useSessionScroll<T>(
+  sessionId: string | undefined,
+  selector: (scroll: SessionScrollState) => T,
+): T {
+  return useChatStore((state) =>
+    selector(
+      sessionId
+        ? (state.scrollBySession[sessionId] ?? EMPTY_SCROLL)
+        : EMPTY_SCROLL,
+    ),
+  );
 }

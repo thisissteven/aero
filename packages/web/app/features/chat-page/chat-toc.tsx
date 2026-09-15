@@ -1,29 +1,31 @@
 import { FloatingToc } from '@aero/ui';
 import React, { useMemo } from 'react';
 
+import { useSessionScroll } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessionToc } from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export const ChatTocSection = React.memo(function ChatTocSection({
-  activeGroupIndex,
   onSelectTocItem,
 }: {
-  activeGroupIndex: number;
   onSelectTocItem: (groupIndex: number) => void;
 }) {
   const sessionId = useSessionId();
   const { data: tocItems = [] } = useSessionToc(undefined, sessionId);
+
+  // Subscribe ONLY to activeGroupIndex. ChatPage no longer re-renders per scroll.
+  const activeGroupIndex = useSessionScroll(
+    sessionId,
+    (s) => s.activeGroupIndex,
+  );
 
   const activeTocIndex = useMemo(() => {
     if (!tocItems.length) return -1;
     let activeIdx = 0;
     for (let i = 0; i < tocItems.length; i++) {
       const item = tocItems[i];
-      if (item && item.groupIndex <= activeGroupIndex) {
-        activeIdx = i;
-      } else {
-        break;
-      }
+      if (item && item.groupIndex <= activeGroupIndex) activeIdx = i;
+      else break;
     }
     return activeIdx;
   }, [tocItems, activeGroupIndex]);
@@ -42,7 +44,6 @@ export const ChatTocSection = React.memo(function ChatTocSection({
             />
           ))}
         </FloatingToc.Trigger>
-
         <FloatingToc.Content>
           {tocItems.map((tocItem, idx) => (
             <FloatingToc.Item

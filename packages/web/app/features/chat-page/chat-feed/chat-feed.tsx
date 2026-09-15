@@ -1,40 +1,34 @@
 // chat-feed.tsx
 
-import { cn, ScrollShadow, useAutoScroll } from '@aero/ui';
+import { cn, ScrollShadow } from '@aero/ui';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { type VirtualizerHandle } from 'virtua';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { SelectionPopover } from '@/app/components/selection-popover';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
 import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
-import { useInitialScrollToBottom } from '@/app/features/chat-page/chat-feed/use-initial-scroll-to-bottom';
-import { useScrollSubscription } from '@/app/features/chat-page/chat-feed/use-scroll-subscription';
-import { useTocScrollTracker } from '@/app/features/chat-page/chat-feed/use-toc-scroll-tracker';
+import { useChatFeedScroll } from '@/app/features/chat-page/chat-feed/use-chat-feed-scroll';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import type { AeroConversationTurn } from '@/server/services/harness/types';
 
 export interface ChatFeedRef {
-  scrollToIndex: (index: number) => void;
-  virtualizerRef: React.RefObject<VirtualizerHandle | null>;
+  /** Jump to the user bubble for a given group index. */
+  scrollToIndex: (groupIndex: number) => void;
+  /** Scroll to bottom and re-engage auto-follow. */
+  scrollToBottom: (smooth?: boolean) => void;
+  /** The scroll container element — consumed by scroll-controller registration. */
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  subscribeScroll: (cb: () => void) => () => void;
 }
 
 export const ChatFeed = React.memo(
-  forwardRef<
-    ChatFeedRef,
-    {
-      groups: AeroConversationTurn[];
-      onActiveGroupIndexChange: (index: number) => void;
-    }
-  >(function ChatFeed({ groups, onActiveGroupIndexChange }, ref) {
+  forwardRef<ChatFeedRef, { groups: AeroConversationTurn[] }>(function ChatFeed(
+    { groups },
+    ref,
+  ) {
     const virtualizerRef = useRef<VirtualizerHandle>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -42,86 +36,46 @@ export const ChatFeed = React.memo(
     const scrollbarWidth = useScrollbarWidth(scrollRef);
 
     const sessionId = useSessionId();
-    const flatItems = useSessionRuntime(
-      sessionId,
-      (runtime) => runtime.flatItems,
-    );
+
+    const flatItems = useSessionRuntime(sessionId, (r) => r.flatItems);
     const groupFlatIndex = useSessionRuntime(
       sessionId,
-      (runtime) => runtime.groupFlatIndex,
-    );
-    const isStreaming = useSessionRuntime(
-      sessionId,
-      (runtime) => runtime.isStreaming,
+      (r) => r.groupFlatIndex,
     );
 
-    const { subscribeScroll } = useScrollSubscription(scrollRef);
-
-    const isReady = useInitialScrollToBottom(virtualizerRef, flatItems.length);
-
-    const { handleScroll, beginProgrammaticScroll, endProgrammaticScroll } =
-      useTocScrollTracker(
+    const { handleScroll, scrollToGroup, scrollToBottom, isReady } =
+      useChatFeedScroll({
+        sessionId,
         groups,
         groupFlatIndex,
+        flatItemsLength: flatItems.length,
         virtualizerRef,
-        onActiveGroupIndexChange,
-      );
+        scrollRef,
+        contentRef,
+      });
 
-    useAutoScroll({
-      scrollRef,
-      contentRef,
-      isStreaming,
-      enabled: isReady,
-    });
-
+    // Stable imperative handle. `scrollToGroup` and `scrollToBottom` are
+    // useCallbacks with stable deps, and `scrollRef` never changes identity,
+    // so this handle is created once per ChatFeed instance.
     useImperativeHandle(
       ref,
       () => ({
-        virtualizerRef,
+        scrollToIndex: scrollToGroup,
+        scrollToBottom,
         scrollRef,
-        subscribeScroll,
-
-        scrollToIndex: (groupIndex: number) => {
-          const targetFlatIndex =
-            useChatStore.getState().sessions[sessionId].groupFlatIndex[
-              groupIndex
-            ];
-
-          const handle = virtualizerRef.current;
-
-          if (targetFlatIndex === undefined || !handle) {
-            return;
-          }
-
-          onActiveGroupIndexChange(groupIndex);
-
-          beginProgrammaticScroll();
-
-          handle.scrollToIndex(targetFlatIndex, {
-            align: 'start',
-            smooth: false,
-            offset: -24,
-          });
-
-          requestAnimationFrame(() => {
-            endProgrammaticScroll();
-          });
-        },
       }),
-      [
-        beginProgrammaticScroll,
-        endProgrammaticScroll,
-        onActiveGroupIndexChange,
-        subscribeScroll,
-      ],
+      [scrollToGroup, scrollToBottom],
     );
+
+    const isEmpty = flatItems.length === 0;
 
     return (
       <div
         className={cn(
-          'relative @container flex min-h-0 flex-1 flex-col transition-opacity duration-150',
-          !isReady ? 'pointer-events-none opacity-0' : 'opacity-100',
-          flatItems.length === 0 && 'opacity-100 pointer-events-auto',
+          'relative @container flex min-h-0 flex-1 flex-col',
+          !isReady && !isEmpty
+            ? 'pointer-events-none opacity-0'
+            : 'opacity-100',
         )}
         style={{
           paddingLeft: `${scrollbarWidth}px`,
@@ -151,16 +105,7 @@ export const ChatFeed = React.memo(
             <SelectionPopover containerRef={contentRef} />
           </div>
         </ScrollShadow>
-        <ScrollTracker virtualizerRef={virtualizerRef} />
       </div>
     );
   }),
 );
-
-function ScrollTracker({
-  virtualizerRef,
-}: {
-  virtualizerRef: React.RefObject<VirtualizerHandle | null>;
-}) {
-  return null;
-}

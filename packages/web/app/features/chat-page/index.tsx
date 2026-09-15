@@ -1,5 +1,7 @@
+// chat-page.tsx
+
 import { cn } from '@aero/ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useRegisterScrollContainer } from '@/app/components/scroll-to-bottom/use-register-scroll-container';
 import { useMainScrollController } from '@/app/components/scroll-to-bottom/use-scroll-controller';
@@ -35,54 +37,57 @@ export function ChatPage({
   notFound,
   workspace,
 }: ChatPageProps) {
-  const [activeGroupIndex, setActiveGroupIndex] = useState(() =>
-    Math.max(groups.length - 1, 0),
-  );
-
   const feedRef = useRef<ChatFeedRef | null>(null);
+
   const registerScrollToIndex = useMainChatScrollStore(
     (state) => state.registerScrollToIndex,
   );
+  const registerScrollToBottom = useMainChatScrollStore(
+    (state) => state.registerScrollToBottom,
+  );
 
+  // Register once. The callback dereferences `feedRef.current` at invocation
+  // time, so we don't need to re-register when the feed remounts on session
+  // switch (which is what the `key={sessionId}` below causes).
   useEffect(() => {
-    registerScrollToIndex((groupIndex: number) => {
-      const clamped = Math.min(
-        Math.max(groupIndex, 0),
-        Math.max(groups.length - 1, 0),
-      );
-
-      feedRef.current?.scrollToIndex(clamped);
+    registerScrollToIndex((groupIndex) => {
+      feedRef.current?.scrollToIndex(groupIndex);
     });
 
     return () => registerScrollToIndex(null);
-  }, [groups.length, registerScrollToIndex]);
+  }, [registerScrollToIndex]);
+
+  useEffect(() => {
+    registerScrollToBottom(() => {
+      feedRef.current?.scrollToBottom(true);
+    });
+
+    return () => registerScrollToBottom(null);
+  }, [registerScrollToBottom]);
 
   const handleSelectTocItem = useCallback((groupIndex: number) => {
     useMainChatScrollStore.getState().scrollToIndex(groupIndex);
   }, []);
 
-  /**
-   * When switching sessions, start at the latest group.
-   *
-   * Also handles the initial async hydration.
-   */
-  useEffect(() => {
-    setActiveGroupIndex(Math.max(groups.length - 1, 0));
-  }, [sessionId, groups.length]);
+  const handleScrollToBottom = useCallback(() => {
+    feedRef.current?.scrollToBottom(true);
+  }, []);
 
-  const subscribeScroll = useCallback(
-    (cb: () => void) =>
-      feedRef.current?.subscribeScroll(cb) ??
-      (() => {
-        //
-      }),
+  // Stable ref object for the scroll container. `feedRef.current` is null on
+  // first render, so we can't pass `feedRef.current.scrollRef` directly — we
+  // pass a getter object whose identity never changes. The registration
+  // effect runs once, and every read of `.current` resolves against the
+  // live feed ref.
+  const feedScrollRef = useMemo(
+    () => ({
+      get current() {
+        return feedRef.current?.scrollRef.current ?? null;
+      },
+    }),
     [],
   );
 
-  useRegisterScrollContainer(
-    feedRef.current?.scrollRef ?? null,
-    useMainScrollController,
-  );
+  useRegisterScrollContainer(feedScrollRef, useMainScrollController);
 
   return (
     <div
@@ -96,17 +101,9 @@ export function ChatPage({
         <>
           <OpenParentSession sessionId={sessionId} />
 
-          <ChatTocSection
-            activeGroupIndex={activeGroupIndex}
-            onSelectTocItem={handleSelectTocItem}
-          />
+          <ChatTocSection onSelectTocItem={handleSelectTocItem} />
 
-          <ChatFeed
-            key={sessionId}
-            groups={groups}
-            ref={feedRef}
-            onActiveGroupIndexChange={setActiveGroupIndex}
-          />
+          <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
         </>
       )}
 
@@ -114,13 +111,8 @@ export function ChatPage({
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
             <WithScrollToBottomWrapper
-              scrollRef={{
-                get current() {
-                  return feedRef.current?.scrollRef.current ?? null;
-                },
-              }}
-              subscribeScroll={subscribeScroll}
               type='main'
+              onScrollToBottom={handleScrollToBottom}
             >
               <ChatActivityIndicator />
             </WithScrollToBottomWrapper>
