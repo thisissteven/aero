@@ -16,7 +16,7 @@ const MarkdownCode = memo(function MarkdownCode({
   className,
   node,
   ...props
-}: MarkdownCodeProps): ReactElement {
+}: MarkdownCodeProps): ReactElement | null {
   const { isFile, onFileClick } = useContext(MarkdownFileContext);
 
   const isInline =
@@ -25,6 +25,8 @@ const MarkdownCode = memo(function MarkdownCode({
 
   if (isInline) {
     const rawContent = String(children ?? '').trim();
+    if (rawContent.length === 0) return null;
+
     const isFileMatch = isFile?.(rawContent) ?? false;
 
     if (isFileMatch) {

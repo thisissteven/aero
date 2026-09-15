@@ -1,4 +1,4 @@
-import { ToastProvider } from '@aero/ui';
+import { FloatingLogger, ToastProvider } from '@aero/ui';
 import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
 import React, { ReactNode } from 'react';
 import { ChatShell } from '@/app/components/chat-shell';
@@ -16,10 +16,7 @@ import { GlobalTooltip } from '@/app/providers/global-tooltip/GlobalTooltipProvi
 import { KeyPressProvider } from '@/app/providers/key-press';
 import { PathnameHandler } from '@/app/providers/PathnameHandler';
 import { PreloadProvider } from '@/app/providers/PreloadProvider';
-import {
-  SessionIdProvider,
-  useSessionId,
-} from '@/app/providers/SessionIdProvider';
+import { SessionIdProvider } from '@/app/providers/SessionIdProvider';
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -53,6 +50,7 @@ function AppLayout() {
         <KeyPressProvider />
         <PreloadProvider />
         <PathnameHandler />
+        <FloatingLogger />
         <RootSessionIdProvider>
           <ChatShell>
             <Outlet />

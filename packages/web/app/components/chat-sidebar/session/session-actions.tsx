@@ -24,7 +24,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
-import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
   SessionsPageResponse,

@@ -6,10 +6,8 @@ import { memo, useTransition } from 'react';
 import { RightSidebarview } from '@/app/components/chat-sidebar/right-sidebar-view';
 import { RecentChats } from '@/app/components/chat-sidebar/session/recent-sessions';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
-import {
-  useWorkspaceStore,
-  WorkspacesView,
-} from '@/app/components/chat-sidebar/workspace/workspaces-view';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
+import { WorkspacesView } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
 

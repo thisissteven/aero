@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
 
-import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { gitKeys } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';

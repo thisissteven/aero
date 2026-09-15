@@ -67,6 +67,7 @@ export * from './error-message';
 export * from './field-error';
 export * from './fieldset';
 export * from './file-tree';
+export * from './floating-logger';
 export * from './floating-toc';
 export * from './form';
 export * from './header';

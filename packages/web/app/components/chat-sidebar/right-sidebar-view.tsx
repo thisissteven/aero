@@ -1,9 +1,8 @@
+import { Sidebar } from '@aero/ui';
 import { ArrowUturnCcwLeft, Xmark } from '@gravity-ui/icons';
 
-import { Sidebar } from '@aero/ui';
-
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
-import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 
 export function RightSidebarview({
   closeWorkspace,

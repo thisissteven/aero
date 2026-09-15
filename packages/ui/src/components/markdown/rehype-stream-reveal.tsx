@@ -10,27 +10,27 @@ function hasKatexClass(el: Element): boolean {
   );
 }
 
+interface TargetNode {
+  parent: Element | Root;
+  index: number;
+  value: string;
+}
+
 export interface RehypeStreamRevealOptions {
   tokenCount?: number;
 }
 
 export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
-  const tokenCount = options.tokenCount ?? 8;
+  const tokenCount = options.tokenCount ?? 6;
 
   return (tree: Root) => {
-    let target: {
-      parent: Element | Root;
-      index: number;
-      value: string;
-    } | null = null;
+    let target: TargetNode | null = null;
 
     function walk(node: Root | Element) {
       const children = (node as { children?: RootContent[] }).children;
       if (!children) return;
-
       for (let i = 0; i < children.length; i++) {
         const child = children[i];
-
         if (child.type === 'element') {
           if (SKIP_TAGS.has(child.tagName) || hasKatexClass(child)) continue;
           walk(child);
@@ -49,9 +49,12 @@ export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
     }
 
     walk(tree);
-    if (!target) return;
 
-    const { parent, index, value } = target;
+    // TS can't see that walk() mutates target through the closure.
+    const resolved = target as TargetNode | null;
+    if (!resolved) return;
+
+    const { parent, index, value } = resolved;
     const parts = value.split(/(\s+)/).filter((p) => p.length > 0);
     if (parts.length === 0) return;
 
@@ -64,13 +67,10 @@ export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
     }
 
     for (let i = start; i < parts.length; i++) {
-      // Custom element with a stable identifier we control.
-      // The React component for `stream-token` builds the real span
-      // with a real key, bypassing hast-util-to-jsx-runtime entirely.
       replacement.push({
         type: 'element',
-        tagName: 'stream-token',
-        properties: { 'data-token': `t${i}` },
+        tagName: 'span',
+        properties: { className: ['stream-reveal__segment'] },
         children: [{ type: 'text', value: parts[i] }],
       });
     }

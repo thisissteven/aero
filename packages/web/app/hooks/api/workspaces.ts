@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
-import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
