@@ -1,19 +1,45 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+
+export type ProjectAction = 'discover-script';
 
 interface ProjectActionsState {
-  selectedAppId: string;
-  setSelectedAppId: (appId: string) => void;
+  runningActions: Record<string, ProjectAction | undefined>;
+  actions: {
+    startAction: (projectPath: string, action: ProjectAction) => void;
+    finishAction: (projectPath: string) => void;
+    isActionRunning: (projectPath: string, action?: ProjectAction) => boolean;
+    getRunningAction: (projectPath: string) => ProjectAction | undefined;
+  };
 }
 
-export const useProjectActionsStore = create<ProjectActionsState>()(
-  persist(
-    (set) => ({
-      selectedAppId: 'finder',
-      setSelectedAppId: (appId) => set({ selectedAppId: appId }),
-    }),
-    {
-      name: 'project-actions-preference',
+export const useProjectActionsStore = create<ProjectActionsState>(
+  (set, get) => ({
+    runningActions: {},
+
+    actions: {
+      startAction: (projectPath, action) =>
+        set((state) => ({
+          runningActions: {
+            ...state.runningActions,
+            [projectPath]: action,
+          },
+        })),
+
+      finishAction: (projectPath) =>
+        set((state) => {
+          const runningActions = { ...state.runningActions };
+          delete runningActions[projectPath];
+
+          return { runningActions };
+        }),
+
+      isActionRunning: (projectPath, action) => {
+        const runningAction = get().runningActions[projectPath];
+
+        return action ? runningAction === action : runningAction !== undefined;
+      },
+
+      getRunningAction: (projectPath) => get().runningActions[projectPath],
     },
-  ),
+  }),
 );

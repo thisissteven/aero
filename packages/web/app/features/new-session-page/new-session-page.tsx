@@ -4,10 +4,8 @@ import { useState } from 'react';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
-import {
-  ModelAgentDropdownSheet,
-  ModelAgentDropdownTrigger,
-} from '@/app/features/chat-page/chat-input/model-agent-dropdown';
+import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown';
+import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
 import { NewSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { SendButton } from '@/app/features/chat-page/chat-input/send-button';

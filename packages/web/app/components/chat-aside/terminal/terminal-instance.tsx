@@ -14,9 +14,10 @@ import {
   useState,
 } from 'react';
 
+import { terminalControllers } from '@/app/components/chat-aside/terminal/terminal-controllers';
 import { useTheme } from '@/app/providers';
 
-import { useTerminalActions } from './terminal-store';
+import { useTerminalStore } from './terminal-store';
 import { resolveGhosttyTheme } from './terminal-theme';
 
 export interface TerminalInstanceHandle {
@@ -49,27 +50,172 @@ export const TerminalInstance = forwardRef<
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<GhosttyTerminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const connectRef = useRef<(isReset?: boolean) => void>(() => {});
+  const commandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const historyRef = useRef<string>('');
+  const connectRef = useRef<(isReset?: boolean) => void>(() => {
+    //
+  });
 
-  // Visibility mask state to hide terminal until frame 1 is ready
+  const historyRef = useRef('');
+  const pendingCommandRef = useRef<string | null>(null);
+  const commandRunningRef = useRef(false);
+
   const [isReady, setIsReady] = useState(false);
+  const [rendererGeneration, setRendererGeneration] = useState(0);
 
   const activeRef = useRef(active);
   activeRef.current = active;
 
-  const { resolvedTheme, colorTheme } = useTheme();
-  const { setSessionStatus } = useTerminalActions();
+  const setSessionStatus = useTerminalStore(
+    (state) => state.actions.setSessionStatus,
+  );
 
-  const [rendererGeneration, setRendererGeneration] = useState(0);
+  const setCommandRunning = useTerminalStore(
+    (state) => state.actions.setCommandRunning,
+  );
+
+  const { resolvedTheme, colorTheme } = useTheme();
+
+  /**
+   * Keep the local ref in sync with Zustand.
+   * We deliberately do NOT use session.command as something to execute.
+   * Commands are executed only through an explicit runCommand request.
+   */
+  const commandRequestId = useTerminalStore(
+    (state) =>
+      state.sessions.find((session) => session.id === sessionId)
+        ?.commandRequestId ?? 0,
+  );
+
+  const requestedCommand = useTerminalStore(
+    (state) =>
+      state.sessions.find((session) => session.id === sessionId)?.command ??
+      null,
+  );
+
+  /**
+   * A command request from Zustand is a one-shot request.
+   * It does not mean "run this whenever the terminal mounts".
+   */
+  const lastHandledCommandRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (commandRequestId <= lastHandledCommandRequestRef.current) {
+      return;
+    }
+
+    lastHandledCommandRequestRef.current = commandRequestId;
+
+    if (requestedCommand) {
+      pendingCommandRef.current = requestedCommand;
+    }
+  }, [commandRequestId, requestedCommand]);
 
   useEffect(() => {
     setIsReady(false);
-    setRendererGeneration((gen) => gen + 1);
+    setRendererGeneration((generation) => generation + 1);
   }, [resolvedTheme, colorTheme, sessionId]);
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  }, []);
+
+  const clearCommandTimer = useCallback(() => {
+    if (commandTimerRef.current) {
+      clearTimeout(commandTimerRef.current);
+      commandTimerRef.current = null;
+    }
+  }, []);
+
+  const markCommandStopped = useCallback(() => {
+    commandRunningRef.current = false;
+    setCommandRunning(sessionId, false);
+  }, [sessionId, setCommandRunning]);
+
+  const sendCommand = useCallback(
+    (command: string): boolean => {
+      const ws = wsRef.current;
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+
+      clearCommandTimer();
+
+      ws.send(`${command}\r`);
+
+      commandRunningRef.current = true;
+      setCommandRunning(sessionId, true);
+
+      return true;
+    },
+    [clearCommandTimer, sessionId, setCommandRunning],
+  );
+
+  const flushPendingCommand = useCallback(() => {
+    const command = pendingCommandRef.current;
+
+    if (!command) {
+      return;
+    }
+
+    if (!sendCommand(command)) {
+      return;
+    }
+
+    // IMPORTANT:
+    // Once actually sent, this request is consumed.
+    // It must never execute again just because the terminal reconnects/remounts.
+    pendingCommandRef.current = null;
+  }, [sendCommand]);
+
+  /**
+   * Register exactly one controller for this terminal instance.
+   * It is explicitly removed on unmount.
+   */
+  useEffect(() => {
+    const controller = {
+      runCommand: (command: string) => {
+        pendingCommandRef.current = command;
+
+        return sendCommand(command);
+      },
+
+      stopCommand: () => {
+        const ws = wsRef.current;
+
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          return false;
+        }
+
+        ws.send('\x03');
+
+        setTimeout(() => {
+          ws.send('\x03');
+        }, 100);
+        pendingCommandRef.current = null;
+
+        clearCommandTimer();
+        markCommandStopped();
+
+        return true;
+      },
+    };
+
+    terminalControllers.set(sessionId, controller);
+
+    return () => {
+      if (terminalControllers.get(sessionId) === controller) {
+        terminalControllers.delete(sessionId);
+      }
+    };
+  }, [sessionId, sendCommand, clearCommandTimer, markCommandStopped]);
 
   useImperativeHandle(
     ref,
@@ -78,27 +224,28 @@ export const TerminalInstance = forwardRef<
 
       reconnect: () => {
         setIsReady(false);
-        if (retryTimerRef.current) {
-          clearTimeout(retryTimerRef.current);
-          retryTimerRef.current = null;
-        }
+
+        clearRetryTimer();
+        clearCommandTimer();
 
         historyRef.current = '';
 
         const terminal = terminalRef.current;
+
         if (terminal) {
           terminal.reset?.();
           terminal.clear?.();
         }
 
-        const old = wsRef.current;
+        const oldWs = wsRef.current;
         wsRef.current = null;
-        old?.close();
+
+        oldWs?.close();
 
         connectRef.current(true);
       },
     }),
-    [],
+    [clearRetryTimer, clearCommandTimer],
   );
 
   const fit = useCallback(() => {
@@ -110,6 +257,7 @@ export const TerminalInstance = forwardRef<
     }
 
     const bounds = container.getBoundingClientRect();
+
     if (bounds.width < 24 || bounds.height < 24) {
       return;
     }
@@ -122,27 +270,40 @@ export const TerminalInstance = forwardRef<
   }, []);
 
   useEffect(() => {
-    if (active) {
-      requestAnimationFrame(() => {
-        fit();
-        terminalRef.current?.focus?.();
-      });
+    if (!active) {
+      return;
     }
+
+    requestAnimationFrame(() => {
+      fit();
+      terminalRef.current?.focus?.();
+    });
   }, [active, fit]);
 
   const connect = useCallback(
     async (currentTerminal: GhosttyTerminal, isReset = false) => {
-      if (!currentTerminal) return;
+      if (!currentTerminal) {
+        return;
+      }
+
+      clearRetryTimer();
+      clearCommandTimer();
 
       setSessionStatus(sessionId, 'connecting');
 
       try {
-        const res = await fetch('/api/terminal/token', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`token request failed: ${res.status}`);
+        const res = await fetch('/api/terminal/token', {
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          throw new Error(`token request failed: ${res.status}`);
+        }
 
         const { token } = await res.json();
 
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
         const params = new URLSearchParams({
           sessionId,
           cols: String(currentTerminal.cols || 80),
@@ -162,26 +323,56 @@ export const TerminalInstance = forwardRef<
         wsRef.current = ws;
 
         ws.onopen = () => {
+          if (wsRef.current !== ws) {
+            ws.close();
+            return;
+          }
+
           setSessionStatus(sessionId, 'connected');
-          // Fallback timer: reveal terminal after 150ms even if shell produces no output
-          setTimeout(() => setIsReady(true), 150);
+
+          commandTimerRef.current = setTimeout(() => {
+            commandTimerRef.current = null;
+
+            if (wsRef.current !== ws) {
+              return;
+            }
+
+            flushPendingCommand();
+          }, 50);
+
+          setTimeout(() => {
+            if (wsRef.current === ws) {
+              setIsReady(true);
+            }
+          }, 150);
         };
 
         ws.onmessage = (event) => {
+          if (wsRef.current !== ws) {
+            return;
+          }
+
           const data = String(event.data);
+
           historyRef.current += data;
           terminalRef.current?.write(data);
-          // Reveal terminal instantly as soon as first content arrives
+
           setIsReady(true);
         };
 
         ws.onclose = () => {
-          if (wsRef.current !== ws) return;
+          if (wsRef.current !== ws) {
+            return;
+          }
+
           wsRef.current = null;
+          clearCommandTimer();
+
           setSessionStatus(sessionId, 'disconnected');
 
           retryTimerRef.current = setTimeout(() => {
             retryTimerRef.current = null;
+
             if (terminalRef.current) {
               void connect(terminalRef.current, false);
             }
@@ -189,26 +380,40 @@ export const TerminalInstance = forwardRef<
         };
 
         ws.onerror = () => {
-          ws.close();
+          if (wsRef.current === ws) {
+            ws.close();
+          }
         };
       } catch (error) {
         console.error('[Terminal] Connection failed', error);
+
         setSessionStatus(sessionId, 'disconnected');
 
         retryTimerRef.current = setTimeout(() => {
           retryTimerRef.current = null;
+
           if (terminalRef.current) {
             void connect(terminalRef.current, false);
           }
         }, 2000);
       }
     },
-    [sessionId, cwd, setSessionStatus],
+    [
+      clearRetryTimer,
+      clearCommandTimer,
+      cwd,
+      flushPendingCommand,
+      sessionId,
+      setSessionStatus,
+    ],
   );
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+
+    if (!container) {
+      return;
+    }
 
     let disposed = false;
     let terminal: GhosttyTerminal | null = null;
@@ -219,11 +424,14 @@ export const TerminalInstance = forwardRef<
     const boot = async () => {
       try {
         const ghostty = await loadGhostty();
-        if (disposed) return;
+
+        if (disposed) {
+          return;
+        }
 
         const theme = resolveGhosttyTheme(container);
-
         const ghosttyWeb = await import('ghostty-web');
+
         terminal = new ghosttyWeb.Terminal({
           cols: 80,
           rows: 24,
@@ -285,32 +493,43 @@ export const TerminalInstance = forwardRef<
           setIsReady(true);
         }
 
-        terminal.onData((data: string) => {
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(data);
+        /**
+         * Keep these disposable handles so cleanup is explicit.
+         * This prevents duplicated input handlers if the renderer is rebuilt.
+         */
+        const dataDisposable = terminal.onData((data: string) => {
+          const ws = wsRef.current;
+
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(data);
           }
         });
 
-        terminal.onResize(({ cols, rows }: { cols: number; rows: number }) => {
-          if (
-            cols > 0 &&
-            rows > 0 &&
-            wsRef.current?.readyState === WebSocket.OPEN
-          ) {
-            wsRef.current.send(
-              JSON.stringify({
-                type: 'resize',
-                cols,
-                rows,
-              }),
-            );
-          }
-        });
+        const resizeDisposable = terminal.onResize(
+          ({ cols, rows }: { cols: number; rows: number }) => {
+            const ws = wsRef.current;
+
+            if (cols > 0 && rows > 0 && ws?.readyState === WebSocket.OPEN) {
+              ws.send(
+                JSON.stringify({
+                  type: 'resize',
+                  cols,
+                  rows,
+                }),
+              );
+            }
+          },
+        );
 
         resizeObserver = new ResizeObserver(() => {
-          if (resizeTimeout) clearTimeout(resizeTimeout);
+          if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+          }
+
           resizeTimeout = setTimeout(() => {
-            if (!disposed && activeRef.current) fit();
+            if (!disposed && activeRef.current) {
+              fit();
+            }
           }, 80);
         });
 
@@ -329,38 +548,70 @@ export const TerminalInstance = forwardRef<
         }
 
         requestAnimationFrame(() => {
-          if (!disposed && activeRef.current) fit();
+          if (!disposed && activeRef.current) {
+            fit();
+          }
         });
+
+        return () => {
+          dataDisposable?.dispose?.();
+          resizeDisposable?.dispose?.();
+        };
       } catch (error) {
-        if (disposed) return;
+        if (disposed) {
+          return;
+        }
+
         console.error('[Terminal] Failed to initialize Ghostty', error);
+
         setSessionStatus(sessionId, 'disconnected');
       }
     };
 
-    void boot();
+    let cleanupListeners: (() => void) | undefined;
+
+    void boot().then((cleanup) => {
+      cleanupListeners = cleanup;
+
+      if (disposed) {
+        cleanupListeners?.();
+      }
+    });
 
     return () => {
       disposed = true;
 
-      if (resizeTimeout) clearTimeout(resizeTimeout);
+      cleanupListeners?.();
+
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
 
       resizeObserver?.disconnect();
 
       terminal?.dispose?.();
 
-      terminalRef.current = null;
-      fitAddonRef.current = null;
+      if (terminalRef.current === terminal) {
+        terminalRef.current = null;
+      }
+
+      if (fitAddonRef.current === fitAddon) {
+        fitAddonRef.current = null;
+      }
     };
   }, [sessionId, rendererGeneration, fit, connect, setSessionStatus]);
 
   useEffect(() => {
     return () => {
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-      wsRef.current?.close();
+      clearRetryTimer();
+      clearCommandTimer();
+
+      const ws = wsRef.current;
       wsRef.current = null;
+
+      ws?.close();
     };
-  }, [sessionId]);
+  }, [clearRetryTimer, clearCommandTimer]);
 
   const theme = resolveGhosttyTheme(containerRef.current);
 

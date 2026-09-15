@@ -1,13 +1,10 @@
 import { Button, Sheet } from '@aero/ui';
-import { Icon } from '@gravity-ui/uikit';
 
-import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';
-import { capitalizeFirstLetter } from '@/server/shared';
 
-import { AgentPicker } from './agents/agent-picker';
-import { useChatSettingsStore } from './chat-settings-store';
-import { ModelPicker } from './models/model-picker';
+import { AgentPicker } from '../agents/agent-picker';
+import { useChatSettingsStore } from '../chat-settings-store';
+import { ModelPicker } from '../models/model-picker';
 
 export function ModelAgentDropdownSheet({
   container,
@@ -92,28 +89,5 @@ export function ModelAgentDropdownSheet({
         </Sheet.Content>
       </Sheet.Backdrop>
     </Sheet>
-  );
-}
-
-export function ModelAgentDropdownTrigger() {
-  const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
-
-  const setIsOpen = useChatSettingsStore(
-    (state) => state.setModelAgentSheetOpen,
-  );
-
-  return (
-    <Button
-      variant='ghost'
-      size='sm'
-      className='max-w-full gap-1.5 rounded-lg text-xs group-data-[disabled=true]/prompt-input:pointer-events-none group-data-[disabled=true]/prompt-input:opacity-60'
-      onPress={() => setIsOpen(true)}
-    >
-      <Icon data={getAgentIconData(selectedAgent?.name)} className='size-3.5' />
-
-      {selectedAgent?.name
-        ? capitalizeFirstLetter(selectedAgent.name)
-        : 'Select Agent'}
-    </Button>
   );
 }

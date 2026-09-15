@@ -1,8 +1,8 @@
 import { create, StateCreator } from 'zustand';
 
-export const defaultSelecedFilters = ['Files', 'Sessions', 'Actions'] as const;
+export const defaultSelectedFilters = ['Actions', 'Files', 'Sessions'] as const;
 
-type Filter = (typeof defaultSelecedFilters)[number];
+type Filter = (typeof defaultSelectedFilters)[number];
 
 type CommandPaletteStore = {
   isOpen: boolean;
@@ -32,7 +32,7 @@ const commandPaletteSlice: StateCreator<CommandPaletteStore> = (set) => ({
       isOpen: !isOpen,
     })),
 
-  selectedFilters: [...defaultSelecedFilters],
+  selectedFilters: [...defaultSelectedFilters],
 
   toggleSelectedFilters: (filter) =>
     set(({ selectedFilters }) => ({

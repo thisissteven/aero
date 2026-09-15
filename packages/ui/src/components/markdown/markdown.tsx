@@ -2,125 +2,64 @@
 
 import { cn } from '@heroui/react';
 import type {
-  ComponentPropsWithoutRef,
   ComponentPropsWithRef,
   NamedExoticComponent,
   ReactElement,
   RefObject,
 } from 'react';
-import { memo, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { Components, ExtraProps } from 'react-markdown';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import type { Components } from 'react-markdown';
 import { useAutoScroll } from '../../hooks';
-import { CodeBlock } from '../code-block';
-import { MarkdownFileContext, MemoizedBlock } from '../markdown';
-
-type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps;
-
-const MarkdownCode = memo(function MarkdownCode({
-  children = '',
-  className,
-  node,
-  ...props
-}: MarkdownCodeProps): ReactElement {
-  const { isFile, onFileClick } = useContext(MarkdownFileContext);
-
-  const isInline =
-    !node?.position?.start.line ||
-    node.position.start.line === node.position.end.line;
-
-  if (isInline) {
-    const rawContent = String(children ?? '').trim();
-    const isFileMatch = isFile?.(rawContent) ?? false;
-
-    if (isFileMatch) {
-      return (
-        <button
-          type='button'
-          onClick={() => onFileClick?.(rawContent)}
-          className='inline cursor-pointer text-left transition-opacity hover:opacity-90 focus-visible:outline-none'
-        >
-          <code
-            className={cn(
-              'markdown__inline-code decoration-primary underline decoration-1 underline-offset-4',
-              className,
-            )}
-            data-slot='markdown-inline-file-code'
-            {...props}
-          >
-            {children}
-          </code>
-        </button>
-      );
-    }
-
-    return (
-      <code
-        className={cn('markdown__inline-code', className)}
-        data-slot='markdown-inline-code'
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  }
-
-  const language = className?.match(/language-(\w+)/)?.[1] ?? 'plaintext';
-  const code = String(children ?? '').replace(/\n$/, '');
-
-  return (
-    <CodeBlock>
-      <CodeBlock.Header>
-        <span className='text-muted text-xs uppercase'>{language}</span>
-        <CodeBlock.CopyButton code={code} />
-      </CodeBlock.Header>
-
-      <CodeBlock.Code code={code} language={language} />
-    </CodeBlock>
-  );
-});
-
-export const defaultComponents: Components = {
-  code: MarkdownCode,
-  pre: ({ children }) => <>{children}</>,
-};
+import {
+  defaultComponents,
+  MarkdownFileContext,
+  MemoizedBlock,
+} from '../markdown';
 
 /**
- * Throttles stream updates to the display refresh rate (rAF)
- * for buttery-smooth character reveals without layout thrashing.
+ * Throttles stream updates to the display refresh rate (rAF). Keeps
+ * trickling toward the latest rawContent regardless of isStreaming, and
+ * self-stops once caught up so it doesn't spin forever on static content.
  */
-function useBufferedStream(rawContent: string, isStreaming: boolean): string {
+function useBufferedStream(rawContent: string): string {
   const [displayedContent, setDisplayedContent] = useState(rawContent);
   const targetRef = useRef(rawContent);
   targetRef.current = rawContent;
 
   useEffect(() => {
-    if (!isStreaming) {
-      setDisplayedContent(rawContent);
-      return;
-    }
+    let frameId: number | null = null;
 
-    let frameId: number;
     const step = () => {
+      let caughtUp = false;
+
       setDisplayedContent((prev) => {
         const target = targetRef.current;
-        if (prev === target) return prev;
-
+        if (prev === target) {
+          caughtUp = true;
+          return prev;
+        }
+        if (prev.length > target.length || !target.startsWith(prev)) {
+          // content reset/shrank (e.g. new message) — jump straight there
+          caughtUp = true;
+          return target;
+        }
         const diff = target.length - prev.length;
-        if (diff <= 0) return target;
-
-        // Slow down the stagger speed: append only 1-2 characters per rAF frame (~60-120 chars/sec)
-        const stepSize = Math.min(diff, 24);
-        return target.slice(0, prev.length + stepSize);
+        const stepSize = Math.min(diff, 2);
+        const next = target.slice(0, prev.length + stepSize);
+        caughtUp = next === target;
+        return next;
       });
 
-      frameId = requestAnimationFrame(step);
+      if (!caughtUp) frameId = requestAnimationFrame(step);
     };
 
     frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
-  }, [isStreaming, rawContent]);
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
+  }, [rawContent]);
 
-  return isStreaming ? displayedContent : rawContent;
+  return displayedContent;
 }
 
 export interface MarkdownProps
@@ -146,7 +85,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
-    const bufferedContent = useBufferedStream(children, streaming);
+    const bufferedContent = useBufferedStream(children);
 
     const renderers = useMemo(
       () => ({
@@ -164,11 +103,10 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       [isFile, onFileClick],
     );
 
-    // Split stream content into distinct block chunks (by double newlines)
-    // to preserve DOM stability for completed paragraphs.
+    // Always split the same way, whether or not streaming is still active,
+    // so block keys/positions stay stable across the streaming -> settled
+    // transition instead of collapsing into one block and remounting.
     const blocks = useMemo(() => {
-      if (!streaming) return [bufferedContent];
-
       const parts = bufferedContent.split(/(\n\n+)/);
       const result: string[] = [];
       let current = '';
@@ -182,7 +120,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       }
 
       return result.length > 0 ? result : [bufferedContent];
-    }, [bufferedContent, streaming]);
+    }, [bufferedContent]);
 
     const contentRef = useRef<HTMLDivElement>(null);
 

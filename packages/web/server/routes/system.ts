@@ -1,11 +1,11 @@
-import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import { exec, execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import { SYSTEM_APPS_ICONS_PATH } from '@/server/helper';
@@ -559,7 +559,9 @@ const system = new Hono()
       // 1. File Explorer Handler
       if (appId === 'finder') {
         if (platform === 'win32') {
-          exec(`explorer "${targetPath}"`, () => {});
+          exec(`explorer "${targetPath}"`, () => {
+            //
+          });
         } else if (platform === 'darwin') {
           await execFileAsync('open', [targetPath], {
             timeout: LAUNCH_TIMEOUT_MS,
@@ -727,9 +729,11 @@ const system = new Hono()
     async (c) => {
       const { harnessId, query, directory, limit } = c.req.valid('query');
 
+      const resolvedQuery = !query ? '.' : query;
+
       const harness = await getActiveAdapter(harnessId);
       const files = await harness.listFilesInDirectory({
-        query: query ?? '.',
+        query: resolvedQuery,
         directory,
         limit: limit ?? '5',
       });

@@ -1,4 +1,13 @@
 import {
+  Button,
+  Checkbox,
+  Dropdown,
+  Label,
+  Modal,
+  Sidebar,
+  toast,
+} from '@aero/ui';
+import {
   Archive,
   ArrowUpFromSquare,
   ArrowUpFromSquareSlash,
@@ -14,22 +23,12 @@ import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import {
-  Button,
-  Checkbox,
-  Dropdown,
-  Label,
-  Modal,
-  Sidebar,
-  toast,
-} from '@aero/ui';
-
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
-  sessionKeys,
   SessionsPageResponse,
+  sessionKeys,
   useArchiveBulkSessions,
   useArchiveSession,
   useDeleteBulkSessions,
@@ -147,7 +146,7 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
     const queries = queryClient.getQueriesData<
       InfiniteData<SessionsPageResponse>
     >({
-      queryKey: [...sessionKeys.merged(), undefined, undefined],
+      queryKey: [...sessionKeys.merged(), undefined, undefined, undefined],
       exact: true,
     });
 

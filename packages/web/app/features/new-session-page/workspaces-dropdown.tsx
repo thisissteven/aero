@@ -49,11 +49,7 @@ export function WorkspacesDropdown() {
         className='mt-1.5 ml-2'
       >
         <div className='flex items-center gap-1.5 text-xs'>
-          <Icon
-            data={Folder}
-            className='opacity-50 transition-opacity hover:opacity-80'
-            size={14}
-          />
+          {selectedWorkspace && <WorkspaceIcon workspace={selectedWorkspace} />}
           <span>{selectedWorkspace?.name ?? 'Choose Project'}</span>
         </div>
       </Dropdown.Trigger>

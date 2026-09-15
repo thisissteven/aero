@@ -202,31 +202,24 @@
     overflow-wrap: break-word;
   }
 
-  /* GPU-accelerated smooth trailing fade effect during active streaming */
-  /* Creates a continuous, sweeping 'wave' across incoming words */
-  /* Animated trailing characters as text streams in */
-  .markdown__stream-tail {
+  .stream-reveal__segment {
     display: inline;
-    animation: markdown-tail-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: opacity, transform;
+    white-space: pre;
+    opacity: 0;
+    animation-name: stream-reveal-fade-in;
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: forwards;
   }
 
-  @keyframes markdown-tail-reveal {
-    0% {
-      opacity: 0.2;
-      transform: translateY(3px);
+  @keyframes stream-reveal-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
     }
-    100% {
+    to {
       opacity: 1;
-      transform: translateY(0px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .markdown .t-stream-active {
-      animation: none;
-      opacity: 1;
-      filter: none;
+      transform: translateY(0);
     }
   }
 }

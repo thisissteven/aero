@@ -1,74 +1,13 @@
-import {
-  AdaptiveCodeBlockCode,
-  AdaptiveCodeBlockCodeProps,
-  Alert,
-  CodeBlock,
-  cn,
-  Disclosure,
-  TextEffect,
-} from '@aero/ui';
+import { Alert, CodeBlock, cn, Disclosure, TextEffect } from '@aero/ui';
 import { Icon } from '@gravity-ui/uikit';
 
-import React, { memo, ReactNode, SVGProps, useRef } from 'react';
+import React, { ReactNode, SVGProps, useEffect, useRef, useState } from 'react';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { formatElapsedMs, useElapsedTime } from '@/app/hooks/useElapsedTime';
-import { useTheme } from '@/app/providers';
-import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
+import { Timer } from '@/app/components/tool-call-view/timer';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
-
-// ============================================================================
-// Timer & BaseTool Components
-// ============================================================================
-
-const startTimeCache = new Map<string, number>();
-
-type TimerProps = {
-  id: string;
-  duration?: number;
-  isStreaming?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-  decimals?: number;
-};
-
-export const Timer = memo(
-  ({ id, duration, isStreaming = false, className, style }: TimerProps) => {
-    // If a duration in seconds is provided, display it immediately
-    if (typeof duration === 'number') {
-      if (startTimeCache.has(id)) {
-        startTimeCache.delete(id);
-      }
-      return (
-        <span className={cn('tabular-nums', className)} style={style}>
-          {formatElapsedMs(duration * 1000)}
-        </span>
-      );
-    }
-
-    // Lazy initialization for start time tracking during active streaming
-    let startTime = startTimeCache.get(id);
-    if (!startTime && isStreaming) {
-      startTime = Date.now();
-      startTimeCache.set(id, startTime);
-    }
-
-    const elapsedMs = useElapsedTime(startTime ?? null, isStreaming);
-
-    return (
-      <span className={cn('tabular-nums', className)} style={style}>
-        {formatElapsedMs(elapsedMs)}
-      </span>
-    );
-  },
-);
-
-Timer.displayName = 'Timer';
-
-type ToolAnimationStyle = React.CSSProperties & {
-  '--tool-pop-index'?: number;
-};
 
 export function BaseTool({
   blockId,
@@ -121,257 +60,197 @@ export function BaseTool({
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
   /*
-   * Track if the component was initialized during an active stream.
-   * If streaming ends (isStreaming becomes false), activeAnimation turns off.
+   * Capture whether this component was created during active streaming.
    */
   const wasStreamingOnMount = useRef(isStreaming).current;
-  const isAnimating = wasStreamingOnMount && isStreaming;
 
-  const getAnimationClass = () => (isAnimating ? 't-tool-pop-item' : undefined);
+  /*
+   * Track visibility state to orchestrate the 200ms delay.
+   * If historic (not streaming), bypass the delay and show immediately.
+   */
+  const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
 
-  const getAnimationStyle = (index: number): ToolAnimationStyle | undefined =>
-    isAnimating
-      ? {
-          '--tool-pop-index': index,
-        }
-      : undefined;
+  useEffect(() => {
+    if (!wasStreamingOnMount) return;
+
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [wasStreamingOnMount]);
+
+  /*
+   * Only run <TextEffect> if the component was born streaming AND
+   * the 200ms initial visibility delay has elapsed.
+   */
+  const shouldAnimate = wasStreamingOnMount && isVisible;
 
   return (
-    <Disclosure
-      isExpanded={isExpanded}
-      onExpandedChange={(nextExpanded) => setKeep(blockId, nextExpanded)}
+    <div
+      className={cn(
+        'transition-opacity duration-200 ease-out',
+        isVisible ? 'opacity-100' : 'opacity-0',
+      )}
     >
-      <Disclosure.Heading>
-        <Disclosure.Trigger
-          className={cn(
-            'group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100',
-            status === 'error' && 'text-danger',
-            status === 'completed' && 'text-muted/70',
-          )}
-          isDisabled={((!hasContent && !error) || isAnimating) && !forceEnabled}
-        >
-          <div className='flex min-w-0 flex-1 items-center gap-2'>
-            <div
-              className={cn('relative shrink-0', getAnimationClass())}
-              style={getAnimationStyle(0)}
-            >
-              <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
+      <Disclosure
+        isExpanded={isExpanded}
+        onExpandedChange={(nextExpanded) => setKeep(blockId, nextExpanded)}
+      >
+        <Disclosure.Heading>
+          <Disclosure.Trigger
+            className={cn(
+              'group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100',
+              status === 'error' && 'text-danger',
+              status === 'completed' && 'text-muted/70',
+            )}
+            isDisabled={
+              ((!hasContent && !error) || isStreaming) && !forceEnabled
+            }
+          >
+            <div className='flex min-w-0 flex-1 items-center gap-2'>
+              <div className='relative shrink-0'>
+                <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
 
-              <Icon
-                data={icon}
-                className={cn(
-                  'absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0',
-                  'text-foreground/60',
-                  status === 'error' && 'text-danger',
-                )}
-                style={{ width: 12, height: 12 }}
-              />
-            </div>
-
-            <span className='flex items-center justify-start gap-2 truncate'>
-              <span
-                className={cn(
-                  getAnimationClass(),
-                  'text-foreground',
-                  status === 'error' && 'text-danger',
-                )}
-                style={getAnimationStyle(1)}
-              >
-                {title}
-              </span>
-
-              {previewType === 'path' && typeof preview === 'string' && (
-                <span
-                  className={getAnimationClass()}
-                  style={getAnimationStyle(2)}
-                >
-                  <FileTypeIcon filePath={preview} />
-                </span>
-              )}
-
-              {useDuration && (
-                <Timer
-                  id={blockId}
-                  duration={duration}
-                  isStreaming={isStreaming}
-                  className={cn('text-muted/70', getAnimationClass())}
-                  style={getAnimationStyle(3)}
+                <Icon
+                  data={icon}
+                  className={cn(
+                    'absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                    'text-foreground/60',
+                    status === 'error' && 'text-danger',
+                  )}
+                  style={{ width: 12, height: 12 }}
                 />
-              )}
-
-              <div
-                className={cn(
-                  'text-muted flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
-                  getAnimationClass(),
-                )}
-                style={
-                  previewType === 'path' ? getAnimationStyle(4) : undefined
-                }
-              >
-                {preview ? (
-                  previewType === 'path' && typeof preview === 'string' ? (
-                    <MiddleTruncatePath path={preview} />
-                  ) : typeof preview === 'string' ? (
-                    isAnimating ? (
-                      <TextEffect
-                        per='char'
-                        preset='fade'
-                        className='inline-block w-full truncate align-middle'
-                      >
-                        {preview}
-                      </TextEffect>
-                    ) : (
-                      <span className='inline-block w-full truncate align-middle'>
-                        {preview}
-                      </span>
-                    )
-                  ) : (
-                    preview
-                  )
-                ) : null}
               </div>
 
-              {diff && (
-                <>
-                  {diff.additions > 0 && (
-                    <span
-                      className={cn(
-                        'text-success transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
-                        getAnimationClass(),
-                      )}
-                      style={getAnimationStyle(5)}
-                    >
-                      +{diff.additions}
-                    </span>
-                  )}
-
-                  {diff.deletions > 0 && (
-                    <span
-                      className={cn(
-                        'text-danger transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0',
-                        getAnimationClass(),
-                      )}
-                      style={getAnimationStyle(diff.additions > 0 ? 6 : 5)}
-                    >
-                      -{diff.deletions}
-                    </span>
-                  )}
-                </>
-              )}
-            </span>
-          </div>
-        </Disclosure.Trigger>
-      </Disclosure.Heading>
-
-      <Disclosure.Content className='mt-2 pl-0'>
-        <div className='border-default ml-2 space-y-2 border-l pl-5'>
-          {error && (
-            <div>
-              {typeof preview === 'string' && (
-                <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
-              )}
-
-              <Alert
-                status='danger'
-                className={cn(
-                  'bg-transparent p-0 pt-4 shadow-none',
-                  !hasCodeContent && 'pb-2',
-                )}
-              >
-                <Alert.Content>
-                  <Alert.Description className='text-danger'>
-                    {error}
-                  </Alert.Description>
-                </Alert.Content>
-              </Alert>
-            </div>
-          )}
-
-          {/* Renders custom ReactNode components directly */}
-          {children}
-
-          {/* Fallback to CodeBlock when code prop is passed */}
-          {hasCodeContent && !children && !isAnimating && (
-            <CodeBlock className='bg-transparent'>
-              <CodeBlock.Header>
-                <div
+              <span className='flex items-center justify-start gap-2 truncate'>
+                <span
                   className={cn(
-                    'text-muted min-w-0 font-mono text-xs break-all',
-                    isItalicHeader && 'italic',
+                    'text-foreground',
+                    status === 'error' && 'text-danger',
                   )}
                 >
-                  {codeTitle}
+                  {title}
+                </span>
+
+                {previewType === 'path' && typeof preview === 'string' && (
+                  <span>
+                    <FileTypeIcon filePath={preview} />
+                  </span>
+                )}
+
+                {useDuration && (
+                  <Timer
+                    id={blockId}
+                    duration={duration}
+                    isStreaming={isStreaming}
+                    className='text-muted/70'
+                  />
+                )}
+
+                <div className='text-muted flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                  {preview ? (
+                    previewType === 'path' && typeof preview === 'string' ? (
+                      <MiddleTruncatePath path={preview} />
+                    ) : typeof preview === 'string' ? (
+                      shouldAnimate ? (
+                        <TextEffect
+                          duration={100}
+                          stagger={5}
+                          className='inline-block w-full truncate align-middle'
+                        >
+                          {preview}
+                        </TextEffect>
+                      ) : (
+                        <span className='inline-block w-full truncate align-middle'>
+                          {preview}
+                        </span>
+                      )
+                    ) : (
+                      preview
+                    )
+                  ) : null}
                 </div>
 
-                {copyText && (
-                  <CodeBlock.CopyButton code={copyText} className='shrink-0' />
+                {diff && (
+                  <>
+                    {diff.additions > 0 && (
+                      <span className='text-success transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                        +{diff.additions}
+                      </span>
+                    )}
+
+                    {diff.deletions > 0 && (
+                      <span className='text-danger transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                        -{diff.deletions}
+                      </span>
+                    )}
+                  </>
                 )}
-              </CodeBlock.Header>
+              </span>
+            </div>
+          </Disclosure.Trigger>
+        </Disclosure.Heading>
 
-              <CodeBlockContent
-                code={code!}
-                language={language || 'text'}
-                scrollOverflow={code!.includes('\n')}
-                showLineNumbers={showLineNumbers}
-              />
-            </CodeBlock>
-          )}
-        </div>
-      </Disclosure.Content>
-    </Disclosure>
+        <Disclosure.Content className='mt-2 pl-0'>
+          <div className='border-default ml-2 space-y-2 border-l pl-5'>
+            {error && (
+              <div>
+                {typeof preview === 'string' && (
+                  <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+                )}
+
+                <Alert
+                  status='danger'
+                  className={cn(
+                    'bg-transparent p-0 pt-4 shadow-none',
+                    !hasCodeContent && 'pb-2',
+                  )}
+                >
+                  <Alert.Content>
+                    <Alert.Description className='text-danger'>
+                      {error}
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              </div>
+            )}
+
+            {/* Renders custom ReactNode components directly */}
+            {children}
+
+            {/* Fallback to CodeBlock when code prop is passed */}
+            {hasCodeContent && !children && !isStreaming && (
+              <CodeBlock className='bg-transparent'>
+                <CodeBlock.Header>
+                  <div
+                    className={cn(
+                      'text-muted min-w-0 font-mono text-xs break-all',
+                      isItalicHeader && 'italic',
+                    )}
+                  >
+                    {codeTitle}
+                  </div>
+
+                  {copyText && (
+                    <CodeBlock.CopyButton
+                      code={copyText}
+                      className='shrink-0'
+                    />
+                  )}
+                </CodeBlock.Header>
+
+                <CodeBlockContent
+                  code={code!}
+                  language={language || 'text'}
+                  scrollOverflow={code!.includes('\n')}
+                  showLineNumbers={showLineNumbers}
+                />
+              </CodeBlock>
+            )}
+          </div>
+        </Disclosure.Content>
+      </Disclosure>
+    </div>
   );
-}
-
-// Code theme context helper used across all tools
-export function CodeBlockContent(props: AdaptiveCodeBlockCodeProps) {
-  const { resolvedTheme } = useTheme();
-
-  const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
-  const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
-
-  const isDark = resolvedTheme === 'dark';
-  const themeName = isDark ? colorThemeDark : colorThemeLight;
-  const mode = isDark ? 'dark' : 'light';
-
-  const activeTheme = getShikiTheme(themeName, mode);
-
-  return (
-    <AdaptiveCodeBlockCode
-      {...props}
-      theme={activeTheme}
-      darkTheme={activeTheme}
-    />
-  );
-}
-
-const SHIKI_THEME_MAP: Record<string, { light: string; dark: string }> = {
-  github: { light: 'github-light', dark: 'github-dark' },
-  catppuccin: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
-  gruvbox: { light: 'gruvbox-light-medium', dark: 'gruvbox-dark-medium' },
-  kanagawa: { light: 'kanagawa-lotus', dark: 'kanagawa-wave' },
-  rosepine: { light: 'rose-pine-dawn', dark: 'rose-pine' },
-  solarized: { light: 'solarized-light', dark: 'solarized-dark' },
-  vitesse: { light: 'vitesse-light', dark: 'vitesse-dark' },
-  ayu: { light: 'ayu-dark', dark: 'ayu-dark' },
-  dracula: { light: 'dracula', dark: 'dracula' },
-  monokai: { light: 'monokai', dark: 'monokai' },
-  nord: { light: 'nord', dark: 'nord' },
-  vesper: { light: 'github-light', dark: 'vesper' },
-  zenburn: { light: 'zenburn', dark: 'zenburn' },
-  nightowl: { light: 'github-light', dark: 'night-owl' },
-  onedarkpro: { light: 'github-light', dark: 'one-dark-pro' },
-  tokyonight: { light: 'github-light', dark: 'tokyo-night' },
-};
-
-function getShikiTheme(
-  themeName: string | undefined,
-  mode: 'light' | 'dark',
-): string | undefined {
-  if (!themeName) {
-    return undefined;
-  }
-
-  const entry = SHIKI_THEME_MAP[themeName.toLowerCase()];
-
-  return entry ? entry[mode] : undefined;
 }

@@ -1,8 +1,7 @@
+import { Button, cn, Popover, Separator, TextArea } from '@aero/ui';
 import { Paperclip } from '@gravity-ui/icons';
 import type { RefObject } from 'react';
 import React, { useEffect, useRef, useState } from 'react';
-
-import { Button, cn, Popover, Separator, TextArea } from '@aero/ui';
 
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
@@ -39,6 +38,8 @@ export const SelectionPopover = React.memo(function SelectionPopover({
       }
     },
     {
+      preventDefault: false,
+      stopPropagation: false,
       modifiers: {
         mod: true,
       },

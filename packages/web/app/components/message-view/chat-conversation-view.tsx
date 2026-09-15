@@ -1,4 +1,4 @@
-import { InfoIcon } from '@aero/ui';
+import { InfoIcon } from '@aero/ui/icons';
 import { useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 
@@ -73,7 +73,7 @@ export function ChatConversationView({
               />
             )}
             {item.type === 'assistant-error' && (
-              <div className='relative pt-4 pb-2'>
+              <div className='relative pt-4 pb-2 @max-sm:break-all'>
                 <div className='text-danger bg-danger-soft border-danger-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
                   <InfoIcon className='size-4 font-normal shrink-0' />
                   <div className='align-middle'>{item.message}</div>
@@ -81,7 +81,7 @@ export function ChatConversationView({
               </div>
             )}
             {item.type === 'assistant-turn-aborted' && (
-              <div className='relative pt-4 pb-2'>
+              <div className='relative pt-4 pb-2 @max-sm:break-all'>
                 <div className='text-accent bg-accent-soft border-accent-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
                   <InfoIcon className='size-4 font-normal shrink-0' />
                   <div className='align-middle'>{item.message}</div>
@@ -89,7 +89,7 @@ export function ChatConversationView({
               </div>
             )}
             {item.type === 'assistant-usage-exceeded' && (
-              <div className='relative py-2'>
+              <div className='relative py-2 @max-sm:break-all'>
                 <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-lg border px-4 py-2 text-sm'>
                   <div>
                     <b>{item.title}</b>

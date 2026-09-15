@@ -169,7 +169,7 @@ export const ChatActivityIndicator = React.memo(
               'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
             backgroundSize: '200% 100%',
             animation: 'chat-activity-shimmer 1.4s linear infinite',
-            color: 'var(--ink)',
+            color: 'var(--foreground)',
           }}
         >
           {label}

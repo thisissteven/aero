@@ -4,7 +4,7 @@ import {
   useChatStore,
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
-import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
+import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown';
 import { useSessionPage } from '@/app/features/new-session-page/use-session-page';
 import {
   useSession,

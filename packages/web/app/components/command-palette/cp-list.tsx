@@ -1,18 +1,22 @@
+import { Command, cn, ListLayout, Virtualizer } from '@aero/ui';
 import { Comment, Gear, Keyboard } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
 
-import { cn, Command, ListLayout, Virtualizer } from '@aero/ui';
-
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader';
-import { useSessions } from '@/app/hooks/api/sessions';
+import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { useSessionDirectory, useSessions } from '@/app/hooks/api/sessions';
+import { useFilesInDirectory } from '@/app/hooks/api/system';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useGlobalModalStore } from '@/app/providers';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
 
@@ -27,15 +31,13 @@ export type VirtualPaletteItem =
       onAction: () => void;
     }
   | { kind: 'session'; id: string; session: AeroSessionSummary }
+  | { kind: 'file'; id: string; file: string }
   | { kind: 'loader'; id: string };
 
 export function CommandPaletteList() {
   const listRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
-  const selectedFilters = useCommandPaletteStore(
-    (state) => state.selectedFilters,
-  );
   const debouncedSearch = useCommandPaletteStore(
     (state) => state.debouncedSearch,
   );
@@ -74,19 +76,42 @@ export function CommandPaletteList() {
     limitWithoutSearch: 10,
   });
 
-  const showActions = selectedFilters.includes('Actions');
-  const showSessions = selectedFilters.includes('Sessions');
+  const sessionId = useSessionId();
+  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
+  const selectedDirectory = useNewSessionStore(
+    (state) => state.selectedWorkspace?.directory,
+  );
+
+  const sessionDirectory = useSessionDirectory();
+
+  const directory =
+    !sessionId && isWorkMode ? selectedDirectory : sessionDirectory;
+
+  const { data: files = [] } = useFilesInDirectory({
+    harnessId: undefined,
+    directory,
+    query: debouncedSearch,
+    limit: debouncedSearch.length > 0 ? '20' : '5',
+  });
 
   function onSelect(callback: () => void) {
     toggleIsOpen();
     callback();
   }
 
+  const selectedFilters = useCommandPaletteStore(
+    (state) => state.selectedFilters,
+  );
+
   const flatItems = useMemo<VirtualPaletteItem[]>(() => {
     const items: VirtualPaletteItem[] = [];
     const query = debouncedSearch.trim().toLowerCase();
 
     const hasHeader = () => items.some((item) => item.kind === 'header');
+
+    const showActions = selectedFilters.includes('Actions');
+    const showFiles = selectedFilters.includes('Files');
+    const showSessions = selectedFilters.includes('Sessions');
 
     if (showActions) {
       const allActions: Extract<VirtualPaletteItem, { kind: 'action' }>[] = [
@@ -134,6 +159,23 @@ export function CommandPaletteList() {
       }
     }
 
+    if (showFiles && files.length > 0) {
+      items.push({
+        kind: 'header',
+        id: 'header-files',
+        title: 'Files',
+        isFirst: !hasHeader(),
+      });
+
+      files.forEach((file) => {
+        items.push({
+          kind: 'file',
+          id: file,
+          file,
+        });
+      });
+    }
+
     if (showSessions && sessions.length > 0) {
       items.push({
         kind: 'header',
@@ -157,10 +199,10 @@ export function CommandPaletteList() {
 
     return items;
   }, [
-    showActions,
-    showSessions,
+    files,
     sessions,
     debouncedSearch,
+    selectedFilters,
     hasNextPage,
     committedViewRef.current.sessionsHeading,
   ]);
@@ -225,6 +267,29 @@ export function CommandPaletteList() {
                   <span className='truncate'>{typedItem.label}</span>
                 </Command.Item>
               );
+
+            case 'file': {
+              return (
+                <Command.Item
+                  key={typedItem.id}
+                  textValue={typedItem.file}
+                  onAction={() => {
+                    //
+                  }}
+                  className='mx-2'
+                >
+                  <FileTypeIcon
+                    filePath={typedItem.file}
+                    className='shrink-0'
+                  />
+                  <MiddleTruncatePath
+                    path={typedItem.file}
+                    className='text-muted ml-1'
+                    fileClassName='text-foreground'
+                  />
+                </Command.Item>
+              );
+            }
 
             case 'session': {
               const updatedAtStr = formatCompactRelativeTime(

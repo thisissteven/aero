@@ -1,9 +1,5 @@
 'use client';
 
-import { Bulb } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
-import { memo, ReactElement, useEffect, useRef, useState } from 'react';
-
 import {
   AdaptiveMarkdown,
   ChainOfThought,
@@ -11,6 +7,9 @@ import {
   DisclosureIndicator,
   ScrollShadow,
 } from '@aero/ui';
+import { Bulb } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
+import { memo, ReactElement, useEffect, useRef, useState } from 'react';
 
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
@@ -39,6 +38,27 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   const [preview, setPreview] = useState('');
 
   useKeepMountedFeed(blockId, isExpanded);
+
+  /*
+   * Capture whether this component was created during active streaming.
+   */
+  const wasStreamingOnMount = useRef(isStreaming).current;
+
+  /*
+   * Track visibility state to orchestrate the 200ms delay.
+   * If historic (not streaming), bypass the delay and show immediately.
+   */
+  const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
+
+  useEffect(() => {
+    if (!wasStreamingOnMount) return;
+
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [wasStreamingOnMount]);
 
   const textRef = useRef(text);
   textRef.current = text;
@@ -76,64 +96,71 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   }, [isStreaming]);
 
   return (
-    <ChainOfThought
-      key={blockId}
-      isStreaming={isStreaming}
-      isExpanded={isExpanded}
-      onExpandedChange={setIsExpanded}
+    <div
+      className={cn(
+        'transition-opacity duration-200 ease-out',
+        isVisible ? 'opacity-100' : 'opacity-0',
+      )}
     >
-      <ChainOfThought.Trigger
-        icon={
-          <div className='relative shrink-0'>
-            <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
-
-            <Icon
-              data={Bulb}
-              className='text-muted absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
-              style={{
-                width: 12,
-                height: 12,
-              }}
-            />
-          </div>
-        }
-        preview={
-          isStreaming ? (
-            <ThinkingPreview preview={preview} />
-          ) : (
-            <div className='w-full min-w-0'>
-              <span className='block w-4/5 truncate text-left md:w-full'>
-                {preview}
-              </span>
-            </div>
-          )
-        }
+      <ChainOfThought
+        key={blockId}
+        isStreaming={isStreaming}
+        isExpanded={isExpanded}
+        onExpandedChange={setIsExpanded}
       >
-        <span className='text-foreground'>Thinking</span>
-      </ChainOfThought.Trigger>
+        <ChainOfThought.Trigger
+          icon={
+            <div className='relative shrink-0'>
+              <DisclosureIndicator className='size-3 -rotate-90 opacity-0 transition group-hover/cot:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
 
-      <ChainOfThought.Content>
-        <ScrollShadow
-          ref={scrollRef}
-          className={cn(isStreaming ? 'max-h-20' : 'max-h-[40vh]')}
-          offset={2}
+              <Icon
+                data={Bulb}
+                className='text-muted absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
+                style={{
+                  width: 12,
+                  height: 12,
+                }}
+              />
+            </div>
+          }
+          preview={
+            isStreaming ? (
+              <ThinkingPreview preview={preview} />
+            ) : (
+              <div className='w-full min-w-0'>
+                <span className='block w-4/5 truncate text-left md:w-full'>
+                  {preview}
+                </span>
+              </div>
+            )
+          }
         >
-          <ChainOfThought.Steps>
-            <ChainOfThought.Step>
-              <AdaptiveMarkdown
-                id={`${blockId}-reason`}
-                isFile={isFile}
-                onFileClick={onFileClick}
-                scrollRef={scrollRef}
-                isStreaming={isStreaming}
-              >
-                {text}
-              </AdaptiveMarkdown>
-            </ChainOfThought.Step>
-          </ChainOfThought.Steps>
-        </ScrollShadow>
-      </ChainOfThought.Content>
-    </ChainOfThought>
+          <span className='text-foreground'>Thinking</span>
+        </ChainOfThought.Trigger>
+
+        <ChainOfThought.Content>
+          <ScrollShadow
+            ref={scrollRef}
+            className={cn(isStreaming ? 'max-h-20' : 'max-h-[40vh]')}
+            offset={2}
+          >
+            <ChainOfThought.Steps>
+              <ChainOfThought.Step>
+                <AdaptiveMarkdown
+                  id={`${blockId}-reason`}
+                  isFile={isFile}
+                  onFileClick={onFileClick}
+                  scrollRef={scrollRef}
+                  isStreaming={isStreaming}
+                >
+                  {text}
+                </AdaptiveMarkdown>
+              </ChainOfThought.Step>
+            </ChainOfThought.Steps>
+          </ScrollShadow>
+        </ChainOfThought.Content>
+      </ChainOfThought>
+    </div>
   );
 });
 

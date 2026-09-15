@@ -865,7 +865,7 @@ export function BrowserPane({
 
         {/* Global Loading Overlay */}
         {tab.isLoading && (
-          <div className='text-muted absolute inset-0 flex items-center justify-center text-sm'>
+          <div className='bg-overlay/60 text-muted absolute inset-0 flex items-center justify-center text-sm'>
             Loading...
           </div>
         )}

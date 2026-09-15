@@ -1,8 +1,8 @@
 // lib/terminal/pty-session.dev.ts
 
-import pty from '@lydell/node-pty';
 import fs from 'node:fs';
 import os from 'node:os';
+import pty from '@lydell/node-pty';
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
@@ -169,7 +169,9 @@ export function attachPtyToSocket(
     }
   });
 
-  ws.on('error', () => {});
+  ws.on('error', () => {
+    //
+  });
 
   return session.pty;
 }

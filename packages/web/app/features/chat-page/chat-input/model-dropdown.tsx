@@ -104,7 +104,7 @@ export function ModelDropdown() {
       </Button>
 
       <Popover.Content
-        className='relative overflow-visible rounded-xl p-0'
+        className='relative overflow-visible bg-surface rounded-xl p-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>

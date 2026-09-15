@@ -118,8 +118,12 @@ function createPtyProcess(
 
     worker.unref();
 
-    let onDataCb: (data: string) => void = () => {};
-    let onExitCb: () => void = () => {};
+    let onDataCb: (data: string) => void = () => {
+      //
+    };
+    let onExitCb: () => void = () => {
+      //
+    };
 
     let buffer = '';
 

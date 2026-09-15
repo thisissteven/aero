@@ -2,7 +2,7 @@ import { cn, PromptInput } from '@aero/ui';
 
 import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
-import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent-dropdown';
+import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/auto-accept-permissions';
 import { ChatInputExpandedToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/chat-input-expanded';

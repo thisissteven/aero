@@ -9,7 +9,7 @@ import {
 } from '@aero/ui';
 import { memo, useMemo } from 'react';
 import { VList } from 'virtua';
-import { CodeBlockContent } from '@/app/components/tool-call-view/tools';
+import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
 import { formatDateTimeFull } from '@/app/lib/date';
 import { useSessionId } from '@/app/providers/SessionIdProvider';

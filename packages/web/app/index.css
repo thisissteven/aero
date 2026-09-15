@@ -169,49 +169,6 @@ div[ref] canvas,
   }
 }
 
-:root {
-  --tool-pop-dur: 400ms;
-  --tool-pop-distance: 4px;
-  --tool-pop-step: 70ms;
-  --tool-pop-blur: 2px;
-  --tool-pop-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
-  --tool-pop-dir-x: 0;
-  --tool-pop-dir-y: 1;
-}
-
-@keyframes t-tool-pop-in {
-  0% {
-    transform: translate(
-      calc(var(--tool-pop-distance) * var(--tool-pop-dir-x)),
-      calc(var(--tool-pop-distance) * var(--tool-pop-dir-y))
-    );
-    opacity: 0;
-    filter: blur(var(--tool-pop-blur));
-  }
-
-  100% {
-    transform: translate(0, 0);
-    opacity: 1;
-    filter: blur(0);
-  }
-}
-
-.t-tool-pop-item {
-  display: inline-block;
-  will-change: transform, opacity, filter;
-  animation-name: t-tool-pop-in;
-  animation-duration: var(--tool-pop-dur);
-  animation-timing-function: var(--tool-pop-ease);
-  animation-fill-mode: both;
-  animation-delay: calc(var(--tool-pop-index) * var(--tool-pop-step));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .t-tool-pop-item {
-    animation: none !important;
-  }
-}
-
 @keyframes marquee {
   0%,
   30% {

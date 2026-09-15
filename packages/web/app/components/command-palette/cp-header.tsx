@@ -1,7 +1,7 @@
 import { Command, ToggleButton, Typography } from '@aero/ui';
 
 import {
-  defaultSelecedFilters,
+  defaultSelectedFilters,
   useCommandPaletteStore,
 } from '@/app/components/command-palette/command-palette-store';
 
@@ -18,7 +18,7 @@ export function CommandPaletteHeader() {
         <Typography type='body-sm' className='text-muted'>
           Filters:
         </Typography>
-        {defaultSelecedFilters.map((filter) => (
+        {defaultSelectedFilters.map((filter) => (
           <ToggleButton
             isSelected={selectedFilters.includes(filter)}
             onChange={() => toggleSelectedFilters(filter)}

@@ -119,7 +119,7 @@ export const ChatFeed = React.memo(
     return (
       <div
         className={cn(
-          'relative flex min-h-0 flex-1 flex-col transition-opacity duration-150',
+          'relative @container flex min-h-0 flex-1 flex-col transition-opacity duration-150',
           !isReady ? 'pointer-events-none opacity-0' : 'opacity-100',
           flatItems.length === 0 && 'opacity-100 pointer-events-auto',
         )}

@@ -138,7 +138,7 @@ export function WorkspaceModelDropdown({
       </Popover.Trigger>
 
       <Popover.Content
-        className='relative overflow-visible p-0'
+        className='relative overflow-visible p-0 bg-surface'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
