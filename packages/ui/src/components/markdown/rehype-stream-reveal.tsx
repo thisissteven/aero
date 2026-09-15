@@ -10,14 +10,19 @@ function hasKatexClass(el: Element): boolean {
   );
 }
 
-/**
- * Wraps each whitespace-delimited token in the tree in its own <span>,
- * tagged with a global reveal index for staggered CSS animation-delay.
- * Skips code/pre/svg/math and KaTeX output so formatting isn't disturbed.
- */
-export function rehypeStreamReveal(stagger = 20) {
+export interface RehypeStreamRevealOptions {
+  tokenCount?: number;
+}
+
+export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
+  const tokenCount = options.tokenCount ?? 8;
+
   return (tree: Root) => {
-    let globalIndex = 0;
+    let target: {
+      parent: Element | Root;
+      index: number;
+      value: string;
+    } | null = null;
 
     function walk(node: Root | Element) {
       const children = (node as { children?: RootContent[] }).children;
@@ -29,33 +34,47 @@ export function rehypeStreamReveal(stagger = 20) {
         if (child.type === 'element') {
           if (SKIP_TAGS.has(child.tagName) || hasKatexClass(child)) continue;
           walk(child);
-          continue;
-        }
-
-        if (child.type === 'text' && child.value) {
-          const tokens = child.value.split(/(\s+)/).filter((t) => t.length > 0);
-          if (tokens.length === 0) continue;
-
-          const replacement: Element[] = tokens.map((token) => {
-            const el: Element = {
-              type: 'element',
-              tagName: 'span',
-              properties: {
-                className: ['stream-reveal__segment'],
-                style: `animation-delay:${globalIndex * stagger}ms`,
-              },
-              children: [{ type: 'text', value: token }],
-            };
-            globalIndex += 1;
-            return el;
-          });
-
-          children.splice(i, 1, ...replacement);
-          i += replacement.length - 1;
+        } else if (
+          child.type === 'text' &&
+          typeof child.value === 'string' &&
+          child.value.trim().length > 0
+        ) {
+          target = {
+            parent: node as Element | Root,
+            index: i,
+            value: child.value,
+          };
         }
       }
     }
 
     walk(tree);
+    if (!target) return;
+
+    const { parent, index, value } = target;
+    const parts = value.split(/(\s+)/).filter((p) => p.length > 0);
+    if (parts.length === 0) return;
+
+    const start = Math.max(0, parts.length - tokenCount);
+    const replacement: RootContent[] = [];
+
+    if (start > 0) {
+      const leading = parts.slice(0, start).join('');
+      if (leading) replacement.push({ type: 'text', value: leading });
+    }
+
+    for (let i = start; i < parts.length; i++) {
+      // Custom element with a stable identifier we control.
+      // The React component for `stream-token` builds the real span
+      // with a real key, bypassing hast-util-to-jsx-runtime entirely.
+      replacement.push({
+        type: 'element',
+        tagName: 'stream-token',
+        properties: { 'data-token': `t${i}` },
+        children: [{ type: 'text', value: parts[i] }],
+      });
+    }
+
+    parent.children.splice(index, 1, ...replacement);
   };
 }

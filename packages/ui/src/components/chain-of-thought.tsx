@@ -30,10 +30,8 @@ const classes = {
 const cls = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
 
-export interface ChainOfThoughtRootProps extends Omit<
-  ComponentPropsWithRef<typeof Disclosure>,
-  'children'
-> {
+export interface ChainOfThoughtRootProps
+  extends Omit<ComponentPropsWithRef<typeof Disclosure>, 'children'> {
   children: ReactNode;
   /** Show shimmer styling on the trigger while reasoning is in progress. */
   isStreaming?: boolean;
@@ -67,10 +65,8 @@ export function ChainOfThoughtRoot({
   );
 }
 
-export interface ChainOfThoughtTriggerProps extends Omit<
-  ComponentPropsWithRef<typeof Button>,
-  'children'
-> {
+export interface ChainOfThoughtTriggerProps
+  extends Omit<ComponentPropsWithRef<typeof Button>, 'children'> {
   children: ReactNode;
   icon: ReactNode;
   preview: ReactNode;
@@ -112,10 +108,8 @@ export function ChainOfThoughtTrigger({
   );
 }
 
-export interface ChainOfThoughtContentProps extends Omit<
-  ComponentPropsWithRef<typeof Disclosure.Content>,
-  'children'
-> {
+export interface ChainOfThoughtContentProps
+  extends Omit<ComponentPropsWithRef<typeof Disclosure.Content>, 'children'> {
   children: ReactNode;
 }
 

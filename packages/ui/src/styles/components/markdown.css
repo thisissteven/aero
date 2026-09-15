@@ -205,21 +205,27 @@
   .stream-reveal__segment {
     display: inline;
     white-space: pre;
-    opacity: 0;
-    animation-name: stream-reveal-fade-in;
-    animation-duration: 300ms;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    animation-fill-mode: forwards;
-  }
+    opacity: 1;
 
-  @keyframes stream-reveal-fade-in {
-    from {
-      opacity: 0;
+    transition:
+      opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Fires only when this span is newly inserted into the DOM. */
+    @starting-style {
+      opacity: 0.35;
       transform: translateY(2px);
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stream-reveal__segment {
+      transition: none;
+
+      @starting-style {
+        opacity: 1;
+        transform: none;
+      }
     }
   }
 }

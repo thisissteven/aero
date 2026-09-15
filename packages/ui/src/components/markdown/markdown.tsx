@@ -9,6 +9,7 @@ import type {
 } from 'react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { Components } from 'react-markdown';
+
 import { useAutoScroll } from '../../hooks';
 import {
   defaultComponents,
@@ -17,49 +18,50 @@ import {
 } from '../markdown';
 
 /**
- * Throttles stream updates to the display refresh rate (rAF). Keeps
- * trickling toward the latest rawContent regardless of isStreaming, and
- * self-stops once caught up so it doesn't spin forever on static content.
+ * Coalesces rapid content updates into at most one per animation frame.
+ * Applies the LATEST content — no character stepping, so it never falls
+ * behind. The visual reveal comes from @starting-style on the trailing
+ * tokens, not from throttled appends.
+ *
+ * Historical (non-streaming) content bypasses the scheduler entirely.
  */
-function useBufferedStream(rawContent: string): string {
-  const [displayedContent, setDisplayedContent] = useState(rawContent);
-  const targetRef = useRef(rawContent);
-  targetRef.current = rawContent;
+function useCoalescedContent(content: string, isStreaming: boolean): string {
+  const [displayed, setDisplayed] = useState(content);
+  const displayedRef = useRef(displayed);
+  displayedRef.current = displayed;
+
+  const pendingRef = useRef<string | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let frameId: number | null = null;
+    if (!isStreaming) {
+      if (displayedRef.current !== content) {
+        setDisplayed(content);
+      }
+      return;
+    }
 
-    const step = () => {
-      let caughtUp = false;
+    if (content === displayedRef.current) return;
+    pendingRef.current = content;
 
-      setDisplayedContent((prev) => {
-        const target = targetRef.current;
-        if (prev === target) {
-          caughtUp = true;
-          return prev;
-        }
-        if (prev.length > target.length || !target.startsWith(prev)) {
-          // content reset/shrank (e.g. new message) — jump straight there
-          caughtUp = true;
-          return target;
-        }
-        const diff = target.length - prev.length;
-        const stepSize = Math.min(diff, 2);
-        const next = target.slice(0, prev.length + stepSize);
-        caughtUp = next === target;
-        return next;
-      });
+    if (rafRef.current !== null) return;
 
-      if (!caughtUp) frameId = requestAnimationFrame(step);
-    };
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const next = pendingRef.current;
+      pendingRef.current = null;
+      if (next !== null) setDisplayed(next);
+    });
+  }, [content, isStreaming]);
 
-    frameId = requestAnimationFrame(step);
-    return () => {
-      if (frameId !== null) cancelAnimationFrame(frameId);
-    };
-  }, [rawContent]);
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    },
+    [],
+  );
 
-  return displayedContent;
+  return isStreaming ? displayed : content;
 }
 
 export interface MarkdownProps
@@ -73,6 +75,8 @@ export interface MarkdownProps
   streaming?: boolean;
 }
 
+const NULL_REF: RefObject<HTMLElement | null> = { current: null };
+
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
   function Markdown({
     children = '',
@@ -85,27 +89,18 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
-    const bufferedContent = useBufferedStream(children);
+    const bufferedContent = useCoalescedContent(children, streaming);
 
     const renderers = useMemo(
-      () => ({
-        ...defaultComponents,
-        ...components,
-      }),
+      () => ({ ...defaultComponents, ...components }),
       [components],
     );
 
     const contextValue = useMemo(
-      () => ({
-        isFile,
-        onFileClick,
-      }),
+      () => ({ isFile, onFileClick }),
       [isFile, onFileClick],
     );
 
-    // Always split the same way, whether or not streaming is still active,
-    // so block keys/positions stay stable across the streaming -> settled
-    // transition instead of collapsing into one block and remounting.
     const blocks = useMemo(() => {
       const parts = bufferedContent.split(/(\n\n+)/);
       const result: string[] = [];
@@ -125,7 +120,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     const contentRef = useRef<HTMLDivElement>(null);
 
     useAutoScroll({
-      scrollRef: scrollRef ?? { current: null },
+      scrollRef: scrollRef ?? NULL_REF,
       contentRef,
       isStreaming: streaming,
     });

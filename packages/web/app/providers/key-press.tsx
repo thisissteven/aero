@@ -55,15 +55,15 @@ export function KeyPressProvider() {
     (state) => state.openAndExpandPanelWithShortcut,
   );
 
-  useKeyPress('j', () => openAndExpandRightPanel('terminal'), {
-    ignoreInputs: false,
-    modifiers: { mod: true, shift: true },
-  });
+  // useKeyPress('j', () => openAndExpandRightPanel('terminal'), {
+  //   ignoreInputs: false,
+  //   modifiers: { mod: true, shift: true },
+  // });
 
-  useKeyPress('j', () => toggleOpenRightPanel('terminal'), {
-    ignoreInputs: false,
-    modifiers: { mod: true, shift: false },
-  });
+  // useKeyPress('j', () => toggleOpenRightPanel('terminal'), {
+  //   ignoreInputs: false,
+  //   modifiers: { mod: true, shift: false },
+  // });
 
   return null;
 }

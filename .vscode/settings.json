@@ -35,7 +35,7 @@
     "**/.DS_Store": true,
     "apps/docs": true,
     "apps/storybook": true,
-    "apps/ui": true,
+    // "packages/ui": true,
     "packages/cli": true
   },
 
@@ -43,7 +43,7 @@
     "**/node_modules": true,
     "apps/docs": true,
     "apps/storybook": true,
-    "apps/ui": true,
+    // "packages/ui": true,
     "packages/cli": true
   },
 

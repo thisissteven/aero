@@ -383,10 +383,6 @@ export function useChatFeedScroll({
       const v = virtualizerRef.current;
       if (!v || !el || flatItemsLengthRef.current === 0) return;
 
-      // Measure how far we actually are. For short distances, smooth is fine
-      // and feels natural. For long distances, virtua's scrollToIndex has to
-      // render intermediate items to converge, and the browser's smooth
-      // animation makes the wait visible — so jump instantly.
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       const useSmooth = smooth && distance < 2000;
 
@@ -395,15 +391,24 @@ export function useChatFeedScroll({
       );
       unreadBaseRef.current = flatItemsLengthRef.current;
 
+      const anchors = userAnchorsRef.current;
+      const lastAnchor = anchors[anchors.length - 1];
+
       patchScroll(sessionId, {
         pinned: true,
         unreadCount: 0,
         isAtBottom: true,
+        ...(lastAnchor ? { activeGroupIndex: lastAnchor.groupIndex } : {}),
       });
+
+      if (lastAnchor) {
+        lastActiveGroupRef.current = lastAnchor.groupIndex;
+      }
 
       v.scrollToIndex(flatItemsLengthRef.current - 1, {
         align: 'end',
         smooth: useSmooth,
+        offset: 48,
       });
     },
     [sessionId, virtualizerRef, scrollRef, patchScroll, beginProgrammatic],

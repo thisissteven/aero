@@ -215,7 +215,6 @@ export const WithScrollToBottomWrapper = React.memo(
     // Two primitive selectors so Zustand's Object.is check short-circuits
     // re-renders that don't change either value.
     const isAtBottom = useSessionScroll(sessionId, (s) => s.isAtBottom);
-    const unreadCount = useSessionScroll(sessionId, (s) => s.unreadCount);
 
     const status = useSessionRuntime(sessionId, (runtime) => runtime.status);
     const isChatInputExpanded = useChatInputExpanded();
@@ -259,9 +258,6 @@ export const WithScrollToBottomWrapper = React.memo(
     if (status.type === 'idle' && !showButton) return null;
     if (isChatInputExpanded) return null;
 
-    const hasUnread = showButton && unreadCount > 0;
-    const displayUnread = unreadCount > 99 ? '99+' : String(unreadCount);
-
     return (
       <div
         className='absolute left-0 -translate-y-full'
@@ -276,11 +272,6 @@ export const WithScrollToBottomWrapper = React.memo(
         >
           {showButton && <ChevronsDown className='size-3.5' />}
           {children}
-          {hasUnread && (
-            <span className='bg-foreground text-background rounded-full px-1.5 text-[10px] font-medium tabular-nums leading-[14px]'>
-              {displayUnread}
-            </span>
-          )}
         </button>
       </div>
     );

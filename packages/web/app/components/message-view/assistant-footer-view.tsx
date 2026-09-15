@@ -1,7 +1,7 @@
 // assistant-footer-view.tsx
-import { memo } from 'react';
 
 import { ChatMessage } from '@aero/ui';
+import { memo } from 'react';
 
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import {

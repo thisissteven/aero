@@ -5,7 +5,35 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+
 import { rehypeStreamReveal } from './rehype-stream-reveal';
+
+const REVEAL_PLUGIN = [rehypeStreamReveal, { tokenCount: 8 }] as const;
+
+// We build these spans ourselves, so we control the React key.
+// React will keep existing nodes alive across re-renders and mount only
+// the new trailing tokens — which is what fires @starting-style.
+function StreamToken({
+  node,
+  children,
+}: {
+  node?: { properties?: Record<string, unknown> };
+  children?: React.ReactNode;
+}) {
+  const key = node?.properties?.['data-token'];
+  return (
+    <span
+      key={typeof key === 'string' ? key : undefined}
+      className='stream-reveal__segment'
+    >
+      {children}
+    </span>
+  );
+}
+
+const STREAM_COMPONENTS = {
+  'stream-token': StreamToken,
+} as unknown as Partial<Components>;
 
 export interface MemoizedBlockProps {
   components: Components;
@@ -19,15 +47,17 @@ export const MemoizedBlock = memo(
     content,
     isStreamingBlock = false,
   }: MemoizedBlockProps): ReactElement {
-    // Captured once, at mount: same "was this block born streaming" trick as
-    // BaseTool. History blocks that mount with isStreamingBlock=false never
-    // reveal-animate. The live block keeps revealing even after the parent
-    // flips isStreamingBlock to false when the stream ends, so in-flight
-    // fades finish instead of getting yanked out with the plugin.
+    // Captured once at mount. Streams that mount non-streaming never reveal.
+    // The live block keeps the plugin for its whole life, so trailing spans
+    // don't get torn down the instant isStreamingBlock flips to false.
     const shouldReveal = useRef(isStreamingBlock).current;
 
+    const mergedComponents = shouldReveal
+      ? { ...STREAM_COMPONENTS, ...components }
+      : components;
+
     const rehypePlugins = shouldReveal
-      ? [[rehypeKatex, { output: 'html' }], rehypeRaw, [rehypeStreamReveal, 20]]
+      ? [[rehypeKatex, { output: 'html' }], rehypeRaw, REVEAL_PLUGIN]
       : [[rehypeKatex, { output: 'html' }], rehypeRaw];
 
     return (
@@ -36,7 +66,7 @@ export const MemoizedBlock = memo(
         data-slot='markdown-block'
       >
         <ReactMarkdown
-          components={components}
+          components={mergedComponents}
           remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={rehypePlugins as never}
         >

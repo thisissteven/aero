@@ -1,14 +1,6 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
-
+import { ReactNode, useState } from 'react';
 import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
-
-interface I18nContextType {
-  t: BaseTranslation;
-  language: string;
-  setLanguage: (lang: string) => void;
-}
-
-const I18nContext = createContext<I18nContextType | undefined>(undefined);
+import { I18nContext } from '@/app/hooks/i18n/use-i18n';
 
 export function I18nProvider({
   children,
@@ -28,10 +20,4 @@ export function I18nProvider({
       {children}
     </I18nContext.Provider>
   );
-}
-
-export function useI18n() {
-  const context = useContext(I18nContext);
-  if (!context) throw new Error('useI18n must be used within I18nProvider');
-  return context;
 }

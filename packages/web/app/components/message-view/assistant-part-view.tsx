@@ -1,7 +1,7 @@
 // assistant-part-view.tsx
-import { memo } from 'react';
 
-import { ChatMessage, Markdown } from '@aero/ui';
+import { ChatMessage, Markdown, toast } from '@aero/ui';
+import { memo } from 'react';
 
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
 import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';

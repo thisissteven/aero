@@ -2,6 +2,7 @@
 import { Avatar, Button, cn, Tooltip } from '@heroui/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
 import { createContext, useContext } from 'react';
+
 const Context = createContext(true);
 const cls = (base: string, className: unknown): string =>
   cn(base, typeof className === 'string' ? className : undefined) ?? base;
@@ -49,9 +50,8 @@ export const ChatMessageBody: DivPart = part(
   'chat-message__body',
   'chat-message-body',
 );
-export interface ChatMessageActionProps extends ComponentPropsWithRef<
-  typeof Button
-> {
+export interface ChatMessageActionProps
+  extends ComponentPropsWithRef<typeof Button> {
   tooltip?: ReactNode;
 }
 export function ChatMessageAction({
@@ -84,10 +84,8 @@ export function ChatMessageAction({
     button
   );
 }
-export interface ChatMessageAvatarProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children'
-> {
+export interface ChatMessageAvatarProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   alt: string;
   fallback?: string;
   show?: boolean;

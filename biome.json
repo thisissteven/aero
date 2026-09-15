@@ -180,7 +180,17 @@
             "noUnreachableSuper": "off",
             "noUnusedImports": "error"
           },
-          "style": { "useConst": "error", "useSpreadOverApply": "error" },
+          "style": {
+            "useConst": "error",
+            "useSpreadOverApply": "error",
+            "useComponentExportOnlyModules": {
+              "level": "warn",
+              "options": {
+                "allowConstantExport": true,
+                "allowExportNames": []
+              }
+            }
+          },
           "suspicious": {
             "noClassAssign": "off",
             "noDuplicateClassMembers": "off",
