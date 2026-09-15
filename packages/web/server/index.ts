@@ -21,6 +21,10 @@ import terminalRoutes from './routes/terminal';
 import workspaceRoutes from './routes/workspaces';
 import worktreeRoutes from './routes/worktrees';
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
 initProxyConfig();
 
 const app = new Hono()

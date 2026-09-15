@@ -207,6 +207,49 @@ export interface MarkdownProps
 
 const NULL_REF: RefObject<HTMLElement | null> = { current: null };
 
+function splitIntoBlocks(markdown: string): string[] {
+  const lines = markdown.split('\n');
+  const blocks: string[] = [];
+  let buffer: string[] = [];
+  let fenceChar: '`' | '~' | null = null;
+  let fenceLen = 0;
+
+  const flush = () => {
+    if (buffer.length > 0) {
+      blocks.push(buffer.join('\n'));
+      buffer = [];
+    }
+  };
+
+  for (const line of lines) {
+    const m = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (m) {
+      const char = m[1][0] as '`' | '~';
+      const len = m[1].length;
+      const info = m[2];
+      if (fenceChar === null) {
+        // Opening fence — info string (language tag) can be anything.
+        fenceChar = char;
+        fenceLen = len;
+      } else if (char === fenceChar && len >= fenceLen && info.trim() === '') {
+        // Closing fence — must be the same char, at least as long, no info.
+        fenceChar = null;
+        fenceLen = 0;
+      }
+    }
+
+    buffer.push(line);
+
+    if (fenceChar === null && line.trim() === '') {
+      flush();
+    }
+  }
+
+  flush();
+
+  return blocks.length > 0 ? blocks : [markdown];
+}
+
 export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
   function Markdown({
     children = '',
@@ -247,21 +290,10 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       [isFile, onFileClick],
     );
 
-    const blocks = useMemo(() => {
-      const parts = bufferedContent.split(/(\n\n+)/);
-      const result: string[] = [];
-      let current = '';
-
-      for (let i = 0; i < parts.length; i++) {
-        current += parts[i];
-        if (i % 2 === 1 || i === parts.length - 1) {
-          if (current) result.push(current);
-          current = '';
-        }
-      }
-
-      return result.length > 0 ? result : [bufferedContent];
-    }, [bufferedContent]);
+    const blocks = useMemo(
+      () => splitIntoBlocks(bufferedContent),
+      [bufferedContent],
+    );
 
     const contentRef = useRef<HTMLDivElement>(null);
 

@@ -25,6 +25,7 @@ const MarkdownCode = memo(function MarkdownCode({
 
   if (isInline) {
     const rawContent = String(children ?? '').trim();
+
     if (rawContent.length === 0) return null;
 
     const isFileMatch = isFile?.(rawContent) ?? false;

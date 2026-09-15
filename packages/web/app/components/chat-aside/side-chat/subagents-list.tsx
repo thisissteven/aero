@@ -22,7 +22,7 @@ export function SubagentsList() {
 
   return (
     <div className='overflow-hidden relative h-[calc(100svh-56px-48px)]'>
-      <VList className='p-2 scrollbar-thin'>
+      <VList className='p-2 scrollbar-thin overflow-x-hidden'>
         {sessions.map((session) => {
           const status = runningSessions.includes(session.id)
             ? 'busy'

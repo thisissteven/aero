@@ -1074,7 +1074,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     sendCommand(sessionID, input, directory) {
-      withOpencodeClientV2(async (client) =>
+      void withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.command({
             sessionID,
@@ -1093,7 +1093,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     sendShellCommand(sessionID, input, directory) {
-      withOpencodeClientV2(async (client) =>
+      void withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.shell({
             sessionID,
@@ -1114,7 +1114,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     sendMessage(sessionID, input, directory) {
-      withOpencodeClientV2(async (client) =>
+      void withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.prompt({
             sessionID,

@@ -1,6 +1,4 @@
 import type { WebSocket, WebSocketServer } from 'ws';
-
-import { ClientMessage, ServerMessage } from '../lib/fs-ws/fs-protocol';
 import {
   classifyError,
   errorMessage,
@@ -10,6 +8,7 @@ import {
   handleSearch,
   resolveRoot,
 } from '../../server/lib/fs-ws/fs-core';
+import { ClientMessage, ServerMessage } from '../lib/fs-ws/fs-protocol';
 
 function send(ws: WebSocket, message: ServerMessage): void {
   if (ws.readyState === ws.OPEN) {

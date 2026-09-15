@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from '@aero/ui';
 import { Text } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
@@ -28,67 +30,28 @@ type MediaKind = 'image' | 'video' | 'audio' | 'pdf' | null;
 const PIERRE_THEME_MAP: Partial<
   Record<ColorTheme, string | { light: string; dark: string }>
 > = {
-  aero: {
-    light: 'github-light',
-    dark: 'github-dark',
-  },
-  amoled: {
-    light: 'github-light',
-    dark: 'github-dark',
-  },
+  aero: { light: 'github-light', dark: 'github-dark' },
+  amoled: { light: 'github-light', dark: 'github-dark' },
   aura: 'aura',
-  ayu: {
-    light: 'ayu-light',
-    dark: 'ayu-dark',
-  },
+  ayu: { light: 'ayu-light', dark: 'ayu-dark' },
   carbonfox: 'carbonfox',
-  catppuccin: {
-    light: 'catppuccin-latte',
-    dark: 'catppuccin-mocha',
-  },
-  cursor: {
-    light: 'github-light',
-    dark: 'github-dark',
-  },
+  catppuccin: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
+  cursor: { light: 'github-light', dark: 'github-dark' },
   dracula: 'dracula',
-  flexoki: {
-    light: 'flexoki-light',
-    dark: 'flexoki-dark',
-  },
-  github: {
-    light: 'github-light',
-    dark: 'github-dark',
-  },
-  gruvbox: {
-    light: 'gruvbox-light-hard',
-    dark: 'gruvbox-dark-hard',
-  },
+  flexoki: { light: 'flexoki-light', dark: 'flexoki-dark' },
+  github: { light: 'github-light', dark: 'github-dark' },
+  gruvbox: { light: 'gruvbox-light-hard', dark: 'gruvbox-dark-hard' },
   kanagawa: 'kanagawa-lotus',
   monokai: 'monokai',
   nightowl: 'night-owl',
   nord: 'nord',
-  rosepine: {
-    light: 'rose-pine-dawn',
-    dark: 'rose-pine',
-  },
+  rosepine: { light: 'rose-pine-dawn', dark: 'rose-pine' },
   shadesofpurple: 'shades-of-purple',
-  solarized: {
-    light: 'solarized-light',
-    dark: 'solarized-dark',
-  },
-  tokyonight: {
-    light: 'tokyo-night',
-    dark: 'tokyo-night-storm',
-  },
-  vercel: {
-    light: 'vercel-light',
-    dark: 'vercel-dark',
-  },
+  solarized: { light: 'solarized-light', dark: 'solarized-dark' },
+  tokyonight: { light: 'tokyo-night', dark: 'tokyo-night-storm' },
+  vercel: { light: 'vercel-light', dark: 'vercel-dark' },
   vesper: 'vesper',
-  vitesse: {
-    light: 'vitesse-light',
-    dark: 'vitesse-dark',
-  },
+  vitesse: { light: 'vitesse-light', dark: 'vitesse-dark' },
   zenburn: 'zenburn',
 };
 
@@ -97,11 +60,9 @@ function getPierreTheme(
   resolvedTheme: 'light' | 'dark',
 ): string {
   const mapped = PIERRE_THEME_MAP[colorTheme];
-
   if (!mapped) {
     return resolvedTheme === 'dark' ? 'pierre-dark' : 'pierre-light';
   }
-
   return typeof mapped === 'string' ? mapped : mapped[resolvedTheme];
 }
 
@@ -122,17 +83,14 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   const binary = atob(base64);
   const buffer = new ArrayBuffer(binary.length);
   const bytes = new Uint8Array(buffer);
-
   for (let i = 0; i < binary.length; i += 1) {
     bytes[i] = binary.charCodeAt(i);
   }
-
   return new Blob([buffer], { type: mimeType });
 }
 
 export function FileContentPane({ socket, path }: FileContentPaneProps) {
   const { resolvedTheme, colorTheme } = useTheme();
-
   const cache = useRef(new Map<string, CachedFile>());
 
   const [state, setState] = useState<CachedFile | null>(null);
@@ -156,7 +114,6 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
     }
 
     const cached = cache.current.get(path);
-
     if (cached) {
       setError(null);
       setState(cached);
@@ -164,14 +121,12 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
     }
 
     let cancelled = false;
-
     setError(null);
 
     socket
       .read(path)
       .then((result) => {
         if (cancelled) return;
-
         const entry: CachedFile = {
           path,
           content: result.content,
@@ -181,14 +136,12 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
           mtimeMs: result.mtimeMs,
           mimeType: result.mimeType,
         };
-
         cache.current.set(path, entry);
         setError(null);
         setState(entry);
       })
       .catch((err) => {
         if (cancelled) return;
-
         setError(err instanceof Error ? err.message : 'Failed to read file');
       });
 
@@ -203,36 +156,30 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
     if (!state?.content || !state.mimeType || !mediaKind || state.truncated) {
       return null;
     }
-
     return URL.createObjectURL(base64ToBlob(state.content, state.mimeType));
   }, [state, mediaKind]);
 
   useEffect(() => {
     return () => {
-      if (mediaUrl) {
-        URL.revokeObjectURL(mediaUrl);
-      }
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl);
     };
   }, [mediaUrl]);
 
-  if (!path && !state) {
-    return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 items-center justify-center p-4 text-sm'>
-        Select a file to view its contents.
-      </div>
-    );
-  }
+  const isStale = state != null && state.path !== path;
 
-  if (!state) {
+  if (!path || !state || isStale) {
     return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 items-center justify-center p-4 text-sm'>
-        Select a file to view its contents.
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+        {path ? 'Loading…' : 'Select a file to view its contents.'}
       </div>
     );
   }
 
   const displayedPath = state.path;
   const fileName = getFileName(displayedPath);
+
+  // This is the key that ties the viewer to the specific file version.
+  const viewerKey = `${displayedPath}:${pierreTheme}:${state.mtimeMs}`;
 
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden'>
@@ -258,7 +205,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
               'text-muted hover:bg-surface-hover hover:text-foreground transition-colors',
               wrapText && 'bg-surface-hover text-foreground',
             )}
-            onClick={() => setWrapText((value) => !value)}
+            onClick={() => setWrapText((v) => !v)}
           >
             <Icon data={Text} size={16} />
           </button>
@@ -288,21 +235,25 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
         )}
 
         {!error && !state.binary && !mediaKind && (
-          <div className='h-full min-w-max'>
-            <PierreFile
-              file={{
-                name: displayedPath,
-                contents: state.content ?? '',
-                header: undefined,
-              }}
-              options={{
-                theme: pierreTheme,
-                overflow: wrapText ? 'wrap' : 'scroll',
-                disableFileHeader: true,
-              }}
-              className='h-full'
-            />
-          </div>
+          <PierreFile
+            key={viewerKey}
+            file={{
+              name: displayedPath,
+              contents: state.content ?? '',
+              header: undefined,
+              // Unique per file version so the worker pool never conflates them.
+              cacheKey: viewerKey,
+            }}
+            options={{
+              theme: pierreTheme,
+              overflow: wrapText ? 'wrap' : 'scroll',
+              disableFileHeader: true,
+              // Including cacheKey here forces areOptionsEqual to return
+              // false, which flips forceRender to true inside useFileInstance.
+              cacheKey: viewerKey,
+            }}
+            className='h-full'
+          />
         )}
       </div>
     </div>
