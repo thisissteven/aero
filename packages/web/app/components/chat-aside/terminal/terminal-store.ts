@@ -8,6 +8,7 @@ export interface TerminalSession {
   command?: string;
   commandRunning: boolean;
   commandRequestId: number;
+  commandConsumedRequestId: number;
 }
 
 export type TerminalConnectionStatus =
@@ -37,7 +38,9 @@ interface TerminalStoreActions {
   setSessionStatus: (id: string, status: TerminalConnectionStatus) => void;
   setCommandRunning: (id: string, running: boolean) => void;
   requestCommand: (id: string, command: string) => void;
+  stopCommand: (id: string) => void;
   initializeInitialSessionCwd: (cwd: string) => void;
+  consumeCommandRequest: (id: string, requestId: number) => boolean;
 }
 
 type TerminalStore = TerminalStoreState & {
@@ -64,6 +67,7 @@ function createSession(
     command,
     commandRunning: false,
     commandRequestId: 0,
+    commandConsumedRequestId: 0,
   };
 }
 
@@ -161,6 +165,44 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
             : session,
         ),
       }));
+    },
+
+    stopCommand: (id) => {
+      set((state) => ({
+        sessions: state.sessions.map((session) =>
+          session.id === id
+            ? {
+                ...session,
+                commandRunning: false,
+                commandConsumedRequestId: session.commandRequestId,
+              }
+            : session,
+        ),
+      }));
+    },
+
+    consumeCommandRequest: (id, requestId) => {
+      let consumed = false;
+
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (
+            session.id !== id ||
+            requestId <= session.commandConsumedRequestId
+          ) {
+            return session;
+          }
+
+          consumed = true;
+
+          return {
+            ...session,
+            commandConsumedRequestId: requestId,
+          };
+        }),
+      }));
+
+      return consumed;
     },
 
     initializeInitialSessionCwd: (cwd) => {

@@ -61,13 +61,14 @@ export const TerminalInstance = forwardRef<
 
   const historyRef = useRef('');
   const pendingCommandRef = useRef<string | null>(null);
-  const commandRunningRef = useRef(false);
 
   const [isReady, setIsReady] = useState(false);
   const [rendererGeneration, setRendererGeneration] = useState(0);
 
   const activeRef = useRef(active);
   activeRef.current = active;
+
+  const { resolvedTheme, colorTheme } = useTheme();
 
   const setSessionStatus = useTerminalStore(
     (state) => state.actions.setSessionStatus,
@@ -77,17 +78,22 @@ export const TerminalInstance = forwardRef<
     (state) => state.actions.setCommandRunning,
   );
 
-  const { resolvedTheme, colorTheme } = useTheme();
+  const stopCommand = useTerminalStore((state) => state.actions.stopCommand);
 
-  /**
-   * Keep the local ref in sync with Zustand.
-   * We deliberately do NOT use session.command as something to execute.
-   * Commands are executed only through an explicit runCommand request.
-   */
+  const consumeCommandRequest = useTerminalStore(
+    (state) => state.actions.consumeCommandRequest,
+  );
+
   const commandRequestId = useTerminalStore(
     (state) =>
       state.sessions.find((session) => session.id === sessionId)
         ?.commandRequestId ?? 0,
+  );
+
+  const commandConsumedRequestId = useTerminalStore(
+    (state) =>
+      state.sessions.find((session) => session.id === sessionId)
+        ?.commandConsumedRequestId ?? 0,
   );
 
   const requestedCommand = useTerminalStore(
@@ -97,22 +103,23 @@ export const TerminalInstance = forwardRef<
   );
 
   /**
-   * A command request from Zustand is a one-shot request.
-   * It does not mean "run this whenever the terminal mounts".
+   * Queue a new command request locally, but do not mark it as consumed yet.
+   *
+   * It is only consumed after the command has actually been written to the
+   * WebSocket/PTY. This means a request cannot be lost if this component
+   * mounts before the WebSocket is ready.
    */
-  const lastHandledCommandRequestRef = useRef(0);
-
   useEffect(() => {
-    if (commandRequestId <= lastHandledCommandRequestRef.current) {
+    if (commandRequestId <= commandConsumedRequestId) {
       return;
     }
 
-    lastHandledCommandRequestRef.current = commandRequestId;
-
-    if (requestedCommand) {
-      pendingCommandRef.current = requestedCommand;
+    if (!requestedCommand) {
+      return;
     }
-  }, [commandRequestId, requestedCommand]);
+
+    pendingCommandRef.current = requestedCommand;
+  }, [commandRequestId, commandConsumedRequestId, requestedCommand]);
 
   useEffect(() => {
     setIsReady(false);
@@ -133,11 +140,6 @@ export const TerminalInstance = forwardRef<
     }
   }, []);
 
-  const markCommandStopped = useCallback(() => {
-    commandRunningRef.current = false;
-    setCommandRunning(sessionId, false);
-  }, [sessionId, setCommandRunning]);
-
   const sendCommand = useCallback(
     (command: string): boolean => {
       const ws = wsRef.current;
@@ -150,7 +152,6 @@ export const TerminalInstance = forwardRef<
 
       ws.send(`${command}\r`);
 
-      commandRunningRef.current = true;
       setCommandRunning(sessionId, true);
 
       return true;
@@ -169,22 +170,37 @@ export const TerminalInstance = forwardRef<
       return;
     }
 
-    // IMPORTANT:
-    // Once actually sent, this request is consumed.
-    // It must never execute again just because the terminal reconnects/remounts.
     pendingCommandRef.current = null;
-  }, [sendCommand]);
 
-  /**
-   * Register exactly one controller for this terminal instance.
-   * It is explicitly removed on unmount.
-   */
+    const currentSession = useTerminalStore
+      .getState()
+      .sessions.find((session) => session.id === sessionId);
+
+    if (currentSession) {
+      consumeCommandRequest(sessionId, currentSession.commandRequestId);
+    }
+  }, [sendCommand, sessionId, consumeCommandRequest]);
+
   useEffect(() => {
     const controller = {
       runCommand: (command: string) => {
         pendingCommandRef.current = command;
 
-        return sendCommand(command);
+        if (!sendCommand(command)) {
+          return false;
+        }
+
+        pendingCommandRef.current = null;
+
+        const currentSession = useTerminalStore
+          .getState()
+          .sessions.find((session) => session.id === sessionId);
+
+        if (currentSession) {
+          consumeCommandRequest(sessionId, currentSession.commandRequestId);
+        }
+
+        return true;
       },
 
       stopCommand: () => {
@@ -199,10 +215,11 @@ export const TerminalInstance = forwardRef<
         setTimeout(() => {
           ws.send('\x03');
         }, 100);
-        pendingCommandRef.current = null;
 
+        pendingCommandRef.current = null;
         clearCommandTimer();
-        markCommandStopped();
+
+        stopCommand(sessionId);
 
         return true;
       },
@@ -215,7 +232,13 @@ export const TerminalInstance = forwardRef<
         terminalControllers.delete(sessionId);
       }
     };
-  }, [sessionId, sendCommand, clearCommandTimer, markCommandStopped]);
+  }, [
+    sessionId,
+    sendCommand,
+    clearCommandTimer,
+    stopCommand,
+    consumeCommandRequest,
+  ]);
 
   useImperativeHandle(
     ref,
@@ -493,10 +516,6 @@ export const TerminalInstance = forwardRef<
           setIsReady(true);
         }
 
-        /**
-         * Keep these disposable handles so cleanup is explicit.
-         * This prevents duplicated input handlers if the renderer is rebuilt.
-         */
         const dataDisposable = terminal.onData((data: string) => {
           const ws = wsRef.current;
 
