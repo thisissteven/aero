@@ -252,12 +252,6 @@ function FileExplorerPanelInner({ root }: { root: string }) {
         projectName={projectName}
         className='shrink-0'
         style={{ width: explorerWidth }}
-        onNewFile={() => {
-          //
-        }}
-        onNewFolder={() => {
-          //
-        }}
       />
 
       <div

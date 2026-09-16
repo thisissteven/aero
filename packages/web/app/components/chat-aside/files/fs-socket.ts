@@ -154,6 +154,48 @@ export class FsSocket {
     );
   }
 
+  gitStatus() {
+    return this.request<'git:status:result'>({
+      id: nextId(),
+      type: 'git:status',
+    });
+  }
+
+  writeFile(filePath: string, contents: string) {
+    return this.request<'mutation:result'>({
+      id: nextId(),
+      type: 'write',
+      path: filePath,
+      contents,
+    });
+  }
+
+  mkdir(dirPath: string) {
+    return this.request<'mutation:result'>({
+      id: nextId(),
+      type: 'mkdir',
+      path: dirPath,
+    });
+  }
+
+  rename(from: string, to: string) {
+    return this.request<'mutation:result'>({
+      id: nextId(),
+      type: 'rename',
+      from,
+      to,
+    });
+  }
+
+  deletePath(filePath: string, recursive = false) {
+    return this.request<'mutation:result'>({
+      id: nextId(),
+      type: 'delete',
+      path: filePath,
+      recursive,
+    });
+  }
+
   close(): void {
     this.closedByUser = true;
     this.ws?.close();

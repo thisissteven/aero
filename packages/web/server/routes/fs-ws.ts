@@ -3,9 +3,14 @@ import {
   classifyError,
   errorMessage,
   FsSession,
+  handleDelete,
+  handleGitStatus,
   handleList,
+  handleMkdir,
   handleRead,
+  handleRename,
   handleSearch,
+  handleWriteFile,
   resolveRoot,
 } from '../../server/lib/fs-ws/fs-core';
 import { ClientMessage, ServerMessage } from '../lib/fs-ws/fs-protocol';
@@ -51,7 +56,6 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
       if (!session) return;
 
       let parsed: ClientMessage;
-
       try {
         parsed = ClientMessage.parse(JSON.parse(String(data)));
       } catch {
@@ -59,14 +63,68 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
       }
 
       try {
-        if (parsed.type === 'list') {
-          send(ws, await handleList(session, parsed));
-        } else if (parsed.type === 'read') {
-          send(ws, await handleRead(session, parsed));
-        } else if (parsed.type === 'search') {
-          await handleSearch(session, parsed, (matches, done) => {
-            send(ws, { id: parsed.id, type: 'search:result', matches, done });
-          });
+        switch (parsed.type) {
+          case 'list':
+            send(ws, await handleList(session, parsed));
+            break;
+          case 'read':
+            send(ws, await handleRead(session, parsed));
+            break;
+          case 'search':
+            await handleSearch(session, parsed, (matches, done) => {
+              send(ws, {
+                id: parsed.id,
+                type: 'search:result',
+                matches,
+                done,
+              });
+            });
+            break;
+          case 'git:status': {
+            const entries = await handleGitStatus(session);
+            send(ws, {
+              id: parsed.id,
+              type: 'git:status:result',
+              entries,
+            });
+            break;
+          }
+          case 'write': {
+            const finalPath = await handleWriteFile(session, parsed);
+            send(ws, {
+              id: parsed.id,
+              type: 'mutation:result',
+              path: finalPath,
+            });
+            break;
+          }
+          case 'mkdir': {
+            const finalPath = await handleMkdir(session, parsed);
+            send(ws, {
+              id: parsed.id,
+              type: 'mutation:result',
+              path: finalPath,
+            });
+            break;
+          }
+          case 'rename': {
+            const finalPath = await handleRename(session, parsed);
+            send(ws, {
+              id: parsed.id,
+              type: 'mutation:result',
+              path: finalPath,
+            });
+            break;
+          }
+          case 'delete': {
+            const finalPath = await handleDelete(session, parsed);
+            send(ws, {
+              id: parsed.id,
+              type: 'mutation:result',
+              path: finalPath,
+            });
+            break;
+          }
         }
       } catch (err) {
         send(ws, {

@@ -4,7 +4,8 @@ import { cn } from '@aero/ui';
 import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useTheme } from '@/app/providers';
@@ -13,8 +14,6 @@ export interface FileExplorerProps extends UseLazyFileTreeResult {
   projectName?: string;
   className?: string;
   style?: CSSProperties;
-  onNewFile?: () => void;
-  onNewFolder?: () => void;
 }
 
 export function FileExplorer({
@@ -22,15 +21,26 @@ export function FileExplorer({
   projectName,
   className,
   style,
-  onNewFile,
-  onNewFolder,
+  createFile,
+  createFolder,
+  treeHostRef,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
   const search = useFileTreeSearch(model);
 
-  // Mirrors TreeApp's `toggleSearch`. Recreated whenever `search` changes,
-  // which is fine — the hook's own identity is stable across renders, so
-  // this ends up being one callback for the life of the tree.
+  // Wrapper around <FileTree> so the hook can find the custom element's
+  // shadow root for the search-input listener. The hook holds its own ref;
+  // we proxy the host element into it.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const host = wrapperRef.current.querySelector('file-tree');
+    treeHostRef.current = host instanceof HTMLElement ? host : null;
+    return () => {
+      treeHostRef.current = null;
+    };
+  }, [treeHostRef]);
+
   const toggleSearch = useCallback(() => {
     if (search.isOpen) {
       search.close();
@@ -39,6 +49,60 @@ export function FileExplorer({
     search.open();
   }, [search]);
 
+  // ── Context menu (rename / delete) ─────────────────────────────────
+
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    path: string;
+    isDir: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('blur', close);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('blur', close);
+    };
+  }, [menu]);
+
+  const onContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      const selected = model.getSelectedPaths();
+      if (selected.length !== 1) return;
+      const item = model.getItem(selected[0]);
+      if (!item) return;
+      event.preventDefault();
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        path: selected[0],
+        isDir: item.isDirectory(),
+      });
+    },
+    [model],
+  );
+
+  const onRename = useCallback(() => {
+    if (!menu) return;
+    model.startRenaming(menu.path);
+    setMenu(null);
+  }, [menu, model]);
+
+  const onDelete = useCallback(() => {
+    if (!menu) return;
+    const { path, isDir } = menu;
+    if (isDir && !window.confirm(`Delete ${path} and its contents?`)) {
+      setMenu(null);
+      return;
+    }
+    model.remove(path, isDir ? { recursive: true } : undefined);
+    setMenu(null);
+  }, [menu, model]);
+
   const header = useMemo<ReactNode>(
     () =>
       projectName ? (
@@ -46,23 +110,26 @@ export function FileExplorer({
           projectName={projectName}
           isSearchOpen={search.isOpen}
           onToggleSearch={toggleSearch}
-          onNewFile={onNewFile}
-          onNewFolder={onNewFolder}
+          onNewFile={() => createFile('')}
+          onNewFolder={() => createFolder('')}
         />
       ) : null,
-    [projectName, search.isOpen, toggleSearch, onNewFile, onNewFolder],
+    [projectName, search.isOpen, toggleSearch, createFile, createFolder],
   );
 
   return (
     <div
       className={cn(
-        // Hover scope for the header buttons.
         'group/file-explorer border-separator flex min-h-0 flex-col border-r',
         className,
       )}
       style={style}
     >
-      <div className='min-h-0 flex-1'>
+      <div
+        ref={wrapperRef}
+        className='min-h-0 flex-1'
+        onContextMenu={onContextMenu}
+      >
         <FileTree
           model={model}
           header={header}
@@ -111,27 +178,61 @@ export function FileExplorer({
           }
         />
       </div>
+
+      {menu
+        ? createPortal(
+            <div
+              // Stop the global pointerdown-to-close from firing before the
+              // click reaches the menu buttons.
+              onPointerDown={(e) => e.stopPropagation()}
+              style={{ position: 'fixed', left: menu.x, top: menu.y }}
+              className='border-separator bg-surface z-50 min-w-[160px] rounded-md border py-1 text-xs shadow-lg'
+            >
+              <ContextMenuButton onSelect={onRename}>Rename</ContextMenuButton>
+              <ContextMenuButton onSelect={onDelete} danger>
+                Delete
+              </ContextMenuButton>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
+
+function ContextMenuButton({
+  children,
+  onSelect,
+  danger,
+}: {
+  children: ReactNode;
+  onSelect: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onSelect}
+      className={cn(
+        'hover:bg-surface-hover block w-full px-3 py-1.5 text-left transition-colors',
+        danger ? 'text-danger' : 'text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Header ─────────────────────────────────────────────────────────────
 
 interface FileExplorerHeaderProps {
   projectName: string;
   isSearchOpen: boolean;
   onToggleSearch: () => void;
-  onNewFile?: () => void;
-  onNewFolder?: () => void;
+  onNewFile: () => void;
+  onNewFolder: () => void;
 }
 
-/**
- * Mirrors TreeApp's `DefaultProjectHeader`.
- *
- * The search button sits outside the hover-reveal group on purpose: while
- * search is closed it participates in the group (muted at rest, revealed on
- * hover), but while search is open it pins to `opacity-100` so the control
- * that closes it is always visible. That's the one behavior difference from
- * the new-file/new-folder buttons, which are hover-only.
- */
 function FileExplorerHeader({
   projectName,
   isSearchOpen,
@@ -142,7 +243,7 @@ function FileExplorerHeader({
   return (
     <div className='flex h-8 items-center justify-between gap-2 px-2 pt-1 pb-2'>
       <div
-        className='text-muted min-w-0 truncate text-xs font-medium'
+        className='text-foreground min-w-0 truncate text-xs font-medium'
         title={projectName}
       >
         {projectName}
@@ -154,22 +255,14 @@ function FileExplorerHeader({
           title={isSearchOpen ? 'Clear and close search' : 'Search files'}
           aria-label={isSearchOpen ? 'Close search' : 'Search files'}
           aria-pressed={isSearchOpen}
-          // preventDefault on mousedown keeps focus on the search input so
-          // its onBlur handler doesn't race our click and auto-close+reopen
-          // the search. Without this, clicking the toggle while the input is
-          // focused would blur -> closeSearch() -> click sees isOpen=false
-          // -> reopen, which looks like the button doing nothing.
           onMouseDown={(event) => {
-            if (isSearchOpen) {
-              event.preventDefault();
-            }
+            if (isSearchOpen) event.preventDefault();
           }}
           onClick={onToggleSearch}
           className={cn(
             'flex h-4 w-4 cursor-pointer items-center justify-center',
             'transition-opacity duration-150',
             'focus-visible:opacity-100',
-            // Open: pinned bright. Closed: muted, revealed on hover.
             isSearchOpen
               ? 'text-foreground opacity-100'
               : 'text-muted hover:text-foreground opacity-25 group-hover/file-explorer:opacity-100',
@@ -181,8 +274,6 @@ function FileExplorerHeader({
         <div
           className={cn(
             'flex items-center gap-2 transition-opacity duration-150',
-            // Hover-only reveal, always muted at rest. Same treatment as
-            // TreeApp's new file/folder affordance.
             'opacity-25',
             'group-hover/file-explorer:opacity-100 focus-within:opacity-100',
           )}

@@ -1,25 +1,16 @@
 import { z } from 'zod';
 
-/**
- * Shared client/server protocol for the lazy file-tree WebSocket.
- * Import this from both the Hono route and the browser client so the
- * message shapes can never drift.
- */
-
 export const FsEntryKind = z.enum(['file', 'dir']);
 export type FsEntryKind = z.infer<typeof FsEntryKind>;
 
 export const FsEntry = z.object({
   name: z.string(),
-  /** Path relative to the connection's root, posix-style, no leading slash. */
   path: z.string(),
   kind: FsEntryKind,
 });
 export type FsEntry = z.infer<typeof FsEntry>;
 
-// ---------------------------------------------------------------------------
-// Client -> Server
-// ---------------------------------------------------------------------------
+// ── Client → Server ────────────────────────────────────────────────────
 
 export const ListRequest = z.object({
   id: z.string(),
@@ -44,16 +35,56 @@ export const SearchRequest = z.object({
 });
 export type SearchRequest = z.infer<typeof SearchRequest>;
 
+export const GitStatusRequest = z.object({
+  id: z.string(),
+  type: z.literal('git:status'),
+});
+export type GitStatusRequest = z.infer<typeof GitStatusRequest>;
+
+export const WriteFileRequest = z.object({
+  id: z.string(),
+  type: z.literal('write'),
+  path: z.string(),
+  contents: z.string(),
+});
+export type WriteFileRequest = z.infer<typeof WriteFileRequest>;
+
+export const MkdirRequest = z.object({
+  id: z.string(),
+  type: z.literal('mkdir'),
+  path: z.string(),
+});
+export type MkdirRequest = z.infer<typeof MkdirRequest>;
+
+export const RenameRequest = z.object({
+  id: z.string(),
+  type: z.literal('rename'),
+  from: z.string(),
+  to: z.string(),
+});
+export type RenameRequest = z.infer<typeof RenameRequest>;
+
+export const DeleteRequest = z.object({
+  id: z.string(),
+  type: z.literal('delete'),
+  path: z.string(),
+  recursive: z.boolean().default(false),
+});
+export type DeleteRequest = z.infer<typeof DeleteRequest>;
+
 export const ClientMessage = z.discriminatedUnion('type', [
   ListRequest,
   ReadRequest,
   SearchRequest,
+  GitStatusRequest,
+  WriteFileRequest,
+  MkdirRequest,
+  RenameRequest,
+  DeleteRequest,
 ]);
 export type ClientMessage = z.infer<typeof ClientMessage>;
 
-// ---------------------------------------------------------------------------
-// Server -> Client
-// ---------------------------------------------------------------------------
+// ── Server → Client ────────────────────────────────────────────────────
 
 export const ListResult = z.object({
   id: z.string(),
@@ -68,28 +99,11 @@ export const ReadResult = z.object({
   id: z.string(),
   type: z.literal('read:result'),
   path: z.string(),
-
-  /**
-   * Text files:
-   *   UTF-8 text.
-   *
-   * Binary previewable files:
-   *   base64-encoded bytes.
-   *
-   * Other binary files:
-   *   null.
-   */
   content: z.string().nullable(),
-
   size: z.number(),
   truncated: z.boolean(),
   binary: z.boolean(),
   mtimeMs: z.number(),
-
-  /**
-   * MIME type for previewable binary files.
-   * null for normal text files and unsupported binaries.
-   */
   mimeType: z.string().nullable(),
 });
 export type ReadResult = z.infer<typeof ReadResult>;
@@ -110,17 +124,44 @@ export const ErrorResult = z.object({
 });
 export type ErrorResult = z.infer<typeof ErrorResult>;
 
+export const GitStatusEntrySchema = z.object({
+  path: z.string(),
+  status: z.enum([
+    'added',
+    'modified',
+    'deleted',
+    'renamed',
+    'untracked',
+    'ignored',
+  ]),
+});
+export type GitStatusEntry = z.infer<typeof GitStatusEntrySchema>;
+
+export const GitStatusResult = z.object({
+  id: z.string(),
+  type: z.literal('git:status:result'),
+  entries: z.array(GitStatusEntrySchema),
+});
+export type GitStatusResult = z.infer<typeof GitStatusResult>;
+
+export const MutationResult = z.object({
+  id: z.string(),
+  type: z.literal('mutation:result'),
+  path: z.string(),
+});
+export type MutationResult = z.infer<typeof MutationResult>;
+
 export const ServerMessage = z.discriminatedUnion('type', [
   ListResult,
   ReadResult,
   SearchResultMessage,
   ErrorResult,
+  GitStatusResult,
+  MutationResult,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;
 
-// ---------------------------------------------------------------------------
-// Shared constants
-// ---------------------------------------------------------------------------
+// ── Shared constants ───────────────────────────────────────────────────
 
 export const READ_MAX_BYTES = 2 * 1024 * 1024;
 export const MEDIA_MAX_BYTES = 50 * 1024 * 1024;
