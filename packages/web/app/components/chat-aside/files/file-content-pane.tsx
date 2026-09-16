@@ -5,7 +5,7 @@ import { Text } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { File as PierreFile, Virtualizer } from '@pierre/diffs/react';
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   base64ToBlob,
   getFileName,
@@ -128,7 +128,10 @@ const PIERRE_FILE_STYLE: CSSProperties = {
   background: 'transparent',
 };
 
-export function FileContentPane({ socket, path }: FileContentPaneProps) {
+export const FileContentPane = memo(function FileContentPane({
+  socket,
+  path,
+}: FileContentPaneProps) {
   const { resolvedTheme, colorTheme } = useTheme();
 
   const cacheRef = useRef<{
@@ -204,7 +207,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
 
   if (!path) {
     return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
         Select a file to view its contents.
       </div>
     );
@@ -212,7 +215,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
 
   if (isLoading) {
     return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
         Loading…
       </div>
     );
@@ -220,7 +223,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
 
   if (error) {
     return (
-      <div className='text-danger flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+      <div className='text-danger flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
         {error}
       </div>
     );
@@ -251,7 +254,6 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
         disableFileHeader: true,
         unsafeCSS: PIERRE_SHADOW_CSS,
       }}
-      className='h-full'
     />
   );
 
@@ -344,4 +346,4 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
       </div>
     </div>
   );
-}
+});

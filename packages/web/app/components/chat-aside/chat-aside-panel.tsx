@@ -66,7 +66,7 @@ export function ChatAsidePanel() {
         maxSize={isExpanded ? '100%' : '70%'}
         groupResizeBehavior='preserve-pixel-size'
       >
-        <aside className='flex h-full flex-col bg-surface/30 backdrop-blur-sm'>
+        <aside className='flex h-full flex-col bg-surface/30 backdrop-blur-sm overflow-x-hidden'>
           <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
             <div className='flex items-center gap-2 overflow-hidden'>
               <ChatAsideHeader activeNavData={activeNavData} />

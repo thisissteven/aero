@@ -32,8 +32,10 @@ export interface UseLazyFileTreeResult {
   gitStatus: readonly GitStatusEntry[];
   createFile: (parentDir: string) => void;
   createFolder: (parentDir: string) => void;
+  /** User-initiated delete. Only this API is allowed to remove files on disk. */
+  deletePath: (path: string, isDir: boolean) => void;
   refreshGitStatus: () => void;
-  treeHostRef: React.MutableRefObject<HTMLElement | null>;
+  treeHostRef: React.RefObject<HTMLElement | null>;
 }
 
 const DEFAULT_DENSITY = 'default' as const;
@@ -41,7 +43,8 @@ const DEFAULT_VIEWPORT_HEIGHT = 600;
 
 const COMPOSITION = {
   contextMenu: {
-    enabled: false, // we render our own
+    enabled: true,
+    triggerMode: 'right-click',
   },
 } as const;
 
@@ -54,6 +57,16 @@ const LAZY_TREE_UNSAFE_CSS = `
 [data-file-tree-search-container][data-open='false'] {
   display: none;
 }
+
+[data-file-tree-context-menu-trigger] {
+  color: var(--muted);
+  opacity: 0.5;
+  transition: opacity 120ms ease;
+}
+
+[data-file-tree-context-menu-trigger]:hover {
+  opacity: 0.85;
+}
 `;
 
 function normalizePath(path: string, isDirectory: boolean): string {
@@ -61,7 +74,19 @@ function normalizePath(path: string, isDirectory: boolean): string {
   return isDirectory ? `${clean}/` : clean;
 }
 
-// Mirrors TreeApp's helper: walks an integer suffix until the name is free.
+function cleanPath(p: string): string {
+  return p.replace(/\/$/, '');
+}
+
+function ancestorPaths(filePath: string): string[] {
+  const parts = filePath.split('/');
+  const out: string[] = [];
+  for (let i = 1; i < parts.length; i += 1) {
+    out.push(`${parts.slice(0, i).join('/')}/`);
+  }
+  return out;
+}
+
 function getUniquePath(model: FileTreeModel, basePath: string): string {
   const hasCollision = (candidate: string): boolean => {
     if (model.getItem(candidate) != null) return true;
@@ -90,6 +115,41 @@ function getUniquePath(model: FileTreeModel, basePath: string): string {
   return candidate;
 }
 
+/**
+ * Drops any move whose source is a descendant of another move's source.
+ * Dragging a folder fires one move per descendant; only the topmost rename
+ * needs to reach the server.
+ *
+ * Uses trailing-slash-stripped paths for comparison so `/foo/` correctly
+ * subsumes `/foo/a` — comparing raw strings would miss it because
+ * `/foo/a`.startsWith('/foo//') is false.
+ */
+function coalesceMoves(
+  moves: readonly { from: string; to: string }[],
+): { from: string; to: string }[] {
+  const sorted = [...moves].sort((a, b) => a.from.length - b.from.length);
+  const kept: { from: string; to: string }[] = [];
+  for (const move of sorted) {
+    const fromClean = cleanPath(move.from);
+    if (kept.some((k) => fromClean.startsWith(`${cleanPath(k.from)}/`))) {
+      continue;
+    }
+    kept.push(move);
+  }
+  return kept;
+}
+
+function coalesceRemoves(removes: readonly string[]): string[] {
+  const sorted = [...removes].sort((a, b) => a.length - b.length);
+  const kept: string[] = [];
+  for (const r of sorted) {
+    const rClean = cleanPath(r);
+    if (kept.some((k) => rClean.startsWith(`${cleanPath(k)}/`))) continue;
+    kept.push(r);
+  }
+  return kept;
+}
+
 function useDirectoryExpansionWatcher(
   model: FileTreeModel,
   onExpand: (path: string) => void,
@@ -99,9 +159,17 @@ function useDirectoryExpansionWatcher(
   onExpandRef.current = onExpand;
 
   useEffect(() => {
+    let lastCount = -1;
+
     const checkForNewlyExpanded = () => {
       const count = model.getVisibleCount();
-      if (count === 0) return;
+      if (count === 0) {
+        lastCount = 0;
+        return;
+      }
+      if (count === lastCount) return;
+      lastCount = count;
+
       const rows = model.getVisibleRows(0, count - 1);
       for (const row of rows) {
         const item = model.getItem(row.path);
@@ -138,6 +206,18 @@ export function useLazyFileTree({
   const [gitStatus, setGitStatus] = useState<readonly GitStatusEntry[]>([]);
   const loadedDirs = useRef(new Set<string>());
 
+  const lastErrorRef = useRef<string | null>(null);
+  const reportError = useCallback((err: unknown) => {
+    const message = err instanceof Error ? err.message : 'Filesystem error';
+    if (lastErrorRef.current === message) return;
+    lastErrorRef.current = message;
+    setError(message);
+  }, []);
+  const clearError = useCallback(() => {
+    lastErrorRef.current = null;
+    setError(null);
+  }, []);
+
   const viewportRowCount = useMemo(
     () =>
       Math.max(
@@ -158,7 +238,7 @@ export function useLazyFileTree({
       flattenEmptyDirectories: true,
       density,
       renaming: true as const,
-      dragAndDrop: true as const,
+      // dragAndDrop: true as const,
       composition: COMPOSITION,
       initialVisibleRowCount: viewportRowCount,
       unsafeCSS: LAZY_TREE_UNSAFE_CSS,
@@ -170,7 +250,12 @@ export function useLazyFileTree({
 
   // ── Git status ─────────────────────────────────────────────────────
 
+  const gitInFlightRef = useRef(false);
+
   const refreshGitStatus = useCallback(() => {
+    if (gitInFlightRef.current) return;
+    gitInFlightRef.current = true;
+
     socket
       .gitStatus()
       .then((result) => {
@@ -178,19 +263,27 @@ export function useLazyFileTree({
         model.setGitStatus(result.entries);
       })
       .catch(() => {
-        /* not a git repo or transient error */
+        /* not a git repo */
+      })
+      .finally(() => {
+        gitInFlightRef.current = false;
       });
   }, [model, socket]);
 
-  // Debounced refresh for post-mutation calls, so two rapid writes only
-  // trigger one `git status` invocation.
   const gitRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastMutationAtRef = useRef(0);
+
   const scheduleGitRefresh = useCallback(() => {
+    lastMutationAtRef.current = Date.now();
     if (gitRefreshTimer.current) clearTimeout(gitRefreshTimer.current);
     gitRefreshTimer.current = setTimeout(() => {
       gitRefreshTimer.current = null;
+      if (Date.now() - lastMutationAtRef.current < 500) {
+        scheduleGitRefresh();
+        return;
+      }
       refreshGitStatus();
-    }, 400);
+    }, 1500);
   }, [refreshGitStatus]);
 
   useEffect(() => {
@@ -206,31 +299,32 @@ export function useLazyFileTree({
   // ── Lazy directory loading ─────────────────────────────────────────
 
   const loadDirectory = useCallback(
-    async (dirPath: string) => {
-      const cleanPath = dirPath.replace(/\/$/, '');
-      if (loadedDirs.current.has(cleanPath)) return;
-      loadedDirs.current.add(cleanPath);
+    (dirPath: string) => {
+      const cleanDir = cleanPath(dirPath);
+      if (loadedDirs.current.has(cleanDir)) return;
+      loadedDirs.current.add(cleanDir);
 
-      try {
-        const result = await socket.list(cleanPath);
-        if (result.entries.length > 0) {
+      socket
+        .list(cleanDir)
+        .then((result) => {
+          if (result.entries.length === 0) return;
           model.batch(
             result.entries.map((e) => ({
               type: 'add' as const,
               path: normalizePath(e.path, e.kind === 'dir'),
             })),
           );
-        }
-      } catch (err) {
-        loadedDirs.current.delete(cleanPath);
-        setError(
-          err instanceof Error
-            ? err.message
-            : `Failed to load ${cleanPath || '/'}`,
-        );
-      }
+        })
+        .catch((err) => {
+          loadedDirs.current.delete(cleanDir);
+          reportError(
+            err instanceof Error
+              ? err
+              : new Error(`Failed to load ${cleanDir || '/'}`),
+          );
+        });
     },
-    [model, socket],
+    [model, socket, reportError],
   );
 
   useEffect(() => {
@@ -245,113 +339,175 @@ export function useLazyFileTree({
         );
       })
       .catch((err) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Failed to list root');
+        if (cancelled) return;
+        reportError(
+          err instanceof Error ? err : new Error('Failed to list root'),
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [model, socket]);
+  }, [model, socket, reportError]);
 
   useDirectoryExpansionWatcher(model, loadDirectory);
 
   // ── Mutation → FS bridge ───────────────────────────────────────────
   //
-  // The tree model treats `add` / `move` / `remove` as local edits. We mirror
-  // them onto the filesystem here.
+  // ⚠️  Synchronous handler, always. `model.onMutation` runs inline in the
+  // tree's commit path; an async handler freezes the tree during DnD.
   //
-  // `pendingCreates` tracks paths that were added via `model.add()` but not
-  // yet persisted. Two cases:
+  // ⚠️  Only user-initiated operations reach the server.
   //
-  //   - `add`            → mark the path pending.
-  //   - `move` from pending → the tree just committed an inline rename of a
-  //                      placeholder. The source never existed on disk, so
-  //                      this is really a "create as" — call writeFile /
-  //                      mkdir with the destination and update the marker.
-  //   - `move` from real → a true rename; call socket.rename.
-  //   - `remove` pending → user canceled a create; nothing to delete on disk.
-  //   - `remove` real    → call socket.deletePath.
+  //   - `add` events are user creates only if the path is in
+  //     `userCreatePaths`, which `createFile` / `createFolder` populate.
+  //     Everything else is a lazy-load or search result.
+  //
+  //   - `remove` events are user deletes only if the path is in
+  //     `userDeletePaths`, which `deletePath` populates. The tree ALSO
+  //     fires internal `remove` events (search cleanup, flatten reflow,
+  //     rename-mode setup). Those paths are not in `userDeletePaths`, so
+  //     they're ignored — this is what was causing real files to be
+  //     deleted on disk and, via the flood of `deletePath` round-trips,
+  //     the freeze.
+  //
+  //   - `move` events from pending paths are creates-in-disguise (inline
+  //     rename of a placeholder). Everything else is a real rename and is
+  //     passed through; renames don't destroy data, so the guard is looser.
+
+  const userCreatePaths = useRef(new Set<string>());
+  const userDeletePaths = useRef(new Set<string>());
 
   useEffect(() => {
     const pendingCreates = new Set<string>();
+    const queue: Array<
+      | { kind: 'add'; path: string }
+      | { kind: 'move'; from: string; to: string }
+      | { kind: 'remove'; path: string }
+    > = [];
+    let drainScheduled = false;
+    let tail: Promise<unknown> = Promise.resolve();
 
-    const unsubscribe = model.onMutation('*', async (event) => {
-      const events = event.operation === 'batch' ? event.events : [event];
+    const enqueue = (fn: () => Promise<unknown>) => {
+      tail = tail.then(fn).catch(reportError);
+    };
+
+    const drain = () => {
+      drainScheduled = false;
+      if (queue.length === 0) return;
+
+      const events = queue.splice(0, queue.length);
+
+      const moves: { from: string; to: string }[] = [];
+      const removes: string[] = [];
 
       for (const e of events) {
-        try {
-          if (e.operation === 'add') {
+        if (e.kind === 'add') {
+          if (userCreatePaths.current.has(e.path)) {
+            userCreatePaths.current.delete(e.path);
             pendingCreates.add(e.path);
-          } else if (e.operation === 'move') {
-            const wasPending = pendingCreates.has(e.from);
-            if (wasPending) pendingCreates.delete(e.from);
-
-            const isDir = e.to.endsWith('/');
-
-            if (wasPending) {
-              if (isDir) {
-                await socket.mkdir(e.to.replace(/\/$/, ''));
-              } else {
-                await socket.writeFile(e.to, '');
-              }
-              pendingCreates.add(e.to);
-            } else {
-              await socket.rename(
-                e.from.replace(/\/$/, ''),
-                e.to.replace(/\/$/, ''),
-              );
-            }
-            scheduleGitRefresh();
-          } else if (e.operation === 'remove') {
-            if (pendingCreates.has(e.path)) {
-              pendingCreates.delete(e.path);
-              continue;
-            }
-            await socket.deletePath(
-              e.path.replace(/\/$/, ''),
-              e.path.endsWith('/'),
-            );
-            scheduleGitRefresh();
           }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Filesystem error');
+          continue;
         }
+
+        if (e.kind === 'move') {
+          const wasPending = pendingCreates.has(e.from);
+          if (wasPending) pendingCreates.delete(e.from);
+
+          if (wasPending) {
+            const cleanTo = cleanPath(e.to);
+            const isDir = e.to.endsWith('/');
+            enqueue(() =>
+              isDir ? socket.mkdir(cleanTo) : socket.writeFile(cleanTo, ''),
+            );
+            pendingCreates.add(e.to);
+          } else {
+            moves.push(e);
+          }
+          continue;
+        }
+
+        if (e.kind === 'remove') {
+          if (pendingCreates.has(e.path)) {
+            pendingCreates.delete(e.path);
+            continue;
+          }
+          if (!userDeletePaths.current.has(e.path)) {
+            // Not a user delete — the model internally removed this path
+            // (search cleanup, flatten reflow, rename-mode reset). Do not
+            // touch disk.
+            continue;
+          }
+          userDeletePaths.current.delete(e.path);
+          removes.push(e.path);
+        }
+      }
+
+      if (moves.length > 0) {
+        for (const m of coalesceMoves(moves)) {
+          const cleanFrom = cleanPath(m.from);
+          const cleanTo = cleanPath(m.to);
+          enqueue(() => socket.rename(cleanFrom, cleanTo));
+        }
+      }
+
+      if (removes.length > 0) {
+        for (const p of coalesceRemoves(removes)) {
+          enqueue(() => socket.deletePath(cleanPath(p), p.endsWith('/')));
+        }
+      }
+
+      if (moves.length > 0 || removes.length > 0) {
+        scheduleGitRefresh();
+      }
+    };
+
+    const unsubscribe = model.onMutation('*', (event) => {
+      const events = event.operation === 'batch' ? event.events : [event];
+      for (const e of events) {
+        if (e.operation === 'add') {
+          queue.push({ kind: 'add', path: e.path });
+        } else if (e.operation === 'move') {
+          queue.push({ kind: 'move', from: e.from, to: e.to });
+        } else if (e.operation === 'remove') {
+          queue.push({ kind: 'remove', path: e.path });
+        }
+      }
+
+      if (!drainScheduled) {
+        drainScheduled = true;
+        queueMicrotask(drain);
       }
     });
 
-    return unsubscribe;
-  }, [model, socket, scheduleGitRefresh]);
+    return () => {
+      unsubscribe();
+      void tail;
+    };
+  }, [model, socket, scheduleGitRefresh, reportError]);
 
   // ── Server-backed search ───────────────────────────────────────────
-  //
-  // The tree's built-in search filters visible rows against what's already
-  // loaded. That misses files in directories that haven't been lazily opened
-  // yet. We listen to the input directly and merge WS search matches into the
-  // model, so the built-in filter sees them.
-  //
-  // The listener attaches to the shadow DOM's input element. Since FileTree
-  // may not forward refs, we query it off a wrapper the caller provides via
-  // `treeHostRef`.
 
   const treeHostRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const host = treeHostRef.current;
-    if (!host) return;
-
     let cancelled = false;
     let cleanup: (() => void) | null = null;
+    let attachRaf = 0;
 
     const tryAttach = () => {
       if (cancelled) return;
+
+      const host = treeHostRef.current;
+      if (!host) {
+        attachRaf = requestAnimationFrame(tryAttach);
+        return;
+      }
+
       const input = host.shadowRoot?.querySelector<HTMLInputElement>(
         '[data-file-tree-search-input]',
       );
       if (!input) {
-        // The tree's shadow DOM renders synchronously with the custom element,
-        // but the search input only exists when `search: true`. Retry a few
-        // frames in case of hydration lag.
-        requestAnimationFrame(tryAttach);
+        attachRaf = requestAnimationFrame(tryAttach);
         return;
       }
 
@@ -364,15 +520,21 @@ export function useLazyFileTree({
         const q = input.value.trim();
         const seq = ++querySeq;
 
-        // Drop the previous query's added paths before adding the next batch.
+        // Clear the previous query's additions. Skip any path whose parent
+        // directory has since been lazily loaded — those rows belong to the
+        // tree now and shouldn't be touched.
         if (searchAdded.size > 0) {
-          model.batch(
-            Array.from(searchAdded).map((p) => ({
-              type: 'remove' as const,
-              path: p,
-            })),
-          );
+          const removable: string[] = [];
+          for (const p of searchAdded) {
+            const parent = p.slice(0, p.lastIndexOf('/'));
+            if (!loadedDirs.current.has(parent)) removable.push(p);
+          }
           searchAdded.clear();
+          if (removable.length > 0) {
+            model.batch(
+              removable.map((p) => ({ type: 'remove' as const, path: p })),
+            );
+          }
         }
 
         if (q.length === 0) return;
@@ -384,15 +546,30 @@ export function useLazyFileTree({
           });
           if (cancelled || seq !== querySeq) return;
 
-          const newPaths = matches
-            .map((p) => normalizePath(p, false))
-            .filter((p) => model.getItem(p) == null);
-          if (newPaths.length === 0) return;
+          const toAdd = new Set<string>();
+          for (const m of matches) {
+            const normalized = normalizePath(m, false);
+            if (model.getItem(normalized) != null) continue;
+            for (const ancestor of ancestorPaths(normalized)) {
+              if (model.getItem(ancestor) == null) toAdd.add(ancestor);
+            }
+            toAdd.add(normalized);
+          }
 
-          model.batch(newPaths.map((p) => ({ type: 'add' as const, path: p })));
-          for (const p of newPaths) searchAdded.add(p);
+          if (toAdd.size === 0) return;
+
+          const ordered = Array.from(toAdd).sort(
+            (a, b) => a.split('/').length - b.split('/').length,
+          );
+
+          model.batch(ordered.map((p) => ({ type: 'add' as const, path: p })));
+
+          for (const m of matches) {
+            const normalized = normalizePath(m, false);
+            if (ordered.includes(normalized)) searchAdded.add(normalized);
+          }
         } catch {
-          /* ignore — search is best-effort */
+          /* search is best-effort */
         }
       };
 
@@ -406,9 +583,6 @@ export function useLazyFileTree({
       cleanup = () => {
         input.removeEventListener('input', onInput);
         if (debounceTimer) clearTimeout(debounceTimer);
-        // Search-added paths stay in the model: they're valid filesystem
-        // paths, and removing them would invalidate any directories the
-        // expansion watcher already auto-loaded.
       };
     };
 
@@ -416,6 +590,7 @@ export function useLazyFileTree({
 
     return () => {
       cancelled = true;
+      if (attachRaf) cancelAnimationFrame(attachRaf);
       cleanup?.();
     };
   }, [model, socket]);
@@ -424,26 +599,37 @@ export function useLazyFileTree({
 
   useEffect(() => () => socket.close(), [socket]);
 
-  // ── Mutators exposed to the panel ──────────────────────────────────
+  // ── Mutators ───────────────────────────────────────────────────────
 
   const createFile = useCallback(
     (parentDir: string) => {
-      const template = 'untitled';
-      const target = getUniquePath(model, `${parentDir}${template}`);
+      clearError();
+      const target = getUniquePath(model, `${parentDir}untitled`);
+      userCreatePaths.current.add(target);
       model.add(target);
       model.startRenaming(target, { removeIfCanceled: true });
     },
-    [model],
+    [model, clearError],
   );
 
   const createFolder = useCallback(
     (parentDir: string) => {
-      const template = 'untitled/';
-      const target = getUniquePath(model, `${parentDir}${template}`);
+      clearError();
+      const target = getUniquePath(model, `${parentDir}untitled/`);
+      userCreatePaths.current.add(target);
       model.add(target);
       model.startRenaming(target, { removeIfCanceled: true });
     },
-    [model],
+    [model, clearError],
+  );
+
+  const deletePath = useCallback(
+    (path: string, isDir: boolean) => {
+      clearError();
+      userDeletePaths.current.add(path);
+      model.remove(path, isDir ? { recursive: true } : undefined);
+    },
+    [model, clearError],
   );
 
   return {
@@ -453,10 +639,8 @@ export function useLazyFileTree({
     gitStatus,
     createFile,
     createFolder,
+    deletePath,
     refreshGitStatus,
-    // Wire this to the FileTree element's host via a ref.
-    treeHostRef: treeHostRef as React.MutableRefObject<HTMLElement | null>,
-  } as UseLazyFileTreeResult & {
-    treeHostRef: React.MutableRefObject<HTMLElement | null>;
+    treeHostRef,
   };
 }

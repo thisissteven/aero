@@ -1,12 +1,14 @@
 'use client';
 
-import { cn } from '@aero/ui';
+import { cn, Dropdown, Label, logger } from '@aero/ui';
+import { Ellipsis } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
+import type { ContextMenuOpenContext } from '@pierre/trees';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useTheme } from '@/app/providers';
 
@@ -16,6 +18,12 @@ export interface FileExplorerProps extends UseLazyFileTreeResult {
   style?: CSSProperties;
 }
 
+function getParentPath(filePath: string): string {
+  const normalized = filePath.endsWith('/') ? filePath.slice(0, -1) : filePath;
+  const slash = normalized.lastIndexOf('/');
+  return slash < 0 ? '' : normalized.slice(0, slash + 1);
+}
+
 export function FileExplorer({
   model,
   projectName,
@@ -23,19 +31,28 @@ export function FileExplorer({
   style,
   createFile,
   createFolder,
+  deletePath,
   treeHostRef,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
   const search = useFileTreeSearch(model);
 
-  // Wrapper around <FileTree> so the hook can find the custom element's
-  // shadow root for the search-input listener. The hook holds its own ref;
-  // we proxy the host element into it.
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    if (!wrapperRef.current) return;
-    const host = wrapperRef.current.querySelector('file-tree');
-    treeHostRef.current = host instanceof HTMLElement ? host : null;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const candidates = wrapper.querySelectorAll<HTMLElement>('*');
+    let host: HTMLElement | null = null;
+    for (const el of candidates) {
+      if (el.shadowRoot) {
+        host = el;
+        break;
+      }
+    }
+
+    treeHostRef.current = host;
     return () => {
       treeHostRef.current = null;
     };
@@ -49,59 +66,129 @@ export function FileExplorer({
     search.open();
   }, [search]);
 
-  // ── Context menu (rename / delete) ─────────────────────────────────
+  // ── Context menu content ───────────────────────────────────────────
+  //
+  // The menu is portaled to document.body so it escapes the tree's own
+  // scroll container (which has `overflow: auto` for virtualization and
+  // would otherwise clip the menu at its bounds). Positioning is done
+  // manually from `context.anchorRect`, which Pierre reports in viewport
+  // coordinates — a `position: fixed` box at those coordinates lands
+  // exactly where Pierre's own popover would have opened.
+  //
+  // The `data-file-tree-context-menu-root` marker is what tells Pierre's
+  // click-outside handler that clicks on this element belong to the menu,
+  // not to the tree. Without it, clicking a menu button would dismiss the
+  // menu before onClick fires.
 
-  const [menu, setMenu] = useState<{
-    x: number;
-    y: number;
-    path: string;
-    isDir: boolean;
-  } | null>(null);
+  const renderContextMenu = useCallback(
+    (
+      item: { path: string; kind: 'file' | 'directory' },
+      context: ContextMenuOpenContext,
+    ): ReactNode => {
+      const isDir = item.kind === 'directory';
+      const baseDirectoryPath = isDir ? item.path : getParentPath(item.path);
 
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(null);
-    window.addEventListener('pointerdown', close);
-    window.addEventListener('blur', close);
-    return () => {
-      window.removeEventListener('pointerdown', close);
-      window.removeEventListener('blur', close);
-    };
-  }, [menu]);
+      const handleAction = (key: React.Key) => {
+        context.close({ restoreFocus: false });
 
-  const onContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      const selected = model.getSelectedPaths();
-      if (selected.length !== 1) return;
-      const item = model.getItem(selected[0]);
-      if (!item) return;
-      event.preventDefault();
-      setMenu({
-        x: event.clientX,
-        y: event.clientY,
-        path: selected[0],
-        isDir: item.isDirectory(),
-      });
+        window.setTimeout(() => {
+          if (key === 'new-file') {
+            createFile(baseDirectoryPath);
+          } else if (key === 'new-folder') {
+            createFolder(baseDirectoryPath);
+          } else if (key === 'rename') {
+            model.startRenaming(item.path);
+          } else if (key === 'delete') {
+            if (
+              isDir &&
+              !window.confirm(`Delete ${item.path} and its contents?`)
+            ) {
+              return;
+            }
+            deletePath(item.path, isDir);
+          }
+        }, 0);
+      };
+
+      const menu = (
+        <Dropdown
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) context.close({ restoreFocus: false });
+          }}
+          size='sm'
+        >
+          <Dropdown.Trigger
+            aria-hidden='true'
+            style={{
+              position: 'fixed',
+              top: context.anchorRect.bottom,
+              left: context.anchorRect.left,
+              width: 1,
+              height: 1,
+              opacity: 0,
+              pointerEvents: 'none',
+              border: 0,
+              padding: 0,
+            }}
+          >
+            <Icon
+              data={Ellipsis}
+              className='opacity-50 transition-opacity hover:opacity-80'
+              style={{
+                width: 14,
+                height: 14,
+              }}
+            />
+          </Dropdown.Trigger>
+          <Dropdown.Popover
+            placement='bottom start'
+            offset={0}
+            className='w-44 max-sm:min-w-44'
+          >
+            <div data-file-tree-context-menu-root='true'>
+              <Dropdown.Menu aria-label={`${item.path} actions`}>
+                <Dropdown.Item
+                  id='new-file'
+                  textValue='New file'
+                  onClick={() => handleAction('new-file')}
+                >
+                  <Label>New file</Label>
+                </Dropdown.Item>
+                <Dropdown.Item
+                  id='new-folder'
+                  textValue='New folder'
+                  onClick={() => handleAction('new-folder')}
+                >
+                  <Label>New folder</Label>
+                </Dropdown.Item>
+                <Dropdown.Item
+                  id='rename'
+                  textValue='Rename'
+                  onClick={() => handleAction('rename')}
+                >
+                  <Label>Rename</Label>
+                </Dropdown.Item>
+                <Dropdown.Item
+                  id='delete'
+                  textValue='Delete'
+                  variant='danger'
+                  onClick={() => handleAction('delete')}
+                >
+                  <Label>Delete</Label>
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </div>
+          </Dropdown.Popover>
+        </Dropdown>
+      );
+
+      return typeof document !== 'undefined'
+        ? createPortal(menu, document.body)
+        : menu;
     },
-    [model],
+    [model, createFile, createFolder, deletePath],
   );
-
-  const onRename = useCallback(() => {
-    if (!menu) return;
-    model.startRenaming(menu.path);
-    setMenu(null);
-  }, [menu, model]);
-
-  const onDelete = useCallback(() => {
-    if (!menu) return;
-    const { path, isDir } = menu;
-    if (isDir && !window.confirm(`Delete ${path} and its contents?`)) {
-      setMenu(null);
-      return;
-    }
-    model.remove(path, isDir ? { recursive: true } : undefined);
-    setMenu(null);
-  }, [menu, model]);
 
   const header = useMemo<ReactNode>(
     () =>
@@ -125,15 +212,12 @@ export function FileExplorer({
       )}
       style={style}
     >
-      <div
-        ref={wrapperRef}
-        className='min-h-0 flex-1'
-        onContextMenu={onContextMenu}
-      >
+      <div ref={wrapperRef} className='min-h-0 flex-1'>
         <FileTree
           model={model}
           header={header}
-          className='h-full'
+          renderContextMenu={renderContextMenu}
+          className='h-full pb-1'
           style={
             {
               height: '100%',
@@ -145,7 +229,8 @@ export function FileExplorer({
               '--trees-row-height': '24px',
 
               '--trees-bg-override': 'transparent',
-              '--trees-bg-muted-override': 'transparent',
+              '--trees-bg-muted-override':
+                'color-mix(in oklab, var(--accent) 10%, transparent)',
               '--tree-app-editor-bg': 'transparent',
 
               '--trees-fg-override': 'var(--foreground)',
@@ -155,12 +240,12 @@ export function FileExplorer({
               '--trees-selected-fg-override': 'var(--accent-soft-foreground)',
               '--trees-selected-bg-override': 'var(--accent-soft)',
               '--trees-selected-border-color-override':
-                'color-mix(in oklab, var(--accent) 20%, transparent)',
+                'color-mix(in oklab, var(--accent) 0%, transparent)',
               '--trees-selected-focused-border-color-override':
-                'color-mix(in oklab, var(--accent) 20%, transparent)',
+                'color-mix(in oklab, var(--accent) 0%, transparent)',
 
               '--trees-focus-ring-color-override':
-                'color-mix(in oklab, var(--accent) 20%, transparent)',
+                'color-mix(in oklab, var(--accent) 0%, transparent)',
 
               '--trees-search-fg-override': 'var(--field-foreground)',
               '--trees-search-bg-override': 'var(--field-background)',
@@ -178,48 +263,7 @@ export function FileExplorer({
           }
         />
       </div>
-
-      {menu
-        ? createPortal(
-            <div
-              // Stop the global pointerdown-to-close from firing before the
-              // click reaches the menu buttons.
-              onPointerDown={(e) => e.stopPropagation()}
-              style={{ position: 'fixed', left: menu.x, top: menu.y }}
-              className='border-separator bg-surface z-50 min-w-[160px] rounded-md border py-1 text-xs shadow-lg'
-            >
-              <ContextMenuButton onSelect={onRename}>Rename</ContextMenuButton>
-              <ContextMenuButton onSelect={onDelete} danger>
-                Delete
-              </ContextMenuButton>
-            </div>,
-            document.body,
-          )
-        : null}
     </div>
-  );
-}
-
-function ContextMenuButton({
-  children,
-  onSelect,
-  danger,
-}: {
-  children: ReactNode;
-  onSelect: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type='button'
-      onClick={onSelect}
-      className={cn(
-        'hover:bg-surface-hover block w-full px-3 py-1.5 text-left transition-colors',
-        danger ? 'text-danger' : 'text-foreground',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -243,7 +287,7 @@ function FileExplorerHeader({
   return (
     <div className='flex h-8 items-center justify-between gap-2 px-2 pt-1 pb-2'>
       <div
-        className='text-foreground min-w-0 truncate text-xs font-medium'
+        className='text-foreground ml-1 min-w-0 truncate text-xs font-medium'
         title={projectName}
       >
         {projectName}

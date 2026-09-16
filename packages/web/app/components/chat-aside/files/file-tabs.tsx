@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@aero/ui';
+import { memo } from 'react';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 
 export interface FileTabsProps {
@@ -15,7 +16,7 @@ function getTabLabel(path: string): string {
   return trimmed.split('/').pop() || trimmed;
 }
 
-export function FileTabs({
+export const FileTabs = memo(function FileTabs({
   openPaths,
   activePath,
   onActivate,
@@ -40,7 +41,7 @@ export function FileTabs({
       ))}
     </div>
   );
-}
+});
 
 interface FileTabProps {
   path: string;
