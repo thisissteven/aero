@@ -37,6 +37,7 @@ export const WebFetchToolView = memo(
         copyText={rawOutput}
         isStreaming={isStreaming}
         showLineNumbers={false}
+        isUrl
       />
     );
   },

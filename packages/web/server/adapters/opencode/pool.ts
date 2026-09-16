@@ -162,7 +162,8 @@ export class OpencodeServerPool<
     }
 
     if (!this.node || !this.node.isHealthy || this.node.isRecovering) {
-      await this.init();
+      void this.init();
+      await sleep(200);
     }
 
     if (this.node && this.node.isHealthy && !this.node.isRecovering) {
@@ -201,13 +202,8 @@ export class OpencodeServerPool<
     const node = await this.getNode();
     try {
       return await fn(node.client, node);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (/fetch failed|ECONNREFUSED|socket hang up/i.test(msg)) {
-        node.isHealthy = false;
-        void this.recoverNode(node);
-      }
-      throw error;
+    } finally {
+      this.releaseNode(node);
     }
   }
 

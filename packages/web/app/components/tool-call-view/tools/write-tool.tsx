@@ -5,6 +5,36 @@ import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { WritePart } from '@/app/components/tool-call-view/tools/tool-types';
 import { getBasename, normalizePath } from '@/server/shared';
 
+/**
+ * Human-readable diff text for the copy button. Not a valid unified diff —
+ * just `+` prefixed lines for quick reading.
+ */
+function generateDiffCode(content: string): string {
+  if (!content) return '';
+  return content
+    .split('\n')
+    .map((line) => `+ ${line}`)
+    .join('\n');
+}
+
+/**
+ * Builds a unified-diff patch string for Pierre's `PatchDiff`. A write is a
+ * pure addition, so the old side is `/dev/null` with a `0,0` range — the
+ * canonical "new file" shape that both `git diff` and Pierre's parser accept.
+ */
+function buildPatch(fileName: string, content: string): string {
+  const lines = content ? content.split('\n') : [];
+  const count = lines.length;
+  const body = lines.map((line) => `+${line}`).join('\n');
+
+  return [
+    '--- /dev/null',
+    `+++ b/${fileName}`,
+    `@@ -0,0 +1,${count} @@`,
+    body,
+  ].join('\n');
+}
+
 export const WriteToolView = memo(
   ({
     part,
@@ -18,24 +48,23 @@ export const WriteToolView = memo(
     const path = normalizePath(part.input.filePath || '');
     const fileName = getBasename(path);
 
-    const { diff, code } = useMemo(() => {
+    const { diff, code, patch } = useMemo(() => {
       const content = part.input.content ?? '';
 
       if (!content) {
-        return { diff: undefined, code: '' };
+        return { diff: undefined, code: '', patch: undefined };
       }
 
-      const lines = content.split('\n');
-      const additions = lines.length;
-
-      // Add '+' prefix to every line for standard diff syntax highlighting
-      const formattedDiffCode = lines.map((line) => `+ ${line}`).join('\n');
+      const additions = content.split('\n').length;
 
       return {
         diff: { additions, deletions: 0 },
-        code: formattedDiffCode,
+        // Copy-friendly text — kept for clipboard / fallback rendering.
+        code: generateDiffCode(content),
+        // Valid unified diff for Pierre's PatchDiff.
+        patch: buildPatch(fileName, content),
       };
-    }, [part.input.content]);
+    }, [fileName, part.input.content]);
 
     return (
       <BaseTool
@@ -50,8 +79,10 @@ export const WriteToolView = memo(
         previewType='path'
         diff={diff}
         code={code}
+        patch={patch}
         copyText={part.input.content ?? ''}
         isStreaming={isStreaming}
+        isFile
       />
     );
   },

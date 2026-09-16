@@ -250,7 +250,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
               disableFileHeader: true,
               // Including cacheKey here forces areOptionsEqual to return
               // false, which flips forceRender to true inside useFileInstance.
-              cacheKey: viewerKey,
+              // cacheKey: viewerKey,
             }}
             className='h-full'
           />

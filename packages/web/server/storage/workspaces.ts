@@ -267,22 +267,51 @@ export async function removeWorktreeFromWorkspace(
 }
 
 /**
- * Creates a unique workspace directory under .aero/workspaces/<uuid>
+ * Creates a unique workspace directory under .aero/workspaces/session-<N>
  * and registers it in workspaces storage.
+ *
+ * Uses a monotonic counter file so session numbers are never reused,
+ * even if a workspace directory is deleted. Keeps folder names short
+ * and predictable to avoid model hallucination on long hashes/UUIDs.
  */
 export async function createStandaloneWorkspace(
   name?: string,
 ): Promise<AeroWorkspace> {
+  const workspacesRoot = normalizePath(join(AERO_DIR, 'workspaces'));
+  await mkdir(workspacesRoot, { recursive: true });
+
+  const sessionNumber = await getNextSessionNumber(workspacesRoot);
   const workspaceDir = normalizePath(
-    join(AERO_DIR, 'workspaces', randomUUID()),
+    join(workspacesRoot, `session-${sessionNumber}`),
   );
 
-  // Ensure physical directory exists on disk
   await mkdir(workspaceDir, { recursive: true });
 
-  // Register in workspaces storage using your existing storage method
   return createWorkspace({
-    name: name || 'Standalone Session',
+    name: name || `Session ${sessionNumber}`,
     directory: workspaceDir,
   });
+}
+
+/**
+ * Reads and increments a monotonic counter stored at
+ * .aero/workspaces/.counter. Returns the new session number.
+ */
+async function getNextSessionNumber(workspacesRoot: string): Promise<number> {
+  const counterPath = join(workspacesRoot, '.counter');
+
+  let current = 0;
+  try {
+    const raw = await readFile(counterPath, 'utf8');
+    const parsed = parseInt(raw.trim(), 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      current = parsed;
+    }
+  } catch {
+    // First run — no counter file yet.
+  }
+
+  const next = current + 1;
+  await writeFile(counterPath, String(next), 'utf8');
+  return next;
 }

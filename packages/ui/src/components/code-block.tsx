@@ -119,6 +119,8 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   showLineNumbers?: boolean;
   theme?: string;
   scrollOverflow?: boolean;
+  variant?: 'diff' | 'file';
+  patch?: string;
 }
 
 const HighlightedContainer = memo(function HighlightedContainer({

@@ -105,7 +105,11 @@ async function isGitRepository(directory: string): Promise<boolean> {
 }
 
 async function getGitDirectory(inputDirectory: string): Promise<string> {
-  return resolveGitDir(inputDirectory);
+  const directory = await resolveGitDir(inputDirectory);
+  if (!(await isGitRepository(directory))) {
+    throw new InvalidGitRepositoryError(directory);
+  }
+  return directory;
 }
 
 const gitDirectorySchema = z.string().min(1, 'Directory path is required');
@@ -129,57 +133,14 @@ const checkoutBodySchema = z.object({
 const git = new Hono()
   .onError((err, c) => {
     if (err instanceof DirectoryNotFoundError) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: err.code,
-            message: err.message,
-            directory: err.directory,
-          },
-        },
-        404,
-      );
+      return c.json({ code: err.code, message: err.message }, 404);
     }
-
     if (err instanceof InvalidGitRepositoryError) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: err.code,
-            message: err.message,
-            directory: err.directory,
-          },
-        },
-        400,
-      );
+      return c.json({ code: err.code, message: err.message }, 400);
     }
-
-    if (err instanceof z.ZodError) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid request',
-            issues: err.issues,
-          },
-        },
-        400,
-      );
-    }
-
-    console.error(err);
-
+    console.error('[git]', err);
     return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: err instanceof Error ? err.message : 'Internal server error',
-        },
-      },
+      { code: 'INTERNAL_SERVER_ERROR', message: 'Git operation failed' },
       500,
     );
   })
@@ -199,9 +160,22 @@ const git = new Hono()
       );
     }
 
-    const resolvedDirectory = await resolveGitDir(directory);
+    // Resolve without throwing so the RPC client sees the shape
+    const resolved = path
+      .resolve(directory)
+      .replace(/\\/g, '/')
+      .replace(/\/$/, '');
 
-    const isRepo = await isGitRepository(resolvedDirectory);
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+      return c.json(
+        {
+          code: 'DIRECTORY_NOT_FOUND',
+        } as const,
+        404,
+      );
+    }
+
+    const isRepo = await isGitRepository(resolved);
 
     return c.json({
       code: isRepo ? null : 'INVALID_GIT_REPOSITORY',

@@ -14,14 +14,14 @@ export function OpenSubagentsList() {
   if (sessionId.length === 0 || !session) return null;
 
   return (
-    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2 flex'>
+    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2 flex bg-surface rounded-full border border-separator overflow-hidden'>
       <button
         onClick={() => {
           setView('list');
         }}
         className={cn(
-          'bg-surface rounded-full py-1 px-2 text-sm border border-separator shrink-0',
-          session?.parentId && 'rounded-r-none border-r-0',
+          'py-1 px-2 text-sm shrink-0 active:opacity-50',
+          session?.parentId && 'border-r border-separator',
         )}
       >
         <Icon data={ArrowUturnCcwLeft} />
@@ -34,7 +34,7 @@ export function OpenSubagentsList() {
               setSessionId(session.parentId);
             }
           }}
-          className='bg-surface text-sm border border-separator shrink-0 rounded-full py-1 pl-2 pr-3 rounded-l-none'
+          className='text-sm shrink-0 py-1 pl-2 pr-3 rounded-l-none active:opacity-50'
         >
           Open parent session
         </button>

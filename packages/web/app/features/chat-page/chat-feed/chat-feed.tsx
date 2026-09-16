@@ -85,7 +85,7 @@ export const ChatFeed = React.memo(
           ref={scrollRef}
           className='min-h-0 flex-1 scrollbar-thin overflow-y-auto md:scrollbar-gutter-stable'
         >
-          <div ref={contentRef} className='pb-20'>
+          <div ref={contentRef} className='pb-12'>
             <ChatConversationView
               virtualizerRef={virtualizerRef}
               scrollRef={scrollRef}

@@ -57,7 +57,7 @@ export const UserChatBubble = memo(
       if (!el) return;
 
       // Temporary check on scrollHeight vs clientHeight or a fixed max threshold
-      const overflow = el.scrollHeight > 72;
+      const overflow = el.scrollHeight > 96;
       setIsOverflowing(overflow);
     }, [text]);
 
@@ -69,7 +69,7 @@ export const UserChatBubble = memo(
       const observer = new ResizeObserver(() => {
         // Only measure height when fully expanded OR check raw scrollHeight
         // against client height threshold
-        const overflow = el.scrollHeight > 72;
+        const overflow = el.scrollHeight > 96;
         setIsOverflowing((prev) => (prev !== overflow ? overflow : prev));
       });
 
@@ -136,7 +136,7 @@ export const UserChatBubble = memo(
               ref={textRef}
               className={cn(
                 'overflow-hidden font-sans text-sm break-words whitespace-pre-wrap',
-                !isExpanded && isOverflowing && 'line-clamp-2',
+                !isExpanded && isOverflowing && 'line-clamp-3',
               )}
             >
               {text}

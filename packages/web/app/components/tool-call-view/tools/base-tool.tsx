@@ -1,22 +1,14 @@
-import { Alert, CodeBlock, cn, TextEffect } from '@aero/ui';
+import { Alert, cn, Disclosure, TextEffect } from '@aero/ui';
 import { Icon } from '@gravity-ui/uikit';
 
-import React, {
-  ReactNode,
-  SVGProps,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from 'react';
+import React, { ReactNode, SVGProps, useEffect, useRef, useState } from 'react';
 
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { CodeBlock } from '@/app/components/tool-call-view/code-block';
 import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { Timer } from '@/app/components/tool-call-view/timer';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
-
-const PANEL_TRANSITION_MS = 200;
 
 export function BaseTool({
   blockId,
@@ -30,6 +22,7 @@ export function BaseTool({
   code,
   language,
   copyText,
+  patch,
   duration,
   showLineNumbers = true,
   isItalicHeader = false,
@@ -38,6 +31,8 @@ export function BaseTool({
   isStreaming = false,
   useDuration = false,
   forceEnabled = false,
+  isUrl = false,
+  isFile = false,
 }: {
   blockId: string;
   status: string;
@@ -50,9 +45,12 @@ export function BaseTool({
   code?: string;
   language?: string;
   copyText?: string;
+  /** Unified-diff patch string. When present, renders via Pierre's PatchDiff. */
+  patch?: string;
   duration?: number;
   showLineNumbers?: boolean;
   isItalicHeader?: boolean;
+  /** Change stats for the header (e.g. `{ additions: 3, deletions: 1 }`). */
   diff?: {
     additions: number;
     deletions: number;
@@ -61,8 +59,11 @@ export function BaseTool({
   isStreaming?: boolean;
   useDuration?: boolean;
   forceEnabled?: boolean;
+  isUrl?: boolean;
+  isFile?: boolean;
 }) {
-  const hasCodeContent = Boolean(copyText && code);
+  // Either a code string or a patch counts as code content.
+  const hasCodeContent = Boolean((copyText && code) || patch);
   const hasContent = hasCodeContent || Boolean(children);
 
   const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[blockId]));
@@ -77,27 +78,8 @@ export function BaseTool({
     return () => clearTimeout(timer);
   }, [wasStreamingOnMount]);
 
-  // Keep the code block mounted for the close transition so the grid-rows
-  // collapse can animate; unmount once the panel has finished collapsing.
-  const [shouldRenderCode, setShouldRenderCode] = useState(isExpanded);
-
-  useEffect(() => {
-    if (isExpanded) {
-      setShouldRenderCode(true);
-      return;
-    }
-    const timer = setTimeout(
-      () => setShouldRenderCode(false),
-      PANEL_TRANSITION_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [isExpanded]);
-
   const shouldAnimate = wasStreamingOnMount && isVisible;
   const isDisabled = ((!hasContent && !error) || isStreaming) && !forceEnabled;
-
-  const panelId = useId();
-  const triggerId = `${panelId}-trigger`;
 
   return (
     <div
@@ -106,52 +88,22 @@ export function BaseTool({
         isVisible ? 'opacity-100' : 'opacity-0',
       )}
     >
-      {/* disclosure root */}
-      <div className='relative'>
-        {/* heading (kept for a11y — disclosure pattern) */}
-        <h3 className='flex'>
-          <button
-            id={triggerId}
-            type='button'
-            aria-expanded={isExpanded}
-            aria-controls={panelId}
-            disabled={isDisabled}
-            onClick={() => setKeep(blockId, !isExpanded)}
+      <Disclosure
+        isExpanded={isExpanded}
+        onExpandedChange={(nextExpanded) => setKeep(blockId, nextExpanded)}
+      >
+        <Disclosure.Heading>
+          <Disclosure.Trigger
             className={cn(
-              // Base disclosure trigger styles
-              'cursor-interactive no-highlight inline-block',
-              'focus-visible:status-focused',
-              'disabled:status-disabled',
-              // BaseTool overrides
-              'group/tool -mb-2 flex h-10 w-full! min-w-0 text-left disabled:opacity-100',
+              'group/tool -mb-2 flex h-10 w-full! min-w-0 disabled:opacity-100',
               status === 'error' && 'text-danger',
               status === 'completed' && 'text-muted/70',
             )}
+            isDisabled={isDisabled}
           >
             <div className='flex min-w-0 flex-1 items-center gap-2'>
               <div className='relative shrink-0'>
-                {/* indicator — replaced with a plain chevron svg carrying
-                    data-expanded for the sibling `group-has-[…]` selectors */}
-                <svg
-                  aria-hidden
-                  viewBox='0 0 16 16'
-                  fill='none'
-                  data-expanded={isExpanded ? 'true' : 'false'}
-                  className={cn(
-                    'block size-3 shrink-0 text-inherit',
-                    'transition duration-250 motion-reduce:transition-none',
-                    '-rotate-90 opacity-0',
-                    'group-hover/tool:opacity-100',
-                    'data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100',
-                  )}
-                >
-                  <path
-                    clipRule='evenodd'
-                    d='M2.97 5.47a.75.75 0 0 1 1.06 0L8 9.44l3.97-3.97a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 0 1 0-1.06'
-                    fill='currentColor'
-                    fillRule='evenodd'
-                  />
-                </svg>
+                <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
 
                 <Icon
                   data={icon}
@@ -189,7 +141,7 @@ export function BaseTool({
                   />
                 )}
 
-                <div className='text-muted flex min-w-0 flex-1 items-center text-left duration-200 transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                <div className='text-muted flex min-w-0 flex-1 items-center text-left transition-opacity group-has-[svg[data-expanded=true]]/tool:opacity-0'>
                   {preview ? (
                     previewType === 'path' && typeof preview === 'string' ? (
                       <MiddleTruncatePath path={preview} />
@@ -230,88 +182,118 @@ export function BaseTool({
                 )}
               </span>
             </div>
-          </button>
-        </h3>
+          </Disclosure.Trigger>
+        </Disclosure.Heading>
 
-        {/* content panel — grid-rows 0fr/1fr trick preserves the height
-            animation without needing measurement, and matches the original
-            opacity transition */}
-        <div
-          id={panelId}
-          role='region'
-          aria-labelledby={triggerId}
-          data-expanded={isExpanded ? 'true' : 'false'}
-          className={cn(
-            'mt-2 pl-0 grid',
-            'transition-[grid-template-rows,opacity] duration-200',
-            'motion-reduce:transition-none',
-          )}
-          style={{
-            gridTemplateRows: isExpanded ? '1fr' : '0fr',
-            opacity: isExpanded ? 1 : 0,
-          }}
-        >
-          <div className='min-h-0 overflow-clip'>
-            <div className='border-default ml-2 space-y-2 border-l pl-5'>
-              {error && (
-                <div>
-                  {typeof preview === 'string' && (
-                    <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+        <Disclosure.Content className='mt-2 pl-0'>
+          <div
+            className={cn(
+              'border-default ml-2 space-y-2 border-l pl-3',
+              // hasCodeContent && 'pl-3',
+            )}
+          >
+            {error && (
+              <div>
+                {typeof preview === 'string' && (
+                  <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
+                )}
+
+                <Alert
+                  status='danger'
+                  className={cn(
+                    'bg-transparent p-0 pt-4 shadow-none',
+                    !hasCodeContent && 'pb-2',
                   )}
+                >
+                  <Alert.Content>
+                    <Alert.Description className='text-danger'>
+                      {error}
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              </div>
+            )}
 
-                  <Alert
-                    status='danger'
+            {children}
+
+            {hasCodeContent && !children && !isStreaming && (
+              <CodeBlock className='bg-transparent'>
+                <CodeBlock.Header className='bg-surface'>
+                  <div
                     className={cn(
-                      'bg-transparent p-0 pt-4 shadow-none',
-                      !hasCodeContent && 'pb-2',
+                      'text-muted min-w-0 font-mono text-xs break-all',
+                      isItalicHeader && 'italic',
                     )}
                   >
-                    <Alert.Content>
-                      <Alert.Description className='text-danger'>
-                        {error}
-                      </Alert.Description>
-                    </Alert.Content>
-                  </Alert>
-                </div>
-              )}
+                    {previewType === 'path' && codeTitle ? (
+                      <MiddleTruncatePath path={codeTitle} />
+                    ) : (
+                      <div className='truncate'>{codeTitle}</div>
+                    )}
+                  </div>
 
-              {children}
+                  <div className='flex items-center gap-1'>
+                    {!!patch && <CodeBlock.ViewModeButton />}
 
-              {shouldRenderCode &&
-                hasCodeContent &&
-                !children &&
-                !isStreaming && (
-                  <CodeBlock className='bg-transparent'>
-                    <CodeBlock.Header>
-                      <div
-                        className={cn(
-                          'text-muted min-w-0 font-mono text-xs break-all',
-                          isItalicHeader && 'italic',
-                        )}
-                      >
-                        {codeTitle}
-                      </div>
+                    <CodeBlock.WrapButton />
 
-                      {copyText && (
-                        <CodeBlock.CopyButton
-                          code={copyText}
-                          className='shrink-0'
-                        />
-                      )}
-                    </CodeBlock.Header>
+                    {isUrl ? (
+                      <CodeBlock.OpenButton
+                        aria-label='Open in new tab'
+                        onClick={() =>
+                          window.open(
+                            codeTitle,
+                            '_blank',
+                            'noopener,noreferrer',
+                          )
+                        }
+                      />
+                    ) : isFile ? (
+                      <CodeBlock.OpenButton
+                        aria-label='Open in editor'
+                        onClick={() => {
+                          //
+                        }}
+                      />
+                    ) : null}
 
-                    <CodeBlockContent
-                      code={code!}
-                      language={language || 'text'}
-                      scrollOverflow={code!.includes('\n')}
-                      showLineNumbers={showLineNumbers}
-                    />
-                  </CodeBlock>
+                    {copyText && (
+                      <CodeBlock.CopyButton
+                        code={copyText}
+                        className='shrink-0'
+                      />
+                    )}
+                  </div>
+                </CodeBlock.Header>
+
+                {isExpanded && (
+                  <CodeBlockContent
+                    className={cn(patch ? '' : 'p-1.5')}
+                    code={code ?? ''}
+                    language={language || 'text'}
+                    scrollOverflow={code?.includes('\n') ?? false}
+                    showLineNumbers={showLineNumbers}
+                    // A patch routes through PatchDiff; otherwise the
+                    // plain File renderer takes over.
+                    variant={patch ? 'diff' : 'file'}
+                    patch={patch}
+                  />
                 )}
-            </div>
+
+                {patch && diff && (
+                  <CodeBlock.Footer>
+                    <span>Changes</span>
+                    <CodeBlock.ChangeSummary
+                      additions={diff.additions}
+                      deletions={diff.deletions}
+                    />
+                  </CodeBlock.Footer>
+                )}
+              </CodeBlock>
+            )}
           </div>
-        </div>
-      </div>
+        </Disclosure.Content>
+      </Disclosure>
     </div>
   );
 }

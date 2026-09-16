@@ -141,7 +141,7 @@ export function useChatFeedScroll({
       v.scrollToIndex(flatItemsLengthRef.current - 1, {
         align: 'end',
         smooth: false,
-        offset: 80,
+        offset: 48,
       });
 
       if (tries++ < INITIAL_SCROLL_SETTLE_TRIES) {
@@ -409,7 +409,7 @@ export function useChatFeedScroll({
       v.scrollToIndex(flatItemsLengthRef.current - 1, {
         align: 'end',
         smooth: useSmooth,
-        offset: 80,
+        offset: 48,
       });
     },
     [sessionId, virtualizerRef, scrollRef, patchScroll, beginProgrammatic],

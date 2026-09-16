@@ -135,7 +135,7 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.1",
         "remark-math": "^6.0.0",
-        "shiki": "^4.3.1",
+        "shiki": "^4.4.3",
         "tailwindcss": "catalog:",
         "unist-util-visit": "^5.1.0",
         "vaul": "1.1.2",
@@ -166,7 +166,7 @@
         "@lydell/node-pty": "^1.2.0-beta.15",
         "@openai/codex-sdk": "^0.147.0",
         "@opencode-ai/sdk": "^1.18.26",
-        "@pierre/diffs": "^1.4.1",
+        "@pierre/diffs": "^1.4.2",
         "@pierre/icons": "^0.8.0",
         "@pierre/trees": "^1.0.0-beta.6",
         "@tanstack/react-query": "^5.101.4",
@@ -847,7 +847,7 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.77.0", "", { "os": "win32", "cpu": "x64" }, "sha512-+teyvPDZ2RjUvo+SuCqS/UhaJl1QtdW5fWT5NJTV61V5MIuIS90Db9LixmtEGvXixyttiK62P96MSu3UlpviBw=="],
 
-    "@pierre/diffs": ["@pierre/diffs@1.4.1", "", { "dependencies": { "@pierre/theme": "2.0.0", "@pierre/theming": "1.0.1", "@shikijs/transformers": "^3.0.0 || ^4.0.0", "diff": "9.0.0", "hast-util-to-html": "9.0.5", "lru_map": "0.4.1", "shiki": "^3.0.0 || ^4.0.0" }, "peerDependencies": { "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.3.1 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-rzvY9FeeYdGtVcErjNsW6tnrjpMb0DvGtgCFNuMoYT8wufE+gO1ZXAzKAc2VPRBS3Rl5HELEQ38WDlis4qZHkQ=="],
+    "@pierre/diffs": ["@pierre/diffs@1.4.2", "", { "dependencies": { "@pierre/theme": "2.0.0", "@pierre/theming": "1.0.1", "@shikijs/transformers": "^3.0.0 || ^4.0.0", "diff": "9.0.0", "hast-util-to-html": "9.0.5", "lru_map": "0.4.1", "shiki": "^3.0.0 || ^4.0.0" }, "peerDependencies": { "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.3.1 || ^19.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-X9njBs6fGN+BIBhJ/otJRcxzNfsU3fd31VNquPiRW5nK051IyjuNS5JuOunqFDmEN3VCS9fm0gauyka/nMdokg=="],
 
     "@pierre/icons": ["@pierre/icons@0.8.0", "", { "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-+nWaG+w1d03GaujorOtxBJVaFjwh461W891w9fUuKdDgoH+XGTs+t8Uyfj/ovoP0suAElRbNJ6H8OS7tcndV3w=="],
 
