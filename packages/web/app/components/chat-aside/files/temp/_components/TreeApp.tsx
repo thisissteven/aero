@@ -1,4 +1,3 @@
-import { Dropdown, Label, Separator } from '@aero/ui';
 import type { FileContents, FileOptions } from '@pierre/diffs';
 import type {
   Editor,
@@ -39,8 +38,6 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { useLatestValueRef } from '../lib/useLatestValueRef';
-import { useMediaQuery } from '../lib/useMediaQuery';
-import { useWindowScrollLock } from './_lib/useWindowScrollLock';
 
 const DEFAULT_EXPLORER_WIDTH = 280;
 const DEFAULT_MIN_EXPLORER_WIDTH = 180;
@@ -50,6 +47,7 @@ const DEFAULT_NEW_FOLDER_NAME = 'untitled';
 const FILE_STYLE = {
   flex: '1 1 auto',
   minWidth: '100%',
+  background: 'transparent',
 };
 
 export type TreeAppTheme = 'light' | 'dark';
@@ -619,6 +617,10 @@ interface UseOpenTabsOptions {
   // are discarded the moment the viewport flips to mobile.
   isMobile?: boolean;
   model: FileTreeModel;
+  // When provided, the open tab set and active tab are persisted to
+  // sessionStorage under this key so an unmount/remount (route change, hot
+  // reload) restores the same workspace.
+  storageKey?: string;
 }
 
 interface UseOpenTabsResult {
@@ -626,6 +628,43 @@ interface UseOpenTabsResult {
   activateTab: (path: string) => void;
   closeTab: (path: string) => void;
   openPaths: readonly string[];
+}
+
+interface StoredTabsState {
+  activePath: string | null;
+  openPaths: readonly string[];
+}
+
+function readStoredTabsState(
+  storageKey: string | undefined,
+): StoredTabsState | null {
+  if (storageKey == null || typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(`${storageKey}:tabs`);
+    if (raw == null) {
+      return null;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return null;
+    }
+    const candidate = parsed as { activePath?: unknown; openPaths?: unknown };
+    if (!Array.isArray(candidate.openPaths)) {
+      return null;
+    }
+    return {
+      activePath:
+        typeof candidate.activePath === 'string' ? candidate.activePath : null,
+      openPaths: candidate.openPaths.filter(
+        (entry): entry is string => typeof entry === 'string',
+      ),
+    };
+  } catch {
+    // Malformed / unavailable storage falls back to the caller's initial state.
+    return null;
+  }
 }
 
 // Connects tree selection to a tab list. When the user selects a file in the
@@ -636,26 +675,64 @@ function useOpenTabs({
   initialOpenPaths,
   isMobile = false,
   model,
+  storageKey,
 }: UseOpenTabsOptions): UseOpenTabsResult {
+  const storedStateRef = useRef<StoredTabsState | null | undefined>(undefined);
+  if (storedStateRef.current === undefined) {
+    storedStateRef.current = readStoredTabsState(storageKey);
+  }
+  const storedState = storedStateRef.current;
+
   const [openPaths, setOpenPaths] = useState<readonly string[]>(() => {
-    const seed = initialOpenPaths ?? [];
+    if (storedState != null) {
+      return storedState.openPaths;
+    }
+    const seed = initialOpenPaths ? [...initialOpenPaths] : [];
     if (
       initialActivePath != null &&
       initialActivePath !== '' &&
       !seed.includes(initialActivePath)
     ) {
-      return [...seed, initialActivePath];
+      seed.push(initialActivePath);
     }
     return seed;
   });
-  const [activePath, setActivePath] = useState<string | null>(
-    initialActivePath ?? null,
-  );
+  const [activePath, setActivePath] = useState<string | null>(() => {
+    if (storedState != null) {
+      return storedState.activePath;
+    }
+    return initialActivePath ?? null;
+  });
+
+  // Refs keep the tab handlers stable while still reading the newest state, so
+  // two quick clicks (switch then close) cannot act on a stale snapshot.
+  const openPathsRef = useLatestValueRef(openPaths);
+  const activePathRef = useLatestValueRef(activePath);
+
   const selectedPaths = useFileTreeSelection(model);
 
   // Track which selected paths we have already turned into tabs so a re-render
   // does not re-open a tab the user just closed.
   const lastHandledSelectionRef = useRef<readonly string[]>(selectedPaths);
+  // Set while TreeApp itself changes the tree selection (activating a tab,
+  // closing the active tab) so the selection -> tabs effect doesn't bounce
+  // back and undo the change the user just made.
+  const suppressSelectionSyncRef = useRef(false);
+
+  // Persist the tab workspace so an unmount/remount restores the same state.
+  useEffect(() => {
+    if (storageKey == null || typeof window === 'undefined') {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(
+        `${storageKey}:tabs`,
+        JSON.stringify({ activePath, openPaths }),
+      );
+    } catch {
+      // Persistence is best-effort; ignore quota / disabled-storage errors.
+    }
+  }, [activePath, openPaths, storageKey]);
 
   useEffect(() => {
     if (selectedPaths === lastHandledSelectionRef.current) {
@@ -663,6 +740,13 @@ function useOpenTabs({
     }
     const previous = new Set(lastHandledSelectionRef.current);
     lastHandledSelectionRef.current = selectedPaths;
+
+    if (suppressSelectionSyncRef.current) {
+      // The selection change came from our own active-tab sync; it is not the
+      // user opening a file, so don't rewrite the tab state.
+      suppressSelectionSyncRef.current = false;
+      return;
+    }
 
     // Find the most recently added selection that is a file (not directory).
     // Walking from the end matches the natural notion of "the one the user
@@ -701,36 +785,40 @@ function useOpenTabs({
 
   const closeTab = useCallback(
     (path: string) => {
-      if (activePath === path) {
+      const currentOpen = openPathsRef.current;
+      if (!currentOpen.includes(path)) {
+        return;
+      }
+
+      const wasActive = activePathRef.current === path;
+      if (wasActive) {
         const item = model.getItem(path);
         if (item?.isSelected() === true) {
+          suppressSelectionSyncRef.current = true;
           item.deselect();
         }
       }
 
-      setOpenPaths((current) => {
-        const nextOpen = current.filter((entry) => entry !== path);
-        return nextOpen;
-      });
-
-      const currentOpen = openPaths;
       const nextOpen = currentOpen.filter((entry) => entry !== path);
-      setActivePath((currentActive) => {
-        if (currentActive !== path) {
-          return currentActive;
-        }
+      setOpenPaths(nextOpen);
+
+      if (wasActive) {
         if (nextOpen.length === 0) {
-          return null;
+          setActivePath(null);
+        } else {
+          const closedIndex = currentOpen.indexOf(path);
+          const fallbackIndex = Math.min(closedIndex, nextOpen.length - 1);
+          setActivePath(nextOpen[fallbackIndex] ?? null);
         }
-        const closedIndex = currentOpen.indexOf(path);
-        const fallbackIndex = Math.min(closedIndex, nextOpen.length - 1);
-        return nextOpen[fallbackIndex] ?? null;
-      });
+      }
     },
-    [activePath, model, openPaths],
+    [activePathRef, model, openPathsRef],
   );
 
   const activateTab = useCallback((path: string) => {
+    setOpenPaths((current) =>
+      current.includes(path) ? current : [...current, path],
+    );
     setActivePath(path);
   }, []);
 
@@ -744,15 +832,22 @@ function useOpenTabs({
       return;
     }
 
+    let selectionChanged = false;
     for (const selectedPath of model.getSelectedPaths()) {
       if (selectedPath === activePath) {
         continue;
       }
       model.getItem(selectedPath)?.deselect();
+      selectionChanged = true;
     }
 
     if (!activeItem.isSelected()) {
       activeItem.select();
+      selectionChanged = true;
+    }
+
+    if (selectionChanged) {
+      suppressSelectionSyncRef.current = true;
     }
   }, [activePath, model]);
 

@@ -304,6 +304,7 @@ export function DemoTreeAppClient({
         projectName='acme-components'
         searchEnabled
         showThemeToggle
+        storageKey={treeId}
         theme={theme}
         treeClassName={treeClassNameByTheme}
         treeStyle={treeStyleByTheme}
