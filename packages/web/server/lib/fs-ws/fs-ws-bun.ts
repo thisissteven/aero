@@ -1,3 +1,4 @@
+import type { WsLikeSocket } from '../terminal/pty-session';
 import {
   classifyError,
   errorMessage,
@@ -7,7 +8,6 @@ import {
   handleSearch,
 } from './fs-core';
 import { ClientMessage, ServerMessage } from './fs-protocol';
-import type { WsLikeSocket } from '../terminal/pty-session';
 
 function send(ws: WsLikeSocket, message: ServerMessage): void {
   if (ws.readyState === 1) {

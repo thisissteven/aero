@@ -73,6 +73,9 @@ export function FileExplorer({
               colorScheme: resolvedTheme,
               fontFamily: 'var(--font-sans)',
               '--trees-padding-inline': '4px',
+              '--trees-padding-inline-end': '4px',
+
+              '--trees-row-height': '24px',
 
               '--trees-bg-override': 'transparent',
               '--trees-bg-muted-override': 'transparent',
@@ -89,7 +92,8 @@ export function FileExplorer({
               '--trees-selected-focused-border-color-override':
                 'color-mix(in oklab, var(--accent) 20%, transparent)',
 
-              '--trees-focus-ring-color-override': 'var(--focus)',
+              '--trees-focus-ring-color-override':
+                'color-mix(in oklab, var(--accent) 20%, transparent)',
 
               '--trees-search-fg-override': 'var(--field-foreground)',
               '--trees-search-bg-override': 'var(--field-background)',
@@ -138,7 +142,7 @@ function FileExplorerHeader({
   return (
     <div className='flex h-8 items-center justify-between gap-2 px-2 pt-1 pb-2'>
       <div
-        className='text-foreground min-w-0 truncate text-xs font-medium'
+        className='text-muted min-w-0 truncate text-xs font-medium'
         title={projectName}
       >
         {projectName}

@@ -67,6 +67,23 @@ function useDirectoryExpansionWatcher(
   }, [model]);
 }
 
+const LAZY_TREE_UNSAFE_CSS = `
+:host {
+  --trees-bg-override: transparent;
+  --trees-bg-muted-override: transparent;
+}
+
+/* Hide when closed — required, otherwise the input is always visible. */
+[data-file-tree-search-container][data-open='false'] {
+  display: none;
+}
+
+[data-file-tree-search-input] {
+  margin-left: 1px;
+  margin-right: 1px;
+}
+`;
+
 export function useLazyFileTree({
   root,
   wsUrl,
@@ -123,12 +140,7 @@ export function useLazyFileTree({
     // The tree's own background tokens are suppressed so the explorer panel's
     // `bg-surface` shows through, same as the demo's TREE_APP_DEMO_UNSAFE_CSS
     // combined with the container styling in FileExplorer.
-    unsafeCSS: `
-      :host {
-        --trees-bg-override: transparent;
-        --trees-bg-muted-override: transparent;
-      }
-    `,
+    unsafeCSS: LAZY_TREE_UNSAFE_CSS,
   });
 
   const loadDirectory = useCallback(
