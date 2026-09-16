@@ -30,6 +30,7 @@ export interface UseLazyFileTreeResult {
   socket: FsSocket;
   error: string | null;
   gitStatus: readonly GitStatusEntry[];
+  isTreeLoading: boolean;
   createFile: (parentDir: string) => void;
   createFolder: (parentDir: string) => void;
   /** User-initiated delete. Only this API is allowed to remove files on disk. */
@@ -346,6 +347,8 @@ export function useLazyFileTree({
     [model, socket, reportError],
   );
 
+  const [isTreeLoading, setIsTreeLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     loadedDirs.current.add('');
@@ -356,18 +359,19 @@ export function useLazyFileTree({
         model.resetPaths(
           result.entries.map((e) => normalizePath(e.path, e.kind === 'dir')),
         );
+        setIsTreeLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
         reportError(
           err instanceof Error ? err : new Error('Failed to list root'),
         );
+        setIsTreeLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, [model, socket, reportError]);
-
   useDirectoryExpansionWatcher(model, loadDirectory);
 
   // ── Mutation → FS bridge ───────────────────────────────────────────
@@ -656,6 +660,7 @@ export function useLazyFileTree({
     socket,
     error,
     gitStatus,
+    isTreeLoading,
     createFile,
     createFolder,
     deletePath,

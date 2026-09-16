@@ -3,12 +3,13 @@
 import { cn } from '@aero/ui';
 import { Hashtag } from '@gravity-ui/icons';
 import { File as PierreFile, Virtualizer } from '@pierre/diffs/react';
-import { IconRefresh, IconWordWrap } from '@pierre/icons';
+import { IconWordWrap } from '@pierre/icons';
 import type { CSSProperties } from 'react';
 import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -19,6 +20,7 @@ import {
   getFileName,
   getMediaKind,
 } from '@/app/components/chat-aside/files/file-helpers';
+import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 import { MediaPreview } from '@/app/components/chat-aside/files/media-preview';
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
@@ -94,9 +96,11 @@ function getPierreShadowCss(fontSize: number): string {
   --diffs-line-height: 1.65;
 }
 
-pre {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+[data-gutter],
+[data-column-number] {
+  background-color: color-mix(in oklab, var(--surface) 30%, transparent) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
 }
 
 [data-code] {
@@ -136,12 +140,9 @@ pre {
 const PIERRE_FILE_STYLE: CSSProperties = {
   flex: '1 1 auto',
   minWidth: '100%',
+  minHeight: '100%',
   background: 'transparent',
 };
-
-const DEFAULT_FONT_SIZE = 12.5;
-const MIN_FONT_SIZE = 10;
-const MAX_FONT_SIZE = 18;
 
 function CopyIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -224,16 +225,54 @@ export const FileContentPane = memo(function FileContentPane({
   }>({ files: new Map(), errors: new Map() });
 
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
-  const [wrapText, setWrapText] = useState(false);
-  const [showLineNumbers, setShowLineNumbers] = useState(false);
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+
   const [copied, setCopied] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Per-user viewer preferences. Persisted to localStorage via zustand so a
+  // font-size bump or wrap toggle survives reloads and follows the user
+  // across files and sessions. Granular selectors keep re-renders scoped to
+  // the value that actually changed.
+  const wrapText = useFileViewerStore((s) => s.wrapText);
+  const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
+  const fontSize = useFileViewerStore((s) => s.fontSize);
+  const increaseFontSize = useFileViewerStore((s) => s.increaseFontSize);
+  const decreaseFontSize = useFileViewerStore((s) => s.decreaseFontSize);
+  const toggleWrapText = useFileViewerStore((s) => s.toggleWrapText);
+  const toggleLineNumbers = useFileViewerStore((s) => s.toggleLineNumbers);
+
+  // Scroll preservation across PierreFile remounts.
+  //
+  // The Virtualizer and the plain scroll container both own a scrollable
+  // element that changes whenever `renderKey` changes. Before the remount
+  // we capture the current scrollTop; after the remount we write it back to
+  // whichever descendant is the active scroll container. This is what keeps
+  // word-wrap / font-size toggles from jumping to the top.
+  const outerRef = useRef<HTMLDivElement | null>(null);
+  const savedScrollTop = useRef(0);
+  const lastPathRef = useRef(path);
+
   useEffect(() => {
-    setWrapText(false);
-  }, [path]);
+    const el = outerRef.current;
+    if (!el) return;
+    // Scroll events don't bubble out of shadow DOM, but the inner scroll
+    // container is a regular element here — capture phase guarantees we see
+    // it regardless of nesting.
+    const onScroll = (e: Event) => {
+      const t = e.target;
+      if (t instanceof HTMLElement) {
+        savedScrollTop.current = t.scrollTop;
+      }
+    };
+    el.addEventListener('scroll', onScroll, {
+      passive: true,
+      capture: true,
+    });
+    return () => {
+      el.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, []);
 
   useEffect(() => {
     if (!path) return;
@@ -324,13 +363,39 @@ export const FileContentPane = memo(function FileContentPane({
     setRefreshKey((k) => k + 1);
   }, [path]);
 
-  const increaseFontSize = useCallback(() => {
-    setFontSize((s) => Math.min(MAX_FONT_SIZE, s + 1));
-  }, []);
+  // `viewerKey` is the file identity. `layoutKey` carries every option that
+  // affects Pierre's line measurement (font size and line-number gutter).
+  // Including it in the PierreFile cacheKey and the Virtualizer key forces a
+  // clean prepare+render on every toggle. Without this, Pierre compares a
+  // stale prepared layout against the fresh render and throws the
+  // "rendered a different file than its prepared layout" error — which also
+  // manifested as blank content on short files like `.txt` and `.lock`.
+  const viewerKey = file
+    ? `${file.path}:${resolvedTheme}:${file.mtimeMs}:${refreshKey}`
+    : '';
+  const layoutKey = file ? `${fontSize}:${showLineNumbers ? 'n' : ''}` : '';
+  const renderKey = `${viewerKey}:${layoutKey}:${wrapText ? 'wrap' : 'scroll'}`;
 
-  const decreaseFontSize = useCallback(() => {
-    setFontSize((s) => Math.max(MIN_FONT_SIZE, s - 1));
-  }, []);
+  // Restore scroll after the remount. Reset on path change so opening a new
+  // file starts at the top.
+  useLayoutEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+
+    const pathChanged = lastPathRef.current !== path;
+    lastPathRef.current = path;
+    if (pathChanged) savedScrollTop.current = 0;
+
+    if (savedScrollTop.current <= 0) return;
+
+    const nodes = el.querySelectorAll<HTMLElement>('*');
+    for (const node of nodes) {
+      if (node.scrollHeight > node.clientHeight + 1) {
+        node.scrollTop = savedScrollTop.current;
+        return;
+      }
+    }
+  }, [path, renderKey]);
 
   if (!path) {
     return (
@@ -359,16 +424,6 @@ export const FileContentPane = memo(function FileContentPane({
   if (!file) return null;
 
   const fileName = getFileName(file.path);
-  const viewerKey = `${file.path}:${resolvedTheme}:${file.mtimeMs}:${refreshKey}`;
-  const renderKey = `${viewerKey}:${wrapText ? 'wrap' : 'scroll'}`;
-
-  const lineCount = file.content ? file.content.split('\n').length : 0;
-  const sizeLabel =
-    file.size < 1024
-      ? `${file.size} B`
-      : file.size < 1024 * 1024
-        ? `${(file.size / 1024).toFixed(1)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
   const pierreFile = (
     <PierreFile
@@ -377,7 +432,7 @@ export const FileContentPane = memo(function FileContentPane({
         name: file.path,
         contents: file.content ?? '',
         header: undefined,
-        cacheKey: viewerKey,
+        cacheKey: `${viewerKey}:${layoutKey}`,
       }}
       options={{
         theme: pierreTheme,
@@ -421,7 +476,7 @@ export const FileContentPane = memo(function FileContentPane({
               <ToolbarButton
                 label={wrapText ? 'Disable word wrap' : 'Enable word wrap'}
                 active={wrapText}
-                onClick={() => setWrapText((v) => !v)}
+                onClick={toggleWrapText}
               >
                 <IconWordWrap className='size-3' />
               </ToolbarButton>
@@ -431,7 +486,7 @@ export const FileContentPane = memo(function FileContentPane({
                   showLineNumbers ? 'Hide line numbers' : 'Show line numbers'
                 }
                 active={showLineNumbers}
-                onClick={() => setShowLineNumbers((v) => !v)}
+                onClick={toggleLineNumbers}
               >
                 <Hashtag className='size-3.5' />
               </ToolbarButton>
@@ -454,7 +509,10 @@ export const FileContentPane = memo(function FileContentPane({
         </div>
       </div>
 
-      <div className='min-h-0 min-w-0 flex-1 basis-0'>
+      <div
+        ref={outerRef}
+        className='min-h-0 min-w-0 flex-1 basis-0 overflow-hidden'
+      >
         {mediaKind && mediaUrl && !file.truncated && (
           <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />
         )}
@@ -487,6 +545,7 @@ export const FileContentPane = memo(function FileContentPane({
               display: 'flex',
               minHeight: '100%',
               width: '100%',
+              alignItems: 'stretch',
             }}
           >
             {pierreFile}

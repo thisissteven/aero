@@ -5,7 +5,6 @@ import {
   ArrowUpRightFromSquare,
   Globe,
   LayoutSplitColumns,
-  SquareChartBar,
 } from '@gravity-ui/icons';
 import { File, PatchDiff } from '@pierre/diffs/react';
 import { IconWordWrap } from '@pierre/icons';
@@ -28,9 +27,9 @@ import {
 
 // ── Shadow-root CSS ─────────────────────────────────────────────────────────
 //
-// Page CSS can't cross into Pierre's shadow root, so this is the only place
-// we can style the internals. It's deliberately small: kill Pierre's own
-// padding + backgrounds, match our typography, and dim the gutter.
+// Do NOT set `color-scheme` here. Pierre's theme CSS uses `light-dark()`
+// extensively, and forcing the scheme overrides whatever `themeType` was
+// passed — the diff/file render in the wrong mode.
 
 const PIERRE_SHADOW_CSS = `
 :host {
@@ -151,7 +150,6 @@ export function CodeBlockRoot({
     <CodeBlockContext.Provider value={value}>
       <div
         className={cn(
-          // Framing: subtle surface, hairline border, generous radius.
           'group/code-block w-full min-w-0 overflow-hidden rounded-lg',
           'border border-separator',
           'text-[13px] text-foreground',
@@ -181,8 +179,6 @@ export const CodeBlockHeader = memo(function CodeBlockHeader({
   return (
     <div
       className={cn(
-        // Compact single-line header. No background of its own — the
-        // hairline at the bottom is what separates it from the code.
         'flex h-8 items-center justify-between gap-2 border-b border-separator pl-3 pr-1',
         'text-muted',
         className,
@@ -207,8 +203,6 @@ export const CodeBlockFooter = memo(function CodeBlockFooter({
   return (
     <div
       className={cn(
-        // Mirrors the header: same height + padding, hairline on top so the
-        // block reads as a symmetric frame around the code. Muted by default.
         'flex h-8 items-center justify-end gap-2 border-t border-separator px-3',
         'text-muted text-xs bg-surface',
         className,
@@ -288,6 +282,7 @@ export const CodeBlockCode = memo(function CodeBlockCode({
             overflow: wrap ? 'wrap' : 'scroll',
             unsafeCSS: mergedCSS,
           }}
+          className={className}
         />
       );
     }
@@ -303,6 +298,7 @@ export const CodeBlockCode = memo(function CodeBlockCode({
           overflow: wrap ? 'wrap' : 'scroll',
           unsafeCSS: mergedCSS,
         }}
+        className={className}
       />
     );
   })();
@@ -314,7 +310,6 @@ export const CodeBlockCode = memo(function CodeBlockCode({
         'overflow-y-auto',
         wrap ? 'overflow-x-hidden' : 'overflow-x-auto',
         '[&_pre]:!bg-transparent',
-        className,
       )}
       data-line-numbers={showLineNumbers || undefined}
       data-slot='code-block-code'
@@ -366,7 +361,7 @@ export const CodeBlockDiff = memo(function CodeBlockDiff({
 
   return (
     <div
-      className={cn('min-w-0 [&_pre]:!bg-transparent', className)}
+      className={cn('min-w-0 [&_pre]:!bg-transparent')}
       data-slot='code-block-code'
       data-variant='diff'
       style={{ maxHeight: '40vh', ...style }}
@@ -382,6 +377,7 @@ export const CodeBlockDiff = memo(function CodeBlockDiff({
           overflow: wrap ? 'wrap' : 'scroll',
           unsafeCSS: mergedCSS,
         }}
+        className={className}
       />
     </div>
   );
@@ -482,9 +478,6 @@ const CopyMotionIcon = memo(function CopyMotionIcon({
 });
 
 // ── Buttons ─────────────────────────────────────────────────────────────────
-//
-// All header actions share the same treatment: ghost, small, muted by
-// default, full opacity when the block is hovered.
 
 const actionButtonClass = cn(
   'size-6 min-w-6 shrink-0 rounded-md text-muted',
@@ -561,7 +554,6 @@ export const CodeBlockViewModeButton = memo(function CodeBlockViewModeButton({
 export interface CodeBlockOpenInBrowserButtonProps {
   'aria-label'?: string;
   className?: string;
-  /** Called when the button is pressed. */
   onClick: () => void;
 }
 
@@ -592,7 +584,6 @@ export const CodeBlockOpenInBrowserButton = memo(
 export interface CodeBlockOpenButtonProps {
   'aria-label'?: string;
   className?: string;
-  /** Called when the button is pressed. */
   onClick: () => void;
 }
 

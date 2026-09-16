@@ -289,7 +289,9 @@ export function BaseTool({
 
                 {isExpanded && (
                   <CodeBlockContent
-                    className={cn(patch ? '' : 'p-1.5')}
+                    className={cn(
+                      patch ? '' : showLineNumbers ? 'py-1.5' : 'p-1.5 pr-0',
+                    )}
                     code={code ?? ''}
                     language={language || 'text'}
                     scrollOverflow={code?.includes('\n') ?? false}

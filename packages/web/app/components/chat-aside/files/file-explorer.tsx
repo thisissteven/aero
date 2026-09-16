@@ -1,17 +1,13 @@
 'use client';
 
-import { cn, Dropdown, Label } from '@aero/ui';
-import {
-  IconFilePlus,
-  IconFolderPlus,
-  IconRefresh,
-  IconSearch,
-} from '@pierre/icons';
+import { cn, Dropdown, Label, Skeleton } from '@aero/ui';
+import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
 import type { ContextMenuOpenContext } from '@pierre/trees';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useTheme } from '@/app/providers';
@@ -37,6 +33,7 @@ export function FileExplorer({
   createFolder,
   deletePath,
   refresh,
+  isTreeLoading,
   treeHostRef,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
@@ -181,28 +178,6 @@ export function FileExplorer({
     [model, createFile, createFolder, deletePath],
   );
 
-  const header = useMemo<ReactNode>(
-    () =>
-      projectName ? (
-        <FileExplorerHeader
-          projectName={projectName}
-          isSearchOpen={search.isOpen}
-          onToggleSearch={toggleSearch}
-          onNewFile={() => createFile('')}
-          onNewFolder={() => createFolder('')}
-          onRefresh={refresh}
-        />
-      ) : null,
-    [
-      projectName,
-      search.isOpen,
-      toggleSearch,
-      createFile,
-      createFolder,
-      refresh,
-    ],
-  );
-
   return (
     <div
       className={cn(
@@ -211,10 +186,20 @@ export function FileExplorer({
       )}
       style={style}
     >
-      <div ref={wrapperRef} className='min-h-0 flex-1'>
+      {projectName ? (
+        <FileExplorerHeader
+          projectName={projectName}
+          isSearchOpen={search.isOpen}
+          onToggleSearch={toggleSearch}
+          onNewFile={() => createFile('')}
+          onNewFolder={() => createFolder('')}
+          onRefresh={refresh}
+        />
+      ) : null}
+
+      <div ref={wrapperRef} className='relative min-h-0 flex-1'>
         <FileTree
           model={model}
-          header={header}
           renderContextMenu={renderContextMenu}
           className='h-full pb-1'
           style={
@@ -261,10 +246,70 @@ export function FileExplorer({
             } as CSSProperties
           }
         />
+
+        {/*
+          Skeleton overlay sits on top of the tree's empty state while the
+          root directory listing is in flight. The tree stays mounted underneath
+          so treeHostRef keeps pointing at a live shadow root for the search
+          listener — conditionally unmounting the tree would break that effect.
+        */}
+        {isTreeLoading ? (
+          <div className='absolute inset-0'>
+            <FileExplorerSkeleton />
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
+
+// ── Skeleton ────────────────────────────────────────────────────────────
+
+function FileExplorerSkeleton() {
+  // Varying widths make the placeholder read as a list of files/folders
+  // rather than a uniform grid. Heights match `--trees-row-height` (24px)
+  // so the swap from skeleton to real rows doesn't jump.
+  const widths = [
+    'w-2/5',
+    'w-3/5',
+    'w-1/2',
+    'w-4/5',
+    'w-2/3',
+    'w-1/2',
+    'w-3/4',
+    'w-2/5',
+    'w-3/5',
+    'w-1/2',
+    'w-4/5',
+    'w-2/3',
+    'w-1/2',
+    'w-3/4',
+    'w-2/5',
+    'w-3/5',
+    'w-1/2',
+    'w-4/5',
+    'w-2/3',
+    'w-1/2',
+    'w-3/4',
+  ];
+
+  return (
+    <div
+      className='flex flex-col gap-1.5 px-3 pt-1 overflow-y-hidden max-h-full'
+      aria-hidden='true'
+    >
+      {widths.map((width, index) => (
+        <Skeleton
+          key={index}
+          className={cn('h-6 shrink-0 rounded-md', width)}
+          style={{ animationDelay: `${index * 80}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Header ─────────────────────────────────────────────────────────────
 
 interface FileExplorerHeaderProps {
   projectName: string;
@@ -284,7 +329,7 @@ function FileExplorerHeader({
   onRefresh,
 }: FileExplorerHeaderProps) {
   return (
-    <div className='flex h-8 items-center justify-between gap-2 px-2 pt-1 pb-2'>
+    <div className='flex h-8 shrink-0 items-center justify-between gap-2 px-2 pt-1 pb-2'>
       <div
         className='text-foreground ml-1 min-w-0 truncate text-xs font-medium'
         title={projectName}
@@ -311,7 +356,7 @@ function FileExplorerHeader({
               : 'text-muted hover:text-foreground opacity-25 group-hover/file-explorer:opacity-100',
           )}
         >
-          <IconSearch aria-hidden='true' className='size-3 mt-0.25' />
+          <IconSearch aria-hidden='true' className='mt-0.25 size-3' />
         </button>
 
         <div

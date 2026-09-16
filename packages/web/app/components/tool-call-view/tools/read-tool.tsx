@@ -40,6 +40,7 @@ export const ReadToolView = memo(
         copyText={output}
         isStreaming={isStreaming}
         showLineNumbers
+        isFile
       />
     );
   },
