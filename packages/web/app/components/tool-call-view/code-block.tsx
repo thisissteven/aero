@@ -8,6 +8,7 @@ import {
   SquareChartBar,
 } from '@gravity-ui/icons';
 import { File, PatchDiff } from '@pierre/diffs/react';
+import { IconWordWrap } from '@pierre/icons';
 import type {
   ComponentPropsWithRef,
   ReactElement,
@@ -517,7 +518,7 @@ export const CodeBlockWrapButton = memo(function CodeBlockWrapButton({
       onPress={toggle}
       {...props}
     >
-      <SquareChartBar className='size-3.5' />
+      <IconWordWrap className='size-3.25 mb-1.25' />
     </Button>
   );
 });

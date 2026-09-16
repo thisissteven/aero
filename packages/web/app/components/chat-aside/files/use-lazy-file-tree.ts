@@ -35,6 +35,7 @@ export interface UseLazyFileTreeResult {
   /** User-initiated delete. Only this API is allowed to remove files on disk. */
   deletePath: (path: string, isDir: boolean) => void;
   refreshGitStatus: () => void;
+  refresh: () => void;
   treeHostRef: React.RefObject<HTMLElement | null>;
 }
 
@@ -269,6 +270,24 @@ export function useLazyFileTree({
         gitInFlightRef.current = false;
       });
   }, [model, socket]);
+
+  const refresh = useCallback(() => {
+    loadedDirs.current.clear();
+    loadedDirs.current.add('');
+    socket
+      .list('')
+      .then((result) => {
+        model.resetPaths(
+          result.entries.map((e) => normalizePath(e.path, e.kind === 'dir')),
+        );
+      })
+      .catch((err) => {
+        reportError(
+          err instanceof Error ? err : new Error('Failed to refresh'),
+        );
+      });
+    refreshGitStatus();
+  }, [model, socket, reportError, refreshGitStatus]);
 
   const gitRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMutationAtRef = useRef(0);
@@ -641,6 +660,7 @@ export function useLazyFileTree({
     createFolder,
     deletePath,
     refreshGitStatus,
+    refresh,
     treeHostRef,
   };
 }

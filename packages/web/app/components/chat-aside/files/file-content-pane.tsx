@@ -1,11 +1,19 @@
 'use client';
 
 import { cn } from '@aero/ui';
-import { Text } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
+import { Hashtag } from '@gravity-ui/icons';
 import { File as PierreFile, Virtualizer } from '@pierre/diffs/react';
+import { IconRefresh, IconWordWrap } from '@pierre/icons';
 import type { CSSProperties } from 'react';
-import { memo, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {
   base64ToBlob,
   getFileName,
@@ -13,6 +21,7 @@ import {
 } from '@/app/components/chat-aside/files/file-helpers';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 import { MediaPreview } from '@/app/components/chat-aside/files/media-preview';
+import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { ColorTheme, useTheme } from '@/app/providers';
 
@@ -75,12 +84,13 @@ function getPierreTheme(
   return { dark: mapped.dark, light: mapped.light };
 }
 
-const PIERRE_SHADOW_CSS = `
+function getPierreShadowCss(fontSize: number): string {
+  return `
 :host {
   --diffs-dark-bg: transparent !important;
   --diffs-light-bg: transparent !important;
   --diffs-font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-  --diffs-font-size: 12.5px;
+  --diffs-font-size: ${fontSize}px;
   --diffs-line-height: 1.65;
 }
 
@@ -121,12 +131,86 @@ pre {
   background-color: color-mix(in oklab, currentColor 30%, transparent);
 }
 `;
+}
 
 const PIERRE_FILE_STYLE: CSSProperties = {
   flex: '1 1 auto',
   minWidth: '100%',
   background: 'transparent',
 };
+
+const DEFAULT_FONT_SIZE = 12.5;
+const MIN_FONT_SIZE = 10;
+const MAX_FONT_SIZE = 18;
+
+function CopyIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      fill='none'
+      height='16'
+      viewBox='0 0 16 16'
+      width='16'
+      xmlns='http://www.w3.org/2000/svg'
+      {...props}
+    >
+      <path
+        clipRule='evenodd'
+        d='M12 2.5H8A1.5 1.5 0 0 0 6.5 4v1H8a3 3 0 0 1 3 3v1.5h1A1.5 1.5 0 0 0 13.5 8V4A1.5 1.5 0 0 0 12 2.5M11 11h1a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v1H4a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3zM4 6.5h4A1.5 1.5 0 0 1 9.5 8v4A1.5 1.5 0 0 1 8 13.5H4A1.5 1.5 0 0 1 2.5 12V8A1.5 1.5 0 0 1 4 6.5'
+        fill='currentColor'
+        fillRule='evenodd'
+      />
+    </svg>
+  );
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      fill='none'
+      height='16'
+      viewBox='0 0 16 16'
+      width='16'
+      xmlns='http://www.w3.org/2000/svg'
+      {...props}
+    >
+      <path
+        clipRule='evenodd'
+        d='M13.488 3.43a.75.75 0 0 1 .081 1.058l-6 7a.75.75 0 0 1-1.1.042l-3.5-3.5A.75.75 0 0 1 4.03 6.97l2.928 2.927 5.473-6.385a.75.75 0 0 1 1.057-.081'
+        fill='currentColor'
+        fillRule='evenodd'
+      />
+    </svg>
+  );
+}
+
+function ToolbarButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type='button'
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
+        'text-muted hover:bg-surface-hover hover:text-foreground transition-colors',
+        active && 'bg-surface-hover text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 export const FileContentPane = memo(function FileContentPane({
   socket,
@@ -141,6 +225,11 @@ export const FileContentPane = memo(function FileContentPane({
 
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   const [wrapText, setWrapText] = useState(false);
+  const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [copied, setCopied] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setWrapText(false);
@@ -179,7 +268,13 @@ export const FileContentPane = memo(function FileContentPane({
     return () => {
       cancelled = true;
     };
-  }, [path, socket]);
+  }, [path, socket, refreshKey]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+    };
+  }, []);
 
   const file = path ? (cacheRef.current.files.get(path) ?? null) : null;
   const error = path ? (cacheRef.current.errors.get(path) ?? null) : null;
@@ -189,6 +284,8 @@ export const FileContentPane = memo(function FileContentPane({
     () => getPierreTheme(colorTheme, resolvedTheme),
     [colorTheme, resolvedTheme],
   );
+
+  const shadowCss = useMemo(() => getPierreShadowCss(fontSize), [fontSize]);
 
   const mediaKind = getMediaKind(file?.mimeType ?? null);
 
@@ -205,9 +302,39 @@ export const FileContentPane = memo(function FileContentPane({
     };
   }, [mediaUrl]);
 
+  const copyContent = useCallback(async () => {
+    if (!file?.content) return;
+    try {
+      await navigator.clipboard.writeText(file.content);
+      setCopied(true);
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+      copyTimeout.current = setTimeout(() => {
+        setCopied(false);
+        copyTimeout.current = null;
+      }, 2000);
+    } catch {
+      /* clipboard permission denied */
+    }
+  }, [file]);
+
+  const refreshFile = useCallback(() => {
+    if (!path) return;
+    cacheRef.current.files.delete(path);
+    cacheRef.current.errors.delete(path);
+    setRefreshKey((k) => k + 1);
+  }, [path]);
+
+  const increaseFontSize = useCallback(() => {
+    setFontSize((s) => Math.min(MAX_FONT_SIZE, s + 1));
+  }, []);
+
+  const decreaseFontSize = useCallback(() => {
+    setFontSize((s) => Math.max(MIN_FONT_SIZE, s - 1));
+  }, []);
+
   if (!path) {
     return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-center text-sm @max-sm:break-all'>
         Select a file to view its contents.
       </div>
     );
@@ -215,7 +342,7 @@ export const FileContentPane = memo(function FileContentPane({
 
   if (isLoading) {
     return (
-      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-center text-sm @max-sm:break-all'>
         Loading…
       </div>
     );
@@ -223,7 +350,7 @@ export const FileContentPane = memo(function FileContentPane({
 
   if (error) {
     return (
-      <div className='text-danger flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm @max-sm:break-all text-center'>
+      <div className='text-danger flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-center text-sm @max-sm:break-all'>
         {error}
       </div>
     );
@@ -232,11 +359,16 @@ export const FileContentPane = memo(function FileContentPane({
   if (!file) return null;
 
   const fileName = getFileName(file.path);
-  const viewerKey = `${file.path}:${resolvedTheme}:${file.mtimeMs}`;
-  // Remount scope for the Pierre surface. Includes wrap mode because the
-  // virtualizer cannot be reused across a scroll↔wrap switch — it prepares
-  // a layout for one mode and throws when the other tries to render under it.
+  const viewerKey = `${file.path}:${resolvedTheme}:${file.mtimeMs}:${refreshKey}`;
   const renderKey = `${viewerKey}:${wrapText ? 'wrap' : 'scroll'}`;
+
+  const lineCount = file.content ? file.content.split('\n').length : 0;
+  const sizeLabel =
+    file.size < 1024
+      ? `${file.size} B`
+      : file.size < 1024 * 1024
+        ? `${(file.size / 1024).toFixed(1)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
   const pierreFile = (
     <PierreFile
@@ -252,7 +384,9 @@ export const FileContentPane = memo(function FileContentPane({
         themeType: resolvedTheme,
         overflow: wrapText ? 'wrap' : 'scroll',
         disableFileHeader: true,
-        unsafeCSS: PIERRE_SHADOW_CSS,
+        disableLineNumbers: !showLineNumbers,
+        enableLineSelection: true,
+        unsafeCSS: shadowCss,
       }}
     />
   );
@@ -268,24 +402,56 @@ export const FileContentPane = memo(function FileContentPane({
           {fileName}
         </div>
 
-        {!file.binary && !mediaKind && (
-          <button
-            type='button'
-            aria-label={
-              wrapText ? 'Disable text wrapping' : 'Enable text wrapping'
-            }
-            aria-pressed={wrapText}
-            title={wrapText ? 'Disable text wrapping' : 'Enable text wrapping'}
-            className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
-              'text-muted hover:bg-surface-hover hover:text-foreground transition-colors',
-              wrapText && 'bg-surface-hover text-foreground',
-            )}
-            onClick={() => setWrapText((v) => !v)}
-          >
-            <Icon data={Text} size={16} />
-          </button>
-        )}
+        <div className='flex items-center gap-0.5'>
+          {!file.binary && !mediaKind && (
+            <>
+              <ToolbarButton
+                label='Decrease font size'
+                onClick={decreaseFontSize}
+              >
+                <span className='text-xs font-medium'>A-</span>
+              </ToolbarButton>
+              <ToolbarButton
+                label='Increase font size'
+                onClick={increaseFontSize}
+              >
+                <span className='text-xs font-medium'>A+</span>
+              </ToolbarButton>
+
+              <ToolbarButton
+                label={wrapText ? 'Disable word wrap' : 'Enable word wrap'}
+                active={wrapText}
+                onClick={() => setWrapText((v) => !v)}
+              >
+                <IconWordWrap className='size-3' />
+              </ToolbarButton>
+
+              <ToolbarButton
+                label={
+                  showLineNumbers ? 'Hide line numbers' : 'Show line numbers'
+                }
+                active={showLineNumbers}
+                onClick={() => setShowLineNumbers((v) => !v)}
+              >
+                <Hashtag className='size-3.5' />
+              </ToolbarButton>
+
+              <ToolbarButton
+                label={copied ? 'Copied' : 'Copy contents'}
+                active={copied}
+                onClick={copyContent}
+              >
+                {copied ? (
+                  <CheckIcon className='h-3.5 w-3.5' />
+                ) : (
+                  <CopyIcon className='h-3.5 w-3.5' />
+                )}
+              </ToolbarButton>
+            </>
+          )}
+
+          <RefreshButton label='Reload file' onClick={refreshFile} />
+        </div>
       </div>
 
       <div className='min-h-0 min-w-0 flex-1 basis-0'>
@@ -306,23 +472,6 @@ export const FileContentPane = memo(function FileContentPane({
           </div>
         )}
 
-        {/*
-          Two rendering paths, picked by wrap mode:
-
-          - Wrap OFF → Virtualizer. Every line is one row tall, so the
-            virtualizer's math is exact and only the visible slice is
-            mounted. This is the fast path for large files.
-
-          - Wrap ON  → plain scroll container. Wrapped lines have variable
-            heights that the virtualizer cannot predict; letting it try
-            triggers "rendered a different file than its prepared layout"
-            and breaks scrolling. Non-virtualized wrap is still fine for
-            the file sizes that typically need wrapping.
-
-          The wrapper carries `renderKey`, not PierreFile. If the key sat on
-          PierreFile, React would remount just the inner component and leave
-          a stale Virtualizer parent that prepared for the previous file.
-        */}
         {!file.binary && !mediaKind && wrapText && (
           <div key={renderKey} className='scrollbar-thin h-full overflow-auto'>
             {pierreFile}

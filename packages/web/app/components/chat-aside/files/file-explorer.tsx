@@ -1,14 +1,18 @@
 'use client';
 
-import { cn, Dropdown, Label, logger } from '@aero/ui';
-import { Ellipsis } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
-import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
+import { cn, Dropdown, Label } from '@aero/ui';
+import {
+  IconFilePlus,
+  IconFolderPlus,
+  IconRefresh,
+  IconSearch,
+} from '@pierre/icons';
 import type { ContextMenuOpenContext } from '@pierre/trees';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useTheme } from '@/app/providers';
 
@@ -32,6 +36,7 @@ export function FileExplorer({
   createFile,
   createFolder,
   deletePath,
+  refresh,
   treeHostRef,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
@@ -66,20 +71,6 @@ export function FileExplorer({
     search.open();
   }, [search]);
 
-  // ── Context menu content ───────────────────────────────────────────
-  //
-  // The menu is portaled to document.body so it escapes the tree's own
-  // scroll container (which has `overflow: auto` for virtualization and
-  // would otherwise clip the menu at its bounds). Positioning is done
-  // manually from `context.anchorRect`, which Pierre reports in viewport
-  // coordinates — a `position: fixed` box at those coordinates lands
-  // exactly where Pierre's own popover would have opened.
-  //
-  // The `data-file-tree-context-menu-root` marker is what tells Pierre's
-  // click-outside handler that clicks on this element belong to the menu,
-  // not to the tree. Without it, clicking a menu button would dismiss the
-  // menu before onClick fires.
-
   const renderContextMenu = useCallback(
     (
       item: { path: string; kind: 'file' | 'directory' },
@@ -106,6 +97,8 @@ export function FileExplorer({
               return;
             }
             deletePath(item.path, isDir);
+          } else if (key === 'copy-path') {
+            void navigator.clipboard.writeText(item.path);
           }
         }, 0);
       };
@@ -131,16 +124,7 @@ export function FileExplorer({
               border: 0,
               padding: 0,
             }}
-          >
-            <Icon
-              data={Ellipsis}
-              className='opacity-50 transition-opacity hover:opacity-80'
-              style={{
-                width: 14,
-                height: 14,
-              }}
-            />
-          </Dropdown.Trigger>
+          />
           <Dropdown.Popover
             placement='bottom start'
             offset={0}
@@ -168,6 +152,13 @@ export function FileExplorer({
                   onClick={() => handleAction('rename')}
                 >
                   <Label>Rename</Label>
+                </Dropdown.Item>
+                <Dropdown.Item
+                  id='copy-path'
+                  textValue='Copy path'
+                  onClick={() => handleAction('copy-path')}
+                >
+                  <Label>Copy path</Label>
                 </Dropdown.Item>
                 <Dropdown.Item
                   id='delete'
@@ -199,9 +190,17 @@ export function FileExplorer({
           onToggleSearch={toggleSearch}
           onNewFile={() => createFile('')}
           onNewFolder={() => createFolder('')}
+          onRefresh={refresh}
         />
       ) : null,
-    [projectName, search.isOpen, toggleSearch, createFile, createFolder],
+    [
+      projectName,
+      search.isOpen,
+      toggleSearch,
+      createFile,
+      createFolder,
+      refresh,
+    ],
   );
 
   return (
@@ -267,14 +266,13 @@ export function FileExplorer({
   );
 }
 
-// ── Header ─────────────────────────────────────────────────────────────
-
 interface FileExplorerHeaderProps {
   projectName: string;
   isSearchOpen: boolean;
   onToggleSearch: () => void;
   onNewFile: () => void;
   onNewFolder: () => void;
+  onRefresh: () => void;
 }
 
 function FileExplorerHeader({
@@ -283,6 +281,7 @@ function FileExplorerHeader({
   onToggleSearch,
   onNewFile,
   onNewFolder,
+  onRefresh,
 }: FileExplorerHeaderProps) {
   return (
     <div className='flex h-8 items-center justify-between gap-2 px-2 pt-1 pb-2'>
@@ -312,7 +311,7 @@ function FileExplorerHeader({
               : 'text-muted hover:text-foreground opacity-25 group-hover/file-explorer:opacity-100',
           )}
         >
-          <IconSearch aria-hidden='true' className='h-[14px] w-[14px]' />
+          <IconSearch aria-hidden='true' className='size-3 mt-0.25' />
         </button>
 
         <div
@@ -322,6 +321,11 @@ function FileExplorerHeader({
             'group-hover/file-explorer:opacity-100 focus-within:opacity-100',
           )}
         >
+          <RefreshButton
+            classNameOverride='relative text-muted hover:text-foreground flex h-4 w-4 cursor-pointer items-center justify-center'
+            label='Refresh'
+            onClick={onRefresh}
+          />
           <button
             type='button'
             title='New file'
