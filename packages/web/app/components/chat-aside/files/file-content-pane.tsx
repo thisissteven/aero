@@ -1,7 +1,12 @@
 'use client';
 
 import { cn } from '@aero/ui';
-import { Hashtag } from '@gravity-ui/icons';
+import { FloppyDisk, Hashtag } from '@gravity-ui/icons';
+import type {
+  Editor,
+  EditorChangeEvent,
+  EditorOptions,
+} from '@pierre/diffs/edit';
 import { File as PierreFile, Virtualizer } from '@pierre/diffs/react';
 import { IconWordWrap } from '@pierre/icons';
 import type { CSSProperties } from 'react';
@@ -15,6 +20,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import {
+  useFileEditStore,
+  useIsDirty,
+} from '@/app/components/chat-aside/files/file-edit-store';
 import {
   base64ToBlob,
   getFileName,
@@ -103,6 +112,11 @@ function getPierreShadowCss(fontSize: number): string {
   -webkit-backdrop-filter: blur(4px) !important;
 }
 
+pre {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
 [data-code] {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -187,11 +201,13 @@ function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
 function ToolbarButton({
   label,
   active,
+  disabled,
   onClick,
   children,
 }: {
   label: string;
   active?: boolean;
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -200,11 +216,13 @@ function ToolbarButton({
       type='button'
       aria-label={label}
       aria-pressed={active}
+      disabled={disabled}
       title={label}
       onClick={onClick}
       className={cn(
         'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
         'text-muted hover:bg-surface-hover hover:text-foreground transition-colors',
+        'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted',
         active && 'bg-surface-hover text-foreground',
       )}
     >
@@ -230,10 +248,33 @@ export const FileContentPane = memo(function FileContentPane({
   const [refreshKey, setRefreshKey] = useState(0);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Per-user viewer preferences. Persisted to localStorage via zustand so a
-  // font-size bump or wrap toggle survives reloads and follows the user
-  // across files and sessions. Granular selectors keep re-renders scoped to
-  // the value that actually changed.
+  // Edit state lives in a module-level zustand store so the tab bar can read
+  // "is this file dirty" without prop drilling. Buffers persist across file
+  // switches, panel unmounts, and route changes.
+  const setBuffer = useFileEditStore((s) => s.setBuffer);
+  const clearBuffer = useFileEditStore((s) => s.clearBuffer);
+  const setDiskContent = useFileEditStore((s) => s.setDiskContent);
+
+  // Read the buffered text for the current path. Selector returns a primitive
+  // so re-renders fire only when this specific path's buffer changes.
+  const bufferedContent = useFileEditStore((s) =>
+    path ? (s.buffers.get(path) ?? null) : null,
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Editor instance for the currently-mounted file. Pierre creates a new one
+  // each time <File edit> mounts, so this ref is refreshed via onAttach.
+  const editorRef = useRef<Editor<'file', unknown> | null>(null);
+
+  // The path the mounted editor belongs to. onEditChange doesn't get the
+  // path, so we capture it via ref.
+  const activePathRef = useRef(path);
+  useEffect(() => {
+    activePathRef.current = path;
+  }, [path]);
+
   const wrapText = useFileViewerStore((s) => s.wrapText);
   const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
   const fontSize = useFileViewerStore((s) => s.fontSize);
@@ -242,13 +283,6 @@ export const FileContentPane = memo(function FileContentPane({
   const toggleWrapText = useFileViewerStore((s) => s.toggleWrapText);
   const toggleLineNumbers = useFileViewerStore((s) => s.toggleLineNumbers);
 
-  // Scroll preservation across PierreFile remounts.
-  //
-  // The Virtualizer and the plain scroll container both own a scrollable
-  // element that changes whenever `renderKey` changes. Before the remount
-  // we capture the current scrollTop; after the remount we write it back to
-  // whichever descendant is the active scroll container. This is what keeps
-  // word-wrap / font-size toggles from jumping to the top.
   const outerRef = useRef<HTMLDivElement | null>(null);
   const savedScrollTop = useRef(0);
   const lastPathRef = useRef(path);
@@ -256,9 +290,6 @@ export const FileContentPane = memo(function FileContentPane({
   useEffect(() => {
     const el = outerRef.current;
     if (!el) return;
-    // Scroll events don't bubble out of shadow DOM, but the inner scroll
-    // container is a regular element here — capture phase guarantees we see
-    // it regardless of nesting.
     const onScroll = (e: Event) => {
       const t = e.target;
       if (t instanceof HTMLElement) {
@@ -273,6 +304,12 @@ export const FileContentPane = memo(function FileContentPane({
       el.removeEventListener('scroll', onScroll, { capture: true });
     };
   }, []);
+
+  // Clear the save error on path change. Buffers persist in the store.
+  useEffect(() => {
+    setSaveError(null);
+    editorRef.current = null;
+  }, [path]);
 
   useEffect(() => {
     if (!path) return;
@@ -293,6 +330,11 @@ export const FileContentPane = memo(function FileContentPane({
           mtimeMs: result.mtimeMs,
           mimeType: result.mimeType,
         });
+        // Publish the disk baseline so the store can decide "dirty" for the
+        // tab bar. Skip binary files — they can't be edited.
+        if (result.content != null) {
+          setDiskContent(path, result.content);
+        }
         forceUpdate();
       })
       .catch((err) => {
@@ -307,7 +349,7 @@ export const FileContentPane = memo(function FileContentPane({
     return () => {
       cancelled = true;
     };
-  }, [path, socket, refreshKey]);
+  }, [path, socket, refreshKey, setDiskContent]);
 
   useEffect(() => {
     return () => {
@@ -328,6 +370,14 @@ export const FileContentPane = memo(function FileContentPane({
 
   const mediaKind = getMediaKind(file?.mimeType ?? null);
 
+  const editable = !!file && !file.binary && !mediaKind && !file.truncated;
+
+  const currentContents = bufferedContent ?? file?.content ?? '';
+
+  // `useIsDirty` compares the buffer against the store's disk baseline. Using
+  // the same source for the pane and the tab bar keeps them in sync.
+  const isDirty = useIsDirty(path);
+
   const mediaUrl = useMemo(() => {
     if (!file?.content || !file.mimeType || !mediaKind || file.truncated) {
       return null;
@@ -344,7 +394,7 @@ export const FileContentPane = memo(function FileContentPane({
   const copyContent = useCallback(async () => {
     if (!file?.content) return;
     try {
-      await navigator.clipboard.writeText(file.content);
+      await navigator.clipboard.writeText(currentContents);
       setCopied(true);
       if (copyTimeout.current) clearTimeout(copyTimeout.current);
       copyTimeout.current = setTimeout(() => {
@@ -354,30 +404,106 @@ export const FileContentPane = memo(function FileContentPane({
     } catch {
       /* clipboard permission denied */
     }
-  }, [file]);
+  }, [file, currentContents]);
 
   const refreshFile = useCallback(() => {
     if (!path) return;
     cacheRef.current.files.delete(path);
     cacheRef.current.errors.delete(path);
+    clearBuffer(path);
+    setSaveError(null);
     setRefreshKey((k) => k + 1);
-  }, [path]);
+  }, [path, clearBuffer]);
 
-  // `viewerKey` is the file identity. `layoutKey` carries every option that
-  // affects Pierre's line measurement (font size and line-number gutter).
-  // Including it in the PierreFile cacheKey and the Virtualizer key forces a
-  // clean prepare+render on every toggle. Without this, Pierre compares a
-  // stale prepared layout against the fresh render and throws the
-  // "rendered a different file than its prepared layout" error — which also
-  // manifested as blank content on short files like `.txt` and `.lock`.
+  const editorOptions = useMemo<EditorOptions<'file', unknown, undefined>>(
+    () => ({
+      onAttach(editor) {
+        editorRef.current = editor;
+      },
+    }),
+    [],
+  );
+
+  const handleEditChange = useCallback(
+    (event: EditorChangeEvent<'file', unknown, undefined>) => {
+      const p = activePathRef.current;
+      if (!p) return;
+      setBuffer(p, event.file.contents);
+    },
+    [setBuffer],
+  );
+
+  const save = useCallback(async () => {
+    const p = path;
+    if (!p) return;
+
+    // Read the current buffer imperatively — we can't use a selector inside
+    // a callback, and we need the freshest value at click time.
+    const buffer = useFileEditStore.getState().buffers.get(p);
+    if (buffer == null) return;
+
+    setSaving(true);
+    setSaveError(null);
+
+    // Prefer the live editor buffer if we're on this path. Falls back to
+    // store state otherwise.
+    let contents = buffer;
+    if (activePathRef.current === p) {
+      try {
+        const live = editorRef.current?.getFile();
+        if (live && typeof live.contents === 'string') {
+          contents = live.contents;
+        }
+      } catch {
+        /* editor not attached — use state */
+      }
+    }
+
+    try {
+      await socket.writeFile(p, contents);
+
+      // Update the disk cache in place so the file reads as clean without a
+      // round-trip read.
+      const cached = cacheRef.current.files.get(p);
+      if (cached) {
+        cacheRef.current.files.set(p, {
+          ...cached,
+          content: contents,
+          size: contents.length,
+          mtimeMs: Date.now(),
+        });
+      }
+
+      // Publish the new disk baseline BEFORE clearing the buffer, so any
+      // subscriber that sees the clear also sees the correct baseline on
+      // the same tick.
+      setDiskContent(p, contents);
+      clearBuffer(p);
+      forceUpdate();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [path, socket, setDiskContent, clearBuffer]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
+      if (!isDirty) return;
+      e.preventDefault();
+      void save();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isDirty, save]);
+
   const viewerKey = file
     ? `${file.path}:${resolvedTheme}:${file.mtimeMs}:${refreshKey}`
     : '';
   const layoutKey = file ? `${fontSize}:${showLineNumbers ? 'n' : ''}` : '';
   const renderKey = `${viewerKey}:${layoutKey}:${wrapText ? 'wrap' : 'scroll'}`;
 
-  // Restore scroll after the remount. Reset on path change so opening a new
-  // file starts at the top.
   useLayoutEffect(() => {
     const el = outerRef.current;
     if (!el) return;
@@ -430,7 +556,7 @@ export const FileContentPane = memo(function FileContentPane({
       style={PIERRE_FILE_STYLE}
       file={{
         name: file.path,
-        contents: file.content ?? '',
+        contents: currentContents,
         header: undefined,
         cacheKey: `${viewerKey}:${layoutKey}`,
       }}
@@ -440,9 +566,11 @@ export const FileContentPane = memo(function FileContentPane({
         overflow: wrapText ? 'wrap' : 'scroll',
         disableFileHeader: true,
         disableLineNumbers: !showLineNumbers,
-        enableLineSelection: true,
         unsafeCSS: shadowCss,
       }}
+      edit={editable}
+      editorOptions={editorOptions}
+      onEditChange={handleEditChange}
     />
   );
 
@@ -455,6 +583,13 @@ export const FileContentPane = memo(function FileContentPane({
         >
           <FileTypeIcon filePath={fileName} />
           {fileName}
+          {isDirty && (
+            <span
+              className='bg-accent ml-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full'
+              aria-label='Unsaved changes'
+              title='Unsaved changes'
+            />
+          )}
         </div>
 
         <div className='flex items-center gap-0.5'>
@@ -502,12 +637,35 @@ export const FileContentPane = memo(function FileContentPane({
                   <CopyIcon className='h-3.5 w-3.5' />
                 )}
               </ToolbarButton>
+
+              {editable && (
+                <ToolbarButton
+                  label={
+                    saving
+                      ? 'Saving…'
+                      : isDirty
+                        ? 'Save changes'
+                        : 'No unsaved changes'
+                  }
+                  active={isDirty}
+                  disabled={!isDirty || saving}
+                  onClick={() => void save()}
+                >
+                  <FloppyDisk className='size-3.5' />
+                </ToolbarButton>
+              )}
             </>
           )}
 
           <RefreshButton label='Reload file' onClick={refreshFile} />
         </div>
       </div>
+
+      {saveError && (
+        <div className='border-separator text-danger border-b px-3 py-1.5 text-xs'>
+          {saveError}
+        </div>
+      )}
 
       <div
         ref={outerRef}

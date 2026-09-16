@@ -1,6 +1,7 @@
 'use client';
 
 import { Skeleton } from '@aero/ui';
+import { EditProvider } from '@pierre/diffs/react';
 import { useFileTreeSelection } from '@pierre/trees/react';
 import {
   type PointerEvent as ReactPointerEvent,
@@ -9,10 +10,10 @@ import {
   useMemo,
   useRef,
 } from 'react';
-
 import { FileContentPane } from '@/app/components/chat-aside/files/file-content-pane';
 import { FileExplorer } from '@/app/components/chat-aside/files/file-explorer';
 import { FileTabs } from '@/app/components/chat-aside/files/file-tabs';
+import { createEditor } from '@/app/components/chat-aside/files/temp/lib/editFactory';
 import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import {
   useLocalStorageState,
@@ -246,38 +247,41 @@ function FileExplorerPanelInner({ root }: { root: string }) {
   );
 
   return (
-    <div className='flex h-full min-h-0 w-full'>
-      <FileExplorer
-        {...lazyFileTree}
-        projectName={projectName}
-        className='shrink-0'
-        style={{ width: explorerWidth }}
-      />
+    <EditProvider createEditor={createEditor}>
+      <div className='flex h-full min-h-0 w-full'>
+        <FileExplorer
+          {...lazyFileTree}
+          projectName={projectName}
+          className='shrink-0'
+          style={{ width: explorerWidth }}
+          root={root}
+        />
 
-      <div
-        role='separator'
-        aria-orientation='vertical'
-        aria-label='Resize file explorer'
-        onPointerDown={onResizeStart}
-        onPointerMove={onResizeMove}
-        onPointerUp={onResizeEnd}
-        onPointerCancel={onResizeEnd}
-        className="relative w-[0.5px] shrink-0 cursor-ew-resize after:absolute after:inset-y-0 after:-left-1 after:w-2 after:content-['']"
-      />
+        <div
+          role='separator'
+          aria-orientation='vertical'
+          aria-label='Resize file explorer'
+          onPointerDown={onResizeStart}
+          onPointerMove={onResizeMove}
+          onPointerUp={onResizeEnd}
+          onPointerCancel={onResizeEnd}
+          className="relative w-[0.5px] shrink-0 cursor-ew-resize after:absolute after:inset-y-0 after:-left-1 after:w-2 after:content-['']"
+        />
 
-      <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
-        {openPaths.length > 0 ? (
-          <FileTabs
-            openPaths={openPaths}
-            activePath={activePath}
-            onActivate={activateTab}
-            onClose={closeTab}
-          />
-        ) : null}
-        <div className='min-h-0 min-w-0 flex-1 @container'>
-          <FileContentPane socket={socket} path={activePath} />
+        <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
+          {openPaths.length > 0 ? (
+            <FileTabs
+              openPaths={openPaths}
+              activePath={activePath}
+              onActivate={activateTab}
+              onClose={closeTab}
+            />
+          ) : null}
+          <div className='min-h-0 min-w-0 flex-1 @container'>
+            <FileContentPane socket={socket} path={activePath} />
+          </div>
         </div>
       </div>
-    </div>
+    </EditProvider>
   );
 }

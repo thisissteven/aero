@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, Dropdown, Label, Skeleton } from '@aero/ui';
+import { cn, Dropdown, Label, Skeleton, toast } from '@aero/ui';
 import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
 import type { ContextMenuOpenContext } from '@pierre/trees';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
@@ -16,6 +16,7 @@ export interface FileExplorerProps extends UseLazyFileTreeResult {
   projectName?: string;
   className?: string;
   style?: CSSProperties;
+  root: string;
 }
 
 function getParentPath(filePath: string): string {
@@ -35,6 +36,7 @@ export function FileExplorer({
   refresh,
   isTreeLoading,
   treeHostRef,
+  root,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
   const search = useFileTreeSearch(model);
@@ -95,7 +97,8 @@ export function FileExplorer({
             }
             deletePath(item.path, isDir);
           } else if (key === 'copy-path') {
-            void navigator.clipboard.writeText(item.path);
+            void navigator.clipboard.writeText(root + '/' + item.path);
+            toast.success('Path copied to clipboard');
           }
         }, 0);
       };
