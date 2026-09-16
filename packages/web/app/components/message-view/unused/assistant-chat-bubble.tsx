@@ -1,8 +1,7 @@
+import { ChatMessage, Markdown, Tooltip } from '@aero/ui';
 import { Clock, CodeFork, Pin } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
-
-import { ChatMessage, Markdown, Tooltip } from '@aero/ui';
 
 import {
   MessageActionsCopy,
@@ -96,7 +95,6 @@ export const AssistantChatBubble = memo(
                         onFileClick={handleOpenFileInEditor}
                         text={part.text}
                         isStreaming={isPartStreaming}
-                        elapsedTime=''
                       />
                     </div>
                   );

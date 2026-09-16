@@ -7,7 +7,15 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Components } from 'react-markdown';
 
 import { useAutoScroll } from '../../hooks';
@@ -17,9 +25,12 @@ import {
   MemoizedBlock,
 } from '../markdown';
 
-// ---------------------------------------------------------------------------
-// Presets
-// ---------------------------------------------------------------------------
+const SETTLE_FADE_MS = 320;
+const SETTLE_HOLD_MS = SETTLE_FADE_MS + 500;
+const STAGGER_MS = 40;
+const MAX_STAGGER_INDEX = 4;
+
+const settleWindows = new Map<string, number>();
 
 export type StreamRevealPreset =
   | 'claude'
@@ -67,16 +78,16 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     fromOpacity: 0.35,
   },
   fast: {
-    tickMs: 25,
-    baseStep: 3,
-    mediumBacklog: 60,
-    mediumStep: 6,
-    largeBacklog: 200,
-    largeStep: 12,
-    tokenCount: 5,
-    fadeMs: 140,
-    liftPx: 2,
-    fromOpacity: 0.4,
+    tickMs: 15,
+    baseStep: 2,
+    mediumBacklog: 120,
+    mediumStep: 4,
+    largeBacklog: 320,
+    largeStep: 8,
+    tokenCount: 6,
+    fadeMs: 320,
+    liftPx: 1,
+    fromOpacity: 0.25,
   },
   instant: {
     tickMs: 16,
@@ -91,10 +102,6 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     fromOpacity: 0.7,
   },
 };
-
-// ---------------------------------------------------------------------------
-// Stepped content
-// ---------------------------------------------------------------------------
 
 function useSteppedContent(
   content: string,
@@ -115,7 +122,12 @@ function useSteppedContent(
   const lastTickRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!isStreaming || !presetRef.current) {
+    if (!presetRef.current) {
+      if (displayedRef.current !== content) setDisplayed(content);
+      return;
+    }
+
+    if (!isStreaming) {
       if (displayedRef.current !== content) setDisplayed(content);
       return;
     }
@@ -173,12 +185,8 @@ function useSteppedContent(
     [],
   );
 
-  return isStreaming && preset ? displayed : content;
+  return preset ? displayed : content;
 }
-
-// ---------------------------------------------------------------------------
-// Block hashing
-// ---------------------------------------------------------------------------
 
 function hashString(s: string): string {
   let h = 0x811c9dc5;
@@ -188,10 +196,6 @@ function hashString(s: string): string {
   }
   return (h >>> 0).toString(36);
 }
-
-// ---------------------------------------------------------------------------
-// Markdown
-// ---------------------------------------------------------------------------
 
 export interface MarkdownProps
   extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
@@ -228,11 +232,9 @@ function splitIntoBlocks(markdown: string): string[] {
       const len = m[1].length;
       const info = m[2];
       if (fenceChar === null) {
-        // Opening fence — info string (language tag) can be anything.
         fenceChar = char;
         fenceLen = len;
       } else if (char === fenceChar && len >= fenceLen && info.trim() === '') {
-        // Closing fence — must be the same char, at least as long, no info.
         fenceChar = null;
         fenceLen = 0;
       }
@@ -268,9 +270,96 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
 
     const bufferedContent = useSteppedContent(children, streaming, preset);
 
-    // Capture whether this markdown was created during active streaming.
-    // If so, delay visibility by 300ms so the reasoning / activity UI can
-    // paint first. Historical messages bypass the delay.
+    // -------- Block-level settle fade -----------------------------------
+    const [blockSettleFading, setBlockSettleFading] = useState(false);
+    const prevStreamingForBlockFadeRef = useRef(streaming);
+
+    useEffect(() => {
+      const was = prevStreamingForBlockFadeRef.current;
+      prevStreamingForBlockFadeRef.current = streaming;
+
+      if (!preset) return;
+      if (!(was === true && streaming === false)) return;
+
+      setBlockSettleFading(true);
+      const t = setTimeout(
+        () => setBlockSettleFading(false),
+        SETTLE_FADE_MS + 50,
+      );
+      return () => clearTimeout(t);
+    }, [streaming, preset]);
+
+    // -------- Settle window ---------------------------------------------
+    const [settling, setSettling] = useState<boolean>(() => {
+      if (!preset) return false;
+      if (streaming) return true;
+      return settleWindows.has(id);
+    });
+
+    const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const prevStreamingRef = useRef<boolean | null>(null);
+
+    useEffect(
+      () => () => {
+        if (settleTimerRef.current) {
+          clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = null;
+        }
+      },
+      [],
+    );
+
+    useEffect(() => {
+      const prevStreaming = prevStreamingRef.current;
+      prevStreamingRef.current = streaming;
+      const observedTransition = prevStreaming === true && streaming === false;
+
+      if (!preset) {
+        if (settleTimerRef.current) {
+          clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = null;
+        }
+        settleWindows.delete(id);
+        setSettling(false);
+        return;
+      }
+
+      if (streaming) {
+        settleWindows.delete(id);
+        setSettling(true);
+        if (settleTimerRef.current) {
+          clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = null;
+        }
+        return;
+      }
+
+      if (!observedTransition && !settleWindows.has(id)) {
+        if (settleTimerRef.current) {
+          clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = null;
+        }
+        setSettling(false);
+        return;
+      }
+
+      setSettling(true);
+
+      if (settleTimerRef.current) return;
+
+      const existingStart = settleWindows.get(id);
+      const start = existingStart ?? Date.now();
+      if (!existingStart) settleWindows.set(id, start);
+      const remaining = Math.max(0, SETTLE_HOLD_MS - (Date.now() - start));
+
+      settleTimerRef.current = setTimeout(() => {
+        settleTimerRef.current = null;
+        settleWindows.delete(id);
+        setSettling(false);
+      }, remaining);
+    }, [streaming, preset, id]);
+
+    // -------- isVisible delay -------------------------------------------
     const wasStreamingOnMount = useRef(streaming).current;
     const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
 
@@ -280,6 +369,21 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       return () => clearTimeout(timer);
     }, [wasStreamingOnMount]);
 
+    // -------- Reveal-mode persistence -----------------------------------
+    // Once a block has rendered segments, it never drops them. Prevents the
+    // DOM shape swap that was masking whitespace differences.
+    const [revealModeEverOn, setRevealModeEverOn] = useState<boolean>(
+      () => Boolean(preset) && (streaming || settleWindows.has(id)),
+    );
+
+    useEffect(() => {
+      if (!preset) return;
+      if (!revealModeEverOn && (streaming || settling)) {
+        setRevealModeEverOn(true);
+      }
+    }, [streaming, settling, preset, revealModeEverOn]);
+
+    // -------- Derived ---------------------------------------------------
     const renderers = useMemo(
       () => ({ ...defaultComponents, ...components }),
       [components],
@@ -296,37 +400,108 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     );
 
     const contentRef = useRef<HTMLDivElement>(null);
+    const measureRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-      if (!streaming || !preset) return;
-      const root = (scrollRef?.current ??
-        contentRef.current) as HTMLElement | null;
+    const setMarkdownEl = useCallback(
+      (el: HTMLDivElement | null) => {
+        measureRef.current = el;
+        if (scrollRef) {
+          (scrollRef as { current: HTMLElement | null }).current = el;
+        }
+      },
+      [scrollRef],
+    );
+
+    const isPostStreamSettle = Boolean(preset) && !streaming && settling;
+
+    const isPostStreamSettleRef = useRef(isPostStreamSettle);
+    isPostStreamSettleRef.current = isPostStreamSettle;
+
+    const isFullySettled =
+      Boolean(preset) && revealModeEverOn && !streaming && !settling;
+
+    // -------- Reveal observer -------------------------------------------
+    useLayoutEffect(() => {
+      if (!preset) return;
+      const root = measureRef.current;
       if (!root) return;
 
-      const replay = (el: Element) => {
-        const html = el as HTMLElement;
-        html.style.animation = 'none';
-        void html.offsetWidth;
-        html.style.animation = '';
+      const lastLen = new WeakMap<HTMLElement, number>();
+      const animatedLen = new WeakMap<HTMLElement, number>();
+      let firstProcess = true;
+
+      const animate = (el: HTMLElement, delayMs: number) => {
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = '';
+        el.style.animationDelay = `${delayMs}ms`;
       };
 
-      const observer = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          for (const n of Array.from(m.addedNodes)) {
-            if (!(n instanceof Element)) continue;
-            if (n.matches('.stream-reveal__segment')) replay(n);
-            for (const child of Array.from(
-              n.querySelectorAll('.stream-reveal__segment'),
-            )) {
-              replay(child);
-            }
+      const process = () => {
+        const phase: 'stream' | 'settle' = isPostStreamSettleRef.current
+          ? 'settle'
+          : 'stream';
+
+        const segments = Array.from(
+          root.querySelectorAll<HTMLElement>('.stream-reveal__segment'),
+        );
+
+        // Seed: any segment already in the DOM at mount is "already shown".
+        if (firstProcess) {
+          firstProcess = false;
+          for (const el of segments) {
+            const len = (el.textContent ?? '').length;
+            lastLen.set(el, len);
+            animatedLen.set(el, len);
+            el.style.animation = 'none';
           }
+          return;
         }
+
+        // During settle, block fade handles the visual.
+        if (phase === 'settle') {
+          for (const el of segments) {
+            const len = (el.textContent ?? '').length;
+            lastLen.set(el, len);
+            animatedLen.set(el, len);
+          }
+          return;
+        }
+
+        const toAnimate: HTMLElement[] = [];
+        for (const el of segments) {
+          const len = (el.textContent ?? '').length;
+          const prev = lastLen.get(el);
+          const animated = animatedLen.get(el);
+          const isNew = prev === undefined;
+          const grew = prev !== undefined && len > prev;
+          const alreadyAnimated = animated !== undefined && animated >= len;
+
+          if ((isNew || grew) && !alreadyAnimated) {
+            toAnimate.push(el);
+          }
+          lastLen.set(el, len);
+        }
+
+        if (toAnimate.length === 0) return;
+
+        toAnimate.forEach((el, i) => {
+          animate(el, Math.min(i, MAX_STAGGER_INDEX) * STAGGER_MS);
+          animatedLen.set(el, (el.textContent ?? '').length);
+        });
+      };
+
+      const observer = new MutationObserver(process);
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        characterData: true,
       });
 
-      observer.observe(root, { childList: true, subtree: true });
+      process();
+
       return () => observer.disconnect();
-    }, [streaming, scrollRef, preset]);
+    }, [preset, id]);
 
     useAutoScroll({
       scrollRef: scrollRef ?? NULL_REF,
@@ -352,24 +527,42 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       >
         <MarkdownFileContext.Provider value={contextValue}>
           <div
-            className={cn('markdown', className)}
+            className={cn(
+              'markdown',
+              blockSettleFading && 'md-settle-fade',
+              className,
+            )}
             data-slot='markdown'
             data-stream-reveal={preset ? streamRevealPreset : undefined}
-            style={revealStyle}
-            ref={scrollRef as RefObject<HTMLDivElement>}
+            data-settling={isPostStreamSettle ? 'true' : undefined}
+            data-settled={isFullySettled ? 'true' : undefined}
+            style={
+              {
+                ...revealStyle,
+                ...(blockSettleFading
+                  ? { '--md-settle-fade-ms': `${SETTLE_FADE_MS}ms` }
+                  : null),
+              } as React.CSSProperties
+            }
+            ref={setMarkdownEl}
             {...props}
           >
             {blocks.map((blockContent, index) => {
               const isLast = index === blocks.length - 1;
+
               const blockKey = isLast
-                ? `${id}-block-live`
+                ? `${id}-block-last`
                 : `${id}-block-${index}-${hashString(blockContent)}`;
+
+              const isRevealingBlock =
+                Boolean(preset && isLast) && revealModeEverOn;
+
               return (
                 <MemoizedBlock
                   key={blockKey}
                   components={renderers}
                   content={blockContent}
-                  isStreamingBlock={Boolean(streaming && isLast && preset)}
+                  isStreamingBlock={isRevealingBlock}
                   streamRevealTokenCount={preset?.tokenCount}
                 />
               );

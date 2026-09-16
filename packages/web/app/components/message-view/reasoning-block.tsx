@@ -6,6 +6,7 @@ import {
   cn,
   DisclosureIndicator,
   ScrollShadow,
+  TextEffect,
 } from '@aero/ui';
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
@@ -23,14 +24,12 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   onFileClick,
   text,
   isStreaming,
-  elapsedTime,
 }: {
   blockId: string;
   isFile: (path: string) => boolean;
   onFileClick: (path: string) => void;
   text: string;
   isStreaming: boolean;
-  elapsedTime?: string;
 }): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +58,13 @@ export const ReasoningBlock = memo(function ReasoningBlock({
 
     return () => clearTimeout(timer);
   }, [wasStreamingOnMount]);
+
+  /*
+   * Only reveal text for blocks that were streamed in this session and
+   * have now settled. Historic blocks mount with isVisible=true and
+   * wasStreamingOnMount=false, so they skip the reveal.
+   */
+  const shouldAnimate = wasStreamingOnMount && isVisible;
 
   const textRef = useRef(text);
   textRef.current = text;
@@ -126,6 +132,16 @@ export const ReasoningBlock = memo(function ReasoningBlock({
           preview={
             isStreaming ? (
               <ThinkingPreview preview={preview} />
+            ) : shouldAnimate ? (
+              <div className='w-full min-w-0'>
+                <TextEffect
+                  duration={60}
+                  stagger={3}
+                  className='inline-block w-full truncate text-left align-middle md:w-full'
+                >
+                  {preview}
+                </TextEffect>
+              </div>
             ) : (
               <div className='w-full min-w-0'>
                 <span className='block w-4/5 truncate text-left md:w-full'>

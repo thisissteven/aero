@@ -3,6 +3,7 @@
 import { Button, cn } from '@aero/ui';
 import {
   ArrowUpRightFromSquare,
+  Globe,
   LayoutSplitColumns,
   SquareChartBar,
 } from '@gravity-ui/icons';
@@ -25,6 +26,10 @@ import {
 } from 'react';
 
 // ── Shadow-root CSS ─────────────────────────────────────────────────────────
+//
+// Page CSS can't cross into Pierre's shadow root, so this is the only place
+// we can style the internals. It's deliberately small: kill Pierre's own
+// padding + backgrounds, match our typography, and dim the gutter.
 
 const PIERRE_SHADOW_CSS = `
 :host {
@@ -145,6 +150,7 @@ export function CodeBlockRoot({
     <CodeBlockContext.Provider value={value}>
       <div
         className={cn(
+          // Framing: subtle surface, hairline border, generous radius.
           'group/code-block w-full min-w-0 overflow-hidden rounded-lg',
           'border border-separator',
           'text-[13px] text-foreground',
@@ -174,6 +180,8 @@ export const CodeBlockHeader = memo(function CodeBlockHeader({
   return (
     <div
       className={cn(
+        // Compact single-line header. No background of its own — the
+        // hairline at the bottom is what separates it from the code.
         'flex h-8 items-center justify-between gap-2 border-b border-separator pl-3 pr-1',
         'text-muted',
         className,
@@ -198,6 +206,8 @@ export const CodeBlockFooter = memo(function CodeBlockFooter({
   return (
     <div
       className={cn(
+        // Mirrors the header: same height + padding, hairline on top so the
+        // block reads as a symmetric frame around the code. Muted by default.
         'flex h-8 items-center justify-end gap-2 border-t border-separator px-3',
         'text-muted text-xs bg-surface',
         className,
@@ -471,8 +481,14 @@ const CopyMotionIcon = memo(function CopyMotionIcon({
 });
 
 // ── Buttons ─────────────────────────────────────────────────────────────────
+//
+// All header actions share the same treatment: ghost, small, muted by
+// default, full opacity when the block is hovered.
 
-const actionButtonClass = cn('size-6 min-w-6 shrink-0 rounded-md text-muted');
+const actionButtonClass = cn(
+  'size-6 min-w-6 shrink-0 rounded-md text-muted',
+  'data-[pressed]:text-foreground',
+);
 
 export interface CodeBlockWrapButtonProps {
   'aria-label'?: string;
@@ -540,6 +556,37 @@ export const CodeBlockViewModeButton = memo(function CodeBlockViewModeButton({
     </Button>
   );
 });
+
+export interface CodeBlockOpenInBrowserButtonProps {
+  'aria-label'?: string;
+  className?: string;
+  /** Called when the button is pressed. */
+  onClick: () => void;
+}
+
+export const CodeBlockOpenInBrowserButton = memo(
+  function CodeBlockOpenInBrowserButton({
+    'aria-label': ariaLabel = 'Open',
+    className,
+    onClick,
+    ...props
+  }: CodeBlockOpenInBrowserButtonProps): ReactElement {
+    return (
+      <Button
+        isIconOnly
+        aria-label={ariaLabel}
+        className={cn(actionButtonClass, className)}
+        data-slot='code-block-open-button'
+        size='sm'
+        variant='ghost'
+        onPress={onClick}
+        {...props}
+      >
+        <Globe className='size-3.5' />
+      </Button>
+    );
+  },
+);
 
 export interface CodeBlockOpenButtonProps {
   'aria-label'?: string;
@@ -626,10 +673,11 @@ type CodeBlockComponent = typeof CodeBlockRoot & {
   ChangeSummary: typeof CodeBlockChangeSummary;
   Code: typeof CodeBlockCode;
   CopyButton: typeof CodeBlockCopyButton;
+  OpenButton: typeof CodeBlockOpenButton;
+  OpenInBrowserButton: typeof CodeBlockOpenInBrowserButton;
   Diff: typeof CodeBlockDiff;
   Footer: typeof CodeBlockFooter;
   Header: typeof CodeBlockHeader;
-  OpenButton: typeof CodeBlockOpenButton;
   Root: typeof CodeBlockRoot;
   ViewModeButton: typeof CodeBlockViewModeButton;
   WrapButton: typeof CodeBlockWrapButton;
@@ -639,11 +687,12 @@ export const CodeBlock: CodeBlockComponent = Object.assign(CodeBlockRoot, {
   ChangeSummary: CodeBlockChangeSummary,
   Code: CodeBlockCode,
   CopyButton: CodeBlockCopyButton,
+  OpenInBrowserButton: CodeBlockOpenInBrowserButton,
   Diff: CodeBlockDiff,
   Footer: CodeBlockFooter,
   Header: CodeBlockHeader,
-  OpenButton: CodeBlockOpenButton,
   Root: CodeBlockRoot,
   ViewModeButton: CodeBlockViewModeButton,
   WrapButton: CodeBlockWrapButton,
+  OpenButton: CodeBlockOpenButton,
 });

@@ -1,4 +1,5 @@
 import { snapdom } from '@zumer/snapdom';
+import { useBrowserStore } from '@/app/components/chat-aside/browser/browser-store';
 
 export type PreviewAnnotationMode = 'element' | 'region' | 'draw';
 
@@ -294,4 +295,39 @@ export async function captureIframeContent(iframeEl: HTMLIFrameElement) {
   document.body.removeChild(tempContainer);
 
   return blob;
+}
+
+export function openUrl(url: string): string {
+  const { tabs, activeTabId, actions } = useBrowserStore.getState();
+
+  const target = normalizeBrowserUrl(url);
+
+  // No URL — just hand back a blank tab.
+  if (!target) {
+    return actions.addTab('');
+  }
+
+  // 1. Same URL already open somewhere -> focus + reload
+  const existing = tabs.find(
+    (tab) =>
+      normalizeBrowserUrl(tab.loadedUrl) === target ||
+      normalizeBrowserUrl(tab.currentUrl) === target,
+  );
+
+  if (existing) {
+    actions.setActiveTab(existing.id);
+    actions.reload(existing.id);
+    return existing.id;
+  }
+
+  // 2. Active tab is empty -> reuse it
+  const active = tabs.find((tab) => tab.id === activeTabId);
+
+  if (active && !active.loadedUrl && !active.url) {
+    actions.navigate(active.id, target);
+    return active.id;
+  }
+
+  // 3. New tab
+  return actions.addTab(target);
 }

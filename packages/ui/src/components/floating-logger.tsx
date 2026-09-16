@@ -46,104 +46,11 @@ function push(level: LogEntry['level'], args: unknown[]) {
   emit();
 }
 
-// ---- Probes run inside the page, no devtools needed ----
-
-function probeSpans(): string {
-  const segments = document.querySelectorAll('.stream-reveal__segment');
-  if (segments.length === 0) {
-    return 'span count: 0';
-  }
-
-  const sample = segments[segments.length - 1] as HTMLElement;
-  const cs = getComputedStyle(sample);
-  const rect = sample.getBoundingClientRect();
-
-  return [
-    `span count: ${segments.length}`,
-    `transition: ${cs.transition || '(none)'}`,
-    `opacity: ${cs.opacity}`,
-    `transform: ${cs.transform}`,
-    `rect: ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
-  ].join(' | ');
-}
-
-function probeStartingStyle(): string {
-  // @starting-style support check
-  const supportsStartingStyle =
-    typeof CSS !== 'undefined' &&
-    typeof CSS.supports === 'function' &&
-    (CSS.supports('@starting-style', 'opacity: 0') ||
-      // some engines don't expose the at-rule via supports; fall back to
-      // checking whether any parsed stylesheet mentions it
-      Array.from(document.styleSheets).some((sheet) => {
-        try {
-          return Array.from(sheet.cssRules).some((rule) =>
-            rule.cssText.includes('@starting-style'),
-          );
-        } catch {
-          return false;
-        }
-      }));
-
-  return `@starting-style supported/used: ${supportsStartingStyle}`;
-}
-
-function probeMarkdown(): string {
-  const containers = document.querySelectorAll(
-    '.markdown, [data-slot="markdown"]',
-  );
-  if (containers.length === 0) return 'no .markdown containers';
-
-  const last = containers[containers.length - 1] as HTMLElement;
-  const blocks = last.querySelectorAll('[data-slot="markdown-block"]');
-  const segments = last.querySelectorAll('.stream-reveal__segment');
-
-  return `containers: ${containers.length} | last has ${blocks.length} blocks, ${segments.length} spans`;
-}
-
-function probeClassPresence(): string {
-  // Check whether our stylesheet actually shipped the class
-  let found = false;
-  let rule = '';
-  for (const sheet of Array.from(document.styleSheets)) {
-    try {
-      for (const r of Array.from(sheet.cssRules)) {
-        const text = (r as CSSRule).cssText || '';
-        if (text.includes('.stream-reveal__segment')) {
-          found = true;
-          rule = text.slice(0, 200);
-          break;
-        }
-      }
-    } catch {
-      // CORS-restricted sheet, skip
-    }
-    if (found) break;
-  }
-  return found
-    ? `CSS rule found: ${rule}`
-    : 'CSS rule NOT found in stylesheets';
-}
-
 export const logger = {
   log: (...args: unknown[]) => push('log', args),
   info: (...args: unknown[]) => push('info', args),
   warn: (...args: unknown[]) => push('warn', args),
   error: (...args: unknown[]) => push('error', args),
-  probe: {
-    spans: () => push('probe', [probeSpans()]),
-    startingStyle: () => push('probe', [probeStartingStyle()]),
-    markdown: () => push('probe', [probeMarkdown()]),
-    cssRule: () => push('probe', [probeClassPresence()]),
-    all: () => {
-      push('probe', ['--- probe start ---']);
-      push('probe', [probeMarkdown()]);
-      push('probe', [probeSpans()]);
-      push('probe', [probeStartingStyle()]);
-      push('probe', [probeClassPresence()]);
-      push('probe', ['--- probe end ---']);
-    },
-  },
   clear: () => {
     entries = [];
     emit();
@@ -154,6 +61,7 @@ export function FloatingLogger() {
   const [open, setOpen] = useState(true);
   const [snapshot, setSnapshot] = useState<LogEntry[]>(entries);
   const [filter, setFilter] = useState('');
+  const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
 
@@ -184,6 +92,24 @@ export function FloatingLogger() {
         e.message.toLowerCase().includes(filter.toLowerCase()),
       )
     : snapshot;
+
+  const handleCopy = async () => {
+    if (filtered.length === 0) return;
+    const logText = filtered
+      .map(
+        (e) =>
+          `[${e.time.toFixed(0)}ms] [${e.level.toUpperCase()}] ${e.message}`,
+      )
+      .join('\n');
+
+    try {
+      await navigator.clipboard.writeText(logText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Failed to copy logs to clipboard:', err);
+    }
+  };
 
   if (!open) {
     return (
@@ -259,19 +185,8 @@ export function FloatingLogger() {
             fontFamily: 'inherit',
           }}
         />
-        <button
-          type='button'
-          onClick={() => logger.probe.all()}
-          style={btnStyle}
-        >
-          probe
-        </button>
-        <button
-          type='button'
-          onClick={() => logger.probe.spans()}
-          style={btnStyle}
-        >
-          spans
+        <button type='button' onClick={handleCopy} style={btnStyle}>
+          {copied ? 'copied!' : 'copy'}
         </button>
         <button type='button' onClick={() => logger.clear()} style={btnStyle}>
           clear

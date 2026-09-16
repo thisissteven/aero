@@ -221,6 +221,25 @@
     }
   }
 
+  @keyframes md-settle-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .md-settle-fade {
+    animation: md-settle-fade var(--md-settle-fade-ms, 320ms) ease-out both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .md-settle-fade {
+      animation: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .stream-reveal__segment {
       animation: none;

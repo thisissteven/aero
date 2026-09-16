@@ -2,13 +2,14 @@ import { Alert, cn, Disclosure, TextEffect } from '@aero/ui';
 import { Icon } from '@gravity-ui/uikit';
 
 import React, { ReactNode, SVGProps, useEffect, useRef, useState } from 'react';
-
+import { openUrl } from '@/app/components/chat-aside/browser/browser-helpers';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { CodeBlock } from '@/app/components/tool-call-view/code-block';
 import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { Timer } from '@/app/components/tool-call-view/timer';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function BaseTool({
   blockId,
@@ -249,12 +250,32 @@ export function BaseTool({
                         }
                       />
                     ) : isFile ? (
-                      <CodeBlock.OpenButton
-                        aria-label='Open in editor'
-                        onClick={() => {
-                          //
-                        }}
-                      />
+                      codeTitle?.endsWith('.html') ? (
+                        <>
+                          <CodeBlock.OpenInBrowserButton
+                            aria-label='Open in browser'
+                            onClick={() => {
+                              useSidePanelStore
+                                .getState()
+                                .setActiveNavItem('browser');
+                              openUrl(codeTitle);
+                            }}
+                          />
+                          <CodeBlock.OpenButton
+                            aria-label='Open in editor'
+                            onClick={() => {
+                              //
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <CodeBlock.OpenButton
+                          aria-label='Open in editor'
+                          onClick={() => {
+                            //
+                          }}
+                        />
+                      )
                     ) : null}
 
                     {copyText && (
