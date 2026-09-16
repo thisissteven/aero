@@ -3,15 +3,16 @@
 import { cn } from '@aero/ui';
 import { Text } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { File as PierreFile } from '@pierre/diffs/react';
+import { File as PierreFile, Virtualizer } from '@pierre/diffs/react';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-
-import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 import {
-  MediaKind,
-  MediaPreview,
-} from '@/app/components/chat-aside/files/media-preview';
+  base64ToBlob,
+  getFileName,
+  getMediaKind,
+} from '@/app/components/chat-aside/files/file-helpers';
+import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
+import { MediaPreview } from '@/app/components/chat-aside/files/media-preview';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { ColorTheme, useTheme } from '@/app/providers';
 
@@ -74,13 +75,6 @@ function getPierreTheme(
   return { dark: mapped.dark, light: mapped.light };
 }
 
-/**
- * Shadow-root CSS. Page styles can't reach into Pierre's shadow DOM, so this
- * is the only place we can kill the theme's own background variables and
- * match our typography. `--diffs-dark-bg` / `--diffs-light-bg` are what the
- * resolved theme actually writes; the generic `--diffs-bg` is a fallback and
- * won't win on its own.
- */
 const PIERRE_SHADOW_CSS = `
 :host {
   --diffs-dark-bg: transparent !important;
@@ -128,43 +122,12 @@ pre {
 }
 `;
 
-// Lands on the <diffs-container> host element. `background: transparent` here
-// is what stops Pierre from painting its own host background — no wrapper
-// class can reach it.
 const PIERRE_FILE_STYLE: CSSProperties = {
   flex: '1 1 auto',
   minWidth: '100%',
   background: 'transparent',
 };
 
-function getFileName(path: string): string {
-  return path.split(/[\\/]/).pop() || path;
-}
-
-function getMediaKind(mimeType: string | null): MediaKind {
-  if (!mimeType) return null;
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('audio/')) return 'audio';
-  if (mimeType === 'application/pdf') return 'pdf';
-  return null;
-}
-
-function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64);
-  const buffer = new ArrayBuffer(binary.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([buffer], { type: mimeType });
-}
-
-/**
- * Files are cached per-path in a ref. Updates go through `forceUpdate` so a
- * render that follows a path change can read the new value directly out of
- * the cache — no intermediate "stale state → loading flash" render.
- */
 export function FileContentPane({ socket, path }: FileContentPaneProps) {
   const { resolvedTheme, colorTheme } = useTheme();
 
@@ -266,10 +229,31 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
   if (!file) return null;
 
   const fileName = getFileName(file.path);
-  // Key is tied to the specific file *version* (path + resolved theme mode +
-  // mtime). Theme mode is part of the key because the resolved color payload
-  // differs between light and dark.
   const viewerKey = `${file.path}:${resolvedTheme}:${file.mtimeMs}`;
+  // Remount scope for the Pierre surface. Includes wrap mode because the
+  // virtualizer cannot be reused across a scroll↔wrap switch — it prepares
+  // a layout for one mode and throws when the other tries to render under it.
+  const renderKey = `${viewerKey}:${wrapText ? 'wrap' : 'scroll'}`;
+
+  const pierreFile = (
+    <PierreFile
+      style={PIERRE_FILE_STYLE}
+      file={{
+        name: file.path,
+        contents: file.content ?? '',
+        header: undefined,
+        cacheKey: viewerKey,
+      }}
+      options={{
+        theme: pierreTheme,
+        themeType: resolvedTheme,
+        overflow: wrapText ? 'wrap' : 'scroll',
+        disableFileHeader: true,
+        unsafeCSS: PIERRE_SHADOW_CSS,
+      }}
+      className='h-full'
+    />
+  );
 
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden'>
@@ -302,7 +286,7 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
         )}
       </div>
 
-      <div className='scrollbar-thin min-h-0 min-w-0 flex-1 basis-0 overflow-auto'>
+      <div className='min-h-0 min-w-0 flex-1 basis-0'>
         {mediaKind && mediaUrl && !file.truncated && (
           <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />
         )}
@@ -320,25 +304,42 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
           </div>
         )}
 
-        {!file.binary && !mediaKind && (
-          <PierreFile
-            key={viewerKey}
-            style={PIERRE_FILE_STYLE}
-            file={{
-              name: file.path,
-              contents: file.content ?? '',
-              header: undefined,
-              cacheKey: viewerKey,
+        {/*
+          Two rendering paths, picked by wrap mode:
+
+          - Wrap OFF → Virtualizer. Every line is one row tall, so the
+            virtualizer's math is exact and only the visible slice is
+            mounted. This is the fast path for large files.
+
+          - Wrap ON  → plain scroll container. Wrapped lines have variable
+            heights that the virtualizer cannot predict; letting it try
+            triggers "rendered a different file than its prepared layout"
+            and breaks scrolling. Non-virtualized wrap is still fine for
+            the file sizes that typically need wrapping.
+
+          The wrapper carries `renderKey`, not PierreFile. If the key sat on
+          PierreFile, React would remount just the inner component and leave
+          a stale Virtualizer parent that prepared for the previous file.
+        */}
+        {!file.binary && !mediaKind && wrapText && (
+          <div key={renderKey} className='scrollbar-thin h-full overflow-auto'>
+            {pierreFile}
+          </div>
+        )}
+
+        {!file.binary && !mediaKind && !wrapText && (
+          <Virtualizer
+            key={renderKey}
+            className='relative h-full min-h-0 min-w-0 scrollbar-thin'
+            style={{ overflow: 'auto' }}
+            contentStyle={{
+              display: 'flex',
+              minHeight: '100%',
+              width: '100%',
             }}
-            options={{
-              theme: pierreTheme,
-              themeType: resolvedTheme,
-              overflow: wrapText ? 'wrap' : 'scroll',
-              disableFileHeader: true,
-              unsafeCSS: PIERRE_SHADOW_CSS,
-            }}
-            className='h-full'
-          />
+          >
+            {pierreFile}
+          </Virtualizer>
         )}
       </div>
     </div>

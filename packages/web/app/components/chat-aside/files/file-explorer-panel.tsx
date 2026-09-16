@@ -1,9 +1,11 @@
 'use client';
 
 import { Skeleton } from '@aero/ui';
+import { useFileTreeSelection } from '@pierre/trees/react';
 import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -60,16 +62,18 @@ interface TabState {
   activePath: string | null;
 }
 
+const EMPTY_TAB_STATE: TabState = { openPaths: [], activePath: null };
+
 function FileExplorerPanelInner({ root }: { root: string }) {
   const lazyFileTree = useLazyFileTree({ root });
+  const { model, socket } = lazyFileTree;
 
-  // Tabs are persisted per-workspace in sessionStorage so the aside can be
-  // closed/reopened (or the panel remounted) without losing open files.
+  // Tabs persist per-workspace in sessionStorage so closing/reopening the
+  // aside (or any remount) restores the same open files.
   const [tabState, setTabState] = useSessionStorageState<TabState>(
     `aero:file-explorer:tabs:${root}`,
-    { openPaths: [], activePath: null },
+    EMPTY_TAB_STATE,
   );
-
   const [explorerWidth, setExplorerWidth] = useLocalStorageState<number>(
     EXPLORER_WIDTH_STORAGE_KEY,
     DEFAULT_EXPLORER_WIDTH,
@@ -77,12 +81,33 @@ function FileExplorerPanelInner({ root }: { root: string }) {
 
   const { openPaths, activePath } = tabState;
 
+  // ── Tab state mutations (atomic) ─────────────────────────────────────
+  //
+  // Every mutation goes through one functional update on the whole TabState
+  // object, so openPaths and activePath can never disagree, and two quick
+  // clicks can never race on a stale snapshot.
+
   const openFile = useCallback(
     (path: string) => {
       setTabState((prev) => {
         if (prev.activePath === path && prev.openPaths.includes(path)) {
           return prev;
         }
+        return {
+          openPaths: prev.openPaths.includes(path)
+            ? prev.openPaths
+            : [...prev.openPaths, path],
+          activePath: path,
+        };
+      });
+    },
+    [setTabState],
+  );
+
+  const activateTab = useCallback(
+    (path: string) => {
+      setTabState((prev) => {
+        if (prev.activePath === path) return prev;
         return {
           openPaths: prev.openPaths.includes(path)
             ? prev.openPaths
@@ -107,35 +132,80 @@ function FileExplorerPanelInner({ root }: { root: string }) {
         }
 
         // Prefer the tab that slid into this slot, else the one before it.
-        const nextActive =
-          nextOpen[idx] ??
-          nextOpen[idx - 1] ??
-          nextOpen[nextOpen.length - 1] ??
-          null;
-
+        const nextActive = nextOpen[idx] ?? nextOpen[idx - 1] ?? null;
         return { openPaths: nextOpen, activePath: nextActive };
       });
     },
     [setTabState],
   );
 
-  const activateTab = useCallback(
-    (path: string) => {
-      setTabState((prev) =>
-        prev.activePath === path ? prev : { ...prev, activePath: path },
-      );
-    },
-    [setTabState],
-  );
+  // ── Tree selection ⇄ active tab sync ─────────────────────────────────
+  //
+  // Two effects, one suppression flag. When we programmatically change the
+  // tree selection (direction 2), we set the flag so the tree → tab effect
+  // (direction 1) ignores the change we just caused. Without this, closing
+  // the active tab deselects it in the tree, and the tree effect
+  // immediately re-opens it — that's the "sometimes doesn't close" bug.
+
+  const suppressSelectionSyncRef = useRef(false);
+  const selectedPaths = useFileTreeSelection(model);
+  const lastHandledSelectionRef = useRef<readonly string[]>(selectedPaths);
+
+  // Direction 1: tree → tab.
+  useEffect(() => {
+    if (selectedPaths === lastHandledSelectionRef.current) return;
+    const previous = new Set(lastHandledSelectionRef.current);
+    lastHandledSelectionRef.current = selectedPaths;
+
+    if (suppressSelectionSyncRef.current) {
+      suppressSelectionSyncRef.current = false;
+      return;
+    }
+
+    // Walk backwards so we act on the most recently added selection, which
+    // matches "the one the user just clicked".
+    for (let i = selectedPaths.length - 1; i >= 0; i--) {
+      const candidate = selectedPaths[i];
+      if (previous.has(candidate)) continue;
+      const item = model.getItem(candidate);
+      if (!item || item.isDirectory()) continue;
+      openFile(candidate.replace(/\/$/, ''));
+      break;
+    }
+  }, [selectedPaths, model, openFile]);
+
+  // Direction 2: activePath → tree.
+  useEffect(() => {
+    if (activePath == null) return;
+    const activeItem = model.getItem(activePath);
+    if (activeItem == null) return;
+
+    let selectionChanged = false;
+    for (const selectedPath of model.getSelectedPaths()) {
+      if (selectedPath === activePath) continue;
+      model.getItem(selectedPath)?.deselect();
+      selectionChanged = true;
+    }
+    if (!activeItem.isSelected()) {
+      activeItem.select();
+      selectionChanged = true;
+    }
+    if (selectionChanged) {
+      suppressSelectionSyncRef.current = true;
+    }
+  }, [activePath, model]);
 
   const projectName = useMemo(() => {
     const clean = root.replace(/\/$/, '');
     return clean.split('/').pop() || clean || 'workspace';
   }, [root]);
 
-  const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(
-    null,
-  );
+  // ── Resize ───────────────────────────────────────────────────────────
+
+  const resizeStateRef = useRef<{
+    startX: number;
+    startWidth: number;
+  } | null>(null);
 
   const onResizeStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -154,7 +224,6 @@ function FileExplorerPanelInner({ root }: { root: string }) {
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const state = resizeStateRef.current;
       if (state == null) return;
-      // Explorer is on the left; dragging right widens it.
       const delta = event.clientX - state.startX;
       const next = Math.max(
         MIN_EXPLORER_WIDTH,
@@ -181,9 +250,14 @@ function FileExplorerPanelInner({ root }: { root: string }) {
       <FileExplorer
         {...lazyFileTree}
         projectName={projectName}
-        onOpenFile={openFile}
         className='shrink-0'
         style={{ width: explorerWidth }}
+        onNewFile={() => {
+          //
+        }}
+        onNewFolder={() => {
+          //
+        }}
       />
 
       <div
@@ -207,7 +281,7 @@ function FileExplorerPanelInner({ root }: { root: string }) {
           />
         ) : null}
         <div className='min-h-0 min-w-0 flex-1'>
-          <FileContentPane socket={lazyFileTree.socket} path={activePath} />
+          <FileContentPane socket={socket} path={activePath} />
         </div>
       </div>
     </div>
