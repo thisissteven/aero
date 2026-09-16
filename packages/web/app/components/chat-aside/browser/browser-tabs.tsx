@@ -14,7 +14,7 @@ export function BrowserTabs() {
   const { addTab, removeTab, setActiveTab } = useBrowserActions();
 
   return (
-    <div className='flex items-center gap-1 px-1 py-1'>
+    <div className='flex items-center gap-1 p-1'>
       <div className='flex flex-1 items-center gap-1 overflow-x-auto'>
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;

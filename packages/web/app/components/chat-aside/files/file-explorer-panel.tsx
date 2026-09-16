@@ -6,18 +6,23 @@ import {
   useCallback,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 
 import { FileContentPane } from '@/app/components/chat-aside/files/file-content-pane';
 import { FileExplorer } from '@/app/components/chat-aside/files/file-explorer';
+import { FileTabs } from '@/app/components/chat-aside/files/file-tabs';
 import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
+import {
+  useLocalStorageState,
+  useSessionStorageState,
+} from '@/app/components/chat-aside/files/use-persistent-state';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 const DEFAULT_EXPLORER_WIDTH = 288;
 const MIN_EXPLORER_WIDTH = 200;
 const MAX_EXPLORER_WIDTH = 600;
+const EXPLORER_WIDTH_STORAGE_KEY = 'aero:file-explorer:width';
 
 export function FileExplorerPanel() {
   const sessionId = useSessionId();
@@ -50,41 +55,87 @@ export function FileExplorerPanel() {
   );
 }
 
+interface TabState {
+  openPaths: string[];
+  activePath: string | null;
+}
+
 function FileExplorerPanelInner({ root }: { root: string }) {
   const lazyFileTree = useLazyFileTree({ root });
 
-  const [openPaths, setOpenPaths] = useState<readonly string[]>([]);
-  const [activePath, setActivePath] = useState<string | null>(null);
-  const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
+  // Tabs are persisted per-workspace in sessionStorage so the aside can be
+  // closed/reopened (or the panel remounted) without losing open files.
+  const [tabState, setTabState] = useSessionStorageState<TabState>(
+    `aero:file-explorer:tabs:${root}`,
+    { openPaths: [], activePath: null },
+  );
 
-  const openPathsRef = useRef(openPaths);
-  openPathsRef.current = openPaths;
+  const [explorerWidth, setExplorerWidth] = useLocalStorageState<number>(
+    EXPLORER_WIDTH_STORAGE_KEY,
+    DEFAULT_EXPLORER_WIDTH,
+  );
 
-  const openFile = useCallback((path: string) => {
-    setOpenPaths((current) =>
-      current.includes(path) ? current : [...current, path],
-    );
-    setActivePath(path);
-  }, []);
+  const { openPaths, activePath } = tabState;
 
-  const closeTab = useCallback((path: string) => {
-    setOpenPaths((current) => current.filter((p) => p !== path));
-    setActivePath((currentActive) => {
-      if (currentActive !== path) return currentActive;
-      const remaining = openPathsRef.current.filter((p) => p !== path);
-      return remaining[remaining.length - 1] ?? null;
-    });
-  }, []);
+  const openFile = useCallback(
+    (path: string) => {
+      setTabState((prev) => {
+        if (prev.activePath === path && prev.openPaths.includes(path)) {
+          return prev;
+        }
+        return {
+          openPaths: prev.openPaths.includes(path)
+            ? prev.openPaths
+            : [...prev.openPaths, path],
+          activePath: path,
+        };
+      });
+    },
+    [setTabState],
+  );
+
+  const closeTab = useCallback(
+    (path: string) => {
+      setTabState((prev) => {
+        const idx = prev.openPaths.indexOf(path);
+        if (idx === -1) return prev;
+
+        const nextOpen = prev.openPaths.filter((p) => p !== path);
+
+        if (prev.activePath !== path) {
+          return { openPaths: nextOpen, activePath: prev.activePath };
+        }
+
+        // Prefer the tab that slid into this slot, else the one before it.
+        const nextActive =
+          nextOpen[idx] ??
+          nextOpen[idx - 1] ??
+          nextOpen[nextOpen.length - 1] ??
+          null;
+
+        return { openPaths: nextOpen, activePath: nextActive };
+      });
+    },
+    [setTabState],
+  );
+
+  const activateTab = useCallback(
+    (path: string) => {
+      setTabState((prev) =>
+        prev.activePath === path ? prev : { ...prev, activePath: path },
+      );
+    },
+    [setTabState],
+  );
 
   const projectName = useMemo(() => {
     const clean = root.replace(/\/$/, '');
     return clean.split('/').pop() || clean || 'workspace';
   }, [root]);
 
-  const resizeStateRef = useRef<{
-    startX: number;
-    startWidth: number;
-  } | null>(null);
+  const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(
+    null,
+  );
 
   const onResizeStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -111,7 +162,7 @@ function FileExplorerPanelInner({ root }: { root: string }) {
       );
       setExplorerWidth(next);
     },
-    [],
+    [setExplorerWidth],
   );
 
   const onResizeEnd = useCallback(
@@ -143,15 +194,15 @@ function FileExplorerPanelInner({ root }: { root: string }) {
         onPointerMove={onResizeMove}
         onPointerUp={onResizeEnd}
         onPointerCancel={onResizeEnd}
-        className="relative w-px shrink-0 cursor-col-resize bg-separator after:absolute after:inset-y-0 after:-left-1 after:w-2 after:content-['']"
+        className="relative w-[0.5px] shrink-0 cursor-ew-resize after:absolute after:inset-y-0 after:-left-1 after:w-2 after:content-['']"
       />
 
       <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
         {openPaths.length > 0 ? (
-          <TabBar
+          <FileTabs
             openPaths={openPaths}
             activePath={activePath}
-            onActivate={setActivePath}
+            onActivate={activateTab}
             onClose={closeTab}
           />
         ) : null}
@@ -159,64 +210,6 @@ function FileExplorerPanelInner({ root }: { root: string }) {
           <FileContentPane socket={lazyFileTree.socket} path={activePath} />
         </div>
       </div>
-    </div>
-  );
-}
-
-interface TabBarProps {
-  openPaths: readonly string[];
-  activePath: string | null;
-  onActivate: (path: string) => void;
-  onClose: (path: string) => void;
-}
-
-function TabBar({ openPaths, activePath, onActivate, onClose }: TabBarProps) {
-  return (
-    <div className='flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-separator bg-background px-2'>
-      {openPaths.map((path) => {
-        const isActive = path === activePath;
-        const name = path.split('/').pop() || path;
-        return (
-          <div
-            key={path}
-            className={[
-              'group flex h-7 max-w-[200px] shrink-0 items-center gap-1 overflow-hidden rounded-md pl-2 pr-1 text-xs transition-colors',
-              isActive
-                ? 'bg-surface-hover text-foreground'
-                : 'text-muted hover:bg-surface-hover hover:text-foreground',
-            ].join(' ')}
-          >
-            <button
-              type='button'
-              onClick={() => onActivate(path)}
-              className='min-w-0 flex-1 truncate text-left'
-              title={path}
-            >
-              {name}
-            </button>
-            <button
-              type='button'
-              onClick={() => onClose(path)}
-              aria-label={`Close ${name}`}
-              className='flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100'
-            >
-              <svg
-                width='10'
-                height='10'
-                viewBox='0 0 10 10'
-                aria-hidden='true'
-              >
-                <path
-                  d='M1 1l8 8M9 1L1 9'
-                  stroke='currentColor'
-                  strokeWidth='1.5'
-                  strokeLinecap='round'
-                />
-              </svg>
-            </button>
-          </div>
-        );
-      })}
     </div>
   );
 }

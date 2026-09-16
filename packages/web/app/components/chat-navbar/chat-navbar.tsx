@@ -12,7 +12,6 @@ import { Icon } from '@gravity-ui/uikit';
 import { ContextUsagePreview } from '@/app/components/chat-navbar/context-usage-preview';
 import { OpenInActions } from '@/app/components/chat-navbar/open-in-actions/open-in-actions';
 import { PanelActions } from '@/app/components/chat-navbar/panel-actions/panel-actions';
-import { StatusPanelToggle } from '@/app/components/chat-navbar/panel-actions/status-panel-toggle';
 import { ProjectActions } from '@/app/components/chat-navbar/project-actions/project-actions';
 import {
   ArchiveSession,

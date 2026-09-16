@@ -4,9 +4,14 @@ import { cn } from '@aero/ui';
 import { Text } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { File as PierreFile } from '@pierre/diffs/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
+import {
+  MediaKind,
+  MediaPreview,
+} from '@/app/components/chat-aside/files/media-preview';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { ColorTheme, useTheme } from '@/app/providers';
 
@@ -24,8 +29,6 @@ interface CachedFile {
   mtimeMs: number;
   mimeType: string | null;
 }
-
-type MediaKind = 'image' | 'video' | 'audio' | 'pdf' | null;
 
 const PIERRE_THEME_MAP: Partial<
   Record<ColorTheme, string | { light: string; dark: string }>
@@ -55,16 +58,84 @@ const PIERRE_THEME_MAP: Partial<
   zenburn: 'zenburn',
 };
 
+type PierreThemeValue = { dark: string; light: string };
+
 function getPierreTheme(
   colorTheme: ColorTheme,
   resolvedTheme: 'light' | 'dark',
-): string {
+): PierreThemeValue {
   const mapped = PIERRE_THEME_MAP[colorTheme];
   if (!mapped) {
-    return resolvedTheme === 'dark' ? 'pierre-dark' : 'pierre-light';
+    return { dark: 'pierre-dark', light: 'pierre-light' };
   }
-  return typeof mapped === 'string' ? mapped : mapped[resolvedTheme];
+  if (typeof mapped === 'string') {
+    return { dark: mapped, light: mapped };
+  }
+  return { dark: mapped.dark, light: mapped.light };
 }
+
+/**
+ * Shadow-root CSS. Page styles can't reach into Pierre's shadow DOM, so this
+ * is the only place we can kill the theme's own background variables and
+ * match our typography. `--diffs-dark-bg` / `--diffs-light-bg` are what the
+ * resolved theme actually writes; the generic `--diffs-bg` is a fallback and
+ * won't win on its own.
+ */
+const PIERRE_SHADOW_CSS = `
+:host {
+  --diffs-dark-bg: transparent !important;
+  --diffs-light-bg: transparent !important;
+  --diffs-font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  --diffs-font-size: 12.5px;
+  --diffs-line-height: 1.65;
+}
+
+pre {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+[data-code] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+[data-gutter-buffer] {
+  opacity: 0.4 !important;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, currentColor 15%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, currentColor 15%, transparent);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, currentColor 30%, transparent);
+}
+`;
+
+// Lands on the <diffs-container> host element. `background: transparent` here
+// is what stops Pierre from painting its own host background — no wrapper
+// class can reach it.
+const PIERRE_FILE_STYLE: CSSProperties = {
+  flex: '1 1 auto',
+  minWidth: '100%',
+  background: 'transparent',
+};
 
 function getFileName(path: string): string {
   return path.split(/[\\/]/).pop() || path;
@@ -89,45 +160,37 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([buffer], { type: mimeType });
 }
 
+/**
+ * Files are cached per-path in a ref. Updates go through `forceUpdate` so a
+ * render that follows a path change can read the new value directly out of
+ * the cache — no intermediate "stale state → loading flash" render.
+ */
 export function FileContentPane({ socket, path }: FileContentPaneProps) {
   const { resolvedTheme, colorTheme } = useTheme();
-  const cache = useRef(new Map<string, CachedFile>());
 
-  const [state, setState] = useState<CachedFile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const cacheRef = useRef<{
+    files: Map<string, CachedFile>;
+    errors: Map<string, string>;
+  }>({ files: new Map(), errors: new Map() });
+
+  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   const [wrapText, setWrapText] = useState(false);
-
-  const pierreTheme = useMemo(
-    () => getPierreTheme(colorTheme, resolvedTheme),
-    [colorTheme, resolvedTheme],
-  );
 
   useEffect(() => {
     setWrapText(false);
   }, [path]);
 
   useEffect(() => {
-    if (!path) {
-      setState(null);
-      setError(null);
-      return;
-    }
-
-    const cached = cache.current.get(path);
-    if (cached) {
-      setError(null);
-      setState(cached);
-      return;
-    }
+    if (!path) return;
+    const cache = cacheRef.current;
+    if (cache.files.has(path) || cache.errors.has(path)) return;
 
     let cancelled = false;
-    setError(null);
-
     socket
       .read(path)
       .then((result) => {
         if (cancelled) return;
-        const entry: CachedFile = {
+        cache.files.set(path, {
           path,
           content: result.content,
           binary: result.binary,
@@ -135,14 +198,16 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
           size: result.size,
           mtimeMs: result.mtimeMs,
           mimeType: result.mimeType,
-        };
-        cache.current.set(path, entry);
-        setError(null);
-        setState(entry);
+        });
+        forceUpdate();
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to read file');
+        cache.errors.set(
+          path,
+          err instanceof Error ? err.message : 'Failed to read file',
+        );
+        forceUpdate();
       });
 
     return () => {
@@ -150,14 +215,23 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
     };
   }, [path, socket]);
 
-  const mediaKind = getMediaKind(state?.mimeType ?? null);
+  const file = path ? (cacheRef.current.files.get(path) ?? null) : null;
+  const error = path ? (cacheRef.current.errors.get(path) ?? null) : null;
+  const isLoading = path != null && file == null && error == null;
+
+  const pierreTheme = useMemo(
+    () => getPierreTheme(colorTheme, resolvedTheme),
+    [colorTheme, resolvedTheme],
+  );
+
+  const mediaKind = getMediaKind(file?.mimeType ?? null);
 
   const mediaUrl = useMemo(() => {
-    if (!state?.content || !state.mimeType || !mediaKind || state.truncated) {
+    if (!file?.content || !file.mimeType || !mediaKind || file.truncated) {
       return null;
     }
-    return URL.createObjectURL(base64ToBlob(state.content, state.mimeType));
-  }, [state, mediaKind]);
+    return URL.createObjectURL(base64ToBlob(file.content, file.mimeType));
+  }, [file, mediaKind]);
 
   useEffect(() => {
     return () => {
@@ -165,34 +239,50 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
     };
   }, [mediaUrl]);
 
-  const isStale = state != null && state.path !== path;
-
-  if (!path || !state || isStale) {
+  if (!path) {
     return (
       <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
-        {path ? 'Loading…' : 'Select a file to view its contents.'}
+        Select a file to view its contents.
       </div>
     );
   }
 
-  const displayedPath = state.path;
-  const fileName = getFileName(displayedPath);
+  if (isLoading) {
+    return (
+      <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+        Loading…
+      </div>
+    );
+  }
 
-  // This is the key that ties the viewer to the specific file version.
-  const viewerKey = `${displayedPath}:${pierreTheme}:${state.mtimeMs}`;
+  if (error) {
+    return (
+      <div className='text-danger flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-sm'>
+        {error}
+      </div>
+    );
+  }
+
+  if (!file) return null;
+
+  const fileName = getFileName(file.path);
+  // Key is tied to the specific file *version* (path + resolved theme mode +
+  // mtime). Theme mode is part of the key because the resolved color payload
+  // differs between light and dark.
+  const viewerKey = `${file.path}:${resolvedTheme}:${file.mtimeMs}`;
 
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden'>
-      <div className='bg-background border-separator sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3 backdrop-blur'>
+      <div className='border-separator sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3'>
         <div
           className='text-foreground flex min-w-0 items-center gap-1 truncate text-xs font-medium'
-          title={displayedPath}
+          title={file.path}
         >
           <FileTypeIcon filePath={fileName} />
           {fileName}
         </div>
 
-        {!state.binary && !mediaKind && (
+        {!file.binary && !mediaKind && (
           <button
             type='button'
             aria-label={
@@ -212,108 +302,45 @@ export function FileContentPane({ socket, path }: FileContentPaneProps) {
         )}
       </div>
 
-      <div className='min-h-0 min-w-0 flex-1 basis-0 scrollbar-thin overflow-auto'>
-        {error && state.path === path && (
-          <div className='text-danger p-4 text-sm'>{error}</div>
-        )}
-
-        {!error && mediaKind && mediaUrl && !state.truncated && (
+      <div className='scrollbar-thin min-h-0 min-w-0 flex-1 basis-0 overflow-auto'>
+        {mediaKind && mediaUrl && !file.truncated && (
           <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />
         )}
 
-        {!error && mediaKind && state.truncated && (
+        {mediaKind && file.truncated && (
           <div className='text-muted flex min-h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm'>
             <span>File is too large to preview.</span>
-            <span>{state.size.toLocaleString()} bytes</span>
+            <span>{file.size.toLocaleString()} bytes</span>
           </div>
         )}
 
-        {!error && state.binary && !mediaKind && (
+        {file.binary && !mediaKind && (
           <div className='text-muted flex min-h-full items-center justify-center p-4 text-sm'>
-            Binary file not shown ({state.size.toLocaleString()} bytes).
+            Binary file not shown ({file.size.toLocaleString()} bytes).
           </div>
         )}
 
-        {!error && !state.binary && !mediaKind && (
+        {!file.binary && !mediaKind && (
           <PierreFile
             key={viewerKey}
+            style={PIERRE_FILE_STYLE}
             file={{
-              name: displayedPath,
-              contents: state.content ?? '',
+              name: file.path,
+              contents: file.content ?? '',
               header: undefined,
-              // Unique per file version so the worker pool never conflates them.
               cacheKey: viewerKey,
             }}
             options={{
               theme: pierreTheme,
+              themeType: resolvedTheme,
               overflow: wrapText ? 'wrap' : 'scroll',
               disableFileHeader: true,
-              // Including cacheKey here forces areOptionsEqual to return
-              // false, which flips forceRender to true inside useFileInstance.
-              // cacheKey: viewerKey,
+              unsafeCSS: PIERRE_SHADOW_CSS,
             }}
             className='h-full'
           />
         )}
       </div>
-    </div>
-  );
-}
-
-function MediaPreview({
-  kind,
-  src,
-  fileName,
-}: {
-  kind: Exclude<MediaKind, null>;
-  src: string;
-  fileName: string;
-}) {
-  if (kind === 'image') {
-    return (
-      <div className='flex min-h-full items-start justify-center p-6'>
-        <img
-          src={src}
-          alt={fileName}
-          className='h-auto max-w-full object-contain'
-        />
-      </div>
-    );
-  }
-
-  if (kind === 'pdf') {
-    return (
-      <div className='h-full min-h-[600px] w-full'>
-        <iframe
-          src={src}
-          title={fileName}
-          className='h-full min-h-[600px] w-full border-0'
-        />
-      </div>
-    );
-  }
-
-  if (kind === 'audio') {
-    return (
-      <div className='flex min-h-full items-start justify-center p-6'>
-        <audio
-          src={src}
-          controls
-          preload='metadata'
-          className='w-full max-w-2xl'
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className='flex min-h-full items-start justify-center p-6'>
-      <video
-        src={src}
-        controls
-        preload='metadata'
-        className='h-auto max-h-[calc(100vh-6rem)] max-w-full'
-      />
     </div>
   );
 }

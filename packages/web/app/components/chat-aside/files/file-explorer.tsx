@@ -40,15 +40,15 @@ export function FileExplorer({
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-col border-r border-separator bg-background',
+        'border-separator flex min-h-0 flex-col border-r',
         className,
       )}
       style={style}
     >
       {projectName ? (
-        <div className='flex h-10 shrink-0 items-center border-b border-separator px-3'>
+        <div className='border-separator flex h-10 shrink-0 items-center border-b px-3'>
           <span
-            className='truncate text-xs font-medium text-muted'
+            className='text-muted truncate text-xs font-medium'
             title={projectName}
           >
             {projectName}
@@ -66,10 +66,13 @@ export function FileExplorer({
               fontFamily: 'var(--font-sans)',
               '--trees-padding-inline': '4px',
 
-              '--trees-bg-override': 'var(--background)',
+              // Everything inside the panel paints on --surface so it blends
+              // with the tab strip and content pane.
+              '--trees-bg-override': 'transparent',
+              '--trees-bg-muted-override': 'transparent',
+
               '--trees-fg-override': 'var(--foreground)',
               '--trees-fg-muted-override': 'var(--muted)',
-              '--trees-bg-muted-override': 'var(--background-secondary)',
 
               '--trees-hover-bg-override': 'var(--surface-hover)',
               '--trees-selected-fg-override': 'var(--accent-soft-foreground)',
