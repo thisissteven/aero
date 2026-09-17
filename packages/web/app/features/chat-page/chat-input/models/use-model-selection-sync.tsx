@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { SearchableModel } from '@/app/lib/model';
+import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 export interface UseModelSelectionSyncOptions {
   selectedModel: SearchableModel | null;
@@ -32,10 +32,10 @@ export function useModelSelectionSync(
   useEffect(() => {
     if (searchableModels.length === 0) return;
 
-    const stillExists = selectedModel
-      ? searchableModels.some(
-          ({ model }) => model.id === selectedModel.model.id,
-        )
+    const selectedKey = selectedModel ? getModelKey(selectedModel) : null;
+
+    const stillExists = selectedKey
+      ? searchableModels.some((entry) => getModelKey(entry) === selectedKey)
       : false;
 
     if (selectedModel && stillExists) return;
@@ -48,8 +48,8 @@ export function useModelSelectionSync(
     if (!favoriteModelIds || !setFavoriteModelIds) return;
     if (searchableModels.length === 0 || favoriteModelIds.length === 0) return;
 
-    const validIds = new Set(searchableModels.map(({ model }) => model.id));
-    const stillValid = favoriteModelIds.filter((id) => validIds.has(id));
+    const validKeys = new Set(searchableModels.map(getModelKey));
+    const stillValid = favoriteModelIds.filter((key) => validKeys.has(key));
 
     if (stillValid.length !== favoriteModelIds.length) {
       setFavoriteModelIds(stillValid);
@@ -68,8 +68,8 @@ export function useModelSelectionSyncFavorites(
     if (!favoriteModelIds || !setFavoriteModelIds) return;
     if (searchableModels.length === 0 || favoriteModelIds.length === 0) return;
 
-    const validIds = new Set(searchableModels.map(({ model }) => model.id));
-    const stillValid = favoriteModelIds.filter((id) => validIds.has(id));
+    const validKeys = new Set(searchableModels.map(getModelKey));
+    const stillValid = favoriteModelIds.filter((key) => validKeys.has(key));
 
     if (stillValid.length !== favoriteModelIds.length) {
       setFavoriteModelIds(stillValid);

@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { getSetting, updateSetting } from '@/app/hooks/api/settings';
-import { ModelItem, ProviderGroup, SearchableModel } from '@/app/lib/model';
+import {
+  getModelKey,
+  ModelItem,
+  ProviderGroup,
+  SearchableModel,
+} from '@/app/lib/model';
 
 export interface SelectedAgent {
   name: string;
@@ -16,7 +21,7 @@ interface ChatSettingsState {
   selectedVariant: string | undefined;
   selectedModel: SearchableModel | null;
   selectedAgent: SelectedAgent | null;
-  favoriteModelIds: string[];
+  favoriteModelIds: string[]; // CHANGED: now stores composite `${providerId}-${modelId}` keys
   modelAgentSheetOpen: boolean;
   modelAgentSheetSelection: ModelAgentSheetSelection;
 
@@ -30,8 +35,8 @@ interface ChatSettingsState {
   cycleVariant: (direction?: 1 | -1) => void;
   setSelectedModel: (selectedModel: SearchableModel) => void;
   setSelectedAgent: (agent: SelectedAgent) => void;
-  toggleFavoriteModel: (modelId: string) => void;
-  isFavoriteModel: (modelId: string) => boolean;
+  toggleFavoriteModel: (modelKey: string) => void; // CHANGED: arg is composite key
+  isFavoriteModel: (modelKey: string) => boolean; // CHANGED: arg is composite key
   setFavoriteModelIds: (favoriteModelIds: string[]) => void;
   setModelAgentSheetOpen: (open: boolean) => void;
   setModelAgentSheetSelection: (selection: ModelAgentSheetSelection) => void;
@@ -46,9 +51,11 @@ interface ChatSettingsState {
   getFavoriteModels: () => SearchableModel[];
   getGroupedProviders: () => ProviderGroup[];
   getTotalResults: () => number;
-  isModelVisible: (modelId: string) => boolean;
+  isModelVisible: (modelKey: string) => boolean; // CHANGED: arg is composite key
 }
 
+// Variant persistence stays keyed by raw model.id — variants belong to the
+// model itself, not to the provider binding. Leave as-is.
 const persistVariant = async (modelId: string, variant: string) => {
   await updateSetting({
     path: ['recentModelVariants', modelId],
@@ -163,18 +170,18 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
 
       setSelectedAgent: (selectedAgent) => set({ selectedAgent }),
 
-      toggleFavoriteModel: (modelId) =>
+      toggleFavoriteModel: (modelKey) =>
         set((state) => {
-          const exists = state.favoriteModelIds.includes(modelId);
+          const exists = state.favoriteModelIds.includes(modelKey);
 
           return {
             favoriteModelIds: exists
-              ? state.favoriteModelIds.filter((id) => id !== modelId)
-              : [...state.favoriteModelIds, modelId],
+              ? state.favoriteModelIds.filter((id) => id !== modelKey)
+              : [...state.favoriteModelIds, modelKey],
           };
         }),
 
-      isFavoriteModel: (modelId) => get().favoriteModelIds.includes(modelId),
+      isFavoriteModel: (modelKey) => get().favoriteModelIds.includes(modelKey),
 
       setFavoriteModelIds: (favoriteModelIds) => set({ favoriteModelIds }),
 
@@ -192,11 +199,14 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
           return;
         }
 
-        const byId = new Map<string, SearchableModel>();
+        const byKey = new Map<string, SearchableModel>();
+
         for (const provider of providersData) {
           for (const model of Object.values(provider.models) as ModelItem[]) {
-            if (!byId.has(model.id)) {
-              byId.set(model.id, {
+            const key = `${provider.id}-${model.id}`;
+
+            if (!byKey.has(key)) {
+              byKey.set(key, {
                 model,
                 providerId: provider.id,
                 providerName: provider.name,
@@ -204,7 +214,8 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
             }
           }
         }
-        set({ searchableModels: [...byId.values()] });
+
+        set({ searchableModels: [...byKey.values()] });
       },
 
       toggleGroupCollapse: (groupId) =>
@@ -234,8 +245,8 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
         if (favoriteModelIds.length === 0) return [];
 
         const filtered = get().getFilteredModels();
-        return filtered.filter(({ model }) =>
-          favoriteModelIds.includes(model.id),
+        return filtered.filter((entry) =>
+          favoriteModelIds.includes(getModelKey(entry)),
         );
       },
 
@@ -245,7 +256,7 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
         const groups = new Map<string, ProviderGroup>();
 
         for (const entry of filtered) {
-          if (favoriteModelIds.includes(entry.model.id)) continue;
+          if (favoriteModelIds.includes(getModelKey(entry))) continue;
 
           const existing = groups.get(entry.providerId);
           if (existing) {
@@ -271,22 +282,34 @@ export const useChatSettingsStore = create<ChatSettingsState>()(
         );
       },
 
-      isModelVisible: (modelId) => {
+      isModelVisible: (modelKey) => {
         const isFav = get()
           .getFavoriteModels()
-          .some(({ model }) => model.id === modelId);
+          .some((entry) => getModelKey(entry) === modelKey);
         if (isFav) return true;
 
         return get()
           .getGroupedProviders()
           .some((group) =>
-            group.models.some(({ model }) => model.id === modelId),
+            group.models.some((entry) => getModelKey(entry) === modelKey),
           );
       },
     }),
 
     {
       name: 'chat-input-settings-storage',
+
+      // Bumped because favoriteModelIds changed from raw model.id to
+      // `${providerId}-${modelId}`. Old entries can't be resolved without
+      // provider data, so drop them once on upgrade.
+      version: 1,
+
+      migrate: (persisted: any, version) => {
+        if (version < 1 && persisted) {
+          persisted.favoriteModelIds = [];
+        }
+        return persisted;
+      },
 
       partialize: (state) => ({
         selectedVariant: state.selectedVariant,

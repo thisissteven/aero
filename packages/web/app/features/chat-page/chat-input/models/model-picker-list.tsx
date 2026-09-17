@@ -8,12 +8,14 @@ import { ProviderGroup, SearchableModel } from '@/app/lib/model';
 export interface ModelPickerListProps {
   favoriteModels: SearchableModel[];
   groupedProviders: ProviderGroup[];
-  selectedModelId?: string;
-  favoriteModelIds: string[];
+  /** Composite `${providerId}-${modelId}` key. */
+  selectedModelKey?: string;
+  /** Composite `${providerId}-${modelId}` keys. */
+  favoriteModelKeys: string[];
   collapsedGroups: Set<string>;
   onToggleGroup: (groupId: string) => void;
   onSelect: (model: SearchableModel) => void;
-  onFavorite: (event: React.MouseEvent, modelId: string) => void;
+  onFavorite: (event: React.MouseEvent, modelKey: string) => void;
 }
 
 /**
@@ -32,8 +34,8 @@ export interface ModelPickerListProps {
 export function ModelPickerList({
   favoriteModels,
   groupedProviders,
-  selectedModelId,
-  favoriteModelIds,
+  selectedModelKey,
+  favoriteModelKeys,
   collapsedGroups,
   onToggleGroup,
   onSelect,
@@ -52,8 +54,8 @@ export function ModelPickerList({
   return (
     <ModelVirtualList
       items={items}
-      selectedModelId={selectedModelId}
-      favoriteModelIds={favoriteModelIds}
+      selectedModelKey={selectedModelKey}
+      favoriteModelKeys={favoriteModelKeys}
       collapsedGroups={collapsedGroups}
       onToggleGroup={onToggleGroup}
       onSelect={(entry) => onSelect(entry)}

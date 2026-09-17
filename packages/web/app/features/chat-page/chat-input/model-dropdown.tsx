@@ -14,7 +14,7 @@ import {
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { useModelSelectionSync } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
-import { SearchableModel } from '@/app/lib/model';
+import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 import { useChatSettingsStore } from './chat-settings-store';
 
@@ -72,9 +72,9 @@ export function ModelDropdown() {
     setIsOpen(false);
   };
 
-  const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
+  const toggleFavorite = (event: React.MouseEvent, modelKey: string) => {
     event.stopPropagation();
-    toggleFavoriteModel(modelId);
+    toggleFavoriteModel(modelKey);
   };
 
   const items = buildModelVirtualItems({
@@ -139,8 +139,10 @@ export function ModelDropdown() {
                   ) : (
                     <ModelVirtualList
                       items={items}
-                      selectedModelId={selectedModel?.model.id}
-                      favoriteModelIds={favoriteModelIds}
+                      selectedModelKey={
+                        selectedModel ? getModelKey(selectedModel) : undefined
+                      }
+                      favoriteModelKeys={favoriteModelIds}
                       collapsedGroups={collapsedGroups}
                       onToggleGroup={toggleGroupCollapse}
                       onSelect={selectModel}

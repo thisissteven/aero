@@ -23,6 +23,7 @@ import {
   formatCapabilities,
   formatContextLength,
   formatMediaTypes,
+  getModelKey,
   ModelItem,
   SearchableModel,
 } from '@/app/lib/model';
@@ -150,9 +151,9 @@ export interface ModelRowProps {
   onSelect: (entry: SearchableModel) => void;
   /** Omit both favorite props entirely for pickers without favorites (e.g. the workspace dropdown). */
   isFavorite?: boolean;
-  onToggleFavorite?: (event: React.MouseEvent, modelId: string) => void;
+  onToggleFavorite?: (event: React.MouseEvent, modelKey: string) => void;
   /** Omit for pickers without a hover/focus details panel. */
-  onActivate?: (model: ModelItem, element: HTMLElement) => void;
+  onActivate?: (entry: SearchableModel, element: HTMLElement) => void;
 }
 
 export function ModelRow({
@@ -184,7 +185,7 @@ export function ModelRow({
                 element.getAttribute('data-focused') === 'true' ||
                 element.getAttribute('data-hovered') === 'true'
               ) {
-                onActivate(model, innerElement);
+                onActivate(entry, innerElement);
               }
 
               const observer = new MutationObserver((mutations) => {
@@ -201,7 +202,7 @@ export function ModelRow({
                       target.getAttribute('data-hovered') === 'true';
 
                     if (isFocused || isHovered) {
-                      onActivate(model, innerElement);
+                      onActivate(entry, innerElement);
                     }
                   }
                 }
@@ -241,7 +242,7 @@ export function ModelRow({
             type='button'
             tabIndex={-1}
             className='text-muted hover:text-accent transition-colors'
-            onClick={(event) => onToggleFavorite(event, model.id)}
+            onClick={(event) => onToggleFavorite(event, getModelKey(entry))}
           >
             <Icon
               data={isFavorite ? StarFill : Star}
@@ -314,23 +315,23 @@ export function ModelInfoPanelCard({
 
 export interface ModelVirtualListProps {
   items: ModelVirtualItem[];
-  selectedModelId?: string | null;
+  selectedModelKey?: string | null;
   /** Omit for pickers without favorites. */
-  favoriteModelIds?: string[];
+  favoriteModelKeys?: string[];
   collapsedGroups: Set<string>;
   onToggleGroup: (groupId: string) => void;
   onSelect: (entry: SearchableModel) => void;
   /** Omit for pickers without favorites. */
-  onToggleFavorite?: (event: React.MouseEvent, modelId: string) => void;
+  onToggleFavorite?: (event: React.MouseEvent, modelKey: string) => void;
   /** Omit for pickers without a hover/focus details panel. */
-  onActivate?: (model: ModelItem, element: HTMLElement) => void;
+  onActivate?: (entry: SearchableModel, element: HTMLElement) => void;
   className?: string;
 }
 
 export function ModelVirtualList({
   items,
-  selectedModelId,
-  favoriteModelIds,
+  selectedModelKey,
+  favoriteModelKeys,
   collapsedGroups,
   onToggleGroup,
   onSelect,
@@ -369,14 +370,16 @@ export function ModelVirtualList({
             );
           }
 
+          const entryKey = getModelKey(typedItem.entry);
+
           return (
             <ModelRow
               key={typedItem.id}
               itemKey={typedItem.id}
               entry={typedItem.entry}
-              isSelected={selectedModelId === typedItem.entry.model.id}
+              isSelected={selectedModelKey === entryKey}
               onSelect={onSelect}
-              isFavorite={favoriteModelIds?.includes(typedItem.entry.model.id)}
+              isFavorite={favoriteModelKeys?.includes(entryKey)}
               onToggleFavorite={onToggleFavorite}
               onActivate={onActivate}
             />

@@ -103,3 +103,7 @@ export function formatMediaTypes(types?: Record<string, boolean>): string {
 
   return active.length > 0 ? active.join(', ') : 'text';
 }
+
+export function getModelKey(entry: SearchableModel) {
+  return `${entry.providerId}-${entry.model.id}`;
+}

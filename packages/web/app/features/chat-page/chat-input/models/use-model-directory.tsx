@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useConfiguredProviders } from '@/app/hooks/api/providers';
-import { SearchableModel } from '@/app/lib/model';
+import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 export function useModelDirectory() {
   const { data: providersData } = useConfiguredProviders();
@@ -37,8 +37,8 @@ export function useModelDirectory() {
 
   const favoriteModels = useMemo(() => {
     if (favoriteModelIds.length === 0) return [];
-    return filteredModels.filter(({ model }) =>
-      favoriteModelIds.includes(model.id),
+    return filteredModels.filter((entry) =>
+      favoriteModelIds.includes(getModelKey(entry)),
     );
   }, [filteredModels, favoriteModelIds]);
 
@@ -46,7 +46,7 @@ export function useModelDirectory() {
     const groups = new Map();
 
     for (const entry of filteredModels) {
-      if (favoriteModelIds.includes(entry.model.id)) continue;
+      if (favoriteModelIds.includes(getModelKey(entry))) continue;
 
       const existing = groups.get(entry.providerId);
       if (existing) {
@@ -67,12 +67,11 @@ export function useModelDirectory() {
     favoriteModels.length +
     groupedProviders.reduce((acc, g) => acc + g.models.length, 0);
 
-  const isModelVisible = (modelId: string) =>
-    favoriteModels.some(({ model }) => model.id === modelId) ||
+  const isModelVisible = (modelKey: string) =>
+    favoriteModels.some((entry) => getModelKey(entry) === modelKey) ||
     groupedProviders.some((g) =>
       g.models.some(
-        ({ model }: { model: SearchableModel['model'] }) =>
-          model.id === modelId,
+        (entry: SearchableModel) => getModelKey(entry) === modelKey,
       ),
     );
 

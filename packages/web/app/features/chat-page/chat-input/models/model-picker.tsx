@@ -3,6 +3,7 @@ import { Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { ModelPickerList } from '@/app/features/chat-page/chat-input/models/model-picker-list';
 import { useModelPicker } from '@/app/features/chat-page/chat-input/models/use-model-picker';
+import { getModelKey } from '@/app/lib/model';
 
 interface ModelPickerProps {
   onModelSelect?: () => void;
@@ -56,8 +57,10 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
             <ModelPickerList
               favoriteModels={favoriteModels}
               groupedProviders={groupedProviders}
-              selectedModelId={selectedModel?.model.id}
-              favoriteModelIds={favoriteModelIds}
+              selectedModelKey={
+                selectedModel ? getModelKey(selectedModel) : undefined
+              }
+              favoriteModelKeys={favoriteModelIds}
               collapsedGroups={collapsedGroups}
               onToggleGroup={toggleGroupCollapse}
               onSelect={(model) => {

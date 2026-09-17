@@ -6,7 +6,7 @@
 // don't contribute rows to the array, rather than being rendered `hidden`.
 // ---------------------------------------------------------------------------
 
-import { ProviderGroup, SearchableModel } from '@/app/lib/model';
+import { getModelKey, ProviderGroup, SearchableModel } from '@/app/lib/model';
 
 export type ModelVirtualItem =
   | {
@@ -49,7 +49,7 @@ export function buildModelVirtualItems({
       for (const entry of favoriteModels) {
         items.push({
           kind: 'model-row',
-          id: `favorite-${entry.model.id}`,
+          id: `favorite-${getModelKey(entry)}`,
           entry,
           groupId: 'favorites',
         });
@@ -70,7 +70,7 @@ export function buildModelVirtualItems({
       for (const entry of provider.models) {
         items.push({
           kind: 'model-row',
-          id: entry.model.id,
+          id: getModelKey(entry),
           entry,
           groupId: provider.id,
         });

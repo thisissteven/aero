@@ -41,9 +41,9 @@ export function useModelPicker() {
     setSelectedModel(model);
   };
 
-  const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
+  const toggleFavorite = (event: React.MouseEvent, modelKey: string) => {
     event.stopPropagation();
-    toggleFavoriteModel(modelId);
+    toggleFavoriteModel(modelKey);
   };
 
   return {

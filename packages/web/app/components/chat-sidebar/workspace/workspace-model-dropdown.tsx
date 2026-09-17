@@ -17,11 +17,11 @@ import {
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { useModelSelectionSyncFavorites } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
-import { SearchableModel } from '@/app/lib/model';
+import { getModelKey, SearchableModel } from '@/app/lib/model';
 import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 
 export interface WorkspaceModelDropdownProps {
-  value?: string | null; // e.g., model ID stored in workspace config
+  value?: string | null; // raw model.id stored in workspace config
   onChange?: (model: string) => void;
   disabled?: boolean;
   onAddProviderClick?: () => void;
@@ -60,6 +60,9 @@ export function WorkspaceModelDropdown({
     isModelVisible,
   } = useModelDirectory();
 
+  // `value` is still the raw model.id from workspace config. If the same
+  // model.id exists on multiple providers this picks the first match —
+  // acceptable until workspace config stores composite keys.
   const selectedModelEntry =
     value && searchableModels.length > 0
       ? (searchableModels.find(({ model }) => model.id === value) ?? null)
@@ -95,9 +98,9 @@ export function WorkspaceModelDropdown({
     setFavoriteModelIds,
   });
 
-  const toggleFavorite = (event: React.MouseEvent, modelId: string) => {
+  const toggleFavorite = (event: React.MouseEvent, modelKey: string) => {
     event.stopPropagation();
-    toggleFavoriteModel(modelId);
+    toggleFavoriteModel(modelKey);
   };
 
   return (
@@ -163,8 +166,12 @@ export function WorkspaceModelDropdown({
                 ) : (
                   <ModelVirtualList
                     items={items}
-                    selectedModelId={selectedModelEntry?.model.id}
-                    favoriteModelIds={favoriteModelIds}
+                    selectedModelKey={
+                      selectedModelEntry
+                        ? getModelKey(selectedModelEntry)
+                        : undefined
+                    }
+                    favoriteModelKeys={favoriteModelIds}
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroupCollapse}
                     onSelect={selectModel}

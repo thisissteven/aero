@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-import { ModelItem } from '@/app/lib/model';
+import { getModelKey, ModelItem, SearchableModel } from '@/app/lib/model';
 
 const PANEL_WIDTH = 256;
 const PANEL_GAP = 8;
@@ -18,9 +18,9 @@ export interface UseModelInfoPanelResult {
   infoSide: 'left' | 'right';
   /** Attach to the positioning-reference container (the row that wraps the list + panel). */
   panelRef: React.RefObject<HTMLDivElement | null>;
-  activateModel: (model: ModelItem, element: HTMLElement) => void;
+  activateModel: (entry: SearchableModel, element: HTMLElement) => void;
   /** Call in an effect whenever the visible result set changes, to drop a now-hidden active model. */
-  clearIfStale: (isStillVisible: (modelId: string) => boolean) => void;
+  clearIfStale: (isStillVisible: (modelKey: string) => boolean) => void;
 }
 
 /**
@@ -29,6 +29,7 @@ export interface UseModelInfoPanelResult {
  */
 export function useModelInfoPanel(): UseModelInfoPanelResult {
   const [activeModel, setActiveModel] = useState<ModelItem | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [hoverTop, setHoverTop] = useState(0);
   const [infoSide, setInfoSide] = useState<'left' | 'right'>('left');
 
@@ -72,16 +73,18 @@ export function useModelInfoPanel(): UseModelInfoPanelResult {
 
     return {
       side: (spaceLeft >= PANEL_WIDTH + PANEL_GAP ? 'left' : 'right') as
-        'left' | 'right',
+        | 'left'
+        | 'right',
       top: clampedTop,
     };
   }, []);
 
   const performUpdate = useCallback(
-    (model: ModelItem | null, element: HTMLElement | null) => {
-      if (!element || !model) {
+    (entry: SearchableModel | null, element: HTMLElement | null) => {
+      if (!element || !entry) {
         activeItemRef.current = null;
         setActiveModel(null);
+        setActiveKey(null);
         return;
       }
 
@@ -89,12 +92,14 @@ export function useModelInfoPanel(): UseModelInfoPanelResult {
       if (!position) {
         activeItemRef.current = null;
         setActiveModel(null);
+        setActiveKey(null);
         return;
       }
 
       activeItemRef.current = element;
-      // Synchronize text + position in a single state batch
-      setActiveModel(model);
+      // Synchronize content + position in a single state batch
+      setActiveModel(entry.model);
+      setActiveKey(getModelKey(entry));
       setInfoSide(position.side);
       setHoverTop(position.top);
     },
@@ -102,13 +107,13 @@ export function useModelInfoPanel(): UseModelInfoPanelResult {
   );
 
   const activateModel = useCallback(
-    (model: ModelItem, element: HTMLElement) => {
+    (entry: SearchableModel, element: HTMLElement) => {
       cancelPendingUpdate();
 
       // Schedule both content and position update on the next frame paint
       rafIdRef.current = requestAnimationFrame(() => {
         rafIdRef.current = null;
-        performUpdate(model, element);
+        performUpdate(entry, element);
       });
     },
     [cancelPendingUpdate, performUpdate],
@@ -119,19 +124,29 @@ export function useModelInfoPanel(): UseModelInfoPanelResult {
 
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
-      if (!activeItemRef.current || !activeModel) return;
-      performUpdate(activeModel, activeItemRef.current);
+      if (!activeItemRef.current || !activeKey) return;
+
+      const position = positionFor(activeItemRef.current);
+      if (!position) {
+        setActiveModel(null);
+        setActiveKey(null);
+        activeItemRef.current = null;
+        return;
+      }
+
+      setInfoSide(position.side);
+      setHoverTop(position.top);
     });
-  }, [activeModel, cancelPendingUpdate, performUpdate]);
+  }, [activeKey, cancelPendingUpdate, positionFor]);
 
   useLayoutEffect(() => {
-    if (activeModel && activeItemRef.current) {
+    if (activeKey && activeItemRef.current) {
       updateActiveItemPosition();
     }
-  }, [activeModel, updateActiveItemPosition]);
+  }, [activeKey, updateActiveItemPosition]);
 
   useEffect(() => {
-    if (!activeModel) return;
+    if (!activeKey) return;
 
     const handleLayoutShift = () => updateActiveItemPosition();
 
@@ -148,17 +163,18 @@ export function useModelInfoPanel(): UseModelInfoPanelResult {
         capture: true,
       });
     };
-  }, [activeModel, cancelPendingUpdate, updateActiveItemPosition]);
+  }, [activeKey, cancelPendingUpdate, updateActiveItemPosition]);
 
   const clearIfStale = useCallback(
-    (isStillVisible: (modelId: string) => boolean) => {
-      if (activeModel && !isStillVisible(activeModel.id)) {
+    (isStillVisible: (modelKey: string) => boolean) => {
+      if (activeKey && !isStillVisible(activeKey)) {
         cancelPendingUpdate();
         setActiveModel(null);
+        setActiveKey(null);
         activeItemRef.current = null;
       }
     },
-    [activeModel, cancelPendingUpdate],
+    [activeKey, cancelPendingUpdate],
   );
 
   return {
