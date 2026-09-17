@@ -10,6 +10,7 @@ import {
   handleRead,
   handleRename,
   handleSearch,
+  handleStat,
   handleWriteFile,
   resolveRoot,
 } from '../../server/lib/fs-ws/fs-core';
@@ -69,6 +70,9 @@ export function setupFsWebSocket(wss: WebSocketServer): void {
             break;
           case 'read':
             send(ws, await handleRead(session, parsed));
+            break;
+          case 'stat':
+            send(ws, await handleStat(session, parsed));
             break;
           case 'search':
             await handleSearch(session, parsed, (matches, done) => {

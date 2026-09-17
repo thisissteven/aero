@@ -278,7 +278,13 @@ function FileExplorerPanelInner({ root }: { root: string }) {
             />
           ) : null}
           <div className='min-h-0 min-w-0 flex-1 @container'>
-            <FileContentPane socket={socket} path={activePath} />
+            <FileContentPane
+              socket={socket}
+              path={activePath}
+              getFileUrl={(rel) =>
+                `/api/fs/raw?root=${encodeURIComponent(root)}&path=${encodeURIComponent(rel)}`
+              }
+            />
           </div>
         </div>
       </div>

@@ -27,6 +27,13 @@ export const ReadRequest = z.object({
 });
 export type ReadRequest = z.infer<typeof ReadRequest>;
 
+export const StatRequest = z.object({
+  id: z.string(),
+  type: z.literal('stat'),
+  path: z.string(),
+});
+export type StatRequest = z.infer<typeof StatRequest>;
+
 export const SearchRequest = z.object({
   id: z.string(),
   type: z.literal('search'),
@@ -75,6 +82,7 @@ export type DeleteRequest = z.infer<typeof DeleteRequest>;
 export const ClientMessage = z.discriminatedUnion('type', [
   ListRequest,
   ReadRequest,
+  StatRequest,
   SearchRequest,
   GitStatusRequest,
   WriteFileRequest,
@@ -107,6 +115,17 @@ export const ReadResult = z.object({
   mimeType: z.string().nullable(),
 });
 export type ReadResult = z.infer<typeof ReadResult>;
+
+export const StatResult = z.object({
+  id: z.string(),
+  type: z.literal('stat:result'),
+  path: z.string(),
+  size: z.number(),
+  mtimeMs: z.number(),
+  binary: z.boolean(),
+  mimeType: z.string().nullable(),
+});
+export type StatResult = z.infer<typeof StatResult>;
 
 export const SearchResultMessage = z.object({
   id: z.string(),
@@ -154,6 +173,7 @@ export type MutationResult = z.infer<typeof MutationResult>;
 export const ServerMessage = z.discriminatedUnion('type', [
   ListResult,
   ReadResult,
+  StatResult,
   SearchResultMessage,
   ErrorResult,
   GitStatusResult,
@@ -164,6 +184,7 @@ export type ServerMessage = z.infer<typeof ServerMessage>;
 // ── Shared constants ───────────────────────────────────────────────────
 
 export const READ_MAX_BYTES = 2 * 1024 * 1024;
+/** @deprecated Media now streams over HTTP via /api/fs/raw. Kept for callers. */
 export const MEDIA_MAX_BYTES = 50 * 1024 * 1024;
 export const LIST_PAGE_SIZE = 500;
 

@@ -10,6 +10,7 @@ import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
 import discoveryRoutes from './routes/discovery';
 import folderPickerRoutes from './routes/folder-picker';
+import fsRawRoutes from './routes/fs-raw';
 import gitRoutes from './routes/git';
 import mcpRoutes from './routes/mcp';
 import poolRoutes from './routes/pool';
@@ -42,7 +43,8 @@ const app = new Hono()
   .route('/worktrees', worktreeRoutes)
   .route('/config', configRoutes)
   .route('/folder-picker', folderPickerRoutes)
-  .route('/discovery', discoveryRoutes);
+  .route('/discovery', discoveryRoutes)
+  .route('/fs', fsRawRoutes);
 
 // Ensure the pool is initialized before any incoming API request proceeds
 let poolInitPromise: Promise<void> | null = null;

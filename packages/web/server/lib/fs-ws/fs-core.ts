@@ -1,7 +1,8 @@
 import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
-import { promises as fs } from 'node:fs';
+import { createReadStream, promises as fs } from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { promisify } from 'node:util';
 
 import {
@@ -9,7 +10,6 @@ import {
   DEFAULT_IGNORED_DIRS,
   FsEntry,
   LIST_PAGE_SIZE,
-  MEDIA_MAX_BYTES,
   READ_MAX_BYTES,
   ServerMessage,
 } from './fs-protocol';
@@ -78,7 +78,7 @@ function shouldSkip(name: string): boolean {
   return false;
 }
 
-// ── List / Read / Search (unchanged) ───────────────────────────────────
+// ── List / Read / Stat / Search ────────────────────────────────────────
 
 export async function handleList(
   session: FsSession,
@@ -153,7 +153,7 @@ const MEDIA_MIME_TYPES: Record<string, string> = {
   '.webm': 'video/webm',
 };
 
-function getMediaMimeType(filePath: string): string | null {
+export function getMediaMimeType(filePath: string): string | null {
   return MEDIA_MIME_TYPES[path.extname(filePath).toLowerCase()] ?? null;
 }
 
@@ -165,30 +165,31 @@ export async function handleRead(
   const stat = await fs.stat(fileAbs);
   if (!stat.isFile()) throw new Error('not a file');
 
+  // Media never travels over the socket — the client renders <img>/<video>/
+  // <audio> against /api/fs/raw. Return metadata only so callers don't
+  // accidentally pull tens of MB through base64.
   const mimeType = getMediaMimeType(fileAbs);
-  const isMedia = mimeType !== null;
-  const maxBytes = isMedia ? MEDIA_MAX_BYTES : READ_MAX_BYTES;
-  const truncated = stat.size > maxBytes;
-  const bytesToRead = Math.min(stat.size, maxBytes);
+  if (mimeType) {
+    return {
+      id: msg.id,
+      type: 'read:result',
+      path: msg.path,
+      content: null,
+      size: stat.size,
+      truncated: false,
+      binary: true,
+      mtimeMs: stat.mtimeMs,
+      mimeType,
+    };
+  }
+
+  const truncated = stat.size > READ_MAX_BYTES;
+  const bytesToRead = Math.min(stat.size, READ_MAX_BYTES);
 
   const fh = await fs.open(fileAbs, 'r');
   try {
     const buffer = Buffer.alloc(bytesToRead);
     await fh.read(buffer, 0, bytesToRead, 0);
-
-    if (isMedia) {
-      return {
-        id: msg.id,
-        type: 'read:result',
-        path: msg.path,
-        content: truncated ? null : buffer.toString('base64'),
-        size: stat.size,
-        truncated,
-        binary: true,
-        mtimeMs: stat.mtimeMs,
-        mimeType,
-      };
-    }
 
     const binary = looksBinary(buffer);
     return {
@@ -205,6 +206,40 @@ export async function handleRead(
   } finally {
     await fh.close();
   }
+}
+
+export async function handleStat(
+  session: FsSession,
+  msg: Extract<ClientMessage, { type: 'stat' }>,
+): Promise<ServerMessage> {
+  const fileAbs = await resolveSafe(session, msg.path);
+  const stat = await fs.stat(fileAbs);
+  if (!stat.isFile()) throw new Error('not a file');
+
+  const mimeType = getMediaMimeType(fileAbs);
+
+  // Only sniff when the extension didn't already tell us.
+  let binary = mimeType !== null;
+  if (!binary) {
+    const fh = await fs.open(fileAbs, 'r');
+    try {
+      const head = Buffer.alloc(Math.min(8000, stat.size));
+      await fh.read(head, 0, head.length, 0);
+      binary = looksBinary(head);
+    } finally {
+      await fh.close();
+    }
+  }
+
+  return {
+    id: msg.id,
+    type: 'stat:result',
+    path: msg.path,
+    size: stat.size,
+    mtimeMs: stat.mtimeMs,
+    binary,
+    mimeType,
+  };
 }
 
 export async function handleSearch(
@@ -245,6 +280,95 @@ export async function handleSearch(
   onBatch(buffer, true);
 }
 
+// ── HTTP streaming ─────────────────────────────────────────────────────
+
+/**
+ * Stream a file over HTTP with Range support, so <video>/<audio> can seek.
+ * Returns a Fetch `Response` — usable from Next.js route handlers and any
+ * other Fetch-based server.
+ */
+export async function handleStream(
+  session: FsSession,
+  relativePath: string,
+  rangeHeader: string | null,
+  ifNoneMatch: string | null,
+): Promise<Response> {
+  const fileAbs = await resolveSafe(session, relativePath);
+  const stat = await fs.stat(fileAbs);
+  if (!stat.isFile()) throw new Error('not a file');
+
+  const mimeType = getMediaMimeType(fileAbs) ?? 'application/octet-stream';
+  const etag = `"${stat.size}-${Math.floor(stat.mtimeMs)}"`;
+
+  if (ifNoneMatch === etag) {
+    return new Response(null, { status: 304, headers: { etag } });
+  }
+
+  const common: Record<string, string> = {
+    'content-type': mimeType,
+    'accept-ranges': 'bytes',
+    'cache-control': 'private, max-age=0, must-revalidate',
+    etag,
+  };
+
+  const range = parseRange(rangeHeader, stat.size);
+  if (!range) {
+    const stream = Readable.toWeb(
+      createReadStream(fileAbs),
+    ) as unknown as ReadableStream<Uint8Array>;
+    return new Response(stream, {
+      status: 200,
+      headers: { ...common, 'content-length': String(stat.size) },
+    });
+  }
+
+  const { start, end } = range;
+  const stream = Readable.toWeb(
+    createReadStream(fileAbs, { start, end }),
+  ) as unknown as ReadableStream<Uint8Array>;
+  return new Response(stream, {
+    status: 206,
+    headers: {
+      ...common,
+      'content-length': String(end - start + 1),
+      'content-range': `bytes ${start}-${end}/${stat.size}`,
+    },
+  });
+}
+
+function parseRange(
+  header: string | null,
+  size: number,
+): { start: number; end: number } | null {
+  if (!header) return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m) return null;
+  const [, startStr, endStr] = m;
+
+  let start: number;
+  let end: number;
+  if (startStr === '') {
+    const suffix = Number.parseInt(endStr, 10);
+    if (!Number.isFinite(suffix) || suffix <= 0) return null;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number.parseInt(startStr, 10);
+    end = endStr === '' ? size - 1 : Number.parseInt(endStr, 10);
+  }
+
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end >= size ||
+    start > end
+  ) {
+    return null;
+  }
+  return { start, end };
+}
+
 // ── Git status ─────────────────────────────────────────────────────────
 
 export interface GitStatusEntry {
@@ -262,8 +386,6 @@ export async function handleGitStatus(
   session: FsSession,
 ): Promise<GitStatusEntry[]> {
   try {
-    // `--ignored=matching` lists top-level ignored entries (e.g. `node_modules/`)
-    // without recursing into them, which is what the tree wants to display.
     const { stdout } = await execFileAsync(
       'git',
       [
@@ -278,7 +400,6 @@ export async function handleGitStatus(
     );
     return parseGitStatus(stdout);
   } catch {
-    // Not a git repo, or git isn't installed, or the command timed out.
     return [];
   }
 }
@@ -292,8 +413,6 @@ function parseGitStatus(stdout: string): GitStatusEntry[] {
     if (!line || line.length < 3) continue;
     const code = line.slice(0, 2);
     const filePath = line.slice(3);
-    // Renames / copies put the original path in the following NUL-separated
-    // slot. We only care about the destination path, so skip the origin.
     if (code[0] === 'R' || code[0] === 'C') i++;
     out.push({ path: filePath, status: mapGitCode(code) });
   }
@@ -303,8 +422,6 @@ function parseGitStatus(stdout: string): GitStatusEntry[] {
 function mapGitCode(code: string): GitStatusEntry['status'] {
   if (code === '??') return 'untracked';
   if (code === '!!') return 'ignored';
-  // Prefer the index status (first char) when present, otherwise the worktree
-  // status (second char). This matches how VS Code's git extension maps them.
   const primary = code[0] !== ' ' ? code[0] : code[1];
   switch (primary) {
     case 'A':

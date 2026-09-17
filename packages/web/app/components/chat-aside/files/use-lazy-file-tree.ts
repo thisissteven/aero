@@ -237,7 +237,7 @@ export function useLazyFileTree({
       search: true as const,
       fileTreeSearchMode: 'hide-non-matches' as const,
       initialExpansion: 'closed' as const,
-      flattenEmptyDirectories: true,
+      flattenEmptyDirectories: false,
       density,
       renaming: true as const,
       // dragAndDrop: true as const,
