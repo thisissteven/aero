@@ -3,7 +3,7 @@ import { Comment, Gear, Keyboard } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
-
+import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
@@ -15,9 +15,11 @@ import { useSessionDirectory, useSessions } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
+import { toWorkspaceRelative } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
 
 export type VirtualPaletteItem =
@@ -273,9 +275,18 @@ export function CommandPaletteList() {
                 <Command.Item
                   key={typedItem.id}
                   textValue={typedItem.file}
-                  onAction={() => {
-                    //
-                  }}
+                  onAction={() =>
+                    onSelect(() => {
+                      if (!directory) return null;
+
+                      const relativePath = toWorkspaceRelative(
+                        typedItem.file,
+                        directory,
+                      );
+                      useSidePanelStore.getState().setActiveNavItem('files');
+                      useFileViewerStore.getState().openFile(relativePath);
+                    })
+                  }
                   className='mx-2'
                 >
                   <FileTypeIcon

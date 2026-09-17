@@ -4,7 +4,7 @@ import type { FileTree as FileTreeModel } from '@pierre/trees';
 import { FILE_TREE_DENSITY_PRESETS } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
+import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 
 export interface UseLazyFileTreeOptions {
@@ -192,6 +192,34 @@ function useDirectoryExpansionWatcher(
   }, [model]);
 }
 
+function useSelectionWatcher(model: FileTreeModel): void {
+  const openFile = useFileViewerStore((s) => s.openFile);
+  const openFileRef = useRef(openFile);
+  openFileRef.current = openFile;
+
+  const lastSelected = useRef<string | null>(null);
+
+  useEffect(() => {
+    const check = () => {
+      const paths = model.getSelectedPaths?.() ?? [];
+      const first = paths[0] ?? null;
+      if (first === lastSelected.current) return;
+      lastSelected.current = first;
+      if (!first) return;
+
+      // Directories end with '/'; skip them.
+      if (first.endsWith('/')) return;
+      const item = model.getItem(first);
+      if (item?.isDirectory()) return;
+
+      openFileRef.current(first.replace(/\/$/, ''));
+    };
+
+    check();
+    return model.subscribe(check);
+  }, [model]);
+}
+
 export function useLazyFileTree({
   root,
   wsUrl,
@@ -372,7 +400,9 @@ export function useLazyFileTree({
       cancelled = true;
     };
   }, [model, socket, reportError]);
+
   useDirectoryExpansionWatcher(model, loadDirectory);
+  useSelectionWatcher(model);
 
   // ── Mutation → FS bridge ───────────────────────────────────────────
   //

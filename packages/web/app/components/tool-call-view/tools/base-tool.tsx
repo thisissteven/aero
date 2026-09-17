@@ -3,11 +3,14 @@ import { Icon } from '@gravity-ui/uikit';
 
 import React, { ReactNode, SVGProps, useEffect, useRef, useState } from 'react';
 import { openUrl } from '@/app/components/chat-aside/browser/browser-helpers';
+import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { CodeBlock } from '@/app/components/tool-call-view/code-block';
 import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { Timer } from '@/app/components/tool-call-view/timer';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { toWorkspaceRelative } from '@/app/lib/file';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -261,20 +264,10 @@ export function BaseTool({
                               openUrl(codeTitle);
                             }}
                           />
-                          <CodeBlock.OpenButton
-                            aria-label='Open in editor'
-                            onClick={() => {
-                              //
-                            }}
-                          />
+                          <OpenFileInEditor path={codeTitle} />
                         </>
                       ) : (
-                        <CodeBlock.OpenButton
-                          aria-label='Open in editor'
-                          onClick={() => {
-                            //
-                          }}
-                        />
+                        <OpenFileInEditor path={codeTitle} />
                       )
                     ) : null}
 
@@ -318,5 +311,23 @@ export function BaseTool({
         </Disclosure.Content>
       </Disclosure>
     </div>
+  );
+}
+
+function OpenFileInEditor({ path }: { path?: string }) {
+  const directory = useSessionDirectory();
+
+  if (!directory || !path) return null;
+
+  const relativePath = toWorkspaceRelative(path, directory);
+
+  return (
+    <CodeBlock.OpenButton
+      aria-label='Open in editor'
+      onClick={() => {
+        useSidePanelStore.getState().setActiveNavItem('files');
+        useFileViewerStore.getState().openFile(relativePath);
+      }}
+    />
   );
 }

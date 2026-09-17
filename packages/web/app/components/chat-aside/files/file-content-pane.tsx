@@ -22,7 +22,10 @@ import {
 } from '@/app/components/chat-aside/files/file-helpers';
 import { FileToolbar } from '@/app/components/chat-aside/files/file-toolbar';
 import { FileViewer } from '@/app/components/chat-aside/files/file-viewer';
-import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
+import {
+  useActivePath,
+  useFileViewerStore,
+} from '@/app/components/chat-aside/files/file-viewer-store';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 import {
   type CachedFile,
@@ -33,7 +36,7 @@ import { useTheme } from '@/app/providers';
 
 export interface FileContentPaneProps {
   socket: FsSocket;
-  path: string | null;
+  path?: string | null;
   /**
    * Optional URL builder for streaming a file over HTTP. When provided, media
    * files render via direct <img>/<video>/<audio> sources instead of being
@@ -53,11 +56,17 @@ function isMarkdownFile(filePath: string): boolean {
 
 export const FileContentPane = memo(function FileContentPane({
   socket,
-  path,
+  path: pathProp,
   getFileUrl,
-  onOpenFile,
+  onOpenFile: onOpenFileProp,
 }: FileContentPaneProps) {
   const { resolvedTheme } = useTheme();
+
+  const storePath = useActivePath();
+  const storeOpenFile = useFileViewerStore((s) => s.openFile);
+
+  const path = pathProp !== undefined ? pathProp : storePath;
+  const onOpenFile = onOpenFileProp ?? storeOpenFile;
 
   const cacheRef = useRef<{
     files: Map<string, CachedFile>;
@@ -400,9 +409,9 @@ export const FileContentPane = memo(function FileContentPane({
           layoutKey={layoutKey}
           renderKey={renderKey}
           editorOptions={editorOptions}
-          onEditChange={handleEditChange}
           getFileUrl={getFileUrl}
           onOpenFile={onOpenFile}
+          onEditChange={handleEditChange}
         />
       </div>
     </div>

@@ -7,19 +7,23 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
+import { createEditor } from '@/app/components/chat-aside/files/edit-factory';
 import { FileContentPane } from '@/app/components/chat-aside/files/file-content-pane';
 import { FileExplorer } from '@/app/components/chat-aside/files/file-explorer';
 import { FileTabs } from '@/app/components/chat-aside/files/file-tabs';
-import { createEditor } from '@/app/components/chat-aside/files/temp/lib/editFactory';
-import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import {
-  useLocalStorageState,
-  useSessionStorageState,
-} from '@/app/components/chat-aside/files/use-persistent-state';
-import { useSession } from '@/app/hooks/api/sessions';
+  useActivePath,
+  useFileViewerStore,
+  useOpenPaths,
+} from '@/app/components/chat-aside/files/file-viewer-store';
+import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
+import { useLocalStorageState } from '@/app/components/chat-aside/files/use-persistent-state';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { useSession, useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 const DEFAULT_EXPLORER_WIDTH = 288;
@@ -29,15 +33,15 @@ const EXPLORER_WIDTH_STORAGE_KEY = 'aero:file-explorer:width';
 
 export function FileExplorerPanel() {
   const sessionId = useSessionId();
-  const { data: session, isLoading } = useSession(undefined, sessionId);
 
-  if (!sessionId) {
-    return (
-      <div className='text-muted flex h-full w-full flex-1 items-center justify-center p-6 text-center text-sm'>
-        Open a session to browse its files.
-      </div>
-    );
-  }
+  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
+  const selectedDirectory = useNewSessionStore(
+    (state) => state.selectedWorkspace?.directory,
+  );
+
+  const sessionDirectory = useSessionDirectory();
+
+  const { isLoading } = useSession(undefined, sessionId);
 
   if (isLoading) {
     return (
@@ -51,108 +55,51 @@ export function FileExplorerPanel() {
     );
   }
 
-  if (!session) return null;
+  const directory =
+    !sessionId && isWorkMode ? selectedDirectory : sessionDirectory;
 
-  return (
-    <FileExplorerPanelInner key={session.workspace} root={session.workspace} />
-  );
+  if (!directory) {
+    return (
+      <div className='text-muted flex h-full w-full flex-1 items-center justify-center p-6 text-center text-sm'>
+        Open a workspace to browse its files.
+      </div>
+    );
+  }
+
+  return <FileExplorerPanelInner key={directory} root={directory} />;
 }
-
-interface TabState {
-  openPaths: string[];
-  activePath: string | null;
-}
-
-const EMPTY_TAB_STATE: TabState = { openPaths: [], activePath: null };
 
 function FileExplorerPanelInner({ root }: { root: string }) {
   const lazyFileTree = useLazyFileTree({ root });
   const { model, socket } = lazyFileTree;
 
-  // Tabs persist per-workspace in sessionStorage so closing/reopening the
-  // aside (or any remount) restores the same open files.
-  const [tabState, setTabState] = useSessionStorageState<TabState>(
-    `aero:file-explorer:tabs:${root}`,
-    EMPTY_TAB_STATE,
-  );
   const [explorerWidth, setExplorerWidth] = useLocalStorageState<number>(
     EXPLORER_WIDTH_STORAGE_KEY,
     DEFAULT_EXPLORER_WIDTH,
   );
 
-  const { openPaths, activePath } = tabState;
-
-  // ── Tab state mutations (atomic) ─────────────────────────────────────
-  //
-  // Every mutation goes through one functional update on the whole TabState
-  // object, so openPaths and activePath can never disagree, and two quick
-  // clicks can never race on a stale snapshot.
-
-  const openFile = useCallback(
-    (path: string) => {
-      setTabState((prev) => {
-        if (prev.activePath === path && prev.openPaths.includes(path)) {
-          return prev;
-        }
-        return {
-          openPaths: prev.openPaths.includes(path)
-            ? prev.openPaths
-            : [...prev.openPaths, path],
-          activePath: path,
-        };
-      });
-    },
-    [setTabState],
-  );
-
-  const activateTab = useCallback(
-    (path: string) => {
-      setTabState((prev) => {
-        if (prev.activePath === path) return prev;
-        return {
-          openPaths: prev.openPaths.includes(path)
-            ? prev.openPaths
-            : [...prev.openPaths, path],
-          activePath: path,
-        };
-      });
-    },
-    [setTabState],
-  );
-
-  const closeTab = useCallback(
-    (path: string) => {
-      setTabState((prev) => {
-        const idx = prev.openPaths.indexOf(path);
-        if (idx === -1) return prev;
-
-        const nextOpen = prev.openPaths.filter((p) => p !== path);
-
-        if (prev.activePath !== path) {
-          return { openPaths: nextOpen, activePath: prev.activePath };
-        }
-
-        // Prefer the tab that slid into this slot, else the one before it.
-        const nextActive = nextOpen[idx] ?? nextOpen[idx - 1] ?? null;
-        return { openPaths: nextOpen, activePath: nextActive };
-      });
-    },
-    [setTabState],
-  );
+  // ── Tab state (store-owned) ─────────────────────────────────────────
+  const openPaths = useOpenPaths();
+  const activePath = useActivePath();
+  const openFile = useFileViewerStore((s) => s.openFile);
+  const activateTab = useFileViewerStore((s) => s.activateTab);
+  const closeTab = useFileViewerStore((s) => s.closeTab);
 
   // ── Tree selection ⇄ active tab sync ─────────────────────────────────
   //
   // Two effects, one suppression flag. When we programmatically change the
   // tree selection (direction 2), we set the flag so the tree → tab effect
-  // (direction 1) ignores the change we just caused. Without this, closing
-  // the active tab deselects it in the tree, and the tree effect
-  // immediately re-opens it — that's the "sometimes doesn't close" bug.
+  // (direction 1) ignores the change we just caused.
 
   const suppressSelectionSyncRef = useRef(false);
   const selectedPaths = useFileTreeSelection(model);
   const lastHandledSelectionRef = useRef<readonly string[]>(selectedPaths);
 
-  // Direction 1: tree → tab.
+  useLayoutEffect(() => {
+    useFileViewerStore.getState().setActiveRoot(root);
+  }, [root]);
+
+  // Direction 1: tree → store.
   useEffect(() => {
     if (selectedPaths === lastHandledSelectionRef.current) return;
     const previous = new Set(lastHandledSelectionRef.current);
@@ -163,8 +110,6 @@ function FileExplorerPanelInner({ root }: { root: string }) {
       return;
     }
 
-    // Walk backwards so we act on the most recently added selection, which
-    // matches "the one the user just clicked".
     for (let i = selectedPaths.length - 1; i >= 0; i--) {
       const candidate = selectedPaths[i];
       if (previous.has(candidate)) continue;
@@ -175,22 +120,32 @@ function FileExplorerPanelInner({ root }: { root: string }) {
     }
   }, [selectedPaths, model, openFile]);
 
-  // Direction 2: activePath → tree.
+  // Direction 2: store → tree.
   useEffect(() => {
-    if (activePath == null) return;
-    const activeItem = model.getItem(activePath);
-    if (activeItem == null) return;
-
     let selectionChanged = false;
-    for (const selectedPath of model.getSelectedPaths()) {
-      if (selectedPath === activePath) continue;
-      model.getItem(selectedPath)?.deselect();
-      selectionChanged = true;
+
+    if (activePath == null) {
+      // All tabs closed — deselect everything so the tree isn't stuck on a
+      // file that no longer has a tab.
+      for (const selectedPath of model.getSelectedPaths()) {
+        model.getItem(selectedPath)?.deselect();
+        selectionChanged = true;
+      }
+    } else {
+      const activeItem = model.getItem(activePath);
+      if (activeItem == null) return;
+
+      for (const selectedPath of model.getSelectedPaths()) {
+        if (selectedPath === activePath) continue;
+        model.getItem(selectedPath)?.deselect();
+        selectionChanged = true;
+      }
+      if (!activeItem.isSelected()) {
+        activeItem.select();
+        selectionChanged = true;
+      }
     }
-    if (!activeItem.isSelected()) {
-      activeItem.select();
-      selectionChanged = true;
-    }
+
     if (selectionChanged) {
       suppressSelectionSyncRef.current = true;
     }
@@ -280,13 +235,9 @@ function FileExplorerPanelInner({ root }: { root: string }) {
           <div className='min-h-0 min-w-0 flex-1 @container'>
             <FileContentPane
               socket={socket}
-              path={activePath}
               getFileUrl={(rel) =>
                 `/api/fs/raw?root=${encodeURIComponent(root)}&path=${encodeURIComponent(rel)}`
               }
-              onOpenFile={(rel) => {
-                //
-              }}
             />
           </div>
         </div>

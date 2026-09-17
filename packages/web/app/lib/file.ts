@@ -113,3 +113,27 @@ export const copyButtonCss = `
     }
   }
 `;
+
+/**
+ * Convert an absolute or relative path to a path relative to `root`.
+ *
+ * - `C:/Users/me/proj/docs/a.md` + root `C:/Users/me/proj` → `docs/a.md`
+ * - `C:\Users\me\proj\docs\a.md` + root `C:/Users/me/proj` → `docs/a.md`
+ * - `docs/a.md` (already relative) → `docs/a.md`
+ * - root itself → `''`
+ * - `D:/other/file.md` (outside root) → returned unchanged
+ *
+ * Normalizes backslashes to forward slashes so the result is always in the
+ * wire format the FS socket expects.
+ */
+export function toWorkspaceRelative(p: string, root: string): string {
+  const strip = (s: string) => s.replace(/\\/g, '/').replace(/\/+$/, '');
+
+  const pn = strip(p);
+  const rn = strip(root);
+
+  if (!rn) return pn;
+  if (pn === rn) return '';
+  if (pn.startsWith(`${rn}/`)) return pn.slice(rn.length + 1);
+  return pn;
+}
