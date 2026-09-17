@@ -37,23 +37,25 @@ export interface FileContentPaneProps {
   /**
    * Optional URL builder for streaming a file over HTTP. When provided, media
    * files render via direct <img>/<video>/<audio> sources instead of being
-   * read as base64 through the socket — so large videos/audio/images work.
-   * Example: `(p) => `/api/fs/raw?path=${encodeURIComponent(p)}``
+   * read as base64 through the socket.
    */
   getFileUrl?: (path: string) => string;
+  /** Optional: called when the user clicks a link to another project file
+   *  inside a markdown preview. If omitted, such links are no-ops. */
+  onOpenFile?: (path: string) => void;
 }
 
-const README_RE = /^readme(\.(md|markdown|mdx))?$/i;
+const MARKDOWN_RE = /\.(md|markdown|mdx)$/i;
 
-function isReadmeFile(filePath: string): boolean {
-  const name = filePath.split('/').pop() ?? filePath;
-  return README_RE.test(name);
+function isMarkdownFile(filePath: string): boolean {
+  return MARKDOWN_RE.test(filePath);
 }
 
 export const FileContentPane = memo(function FileContentPane({
   socket,
   path,
   getFileUrl,
+  onOpenFile,
 }: FileContentPaneProps) {
   const { resolvedTheme } = useTheme();
 
@@ -68,15 +70,10 @@ export const FileContentPane = memo(function FileContentPane({
   const [refreshKey, setRefreshKey] = useState(0);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Edit state lives in a module-level zustand store so the tab bar can read
-  // "is this file dirty" without prop drilling. Buffers persist across file
-  // switches, panel unmounts, and route changes.
   const setBuffer = useFileEditStore((s) => s.setBuffer);
   const clearBuffer = useFileEditStore((s) => s.clearBuffer);
   const setDiskContent = useFileEditStore((s) => s.setDiskContent);
 
-  // Read the buffered text for the current path. Selector returns a primitive
-  // so re-renders fire only when this specific path's buffer changes.
   const bufferedContent = useFileEditStore((s) =>
     path ? (s.buffers.get(path) ?? null) : null,
   );
@@ -84,23 +81,16 @@ export const FileContentPane = memo(function FileContentPane({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Editor instance for the currently-mounted file. Pierre creates a new one
-  // each time <File edit> mounts, so this ref is refreshed via onAttach.
   const editorRef = useRef<Editor<'file', unknown> | null>(null);
 
-  // The path the mounted editor belongs to. onEditChange doesn't get the
-  // path, so we capture it via ref.
   const activePathRef = useRef(path);
   useEffect(() => {
     activePathRef.current = path;
   }, [path]);
 
-  // Per-path README preview mode. Defaults to true (preview) for READMEs.
-  // Kept in a ref so it survives re-renders but doesn't cause extra renders.
+  // Per-path markdown preview mode. Defaults to true (preview) for any .md.
   const previewModeRef = useRef(new Map<string, boolean>());
 
-  // Parent needs these to compute the render keys that drive scroll
-  // restoration; the toolbar/editor read them directly from the store.
   const wrapText = useFileViewerStore((s) => s.wrapText);
   const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
   const fontSize = useFileViewerStore((s) => s.fontSize);
@@ -127,7 +117,6 @@ export const FileContentPane = memo(function FileContentPane({
     };
   }, []);
 
-  // Clear the save error on path change. Buffers persist in the store.
   useEffect(() => {
     setSaveError(null);
     editorRef.current = null;
@@ -152,8 +141,6 @@ export const FileContentPane = memo(function FileContentPane({
           mtimeMs: result.mtimeMs,
           mimeType: result.mimeType,
         });
-        // Publish the disk baseline so the store can decide "dirty" for the
-        // tab bar. Skip binary files — they can't be edited.
         if (result.content != null) {
           setDiskContent(path, result.content);
         }
@@ -184,11 +171,12 @@ export const FileContentPane = memo(function FileContentPane({
   const isLoading = path != null && file == null && error == null;
 
   const mediaKind = getMediaKind(file?.mimeType ?? null);
+  const isImage = mediaKind === 'image';
   const editable = !!file && !file.binary && !mediaKind && !file.truncated;
   const currentContents = bufferedContent ?? file?.content ?? '';
 
-  const isReadme = !!file && isReadmeFile(file.path);
-  const previewMode = isReadme
+  const isMarkdown = !!file && isMarkdownFile(file.path);
+  const previewMode = isMarkdown
     ? (previewModeRef.current.get(file.path) ?? true)
     : false;
 
@@ -199,14 +187,8 @@ export const FileContentPane = memo(function FileContentPane({
     forceUpdate();
   }, [file]);
 
-  // `useIsDirty` compares the buffer against the store's disk baseline. Using
-  // the same source for the pane and the tab bar keeps them in sync.
   const isDirty = useIsDirty(path);
 
-  // Media source resolution:
-  //   1. Prefer a direct streamable URL — works for large/truncated files.
-  //   2. Fall back to an inline blob URL for small files.
-  // We track whether the URL is a blob so the cleanup only revokes those.
   const mediaUrl = useMemo<{ url: string; isBlob: boolean } | null>(() => {
     if (!file || !mediaKind) return null;
 
@@ -271,16 +253,12 @@ export const FileContentPane = memo(function FileContentPane({
     const p = path;
     if (!p) return;
 
-    // Read the current buffer imperatively — we can't use a selector inside
-    // a callback, and we need the freshest value at click time.
     const buffer = useFileEditStore.getState().buffers.get(p);
     if (buffer == null) return;
 
     setSaving(true);
     setSaveError(null);
 
-    // Prefer the live editor buffer if we're on this path. Falls back to
-    // store state otherwise.
     let contents = buffer;
     if (activePathRef.current === p) {
       try {
@@ -296,8 +274,6 @@ export const FileContentPane = memo(function FileContentPane({
     try {
       await socket.writeFile(p, contents);
 
-      // Update the disk cache in place so the file reads as clean without a
-      // round-trip read.
       const cached = cacheRef.current.files.get(p);
       if (cached) {
         cacheRef.current.files.set(p, {
@@ -308,9 +284,6 @@ export const FileContentPane = memo(function FileContentPane({
         });
       }
 
-      // Publish the new disk baseline BEFORE clearing the buffer, so any
-      // subscriber that sees the clear also sees the correct baseline on
-      // the same tick.
       setDiskContent(p, contents);
       clearBuffer(p);
       forceUpdate();
@@ -395,8 +368,9 @@ export const FileContentPane = memo(function FileContentPane({
         copied={copied}
         editable={editable}
         showViewerControls={!file.binary && !mediaKind}
-        isReadme={isReadme}
+        isMarkdown={isMarkdown}
         previewMode={previewMode}
+        isImage={isImage}
         onTogglePreview={togglePreview}
         onCopy={() => void copyContent()}
         onSave={() => void save()}
@@ -420,13 +394,15 @@ export const FileContentPane = memo(function FileContentPane({
           mediaUrl={mediaUrl?.url ?? null}
           editable={editable}
           currentContents={currentContents}
-          isReadme={isReadme}
+          isMarkdown={isMarkdown}
           previewMode={previewMode}
           viewerKey={viewerKey}
           layoutKey={layoutKey}
           renderKey={renderKey}
           editorOptions={editorOptions}
           onEditChange={handleEditChange}
+          getFileUrl={getFileUrl}
+          onOpenFile={onOpenFile}
         />
       </div>
     </div>

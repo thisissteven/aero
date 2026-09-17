@@ -284,6 +284,9 @@ function FileExplorerPanelInner({ root }: { root: string }) {
               getFileUrl={(rel) =>
                 `/api/fs/raw?root=${encodeURIComponent(root)}&path=${encodeURIComponent(rel)}`
               }
+              onOpenFile={(rel) => {
+                //
+              }}
             />
           </div>
         </div>

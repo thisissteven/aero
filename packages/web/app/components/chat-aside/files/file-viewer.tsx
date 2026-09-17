@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import { getMediaKind } from '@/app/components/chat-aside/files/file-helpers';
+import { ImageZoomView } from '@/app/components/chat-aside/files/image-zoom-view';
 import { MarkdownPreview } from '@/app/components/chat-aside/files/markdown-preview';
 import { MediaPreview } from '@/app/components/chat-aside/files/media-preview';
 import {
@@ -15,20 +16,17 @@ export interface FileViewerProps {
   file: CachedFile;
   fileName: string;
   mediaKind: ReturnType<typeof getMediaKind>;
-  /**
-   * Direct (streamable) source URL for the media element. Null when the file
-   * isn't media, or when no URL builder is available and the content couldn't
-   * be inlined as a blob.
-   */
   mediaUrl: string | null;
   editable: boolean;
   currentContents: string;
-  isReadme: boolean;
+  isMarkdown: boolean;
   previewMode: boolean;
   viewerKey: string;
   layoutKey: string;
   renderKey: string;
   editorOptions: FileEditorOptions;
+  getFileUrl?: (p: string) => string;
+  onOpenFile?: (p: string) => void;
   onEditChange: (event: FileEditorChangeEvent) => void;
 }
 
@@ -39,22 +37,24 @@ export const FileViewer = memo(function FileViewer({
   mediaUrl,
   editable,
   currentContents,
-  isReadme,
+  isMarkdown,
   previewMode,
   viewerKey,
   layoutKey,
   renderKey,
   editorOptions,
+  getFileUrl,
+  onOpenFile,
   onEditChange,
 }: FileViewerProps) {
-  // Media: prefer direct <img>/<video>/<audio> via a streamable URL. Falls
-  // back to a blob URL for small files when no URL builder is provided.
-  if (mediaKind) {
-    if (mediaUrl) {
-      return (
-        <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />
-      );
+  if (mediaKind && mediaUrl) {
+    if (mediaKind === 'image') {
+      return <ImageZoomView src={mediaUrl} alt={fileName} />;
     }
+    return <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />;
+  }
+
+  if (mediaKind) {
     return (
       <div className='text-muted flex min-h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm'>
         <span>File is too large to preview.</span>
@@ -71,8 +71,20 @@ export const FileViewer = memo(function FileViewer({
     );
   }
 
-  if (isReadme && previewMode) {
-    return <MarkdownPreview content={currentContents} />;
+  if (isMarkdown && previewMode) {
+    return (
+      <MarkdownPreview
+        content={currentContents}
+        path={file.path}
+        getFileUrl={getFileUrl ?? ((p) => p)}
+        onOpenFile={
+          onOpenFile ??
+          (() => {
+            //
+          })
+        }
+      />
+    );
   }
 
   return (

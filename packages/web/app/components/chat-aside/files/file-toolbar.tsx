@@ -1,9 +1,20 @@
 'use client';
 
-import { Eye, FloppyDisk, Hashtag, Pencil } from '@gravity-ui/icons';
+import {
+  Eye,
+  FloppyDisk,
+  Hashtag,
+  Minus,
+  Pencil,
+  Plus,
+} from '@gravity-ui/icons';
 import { IconWordWrap } from '@pierre/icons';
 import { memo } from 'react';
-import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
+import {
+  IMAGE_ZOOM_MAX,
+  IMAGE_ZOOM_MIN,
+  useFileViewerStore,
+} from '@/app/components/chat-aside/files/file-viewer-store';
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import { ToolbarButton } from '@/app/components/chat-aside/files/toolbar-button';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
@@ -16,13 +27,14 @@ export interface FileToolbarProps {
   saving: boolean;
   copied: boolean;
   editable: boolean;
-  /** Viewer controls (font, wrap, line numbers, copy, save) only apply to
-   *  text files — hide them for binary/media. */
+  /** Viewer controls (font, wrap, line numbers, copy, save) for text files. */
   showViewerControls: boolean;
-  /** True for README files, which get a preview/edit toggle. */
-  isReadme: boolean;
-  /** Current mode for READMEs. Ignored when `isReadme` is false. */
+  /** True for markdown files, which get a preview/edit toggle. */
+  isMarkdown: boolean;
+  /** Current mode for markdown. Ignored when `isMarkdown` is false. */
   previewMode: boolean;
+  /** True for image files, which get zoom controls. */
+  isImage: boolean;
   onTogglePreview: () => void;
   onCopy: () => void;
   onSave: () => void;
@@ -37,8 +49,9 @@ export const FileToolbar = memo(function FileToolbar({
   copied,
   editable,
   showViewerControls,
-  isReadme,
+  isMarkdown,
   previewMode,
+  isImage,
   onTogglePreview,
   onCopy,
   onSave,
@@ -50,9 +63,12 @@ export const FileToolbar = memo(function FileToolbar({
   const decreaseFontSize = useFileViewerStore((s) => s.decreaseFontSize);
   const toggleWrapText = useFileViewerStore((s) => s.toggleWrapText);
   const toggleLineNumbers = useFileViewerStore((s) => s.toggleLineNumbers);
+  const imageZoom = useFileViewerStore((s) => s.imageZoom);
+  const zoomIn = useFileViewerStore((s) => s.zoomIn);
+  const zoomOut = useFileViewerStore((s) => s.zoomOut);
+  const resetImageZoom = useFileViewerStore((s) => s.resetImageZoom);
 
-  // In README preview mode the source-level controls don't apply.
-  const previewActive = isReadme && previewMode;
+  const previewActive = isMarkdown && previewMode;
 
   return (
     <div className='border-separator sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between border-b px-3'>
@@ -72,7 +88,36 @@ export const FileToolbar = memo(function FileToolbar({
       </div>
 
       <div className='flex items-center gap-0.5'>
-        {showViewerControls && isReadme && (
+        {isImage && (
+          <>
+            <ToolbarButton
+              label='Zoom out'
+              onClick={zoomOut}
+              disabled={imageZoom <= IMAGE_ZOOM_MIN}
+            >
+              <Minus className='size-3.5' />
+            </ToolbarButton>
+
+            <button
+              type='button'
+              onClick={resetImageZoom}
+              title='Reset zoom (or double-click the image)'
+              className='text-muted hover:text-foreground min-w-[4ch] rounded px-1 text-center text-xs tabular-nums'
+            >
+              {Math.round(imageZoom * 100)}%
+            </button>
+
+            <ToolbarButton
+              label='Zoom in'
+              onClick={zoomIn}
+              disabled={imageZoom >= IMAGE_ZOOM_MAX}
+            >
+              <Plus className='size-3.5' />
+            </ToolbarButton>
+          </>
+        )}
+
+        {showViewerControls && isMarkdown && (
           <ToolbarButton
             label={previewMode ? 'Edit markdown' : 'Preview markdown'}
             active={previewMode}

@@ -4,11 +4,15 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 export const DEFAULT_FONT_SIZE = 12.5;
 export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 18;
+export const IMAGE_ZOOM_MIN = 0.25;
+export const IMAGE_ZOOM_MAX = 4;
+export const IMAGE_ZOOM_STEP = 0.25;
 
 interface FileViewerState {
   fontSize: number;
   wrapText: boolean;
   showLineNumbers: boolean;
+  imageZoom: number;
   setFontSize: (fontSize: number) => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
@@ -17,18 +21,43 @@ interface FileViewerState {
   setShowLineNumbers: (showLineNumbers: boolean) => void;
   toggleLineNumbers: () => void;
   reset: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetImageZoom: () => void;
+  setImageZoom: (n: number) => void;
 }
 
 const INITIAL_STATE = {
   fontSize: DEFAULT_FONT_SIZE,
   wrapText: false,
   showLineNumbers: false,
+  imageZoom: 1,
 } as const;
 
 export const useFileViewerStore = create<FileViewerState>()(
   persist(
     (set, get) => ({
       ...INITIAL_STATE,
+
+      setImageZoom: (n: number) => set({ imageZoom: n }),
+
+      zoomIn: () =>
+        set((s) => ({
+          imageZoom: Math.min(
+            IMAGE_ZOOM_MAX,
+            +(s.imageZoom + IMAGE_ZOOM_STEP).toFixed(2),
+          ),
+        })),
+
+      zoomOut: () =>
+        set((s) => ({
+          imageZoom: Math.max(
+            IMAGE_ZOOM_MIN,
+            +(s.imageZoom - IMAGE_ZOOM_STEP).toFixed(2),
+          ),
+        })),
+
+      resetImageZoom: () => set({ imageZoom: 1 }),
 
       setFontSize(fontSize) {
         set({

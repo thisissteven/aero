@@ -32,14 +32,14 @@
   }
 
   /* Reduce spacing for blocks starting with compact elements */
-  .markdown > .markdown__block:has(> ul:first-child),
+  /* .markdown > .markdown__block:has(> ul:first-child),
   .markdown > .markdown__block:has(> ol:first-child),
   .markdown > .markdown__block:has(> h1:first-child),
   .markdown > .markdown__block:has(> h2:first-child),
   .markdown > .markdown__block:has(> h3:first-child),
   .markdown > .markdown__block:has(> h4:first-child) {
     margin-top: calc(var(--spacing, 0.25rem) * 1);
-  }
+  } */
 
   /* Paragraphs */
   .markdown p {
