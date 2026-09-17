@@ -4,6 +4,11 @@ import type { FileTree as FileTreeModel } from '@pierre/trees';
 import { FILE_TREE_DENSITY_PRESETS } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  beginFileWrite,
+  completeFileWrite,
+  invalidateFile,
+} from '@/app/components/chat-aside/files/file-invalidation-store';
 import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
 
@@ -33,7 +38,6 @@ export interface UseLazyFileTreeResult {
   isTreeLoading: boolean;
   createFile: (parentDir: string) => void;
   createFolder: (parentDir: string) => void;
-  /** User-initiated delete. Only this API is allowed to remove files on disk. */
   deletePath: (path: string, isDir: boolean) => void;
   refreshGitStatus: () => void;
   refresh: () => void;
@@ -44,10 +48,7 @@ const DEFAULT_DENSITY = 'default' as const;
 const DEFAULT_VIEWPORT_HEIGHT = 600;
 
 const COMPOSITION = {
-  contextMenu: {
-    enabled: true,
-    triggerMode: 'right-click',
-  },
+  contextMenu: { enabled: true, triggerMode: 'right-click' },
 } as const;
 
 const LAZY_TREE_UNSAFE_CSS = `
@@ -117,20 +118,14 @@ function getUniquePath(model: FileTreeModel, basePath: string): string {
   return candidate;
 }
 
-/**
- * Drops any move whose source is a descendant of another move's source.
- * Dragging a folder fires one move per descendant; only the topmost rename
- * needs to reach the server.
- *
- * Uses trailing-slash-stripped paths for comparison so `/foo/` correctly
- * subsumes `/foo/a` — comparing raw strings would miss it because
- * `/foo/a`.startsWith('/foo//') is false.
- */
-function coalesceMoves(
-  moves: readonly { from: string; to: string }[],
-): { from: string; to: string }[] {
+interface MoveOp {
+  from: string;
+  to: string;
+}
+
+function coalesceMoves(moves: readonly MoveOp[]): MoveOp[] {
   const sorted = [...moves].sort((a, b) => a.from.length - b.from.length);
-  const kept: { from: string; to: string }[] = [];
+  const kept: MoveOp[] = [];
   for (const move of sorted) {
     const fromClean = cleanPath(move.from);
     if (kept.some((k) => fromClean.startsWith(`${cleanPath(k.from)}/`))) {
@@ -141,35 +136,32 @@ function coalesceMoves(
   return kept;
 }
 
-function coalesceRemoves(removes: readonly string[]): string[] {
-  const sorted = [...removes].sort((a, b) => a.length - b.length);
-  const kept: string[] = [];
-  for (const r of sorted) {
-    const rClean = cleanPath(r);
-    if (kept.some((k) => rClean.startsWith(`${cleanPath(k)}/`))) continue;
-    kept.push(r);
-  }
-  return kept;
+function normPending(p: string): string {
+  return p.replace(/\/$/, '');
 }
 
 function useDirectoryExpansionWatcher(
   model: FileTreeModel,
   onExpand: (path: string) => void,
-): void {
-  const knownExpanded = useRef(new Set<string>());
+  knownExpanded: React.MutableRefObject<Set<string>>,
+): React.MutableRefObject<() => void> {
   const onExpandRef = useRef(onExpand);
   onExpandRef.current = onExpand;
+
+  const pokeRef = useRef<() => void>(() => {
+    //
+  });
 
   useEffect(() => {
     let lastCount = -1;
 
-    const checkForNewlyExpanded = () => {
+    const scan = (force: boolean) => {
       const count = model.getVisibleCount();
       if (count === 0) {
         lastCount = 0;
         return;
       }
-      if (count === lastCount) return;
+      if (!force && count === lastCount) return;
       lastCount = count;
 
       const rows = model.getVisibleRows(0, count - 1);
@@ -186,10 +178,20 @@ function useDirectoryExpansionWatcher(
       }
     };
 
-    checkForNewlyExpanded();
-    const unsubscribe = model.subscribe(checkForNewlyExpanded);
-    return unsubscribe;
-  }, [model]);
+    const runScan = () => scan(false);
+    pokeRef.current = () => scan(true);
+
+    runScan();
+    const unsubscribe = model.subscribe(runScan);
+    return () => {
+      pokeRef.current = () => {
+        //
+      };
+      unsubscribe();
+    };
+  }, [model, knownExpanded]);
+
+  return pokeRef;
 }
 
 function useSelectionWatcher(model: FileTreeModel): void {
@@ -207,7 +209,6 @@ function useSelectionWatcher(model: FileTreeModel): void {
       lastSelected.current = first;
       if (!first) return;
 
-      // Directories end with '/'; skip them.
       if (first.endsWith('/')) return;
       const item = model.getItem(first);
       if (item?.isDirectory()) return;
@@ -248,6 +249,24 @@ export function useLazyFileTree({
     setError(null);
   }, []);
 
+  // ── Shared mutation queue ──────────────────────────────────────────
+  //
+  // Every write, rename, mkdir, and delete goes through this queue, so
+  // operations happen in the order the user issued them. `deletePath` uses
+  // the same queue as the tree's mutation events — no race between a
+  // create-then-delete or rename-then-delete sequence.
+
+  const mutationTailRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const enqueue = useCallback(
+    (fn: () => Promise<unknown>) => {
+      mutationTailRef.current = mutationTailRef.current
+        .then(fn)
+        .catch(reportError);
+    },
+    [reportError],
+  );
+
   const viewportRowCount = useMemo(
     () =>
       Math.max(
@@ -268,7 +287,6 @@ export function useLazyFileTree({
       flattenEmptyDirectories: false,
       density,
       renaming: true as const,
-      // dragAndDrop: true as const,
       composition: COMPOSITION,
       initialVisibleRowCount: viewportRowCount,
       unsafeCSS: LAZY_TREE_UNSAFE_CSS,
@@ -299,50 +317,6 @@ export function useLazyFileTree({
         gitInFlightRef.current = false;
       });
   }, [model, socket]);
-
-  const refresh = useCallback(() => {
-    loadedDirs.current.clear();
-    loadedDirs.current.add('');
-    socket
-      .list('')
-      .then((result) => {
-        model.resetPaths(
-          result.entries.map((e) => normalizePath(e.path, e.kind === 'dir')),
-        );
-      })
-      .catch((err) => {
-        reportError(
-          err instanceof Error ? err : new Error('Failed to refresh'),
-        );
-      });
-    refreshGitStatus();
-  }, [model, socket, reportError, refreshGitStatus]);
-
-  const gitRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastMutationAtRef = useRef(0);
-
-  const scheduleGitRefresh = useCallback(() => {
-    lastMutationAtRef.current = Date.now();
-    if (gitRefreshTimer.current) clearTimeout(gitRefreshTimer.current);
-    gitRefreshTimer.current = setTimeout(() => {
-      gitRefreshTimer.current = null;
-      if (Date.now() - lastMutationAtRef.current < 500) {
-        scheduleGitRefresh();
-        return;
-      }
-      refreshGitStatus();
-    }, 1500);
-  }, [refreshGitStatus]);
-
-  useEffect(() => {
-    refreshGitStatus();
-  }, [refreshGitStatus]);
-
-  useEffect(() => {
-    return () => {
-      if (gitRefreshTimer.current) clearTimeout(gitRefreshTimer.current);
-    };
-  }, []);
 
   // ── Lazy directory loading ─────────────────────────────────────────
 
@@ -375,6 +349,60 @@ export function useLazyFileTree({
     [model, socket, reportError],
   );
 
+  const knownExpanded = useRef(new Set<string>());
+  const pokeExpansionScan = useDirectoryExpansionWatcher(
+    model,
+    loadDirectory,
+    knownExpanded,
+  );
+  useSelectionWatcher(model);
+
+  const refresh = useCallback(() => {
+    loadedDirs.current.clear();
+    loadedDirs.current.add('');
+    knownExpanded.current.clear();
+    socket
+      .list('')
+      .then((result) => {
+        model.resetPaths(
+          result.entries.map((e) => normalizePath(e.path, e.kind === 'dir')),
+        );
+        pokeExpansionScan.current();
+      })
+      .catch((err) => {
+        reportError(
+          err instanceof Error ? err : new Error('Failed to refresh'),
+        );
+      });
+    refreshGitStatus();
+  }, [model, socket, reportError, refreshGitStatus, pokeExpansionScan]);
+
+  const gitRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastMutationAtRef = useRef(0);
+
+  const scheduleGitRefresh = useCallback(() => {
+    lastMutationAtRef.current = Date.now();
+    if (gitRefreshTimer.current) clearTimeout(gitRefreshTimer.current);
+    gitRefreshTimer.current = setTimeout(() => {
+      gitRefreshTimer.current = null;
+      if (Date.now() - lastMutationAtRef.current < 500) {
+        scheduleGitRefresh();
+        return;
+      }
+      refreshGitStatus();
+    }, 1500);
+  }, [refreshGitStatus]);
+
+  useEffect(() => {
+    refreshGitStatus();
+  }, [refreshGitStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (gitRefreshTimer.current) clearTimeout(gitRefreshTimer.current);
+    };
+  }, []);
+
   const [isTreeLoading, setIsTreeLoading] = useState(true);
 
   useEffect(() => {
@@ -401,127 +429,119 @@ export function useLazyFileTree({
     };
   }, [model, socket, reportError]);
 
-  useDirectoryExpansionWatcher(model, loadDirectory);
-  useSelectionWatcher(model);
+  // ── Mutation → FS bridge (creates and renames only) ────────────────
+  //
+  // Deletes no longer flow through here. `deletePath` fires the server
+  // delete directly, so the tree's `remove` events (which fire for internal
+  // reasons too: search cleanup, flatten reflow, rename-mode reset, and
+  // every descendant of a user-deleted folder) are all ignored.
+  //
+  // Placeholders are tracked in `pendingCreates` from the moment
+  // createFile/createFolder is called, not inferred from add events. That
+  // removes any dependency on event ordering.
 
-  // ── Mutation → FS bridge ───────────────────────────────────────────
-  //
-  // ⚠️  Synchronous handler, always. `model.onMutation` runs inline in the
-  // tree's commit path; an async handler freezes the tree during DnD.
-  //
-  // ⚠️  Only user-initiated operations reach the server.
-  //
-  //   - `add` events are user creates only if the path is in
-  //     `userCreatePaths`, which `createFile` / `createFolder` populate.
-  //     Everything else is a lazy-load or search result.
-  //
-  //   - `remove` events are user deletes only if the path is in
-  //     `userDeletePaths`, which `deletePath` populates. The tree ALSO
-  //     fires internal `remove` events (search cleanup, flatten reflow,
-  //     rename-mode setup). Those paths are not in `userDeletePaths`, so
-  //     they're ignored — this is what was causing real files to be
-  //     deleted on disk and, via the flood of `deletePath` round-trips,
-  //     the freeze.
-  //
-  //   - `move` events from pending paths are creates-in-disguise (inline
-  //     rename of a placeholder). Everything else is a real rename and is
-  //     passed through; renames don't destroy data, so the guard is looser.
-
-  const userCreatePaths = useRef(new Set<string>());
-  const userDeletePaths = useRef(new Set<string>());
+  const pendingCreates = useRef(new Set<string>());
 
   useEffect(() => {
-    const pendingCreates = new Set<string>();
     const queue: Array<
-      | { kind: 'add'; path: string }
       | { kind: 'move'; from: string; to: string }
       | { kind: 'remove'; path: string }
     > = [];
     let drainScheduled = false;
-    let tail: Promise<unknown> = Promise.resolve();
-
-    const enqueue = (fn: () => Promise<unknown>) => {
-      tail = tail.then(fn).catch(reportError);
-    };
 
     const drain = () => {
       drainScheduled = false;
       if (queue.length === 0) return;
 
       const events = queue.splice(0, queue.length);
-
-      const moves: { from: string; to: string }[] = [];
+      const moves: MoveOp[] = [];
       const removes: string[] = [];
 
+      // Pass 1: classify. Placeholder renames (from a pending path) are
+      // handled inline as creates. Everything else is a real move. Removes
+      // are deferred — they need to be processed AFTER all moves so a
+      // remove('untitled') that fires alongside move('untitled'→'foo.txt')
+      // doesn't clear the pending marker before the move is seen.
       for (const e of events) {
-        if (e.kind === 'add') {
-          if (userCreatePaths.current.has(e.path)) {
-            userCreatePaths.current.delete(e.path);
-            pendingCreates.add(e.path);
-          }
-          continue;
-        }
-
         if (e.kind === 'move') {
-          const wasPending = pendingCreates.has(e.from);
-          if (wasPending) pendingCreates.delete(e.from);
+          const fromNorm = normPending(e.from);
+          const wasPending = pendingCreates.current.has(fromNorm);
+          if (wasPending) pendingCreates.current.delete(fromNorm);
 
           if (wasPending) {
-            const cleanTo = cleanPath(e.to);
+            const cleanTo = normPending(e.to);
             const isDir = e.to.endsWith('/');
-            enqueue(() =>
-              isDir ? socket.mkdir(cleanTo) : socket.writeFile(cleanTo, ''),
-            );
-            pendingCreates.add(e.to);
-          } else {
-            moves.push(e);
-          }
-          continue;
-        }
 
-        if (e.kind === 'remove') {
-          if (pendingCreates.has(e.path)) {
-            pendingCreates.delete(e.path);
-            continue;
+            // Release the placeholder's pending counter and arm the target.
+            completeFileWrite(fromNorm);
+            beginFileWrite(cleanTo);
+
+            // Rename the placeholder tab in place, so the 'untitled' tab
+            // becomes 'foo.txt' rather than leaving a leftover.
+            useFileViewerStore.getState().renamePath(fromNorm, cleanTo);
+
+            enqueue(async () => {
+              try {
+                if (isDir) {
+                  await socket.mkdir(cleanTo);
+                } else {
+                  await socket.writeFile(cleanTo, '');
+                }
+              } finally {
+                completeFileWrite(cleanTo);
+              }
+            });
+
+            pendingCreates.current.add(cleanTo);
+          } else {
+            moves.push({ from: e.from, to: e.to });
           }
-          if (!userDeletePaths.current.has(e.path)) {
-            // Not a user delete — the model internally removed this path
-            // (search cleanup, flatten reflow, rename-mode reset). Do not
-            // touch disk.
-            continue;
-          }
-          userDeletePaths.current.delete(e.path);
+        } else if (e.kind === 'remove') {
           removes.push(e.path);
         }
       }
 
+      // Pass 2: real renames. Rename the tab in place too.
       if (moves.length > 0) {
         for (const m of coalesceMoves(moves)) {
           const cleanFrom = cleanPath(m.from);
           const cleanTo = cleanPath(m.to);
-          enqueue(() => socket.rename(cleanFrom, cleanTo));
-        }
-      }
 
-      if (removes.length > 0) {
-        for (const p of coalesceRemoves(removes)) {
-          enqueue(() => socket.deletePath(cleanPath(p), p.endsWith('/')));
-        }
-      }
+          useFileViewerStore.getState().renamePath(cleanFrom, cleanTo);
 
-      if (moves.length > 0 || removes.length > 0) {
+          beginFileWrite(cleanTo);
+          enqueue(async () => {
+            try {
+              await socket.rename(cleanFrom, cleanTo);
+            } finally {
+              completeFileWrite(cleanTo);
+              invalidateFile(cleanFrom);
+            }
+          });
+        }
         scheduleGitRefresh();
+      }
+
+      // Pass 3: removes. Only ones still in pendingCreates are cancelled
+      // placeholders. Everything else is internal tree cleanup and ignored.
+      for (const r of removes) {
+        const key = normPending(r);
+        if (pendingCreates.current.has(key)) {
+          pendingCreates.current.delete(key);
+          completeFileWrite(key);
+          useFileViewerStore.getState().removePathAndDescendants(key);
+        }
       }
     };
 
     const unsubscribe = model.onMutation('*', (event) => {
       const events = event.operation === 'batch' ? event.events : [event];
       for (const e of events) {
-        if (e.operation === 'add') {
-          queue.push({ kind: 'add', path: e.path });
-        } else if (e.operation === 'move') {
+        if (e.operation === 'move') {
           queue.push({ kind: 'move', from: e.from, to: e.to });
         } else if (e.operation === 'remove') {
+          // Queued, not handled inline. The drain needs to see all events
+          // of a batch before deciding what a remove means.
           queue.push({ kind: 'remove', path: e.path });
         }
       }
@@ -534,9 +554,8 @@ export function useLazyFileTree({
 
     return () => {
       unsubscribe();
-      void tail;
     };
-  }, [model, socket, scheduleGitRefresh, reportError]);
+  }, [model, socket, scheduleGitRefresh, enqueue]);
 
   // ── Server-backed search ───────────────────────────────────────────
 
@@ -573,9 +592,6 @@ export function useLazyFileTree({
         const q = input.value.trim();
         const seq = ++querySeq;
 
-        // Clear the previous query's additions. Skip any path whose parent
-        // directory has since been lazily loaded — those rows belong to the
-        // tree now and shouldn't be touched.
         if (searchAdded.size > 0) {
           const removable: string[] = [];
           for (const p of searchAdded) {
@@ -658,7 +674,9 @@ export function useLazyFileTree({
     (parentDir: string) => {
       clearError();
       const target = getUniquePath(model, `${parentDir}untitled`);
-      userCreatePaths.current.add(target);
+      const key = normPending(target);
+      pendingCreates.current.add(key);
+      beginFileWrite(key); // ← new
       model.add(target);
       model.startRenaming(target, { removeIfCanceled: true });
     },
@@ -669,7 +687,9 @@ export function useLazyFileTree({
     (parentDir: string) => {
       clearError();
       const target = getUniquePath(model, `${parentDir}untitled/`);
-      userCreatePaths.current.add(target);
+      const key = normPending(target);
+      pendingCreates.current.add(key);
+      beginFileWrite(key); // ← new
       model.add(target);
       model.startRenaming(target, { removeIfCanceled: true });
     },
@@ -679,10 +699,30 @@ export function useLazyFileTree({
   const deletePath = useCallback(
     (path: string, isDir: boolean) => {
       clearError();
-      userDeletePaths.current.add(path);
+      const clean = cleanPath(path);
+
+      // 1) Sync the UI immediately, before the server round-trip. Removes
+      //    the path (and any tab under it, for directories) from the
+      //    viewer store. The pane's read effect sees activePath change and
+      //    re-renders accordingly.
+      useFileViewerStore.getState().removePathAndDescendants(clean);
+
+      // 2) Fire the server delete directly. Not via the tree's remove
+      //    event — that mechanism is unreliable in path shape and ordering.
+      enqueue(async () => {
+        await socket.deletePath(clean, isDir);
+        invalidateFile(clean);
+      });
+
+      // 3) Update the tree's UI. Fires internal remove events which the
+      //    mutation handler ignores. Placeholder-cleanup bookkeeping also
+      //    drops anything pending that matches this path.
+      pendingCreates.current.delete(normPending(clean));
       model.remove(path, isDir ? { recursive: true } : undefined);
+
+      scheduleGitRefresh();
     },
-    [model, clearError],
+    [model, socket, clearError, enqueue, scheduleGitRefresh],
   );
 
   return {

@@ -20,6 +20,10 @@ import {
   getFileName,
   getMediaKind,
 } from '@/app/components/chat-aside/files/file-helpers';
+import {
+  useFileVersion,
+  usePendingWrites,
+} from '@/app/components/chat-aside/files/file-invalidation-store';
 import { FileToolbar } from '@/app/components/chat-aside/files/file-toolbar';
 import { FileViewer } from '@/app/components/chat-aside/files/file-viewer';
 import {
@@ -37,14 +41,7 @@ import { useTheme } from '@/app/providers';
 export interface FileContentPaneProps {
   socket: FsSocket;
   path?: string | null;
-  /**
-   * Optional URL builder for streaming a file over HTTP. When provided, media
-   * files render via direct <img>/<video>/<audio> sources instead of being
-   * read as base64 through the socket.
-   */
   getFileUrl?: (path: string) => string;
-  /** Optional: called when the user clicks a link to another project file
-   *  inside a markdown preview. If omitted, such links are no-ops. */
   onOpenFile?: (path: string) => void;
 }
 
@@ -73,6 +70,10 @@ export const FileContentPane = memo(function FileContentPane({
     errors: Map<string, string>;
   }>({ files: new Map(), errors: new Map() });
 
+  // Tracks which version each path was last read at, so a version bump
+  // evicts the cache exactly once instead of on every render.
+  const lastVersionRef = useRef(new Map<string, number>());
+
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
 
   const [copied, setCopied] = useState(false);
@@ -97,7 +98,6 @@ export const FileContentPane = memo(function FileContentPane({
     activePathRef.current = path;
   }, [path]);
 
-  // Per-path markdown preview mode. Defaults to true (preview) for any .md.
   const previewModeRef = useRef(new Map<string, boolean>());
 
   const wrapText = useFileViewerStore((s) => s.wrapText);
@@ -131,9 +131,32 @@ export const FileContentPane = memo(function FileContentPane({
     editorRef.current = null;
   }, [path]);
 
+  // ── Invalidation subscriptions ─────────────────────────────────────
+  //
+  // `fileVersion` bumps whenever the file's on-disk contents may have
+  // changed. `pendingWrites` is > 0 while a write is in flight — reading
+  // during that window races the write and caches a bogus ENOENT, so we
+  // hold off and show the loading state instead.
+
+  const fileVersion = useFileVersion(path);
+  const pendingWrites = usePendingWrites(path);
+
   useEffect(() => {
     if (!path) return;
     const cache = cacheRef.current;
+
+    // Evict stale entries first. A version bump means whatever is cached for
+    // this path is from a previous life — this includes errors. Doing this
+    // before the pending-write gate means a fresh create evicts the prior
+    // create's cached ENOENT instead of showing it while the write is armed.
+    const lastVersion = lastVersionRef.current.get(path);
+    if (fileVersion !== (lastVersion ?? -1)) {
+      cache.files.delete(path);
+      cache.errors.delete(path);
+      lastVersionRef.current.set(path, fileVersion);
+    }
+
+    if (pendingWrites > 0) return;
     if (cache.files.has(path) || cache.errors.has(path)) return;
 
     let cancelled = false;
@@ -153,6 +176,7 @@ export const FileContentPane = memo(function FileContentPane({
         if (result.content != null) {
           setDiskContent(path, result.content);
         }
+        lastVersionRef.current.set(path, fileVersion);
         forceUpdate();
       })
       .catch((err) => {
@@ -161,13 +185,14 @@ export const FileContentPane = memo(function FileContentPane({
           path,
           err instanceof Error ? err.message : 'Failed to read file',
         );
+        lastVersionRef.current.set(path, fileVersion);
         forceUpdate();
       });
 
     return () => {
       cancelled = true;
     };
-  }, [path, socket, refreshKey, setDiskContent]);
+  }, [path, socket, refreshKey, setDiskContent, fileVersion, pendingWrites]);
 
   useEffect(() => {
     return () => {

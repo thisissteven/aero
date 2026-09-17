@@ -82,6 +82,7 @@ export const WriteToolView = memo(
         patch={patch}
         copyText={part.input.content ?? ''}
         isStreaming={isStreaming}
+        dir={path}
         isFile
       />
     );

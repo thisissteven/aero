@@ -108,6 +108,7 @@ export const EditToolView = memo(
         patch={patch}
         copyText={code}
         isStreaming={isStreaming}
+        dir={path}
         isFile
       />
     );

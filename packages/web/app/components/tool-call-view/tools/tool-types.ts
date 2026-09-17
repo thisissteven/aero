@@ -3,7 +3,10 @@ import type { AeroPart } from '@/server/services/harness/types';
 export type ToolPartBase = Extract<AeroPart, { type: 'tool' }>;
 
 export type EditToolNames =
-  'edit' | 'multiedit' | 'str_replace' | 'str_replace_based_edit_tool';
+  | 'edit'
+  | 'multiedit'
+  | 'str_replace'
+  | 'str_replace_based_edit_tool';
 export type WriteToolNames = 'write' | 'create' | 'file_write';
 export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
@@ -82,6 +85,10 @@ export type LspPart = ToolPartBase & {
 export type SkillPart = ToolPartBase & {
   toolName: 'skill';
   input: { name?: string; skill?: string };
+  metadata?: {
+    name?: string;
+    dir?: string;
+  };
 };
 
 export type WebFetchPart = ToolPartBase & {

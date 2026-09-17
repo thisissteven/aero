@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { SkillPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
+import { normalizePath } from '@/server/shared';
 
 export const SkillToolView = memo(
   ({

@@ -46,6 +46,15 @@ interface FileViewerState {
   activateTab: (path: string) => void;
   closeTab: (path: string) => void;
   closeAllTabs: () => void;
+
+  /** Remove a path (and, if it's a directory, everything under it) from the
+   *  open tabs. Called by the file tree when the user deletes a file/folder. */
+  removePathAndDescendants: (path: string) => void;
+
+  /** Rename a path in the open tab list. Maps descendants when it's a
+   *  directory. Called when a create placeholder gets its final name, or
+   *  when an existing file/folder is renamed. */
+  renamePath: (from: string, to: string) => void;
 }
 
 const INITIAL_STATE = {
@@ -193,6 +202,60 @@ export const useFileViewerStore = create<FileViewerState>()(
 
       reset() {
         set(INITIAL_STATE);
+      },
+
+      removePathAndDescendants(path) {
+        const tabs = activeTabs(get());
+        const { openPaths, activePath } = tabs;
+
+        const prefix = `${path}/`;
+        const isTarget = (p: string) => p === path || p.startsWith(prefix);
+        if (!openPaths.some(isTarget)) return;
+
+        const firstRemovedIdx = openPaths.findIndex(isTarget);
+        const nextOpen = openPaths.filter((p) => !isTarget(p));
+
+        let nextActive = activePath;
+        if (activePath != null && isTarget(activePath)) {
+          // Focus the tab that slid into the deleted one's slot, else the one
+          // before it, else nothing.
+          nextActive =
+            nextOpen[firstRemovedIdx] ?? nextOpen[firstRemovedIdx - 1] ?? null;
+        }
+
+        set((s) =>
+          withActiveTabs(s, { openPaths: nextOpen, activePath: nextActive }),
+        );
+      },
+
+      renamePath(from, to) {
+        const tabs = activeTabs(get());
+        const { openPaths, activePath } = tabs;
+
+        const fromClean = from.endsWith('/') ? from.slice(0, -1) : from;
+        const toClean = to.endsWith('/') ? to.slice(0, -1) : to;
+        const prefix = `${fromClean}/`;
+
+        const mapPath = (p: string): string => {
+          if (p === fromClean) return toClean;
+          if (p.startsWith(prefix)) return toClean + p.slice(fromClean.length);
+          return p;
+        };
+
+        const touched = openPaths.some(
+          (p) => p === fromClean || p.startsWith(prefix),
+        );
+        if (!touched) return;
+
+        // Dedupe: the tree may have already opened the target as a new tab
+        // before this runs, in which case mapping 'untitled' → 'foo.txt'
+        // produces a duplicate.
+        const nextOpen = Array.from(new Set(openPaths.map(mapPath)));
+        const nextActive = activePath != null ? mapPath(activePath) : null;
+
+        set((s) =>
+          withActiveTabs(s, { openPaths: nextOpen, activePath: nextActive }),
+        );
       },
     }),
     {

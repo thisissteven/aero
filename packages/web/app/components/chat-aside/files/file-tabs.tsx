@@ -60,8 +60,8 @@ function FileTab({ path, isActive, onActivate, onClose }: FileTabProps) {
       className={cn(
         'group relative isolate flex h-7 max-w-[200px] shrink-0 items-center overflow-hidden rounded-sm text-xs font-medium transition-colors',
         isActive
-          ? 'bg-surface-hover text-foreground'
-          : 'text-muted hover:bg-surface-hover hover:text-foreground',
+          ? 'bg-default/60 text-foreground'
+          : 'text-muted hover:bg-default/60 hover:text-foreground',
       )}
     >
       <button

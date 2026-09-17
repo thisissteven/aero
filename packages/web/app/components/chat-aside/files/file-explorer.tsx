@@ -7,10 +7,10 @@ import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-
+import { DeletePathConfirmationModal } from '@/app/components/chat-aside/files/delete-path-confirmation-modal';
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
-import { useTheme } from '@/app/providers';
+import { useGlobalModalStore, useTheme } from '@/app/providers';
 
 export interface FileExplorerProps extends UseLazyFileTreeResult {
   projectName?: string;
@@ -89,12 +89,19 @@ export function FileExplorer({
           } else if (key === 'rename') {
             model.startRenaming(item.path);
           } else if (key === 'delete') {
-            if (
-              isDir &&
-              !window.confirm(`Delete ${item.path} and its contents?`)
-            ) {
+            if (isDir) {
+              useGlobalModalStore.getState().openModal({
+                children: (
+                  <DeletePathConfirmationModal
+                    path={item.path}
+                    isDir={isDir}
+                    onConfirm={() => deletePath(item.path, isDir)}
+                  />
+                ),
+              });
               return;
             }
+
             deletePath(item.path, isDir);
           } else if (key === 'copy-path') {
             void navigator.clipboard.writeText(root + '/' + item.path);

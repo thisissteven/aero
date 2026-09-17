@@ -32,6 +32,7 @@ export function BaseTool({
   isItalicHeader = false,
   diff,
   children,
+  dir,
   isStreaming = false,
   useDuration = false,
   forceEnabled = false,
@@ -59,6 +60,7 @@ export function BaseTool({
     additions: number;
     deletions: number;
   };
+  dir?: string;
   children?: ReactNode;
   isStreaming?: boolean;
   useDuration?: boolean;
@@ -253,7 +255,7 @@ export function BaseTool({
                         }
                       />
                     ) : isFile ? (
-                      codeTitle?.endsWith('.html') ? (
+                      dir?.endsWith('.html') ? (
                         <>
                           <CodeBlock.OpenInBrowserButton
                             aria-label='Open in browser'
@@ -261,13 +263,13 @@ export function BaseTool({
                               useSidePanelStore
                                 .getState()
                                 .setActiveNavItem('browser');
-                              openUrl(codeTitle);
+                              openUrl(dir);
                             }}
                           />
-                          <OpenFileInEditor path={codeTitle} />
+                          <OpenFileInEditor path={dir} />
                         </>
                       ) : (
-                        <OpenFileInEditor path={codeTitle} />
+                        <OpenFileInEditor path={dir} />
                       )
                     ) : null}
 

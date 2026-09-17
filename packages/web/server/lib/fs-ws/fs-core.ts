@@ -72,9 +72,9 @@ function toRelative(session: FsSession, absolute: string): string {
 
 function shouldSkip(name: string): boolean {
   if (DEFAULT_IGNORED_DIRS.has(name)) return true;
-  if (name.startsWith('.') && name !== '.env' && name !== '.gitignore') {
-    return true;
-  }
+  // if (name.startsWith('.') && name !== '.env' && name !== '.gitignore') {
+  //   return true;
+  // }
   return false;
 }
 
