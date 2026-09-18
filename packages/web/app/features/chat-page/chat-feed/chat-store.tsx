@@ -750,6 +750,22 @@ function handleSessionError(
   error: NonNullable<Extract<AeroEvent, { type: 'session.error' }>['error']>,
   revertMessageId?: string,
 ) {
+  if (useChatStore.getState().scrollBySession[sessionId].isAtBottom) {
+    if (state.activeSessionId === sessionId) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          useMainChatScrollStore.getState().scrollToBottom();
+        });
+      });
+    } else {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          useSideChatScrollStore.getState().scrollToBottom();
+        });
+      });
+    }
+  }
+
   let turnIndex = -1;
 
   for (let i = current.turns.length - 1; i >= 0; i--) {
@@ -862,6 +878,22 @@ function handleMessagePartUpdated(
     useKeepMountedStoreFeed
       .getState()
       .setKeep(`${event.messageId}-part-0`, true);
+
+    if (useChatStore.getState().scrollBySession[event.sessionId].isAtBottom) {
+      if (state.activeSessionId === sessionId) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            useMainChatScrollStore.getState().scrollToBottom();
+          });
+        });
+      } else {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            useSideChatScrollStore.getState().scrollToBottom();
+          });
+        });
+      }
+    }
   }
 
   if (

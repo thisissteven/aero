@@ -22,7 +22,6 @@ import {
 } from '@/app/components/chat-aside/files/file-viewer-store';
 import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useLocalStorageState } from '@/app/components/chat-aside/files/use-persistent-state';
-import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useSession, useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
@@ -34,12 +33,7 @@ const EXPLORER_WIDTH_STORAGE_KEY = 'aero:file-explorer:width';
 export function FileExplorerPanel() {
   const sessionId = useSessionId();
 
-  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
-  const selectedDirectory = useNewSessionStore(
-    (state) => state.selectedWorkspace?.directory,
-  );
-
-  const sessionDirectory = useSessionDirectory();
+  const directory = useSessionDirectory();
 
   const { isLoading } = useSession(undefined, sessionId);
 
@@ -54,9 +48,6 @@ export function FileExplorerPanel() {
       </div>
     );
   }
-
-  const directory =
-    !sessionId && isWorkMode ? selectedDirectory : sessionDirectory;
 
   if (!directory) {
     return (

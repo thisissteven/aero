@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
-
 import { cn, ToggleButton, Tooltip } from '@aero/ui';
+import type { ReactNode } from 'react';
 
 interface BooleanSettingToggleButtonProps {
   enabled: boolean;

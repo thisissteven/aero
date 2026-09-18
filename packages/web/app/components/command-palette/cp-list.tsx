@@ -10,14 +10,12 @@ import { useCommandPaletteStore } from '@/app/components/command-palette/command
 import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useSessionDirectory, useSessions } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
-import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import type { AeroSessionSummary } from '@/server/services/harness/types';
@@ -78,16 +76,7 @@ export function CommandPaletteList() {
     limitWithoutSearch: 10,
   });
 
-  const sessionId = useSessionId();
-  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
-  const selectedDirectory = useNewSessionStore(
-    (state) => state.selectedWorkspace?.directory,
-  );
-
-  const sessionDirectory = useSessionDirectory();
-
-  const directory =
-    !sessionId && isWorkMode ? selectedDirectory : sessionDirectory;
+  const directory = useSessionDirectory();
 
   const { data: files = [] } = useFilesInDirectory({
     harnessId: undefined,

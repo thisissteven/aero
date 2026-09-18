@@ -1,6 +1,5 @@
-import { ReactNode } from 'react';
-
 import { cn } from '@aero/ui';
+import { ReactNode } from 'react';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
@@ -24,7 +23,7 @@ export function WorkspaceWorktreeDropdownWrapper({
         )}
       >
         <div className='min-h-0 overflow-hidden'>
-          <div className='flex w-full justify-start gap-2 pb-1'>
+          <div className='flex w-full justify-start gap-2 pb-1 px-2'>
             <WorkspacesDropdown />
             <WorktreesDropdown />
           </div>

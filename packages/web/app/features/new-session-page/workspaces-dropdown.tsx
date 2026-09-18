@@ -56,6 +56,7 @@ export function WorkspacesDropdown() {
       <Dropdown.Popover
         className='max-w-80 overflow-x-hidden max-sm:min-w-44'
         placement='top start'
+        crossOffset={-8}
       >
         <Dropdown.Menu>
           <Dropdown.Item

@@ -6,10 +6,7 @@ import {
 } from '@/app/components/smart-composer/components/composer-submit';
 import { extractCommandPayload } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   useAbortSession,

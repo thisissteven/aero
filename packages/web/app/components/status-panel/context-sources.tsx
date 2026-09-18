@@ -1,7 +1,6 @@
+import { Typography } from '@aero/ui';
 import { Layers } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Typography } from '@aero/ui';
 
 import { useSkillsCompact } from '@/app/hooks/api/capabilities';
 import { useMCPs } from '@/app/hooks/api/mcp';

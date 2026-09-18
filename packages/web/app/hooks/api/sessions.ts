@@ -13,6 +13,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
@@ -190,13 +191,23 @@ export function useSessionStatus(
 }
 
 export function useSessionDirectory() {
+  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
+  const selectedDirectory = useNewSessionStore(
+    (state) => state.selectedWorkspace?.directory,
+  );
+
   const sessionId = useSessionId();
 
   const { data: session } = useSession(undefined, sessionId);
 
-  if (!sessionId || !session) return undefined;
+  const sessionDirectory =
+    !sessionId || !session ? undefined : session.workspace;
 
-  return session.workspace;
+  if (!isWorkMode && !sessionId) return undefined;
+
+  const directory = !sessionId ? selectedDirectory : sessionDirectory;
+
+  return directory;
 }
 
 export function useSession(harnessId: string | undefined, sessionId: string) {

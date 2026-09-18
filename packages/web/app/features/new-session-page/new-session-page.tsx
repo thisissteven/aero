@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
+import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
 import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
 import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
@@ -13,18 +14,15 @@ import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat
 import { ChatInputExpandedToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/chat-input-expanded';
 import { GoalModeToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/goal-mode';
 import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
-import { VoiceInputButton } from '@/app/features/chat-page/chat-input/voice-input-button';
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
 import { HeroText } from '@/app/features/new-session-page/hero-text';
 import { PromptInputContent } from '@/app/features/new-session-page/prompt-input-content';
 import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
-import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function NewSessionPage() {
   const isMounted = useIsMounted();
-  const isMobile = useWindowSize((size) => size.width < 768);
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
@@ -65,8 +63,8 @@ export function NewSessionPage() {
                   <PromptInputContent />
 
                   <PromptInput.Toolbar>
-                    <PromptInput.ToolbarStart className='items-end justify-start gap-1'>
-                      <FileAttachmentsButton isMobile={isMobile} />
+                    <PromptInput.ToolbarStart className='gap-1'>
+                      <AttachmentsButton />
                       <AutoAcceptPermissionsToggleButton
                         sessionId={NEW_SESSION_PAGE_SESSION_ID}
                       />
@@ -85,7 +83,6 @@ export function NewSessionPage() {
                           <VariantsDropdown />
                           <AgentDropdown />
                         </div>
-                        <VoiceInputButton />
                       </div>
                       <SendButton />
                     </PromptInput.ToolbarEnd>

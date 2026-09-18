@@ -1,7 +1,6 @@
+import { cn, running, usePrompt } from '@aero/ui';
 import { useLocation } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
-
-import { cn, running, usePrompt } from '@aero/ui';
 
 import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/components/composer-placeholder';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';

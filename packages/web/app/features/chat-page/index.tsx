@@ -104,7 +104,6 @@ export function ChatPage({
               <SessionDiff workspace={workspace} />
             </div>
           </OfflineWrapper>
-
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>

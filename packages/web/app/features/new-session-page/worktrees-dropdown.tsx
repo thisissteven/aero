@@ -1,7 +1,6 @@
+import { Dropdown, Label, Separator, toast } from '@aero/ui';
 import { Check, CircleTree, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Dropdown, Label, Separator, toast } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
@@ -94,14 +93,10 @@ export function WorktreesDropdown() {
     <Dropdown size='sm'>
       <Dropdown.Trigger
         aria-label='Select a worktree to work on'
-        className='mt-1.5 ml-2'
+        className='mt-1.5 ml-1'
       >
-        <div className='flex items-center gap-1.5 text-xs'>
-          <Icon
-            data={CircleTree}
-            className='opacity-50 transition-opacity hover:opacity-80'
-            size={14}
-          />
+        <div className='flex items-center gap-1 text-xs'>
+          <Icon data={CircleTree} size={14} />
           <span>
             {selectedWorktree
               ? getLastPathName(selectedWorktree)
@@ -112,6 +107,7 @@ export function WorktreesDropdown() {
       <Dropdown.Popover
         className='max-w-80 overflow-x-hidden max-sm:min-w-44'
         placement='top start'
+        crossOffset={-8}
       >
         <div>
           <Dropdown.Menu>

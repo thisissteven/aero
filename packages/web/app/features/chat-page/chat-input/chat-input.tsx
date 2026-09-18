@@ -2,17 +2,16 @@ import { cn, PromptInput } from '@aero/ui';
 
 import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/auto-accept-permissions';
 import { ChatInputExpandedToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/chat-input-expanded';
 import { GoalModeToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/goal-mode';
 import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
-
 import { AgentDropdown } from './agent-dropdown';
 import { ModelDropdown } from './model-dropdown';
 import { SendButton } from './send-button';
-import { VoiceInputButton } from './voice-input-button';
 
 export function ChatInput({
   isDisabled,
@@ -41,7 +40,8 @@ export function ChatInput({
         </PromptInput.Content>
 
         <PromptInput.Toolbar>
-          <PromptInput.ToolbarStart className='items-end justify-start gap-1'>
+          <PromptInput.ToolbarStart className='gap-1'>
+            <AttachmentsButton />
             <AutoAcceptPermissionsToggleButton sessionId={sessionId} />
             <GoalModeToggleButton sessionId={sessionId} />
           </PromptInput.ToolbarStart>
@@ -60,7 +60,6 @@ export function ChatInput({
                   </div>
                 </>
               )}
-              <VoiceInputButton />
             </div>
             <SendButton />
           </PromptInput.ToolbarEnd>
