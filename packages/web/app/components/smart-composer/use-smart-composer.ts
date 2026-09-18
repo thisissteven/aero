@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   createNodeFromSegment,
   findTokenImmediatelyBeforeCaret,
@@ -11,7 +11,11 @@ import {
 } from './smart-composer-dom';
 import type { ComposerSegment, SearchItem } from './smart-composer-helpers';
 import { cloneSegments } from './smart-composer-helpers';
-import { ComposerMode, useComposerStore } from './smart-composer-store';
+import {
+  ComposerMode,
+  getComposerSession,
+  useComposerStore,
+} from './smart-composer-store';
 
 interface UseSmartComposerOptions {
   editorRef: React.RefObject<HTMLDivElement | null>;
@@ -32,6 +36,8 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
   const redo = useComposerStore((state) => state.redo);
 
+  const sessionId = useSessionId();
+
   const captureSnapshot = useCallback(
     (modeOverride?: ComposerMode) => {
       const editor = editorRef.current;
@@ -40,7 +46,9 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
         return null;
       }
 
-      const mode = modeOverride ?? useComposerStore.getState().mode;
+      const mode =
+        modeOverride ??
+        getComposerSession(useComposerStore.getState(), sessionId).mode;
 
       return {
         segments: cloneSegments(serializeEditor(editor)),
@@ -48,7 +56,7 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
         mode,
       };
     },
-    [editorRef],
+    [editorRef, sessionId],
   );
 
   const syncFromDom = useCallback(() => {
@@ -60,10 +68,10 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
     const segments = serializeEditor(editor);
 
-    setSegments(segments);
+    setSegments(sessionId, segments);
 
     return segments;
-  }, [editorRef, setSegments]);
+  }, [editorRef, sessionId, setSegments]);
 
   const commitFromDom = useCallback(() => {
     const editor = editorRef.current;
@@ -72,18 +80,18 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
       return;
     }
 
-    const state = useComposerStore.getState();
+    const state = getComposerSession(useComposerStore.getState(), sessionId);
 
     const segments = serializeEditor(editor);
 
-    setSegments(segments);
+    setSegments(sessionId, segments);
 
-    commitHistory({
+    commitHistory(sessionId, {
       segments,
       caret: getCaretVisibleOffset(editor),
       mode: state.mode,
     });
-  }, [commitHistory, editorRef, setSegments]);
+  }, [commitHistory, sessionId, editorRef, setSegments]);
 
   const restoreSnapshot = useCallback(
     (
@@ -105,28 +113,28 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
       replaceEditorContent(editor, snapshot.segments);
 
-      setSegments(snapshot.segments);
+      setSegments(sessionId, snapshot.segments);
 
-      setMode(snapshot.mode);
+      setMode(sessionId, snapshot.mode);
 
       requestAnimationFrame(() => {
         restoreCaretVisibleOffset(editor, snapshot.caret);
       });
     },
-    [editorRef, setMode, setSegments],
+    [editorRef, sessionId, setMode, setSegments],
   );
 
   const handleUndo = useCallback(() => {
-    const snapshot = undo();
+    const snapshot = undo(sessionId);
 
     restoreSnapshot(snapshot);
-  }, [restoreSnapshot, undo]);
+  }, [restoreSnapshot, undo, sessionId]);
 
   const handleRedo = useCallback(() => {
-    const snapshot = redo();
+    const snapshot = redo(sessionId);
 
     restoreSnapshot(snapshot);
-  }, [redo, restoreSnapshot]);
+  }, [redo, sessionId, restoreSnapshot]);
 
   const initialize = useCallback(() => {
     const editor = editorRef.current;
@@ -137,14 +145,17 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
     const segments = serializeEditor(editor);
 
-    const mode = useComposerStore.getState().mode;
+    const mode = getComposerSession(
+      useComposerStore.getState(),
+      sessionId,
+    ).mode;
 
-    initializeHistory({
+    initializeHistory(sessionId, {
       segments,
       caret: getCaretVisibleOffset(editor),
       mode,
     });
-  }, [editorRef, initializeHistory]);
+  }, [editorRef, sessionId, initializeHistory]);
 
   const insertToken = useCallback(
     (item: SearchItem, editableOffset: number) => {

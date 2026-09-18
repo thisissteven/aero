@@ -8,17 +8,13 @@ export interface ExternalFileAttachment {
   id: string;
   mime: string;
   filename: string;
-  /** Object URL for the picked File. Revoked on remove / reset. */
   url: string;
-  /** Underlying File, kept in case we later need to (re-)upload. */
   file: File;
 }
 
 export interface ChatQuoteItem {
   id: string;
-  /** Selected text from a prior message. */
   selection: string;
-  /** Optional user comment. May be empty. */
   comment: string;
   sourceMessageId?: string;
   sourceSessionId?: string;
@@ -26,20 +22,13 @@ export interface ChatQuoteItem {
 
 export interface BrowserAnnotationItem {
   id: string;
-  /** Screenshot URL / data URL. */
   imageUrl: string;
-  /** Caption / comment body. */
   text: string;
-  /** Defaults to image/png when building the file part. */
   imageMime?: string;
   pageUrl?: string;
   pageTitle?: string;
 }
 
-/**
- * Placeholder. Nothing sets this yet — the store just carries it so the
- * send path is ready when the subtask UX lands.
- */
 export interface PendingSubtask {
   prompt: string;
   description: string;
@@ -48,35 +37,46 @@ export interface PendingSubtask {
   command?: string;
 }
 
-export interface ExternalPartsState {
+/** State carried for a single chat session. */
+export interface SessionExternalPartsState {
   fileAttachments: ExternalFileAttachment[];
   chatQuotes: ChatQuoteItem[];
   browserAnnotations: BrowserAnnotationItem[];
   subtask: PendingSubtask | null;
+}
 
-  addFileAttachment: (file: File) => string;
-  addFileAttachments: (files: Iterable<File>) => string[];
-  removeFileAttachment: (id: string) => void;
-  clearFileAttachments: () => void;
+export interface ExternalPartsState {
+  /** Per-session buckets keyed by session id. */
+  sessions: Record<string, SessionExternalPartsState>;
 
-  addChatQuote: (quote: Omit<ChatQuoteItem, 'id'>) => string;
+  addFileAttachment: (sessionId: string, file: File) => string;
+  addFileAttachments: (sessionId: string, files: Iterable<File>) => string[];
+  removeFileAttachment: (sessionId: string, id: string) => void;
+  clearFileAttachments: (sessionId: string) => void;
+
+  addChatQuote: (sessionId: string, quote: Omit<ChatQuoteItem, 'id'>) => string;
   updateChatQuote: (
+    sessionId: string,
     id: string,
     patch: Partial<Omit<ChatQuoteItem, 'id'>>,
   ) => void;
-  removeChatQuote: (id: string) => void;
-  clearChatQuotes: () => void;
+  removeChatQuote: (sessionId: string, id: string) => void;
+  clearChatQuotes: (sessionId: string) => void;
 
   addBrowserAnnotation: (
+    sessionId: string,
     annotation: Omit<BrowserAnnotationItem, 'id'>,
   ) => string;
-  removeBrowserAnnotation: (id: string) => void;
-  clearBrowserAnnotations: () => void;
+  removeBrowserAnnotation: (sessionId: string, id: string) => void;
+  clearBrowserAnnotations: (sessionId: string) => void;
 
-  setSubtask: (subtask: PendingSubtask | null) => void;
+  setSubtask: (sessionId: string, subtask: PendingSubtask | null) => void;
 
-  /** Clears everything. Call after a successful send. */
-  reset: () => void;
+  /** Clears one session's bucket. Call after a successful send. */
+  reset: (sessionId: string) => void;
+
+  /** Clears every session. Use sparingly (logout, hard reset). */
+  resetAll: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -98,99 +98,168 @@ function revokeIfBlobUrl(url: string) {
   }
 }
 
+/** Stable empty bucket shared by every session that has no state yet. */
+export const EMPTY_EXTERNAL_PARTS_SESSION: SessionExternalPartsState = {
+  fileAttachments: [],
+  chatQuotes: [],
+  browserAnnotations: [],
+  subtask: null,
+};
+
+/** Read a session bucket, falling back to the stable empty object. */
+export const getExternalPartsSession = (
+  state: ExternalPartsState,
+  sessionId: string,
+): SessionExternalPartsState =>
+  state.sessions[sessionId] ?? EMPTY_EXTERNAL_PARTS_SESSION;
+
+/** Produce a new `sessions` map with one bucket patched. Auto-creates. */
+function patchSession(
+  state: ExternalPartsState,
+  sessionId: string,
+  patch: Partial<SessionExternalPartsState>,
+): Pick<ExternalPartsState, 'sessions'> {
+  const current = state.sessions[sessionId] ?? EMPTY_EXTERNAL_PARTS_SESSION;
+  return {
+    sessions: {
+      ...state.sessions,
+      [sessionId]: { ...current, ...patch },
+    },
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /*  Store                                                              */
 /* ------------------------------------------------------------------ */
 
 export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
-  fileAttachments: [],
-  chatQuotes: [],
-  browserAnnotations: [],
-  subtask: null,
+  sessions: {},
 
-  addFileAttachment: (file) => {
+  addFileAttachment: (sessionId, file) => {
     const id = generateId();
     const url = URL.createObjectURL(file);
+    const attachment: ExternalFileAttachment = {
+      id,
+      url,
+      file,
+      filename: file.name,
+      mime: file.type || 'application/octet-stream',
+    };
 
-    set((state) => ({
-      fileAttachments: [
-        ...state.fileAttachments,
-        {
-          id,
-          url,
-          file,
-          filename: file.name,
-          mime: file.type || 'application/octet-stream',
-        },
-      ],
-    }));
+    set((state) => {
+      const current = getExternalPartsSession(state, sessionId);
+      return patchSession(state, sessionId, {
+        fileAttachments: [...current.fileAttachments, attachment],
+      });
+    });
 
     return id;
   },
 
-  addFileAttachments: (files) =>
-    Array.from(files, (file) => get().addFileAttachment(file)),
+  addFileAttachments: (sessionId, files) =>
+    Array.from(files, (file) => get().addFileAttachment(sessionId, file)),
 
-  removeFileAttachment: (id) => {
-    const target = get().fileAttachments.find((a) => a.id === id);
+  removeFileAttachment: (sessionId, id) => {
+    const session = getExternalPartsSession(get(), sessionId);
+    const target = session.fileAttachments.find((a) => a.id === id);
     if (target) revokeIfBlobUrl(target.url);
 
-    set((state) => ({
-      fileAttachments: state.fileAttachments.filter((a) => a.id !== id),
-    }));
+    set((state) =>
+      patchSession(state, sessionId, {
+        fileAttachments: getExternalPartsSession(
+          state,
+          sessionId,
+        ).fileAttachments.filter((a) => a.id !== id),
+      }),
+    );
   },
 
-  clearFileAttachments: () => {
-    for (const a of get().fileAttachments) revokeIfBlobUrl(a.url);
-    set({ fileAttachments: [] });
+  clearFileAttachments: (sessionId) => {
+    const session = getExternalPartsSession(get(), sessionId);
+    for (const a of session.fileAttachments) revokeIfBlobUrl(a.url);
+
+    set((state) => patchSession(state, sessionId, { fileAttachments: [] }));
   },
 
-  addChatQuote: (quote) => {
+  addChatQuote: (sessionId, quote) => {
     const id = generateId();
-    set((state) => ({ chatQuotes: [...state.chatQuotes, { ...quote, id }] }));
+    set((state) =>
+      patchSession(state, sessionId, {
+        chatQuotes: [
+          ...getExternalPartsSession(state, sessionId).chatQuotes,
+          { ...quote, id },
+        ],
+      }),
+    );
     return id;
   },
 
-  updateChatQuote: (id, patch) =>
-    set((state) => ({
-      chatQuotes: state.chatQuotes.map((q) =>
-        q.id === id ? { ...q, ...patch } : q,
-      ),
-    })),
+  updateChatQuote: (sessionId, id, patch) =>
+    set((state) =>
+      patchSession(state, sessionId, {
+        chatQuotes: getExternalPartsSession(state, sessionId).chatQuotes.map(
+          (q) => (q.id === id ? { ...q, ...patch } : q),
+        ),
+      }),
+    ),
 
-  removeChatQuote: (id) =>
-    set((state) => ({
-      chatQuotes: state.chatQuotes.filter((q) => q.id !== id),
-    })),
+  removeChatQuote: (sessionId, id) =>
+    set((state) =>
+      patchSession(state, sessionId, {
+        chatQuotes: getExternalPartsSession(state, sessionId).chatQuotes.filter(
+          (q) => q.id !== id,
+        ),
+      }),
+    ),
 
-  clearChatQuotes: () => set({ chatQuotes: [] }),
+  clearChatQuotes: (sessionId) =>
+    set((state) => patchSession(state, sessionId, { chatQuotes: [] })),
 
-  addBrowserAnnotation: (annotation) => {
+  addBrowserAnnotation: (sessionId, annotation) => {
     const id = generateId();
-    set((state) => ({
-      browserAnnotations: [...state.browserAnnotations, { ...annotation, id }],
-    }));
+    set((state) =>
+      patchSession(state, sessionId, {
+        browserAnnotations: [
+          ...getExternalPartsSession(state, sessionId).browserAnnotations,
+          { ...annotation, id },
+        ],
+      }),
+    );
     return id;
   },
 
-  removeBrowserAnnotation: (id) =>
-    set((state) => ({
-      browserAnnotations: state.browserAnnotations.filter((a) => a.id !== id),
-    })),
+  removeBrowserAnnotation: (sessionId, id) =>
+    set((state) =>
+      patchSession(state, sessionId, {
+        browserAnnotations: getExternalPartsSession(
+          state,
+          sessionId,
+        ).browserAnnotations.filter((a) => a.id !== id),
+      }),
+    ),
 
-  clearBrowserAnnotations: () => set({ browserAnnotations: [] }),
+  clearBrowserAnnotations: (sessionId) =>
+    set((state) => patchSession(state, sessionId, { browserAnnotations: [] })),
 
-  setSubtask: (subtask) => set({ subtask }),
+  setSubtask: (sessionId, subtask) =>
+    set((state) => patchSession(state, sessionId, { subtask })),
 
-  reset: () => {
-    for (const a of get().fileAttachments) revokeIfBlobUrl(a.url);
+  reset: (sessionId) => {
+    const session = getExternalPartsSession(get(), sessionId);
+    for (const a of session.fileAttachments) revokeIfBlobUrl(a.url);
 
-    set({
-      fileAttachments: [],
-      chatQuotes: [],
-      browserAnnotations: [],
-      subtask: null,
+    set((state) => {
+      const next = { ...state.sessions };
+      delete next[sessionId];
+      return { sessions: next };
     });
+  },
+
+  resetAll: () => {
+    for (const session of Object.values(get().sessions)) {
+      for (const a of session.fileAttachments) revokeIfBlobUrl(a.url);
+    }
+    set({ sessions: {} });
   },
 }));
 
@@ -199,11 +268,19 @@ export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
 /* ------------------------------------------------------------------ */
 
 export const externalPartsSelectors = {
-  isEmpty: (state: ExternalPartsState) =>
-    state.fileAttachments.length === 0 &&
-    state.chatQuotes.length === 0 &&
-    state.browserAnnotations.length === 0 &&
-    state.subtask === null,
+  chatQuotes: (sessionId: string) => (state: ExternalPartsState) =>
+    getExternalPartsSession(state, sessionId).chatQuotes,
 
-  attachmentCount: (state: ExternalPartsState) => state.fileAttachments.length,
+  isEmpty: (sessionId: string) => (state: ExternalPartsState) => {
+    const s = getExternalPartsSession(state, sessionId);
+    return (
+      s.fileAttachments.length === 0 &&
+      s.chatQuotes.length === 0 &&
+      s.browserAnnotations.length === 0 &&
+      s.subtask === null
+    );
+  },
+
+  attachmentCount: (sessionId: string) => (state: ExternalPartsState) =>
+    getExternalPartsSession(state, sessionId).fileAttachments.length,
 };

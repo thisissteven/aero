@@ -17,15 +17,11 @@ export interface ComposerSnapshot {
 
 export interface ComposerPayload {
   text: string;
-  segments:
-    | ComposerSegment[]
-    | Array<{
-        type: 'shell';
-        text: string;
-      }>;
+  segments: ComposerSegment[] | Array<{ type: 'shell'; text: string }>;
 }
 
-interface ComposerState {
+/** State carried for a single chat session. */
+export interface SessionComposerState {
   composerOpen: boolean;
   segments: ComposerSegment[];
   mode: ComposerMode;
@@ -34,68 +30,94 @@ interface ComposerState {
   historyIndex: number;
 
   payload: ComposerPayload | null;
-
-  setComposerOpen: (composerOpen: boolean) => void;
-  setSegments: (segments: ComposerSegment[]) => void;
-  setMode: (mode: ComposerMode) => void;
-  setPayload: (payload: ComposerPayload | null) => void;
-
-  initializeHistory: (snapshot: ComposerSnapshot) => void;
-  commitHistory: (snapshot: ComposerSnapshot) => void;
-
-  undo: () => ComposerSnapshot | null;
-  redo: () => ComposerSnapshot | null;
-
-  reset: () => void;
 }
 
-export const useComposerStore = create<ComposerState>((set, get) => ({
+interface ComposerState {
+  sessions: Record<string, SessionComposerState>;
+
+  setComposerOpen: (sessionId: string, composerOpen: boolean) => void;
+  setSegments: (sessionId: string, segments: ComposerSegment[]) => void;
+  setMode: (sessionId: string, mode: ComposerMode) => void;
+  setPayload: (sessionId: string, payload: ComposerPayload | null) => void;
+
+  initializeHistory: (sessionId: string, snapshot: ComposerSnapshot) => void;
+  commitHistory: (sessionId: string, snapshot: ComposerSnapshot) => void;
+
+  undo: (sessionId: string) => ComposerSnapshot | null;
+  redo: (sessionId: string) => ComposerSnapshot | null;
+
+  /** Clears one session's composer. */
+  reset: (sessionId: string) => void;
+
+  /** Clears every session's composer. */
+  resetAll: () => void;
+}
+
+/** Stable empty composer for sessions that have no state yet. */
+export const EMPTY_COMPOSER_SESSION: SessionComposerState = {
   composerOpen: false,
   segments: [],
   mode: 'normal',
-
   history: [],
   historyIndex: -1,
-
   payload: null,
+};
 
-  setComposerOpen: (composerOpen) => {
-    set({
-      composerOpen,
-    });
-  },
+export const getComposerSession = (
+  state: ComposerState,
+  sessionId: string,
+): SessionComposerState => state.sessions[sessionId] ?? EMPTY_COMPOSER_SESSION;
 
-  setSegments: (segments) => {
-    set({
-      segments: cloneSegments(segments),
-    });
-  },
+function patchSession(
+  state: ComposerState,
+  sessionId: string,
+  patch: Partial<SessionComposerState>,
+): Pick<ComposerState, 'sessions'> {
+  const current = state.sessions[sessionId] ?? EMPTY_COMPOSER_SESSION;
+  return {
+    sessions: {
+      ...state.sessions,
+      [sessionId]: { ...current, ...patch },
+    },
+  };
+}
 
-  setMode: (mode) => {
-    set({ mode });
-  },
+export const useComposerStore = create<ComposerState>((set, get) => ({
+  sessions: {},
 
-  setPayload: (payload) => {
-    set({ payload });
-  },
+  setComposerOpen: (sessionId, composerOpen) =>
+    set((state) => patchSession(state, sessionId, { composerOpen })),
 
-  initializeHistory: (snapshot) => {
-    const cloned = {
+  setSegments: (sessionId, segments) =>
+    set((state) =>
+      patchSession(state, sessionId, { segments: cloneSegments(segments) }),
+    ),
+
+  setMode: (sessionId, mode) =>
+    set((state) => patchSession(state, sessionId, { mode })),
+
+  setPayload: (sessionId, payload) =>
+    set((state) => patchSession(state, sessionId, { payload })),
+
+  initializeHistory: (sessionId, snapshot) => {
+    const cloned: ComposerSnapshot = {
       segments: cloneSegments(snapshot.segments),
       caret: snapshot.caret,
       mode: snapshot.mode,
     };
 
-    set({
-      segments: cloneSegments(snapshot.segments),
-      mode: snapshot.mode,
-      history: [cloned],
-      historyIndex: 0,
-    });
+    set((state) =>
+      patchSession(state, sessionId, {
+        segments: cloneSegments(snapshot.segments),
+        mode: snapshot.mode,
+        history: [cloned],
+        historyIndex: 0,
+      }),
+    );
   },
 
-  commitHistory: (snapshot) => {
-    const { history, historyIndex } = get();
+  commitHistory: (sessionId, snapshot) => {
+    const { history, historyIndex } = getComposerSession(get(), sessionId);
 
     const current = history[historyIndex];
 
@@ -109,21 +131,22 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
     }
 
     const nextHistory = history.slice(0, historyIndex + 1);
-
     nextHistory.push({
       segments: cloneSegments(snapshot.segments),
       caret: snapshot.caret,
       mode: snapshot.mode,
     });
 
-    set({
-      history: nextHistory,
-      historyIndex: nextHistory.length - 1,
-    });
+    set((state) =>
+      patchSession(state, sessionId, {
+        history: nextHistory,
+        historyIndex: nextHistory.length - 1,
+      }),
+    );
   },
 
-  undo: () => {
-    const { history, historyIndex } = get();
+  undo: (sessionId) => {
+    const { history, historyIndex } = getComposerSession(get(), sessionId);
 
     if (historyIndex <= 0) {
       return null;
@@ -132,17 +155,19 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
     const nextIndex = historyIndex - 1;
     const snapshot = history[nextIndex];
 
-    set({
-      historyIndex: nextIndex,
-      segments: cloneSegments(snapshot.segments),
-      mode: snapshot.mode,
-    });
+    set((state) =>
+      patchSession(state, sessionId, {
+        historyIndex: nextIndex,
+        segments: cloneSegments(snapshot.segments),
+        mode: snapshot.mode,
+      }),
+    );
 
     return snapshot;
   },
 
-  redo: () => {
-    const { history, historyIndex } = get();
+  redo: (sessionId) => {
+    const { history, historyIndex } = getComposerSession(get(), sessionId);
 
     if (historyIndex >= history.length - 1) {
       return null;
@@ -151,43 +176,49 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
     const nextIndex = historyIndex + 1;
     const snapshot = history[nextIndex];
 
-    set({
-      historyIndex: nextIndex,
-      segments: cloneSegments(snapshot.segments),
-      mode: snapshot.mode,
-    });
+    set((state) =>
+      patchSession(state, sessionId, {
+        historyIndex: nextIndex,
+        segments: cloneSegments(snapshot.segments),
+        mode: snapshot.mode,
+      }),
+    );
 
     return snapshot;
   },
 
-  reset: () => {
-    set({
-      segments: [],
-      mode: 'normal',
-      history: [],
-      historyIndex: -1,
-      payload: null,
-    });
-  },
+  reset: (sessionId) =>
+    set((state) => {
+      const next = { ...state.sessions };
+      delete next[sessionId];
+      return { sessions: next };
+    }),
+
+  resetAll: () => set({ sessions: {} }),
 }));
 
 /**
- * Derived selectors.
- *
- * Don't store `isEmpty` separately.
- * It is a property of the actual composer model.
+ * Derived selectors. All take a `sessionId` and return a `(state) => value`
+ * function so they compose with `useComposerStore(...)`.
  */
 export const composerSelectors = {
-  segments: (state: ComposerState) => state.segments,
+  segments: (sessionId: string) => (state: ComposerState) =>
+    getComposerSession(state, sessionId).segments,
 
-  mode: (state: ComposerState) => state.mode,
+  mode: (sessionId: string) => (state: ComposerState) =>
+    getComposerSession(state, sessionId).mode,
 
-  isEmpty: (state: ComposerState) => state.segments.length === 0,
+  isEmpty: (sessionId: string) => (state: ComposerState) =>
+    getComposerSession(state, sessionId).segments.length === 0,
 
-  text: (state: ComposerState) => buildText(state.segments),
+  text: (sessionId: string) => (state: ComposerState) =>
+    buildText(getComposerSession(state, sessionId).segments),
 
-  canUndo: (state: ComposerState) => state.historyIndex > 0,
+  canUndo: (sessionId: string) => (state: ComposerState) =>
+    getComposerSession(state, sessionId).historyIndex > 0,
 
-  canRedo: (state: ComposerState) =>
-    state.historyIndex < state.history.length - 1,
+  canRedo: (sessionId: string) => (state: ComposerState) => {
+    const s = getComposerSession(state, sessionId);
+    return s.historyIndex < s.history.length - 1;
+  },
 };

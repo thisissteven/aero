@@ -7,7 +7,7 @@ import { useDebounce } from '@/app/hooks/useDebounce';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 import { TRIGGER_CHARS, unifiedSearch } from './smart-composer-helpers';
-import { useComposerStore } from './smart-composer-store';
+import { getComposerSession, useComposerStore } from './smart-composer-store';
 
 interface TriggerState {
   char: '@' | '/' | '#';
@@ -238,7 +238,11 @@ function getCaretRect(editor: HTMLElement): CaretRect | null {
 }
 
 export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
-  const mode = useComposerStore((state) => state.mode);
+  const sessionId = useSessionId();
+
+  const mode = useComposerStore(
+    (state) => getComposerSession(state, sessionId).mode,
+  );
 
   const [activeTrigger, setActiveTrigger] = useState<TriggerState | null>(null);
 
@@ -258,7 +262,6 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   // from the keyboard rather than from a hover.
   const ignoreHoverRef = useRef(false);
 
-  const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
 
   const isFileTrigger = activeTrigger?.char === '@';
@@ -319,17 +322,19 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     };
   }, [editorRef, mode]);
 
-  const composerOpen = useComposerStore((state) => state.composerOpen);
+  const composerOpen = useComposerStore(
+    (state) => getComposerSession(state, sessionId).composerOpen,
+  );
   const setComposerOpen = useComposerStore((state) => state.setComposerOpen);
 
   const close = useCallback(() => {
-    setComposerOpen(false);
+    setComposerOpen(sessionId, false);
     setActiveTrigger(null);
     setSelectedIndex(0);
     setScrollIndex(0);
     setCaretRect(null);
     ignoreHoverRef.current = false;
-  }, []);
+  }, [sessionId]);
 
   const sync = useCallback(() => {
     const editor = editorRef.current;
@@ -355,8 +360,8 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
 
     setActiveTrigger(trigger);
     setCaretRect(nextCaretRect);
-    setComposerOpen(true);
-  }, [close, detectTrigger, editorRef]);
+    setComposerOpen(sessionId, true);
+  }, [close, sessionId, detectTrigger, editorRef]);
 
   const visibleFiles = isWorkMode || sessionId ? files : [];
 
@@ -365,14 +370,19 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
     const commands = capabilities?.commands ?? [];
     const skills = capabilities?.skills ?? [];
     return activeTrigger
-      ? unifiedSearch(activeTrigger.char, activeTrigger.query, {
-          files: visibleFiles,
-          agents,
-          commands,
-          skills,
-        })
+      ? unifiedSearch(
+          activeTrigger.char,
+          activeTrigger.query,
+          {
+            files: visibleFiles,
+            agents,
+            commands,
+            skills,
+          },
+          sessionId,
+        )
       : { groups: {}, flat: [] };
-  }, [activeTrigger, capabilities, visibleFiles]);
+  }, [activeTrigger, sessionId, capabilities, visibleFiles]);
 
   const results = search.flat;
 

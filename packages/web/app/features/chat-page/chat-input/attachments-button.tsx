@@ -5,12 +5,13 @@ import { useRef } from 'react';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useGlobalModalStore } from '@/app/providers';
-
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useExternalPartsStore } from './external-parts-store';
 
 export function AttachmentsButton() {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const sessionId = useSessionId();
   const directory = useSessionDirectory();
   const { data: error } = useGitErrorCode(directory);
 
@@ -30,7 +31,7 @@ export function AttachmentsButton() {
         onChange={(event) => {
           const files = event.target.files;
           if (files && files.length > 0) {
-            addFileAttachments(files);
+            addFileAttachments(sessionId, files);
           }
           // Reset so picking the same file twice still fires onChange.
           event.target.value = '';

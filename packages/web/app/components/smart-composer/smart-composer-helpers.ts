@@ -1,4 +1,7 @@
-import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import {
+  getComposerSession,
+  useComposerStore,
+} from '@/app/components/smart-composer/smart-composer-store';
 import {
   AeroAgentCompact,
   AeroCommandCompact,
@@ -156,6 +159,7 @@ export function unifiedSearch(
   trigger: TriggerChar,
   query: string,
   data: SearchData,
+  sessionId: string,
 ) {
   const q = query.toLowerCase();
   const results: SearchItem[] = [];
@@ -184,7 +188,10 @@ export function unifiedSearch(
   }
 
   if (trigger === '/') {
-    const segments = useComposerStore.getState().segments;
+    const segments = getComposerSession(
+      useComposerStore.getState(),
+      sessionId,
+    ).segments;
 
     const nonEmptySegments = segments.filter(
       (segment) =>

@@ -1,10 +1,12 @@
 import { cn, PromptInput } from '@aero/ui';
 import { useState } from 'react';
 
-import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import {
+  getComposerSession,
+  useComposerStore,
+} from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
-import { FileAttachmentsButton } from '@/app/features/chat-page/chat-input/file-attachments-button';
 import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
@@ -19,6 +21,7 @@ import { HeroText } from '@/app/features/new-session-page/hero-text';
 import { PromptInputContent } from '@/app/features/new-session-page/prompt-input-content';
 import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function NewSessionPage() {
@@ -26,7 +29,10 @@ export function NewSessionPage() {
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
-  const isShellMode = useComposerStore((state) => state.mode === 'shell');
+  const sessionId = useSessionId();
+  const isShellMode = useComposerStore(
+    (state) => getComposerSession(state, sessionId).mode === 'shell',
+  );
 
   return (
     <div

@@ -1,18 +1,22 @@
 import { useCallback } from 'react';
-
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   createNodeFromSegment,
   serializeContainer,
 } from './smart-composer-dom';
 import { buildText, COMPOSER_CLIPBOARD_MIME } from './smart-composer-helpers';
-import { useComposerStore } from './smart-composer-store';
+import { getComposerSession, useComposerStore } from './smart-composer-store';
 
 export function useComposerClipboard(
   editorRef: React.RefObject<HTMLDivElement | null>,
 ) {
+  const sessionId = useSessionId();
+
   const setSegments = useComposerStore((state) => state.setSegments);
   const commitHistory = useComposerStore((state) => state.commitHistory);
-  const mode = useComposerStore((state) => state.mode);
+  const mode = useComposerStore(
+    (state) => getComposerSession(state, sessionId).mode,
+  );
 
   const handleCopy = useCallback(
     (event: React.ClipboardEvent<HTMLDivElement>) => {
@@ -110,15 +114,15 @@ export function useComposerClipboard(
 
       const segments = serializeContainer(editor);
 
-      setSegments(segments);
+      setSegments(sessionId, segments);
 
-      commitHistory({
+      commitHistory(sessionId, {
         segments,
         caret: getCaretOffset(editor),
         mode,
       });
     },
-    [commitHistory, editorRef, mode, setSegments],
+    [commitHistory, sessionId, editorRef, mode, setSegments],
   );
 
   return {

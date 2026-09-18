@@ -2,12 +2,18 @@ import { cn, Popover } from '@aero/ui';
 import { Comment } from '@gravity-ui/icons';
 import React from 'react';
 
-import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
-
+import {
+  getExternalPartsSession,
+  useExternalPartsStore,
+} from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { ChatQuoteCard } from './chat-quote-card';
 
 export const ChatQuotesPanel = React.memo(function ChatQuotesPanel() {
-  const quotes = useExternalPartsStore((s) => s.chatQuotes);
+  const sessionId = useSessionId();
+  const quotes = useExternalPartsStore(
+    (state) => getExternalPartsSession(state, sessionId).chatQuotes,
+  );
 
   if (quotes.length === 0) {
     return null;

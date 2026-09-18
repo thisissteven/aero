@@ -6,10 +6,10 @@ import { SMART_COMPOSER_PLACEHOLDER } from '@/app/components/smart-composer/comp
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
-
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { findTokenImmediatelyBeforeCaret } from '../smart-composer-dom';
 import { buildText, SearchItem } from '../smart-composer-helpers';
-import { useComposerStore } from '../smart-composer-store';
+import { getComposerSession, useComposerStore } from '../smart-composer-store';
 
 interface ComposerTextareaProps {
   enabledClassName?: string;
@@ -52,9 +52,15 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
   onPaletteClose,
   onPaletteMove,
 }: ComposerTextareaProps) {
-  const mode = useComposerStore((state) => state.mode);
+  const sessionId = useSessionId();
+  const mode = useComposerStore(
+    (state) => getComposerSession(state, sessionId).mode,
+  );
 
-  const getText = () => buildText(useComposerStore.getState().segments);
+  const getText = () =>
+    buildText(
+      getComposerSession(useComposerStore.getState(), sessionId).segments,
+    );
 
   const { status, allowSubmitWhileRunning, onSubmit, disabled } = usePrompt();
 
@@ -221,6 +227,7 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
 
   return (
     <div
+      key={sessionId}
       id={COMPOSER_TEXTAREA_ID}
       ref={editorRef}
       className={cn(

@@ -1,7 +1,10 @@
 import { cn, PromptInput } from '@aero/ui';
 
 import { SmartComposer } from '@/app/components/smart-composer/smart-composer';
-import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import {
+  getComposerSession,
+  useComposerStore,
+} from '@/app/components/smart-composer/smart-composer-store';
 import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
@@ -20,7 +23,9 @@ export function ChatInput({
   isDisabled: boolean;
   sessionId: string;
 }) {
-  const isShellMode = useComposerStore((state) => state.mode === 'shell');
+  const isShellMode = useComposerStore(
+    (state) => getComposerSession(state, sessionId).mode === 'shell',
+  );
 
   return (
     <ActiveSessionPromptInputWrapper isDisabled={isDisabled}>

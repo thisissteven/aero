@@ -3,7 +3,11 @@ import type {
   ComposerSegment,
   TokenSegment,
 } from '@/app/components/smart-composer/smart-composer-helpers';
-import { ExternalPartsState } from '@/app/features/chat-page/chat-input/external-parts-store';
+import {
+  ChatQuoteItem,
+  ExternalPartsState,
+  SessionExternalPartsState,
+} from '@/app/features/chat-page/chat-input/external-parts-store';
 import { AeroPartUserMessage } from '@/server/services/harness/types';
 
 /* ------------------------------------------------------------------ */
@@ -117,7 +121,7 @@ export function buildComposerTokenParts(
 /*  External parts -> parts                                            */
 /* ------------------------------------------------------------------ */
 
-function formatChatQuote(quote: ExternalPartsState['chatQuotes'][number]) {
+function formatChatQuote(quote: ChatQuoteItem) {
   const quoted = quote.selection
     .trim()
     .split('\n')
@@ -137,7 +141,7 @@ function formatChatQuote(quote: ExternalPartsState['chatQuotes'][number]) {
  */
 export function buildExternalParts(
   state: Pick<
-    ExternalPartsState,
+    SessionExternalPartsState,
     'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
   >,
 ): AeroPartUserMessage[] {
@@ -201,7 +205,7 @@ export function buildMessageParts(
   text: string,
   segments: ComposerSegment[],
   external: Pick<
-    ExternalPartsState,
+    SessionExternalPartsState,
     'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
   >,
 ): AeroPartUserMessage[] {

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-
+import { ComposerSegment } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerClipboard } from '@/app/components/smart-composer/use-composer-clipboard';
-
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { ComposerCommandPalette } from './components/composer-cp';
 import { ComposerPlaceholder } from './components/composer-placeholder';
 import { ComposerTextarea } from './components/composer-text-area';
@@ -13,7 +13,7 @@ interface SmartComposerProps {
   onSubmit?: (payload: {
     text: string;
     segments:
-      | ReturnType<typeof useComposerStore.getState>['segments']
+      | ComposerSegment[]
       | Array<{
           type: 'shell';
           text: string;
@@ -27,6 +27,8 @@ export const SmartComposer = React.memo(function SmartComposer({
   onSubmit,
   enabledClassName,
 }: SmartComposerProps) {
+  const sessionId = useSessionId();
+
   const editorRef = useRef<HTMLDivElement | null>(null);
 
   const composer = useSmartComposer({
@@ -51,20 +53,20 @@ export const SmartComposer = React.memo(function SmartComposer({
   }, [composer.commitFromDom, palette.sync]);
 
   const handleShellEnter = useCallback(() => {
-    setMode('shell');
+    setMode(sessionId, 'shell');
     palette.close();
     composer.commitFromDom();
-  }, [composer.commitFromDom, palette.close, setMode]);
+  }, [composer.commitFromDom, sessionId, palette.close, setMode]);
 
   const handleShellExit = useCallback(() => {
-    setMode('normal');
+    setMode(sessionId, 'normal');
     palette.close();
 
     requestAnimationFrame(() => {
       editorRef.current?.focus();
       composer.commitFromDom();
     });
-  }, [composer.commitFromDom, palette.close, setMode]);
+  }, [composer.commitFromDom, sessionId, palette.close, setMode]);
 
   const handlePaletteSelect = useCallback(
     (item: Parameters<typeof composer.insertToken>[0]) => {

@@ -2,26 +2,26 @@ import { COMPOSER_TEXTAREA_ID } from '@/app/components/smart-composer/components
 import { serializeEditor } from '@/app/components/smart-composer/smart-composer-dom';
 import { buildText } from '@/app/components/smart-composer/smart-composer-helpers';
 import {
-  ComposerPayload,
+  type ComposerPayload,
+  getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
 
-export function composerSubmitBefore() {
+export function composerSubmitBefore(sessionId: string) {
   const editor = document.getElementById(COMPOSER_TEXTAREA_ID);
 
   if (!editor) {
     return;
   }
 
-  const setPayload = useComposerStore.getState().setPayload;
-
   const state = useComposerStore.getState();
+  const { mode } = getComposerSession(state, sessionId);
 
   const segments = serializeEditor(editor);
   const text = buildText(segments);
 
   const payload: ComposerPayload =
-    state.mode === 'shell'
+    mode === 'shell'
       ? {
           text,
           segments: [
@@ -36,10 +36,10 @@ export function composerSubmitBefore() {
           segments,
         };
 
-  setPayload(payload);
+  state.setPayload(sessionId, payload);
 }
 
-export function composerSubmitAfter() {
+export function composerSubmitAfter(sessionId: string) {
   const editor = document.getElementById(COMPOSER_TEXTAREA_ID);
 
   if (!editor) {
@@ -48,14 +48,13 @@ export function composerSubmitAfter() {
 
   editor.innerHTML = '';
 
-  const setSegments = useComposerStore.getState().setSegments;
-  const setMode = useComposerStore.getState().setMode;
-  const initializeHistory = useComposerStore.getState().initializeHistory;
+  const { setSegments, setMode, initializeHistory } =
+    useComposerStore.getState();
 
-  setSegments([]);
-  setMode('normal');
+  setSegments(sessionId, []);
+  setMode(sessionId, 'normal');
 
-  initializeHistory({
+  initializeHistory(sessionId, {
     segments: [],
     caret: 0,
     mode: 'normal',

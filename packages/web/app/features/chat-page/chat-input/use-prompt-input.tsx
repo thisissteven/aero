@@ -8,12 +8,16 @@ import {
   ComposerSegment,
   extractCommandPayload,
 } from '@/app/components/smart-composer/smart-composer-helpers';
-import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import {
+  getComposerSession,
+  useComposerStore,
+} from '@/app/components/smart-composer/smart-composer-store';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import { buildMessageParts } from '@/app/features/chat-page/chat-input/build-message-parts';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   externalPartsSelectors,
+  getExternalPartsSession,
   useExternalPartsStore,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
 import {
@@ -29,7 +33,10 @@ import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
-  const segments = useComposerStore((state) => state.segments);
+  const sessionId = useSessionId();
+  const segments = useComposerStore(
+    (state) => getComposerSession(state, sessionId).segments,
+  );
 
   useKeyPress(
     'ArrowRight',
@@ -44,7 +51,6 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   );
 
   const [isAborting, setIsAborting] = useState(false);
-  const sessionId = useSessionId();
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: sendCommand } = useSendCommand(undefined);
@@ -57,18 +63,24 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
 
   const handleSend = useCallback(
     async (sessionId: string) => {
-      composerSubmitBefore();
+      composerSubmitBefore(sessionId);
 
-      const composerState = useComposerStore.getState();
+      const composerState = getComposerSession(
+        useComposerStore.getState(),
+        sessionId,
+      );
       const payload = composerState.payload;
       const text = payload?.text ?? '';
-      const externalState = useExternalPartsStore.getState();
+      const externalState = getExternalPartsSession(
+        useExternalPartsStore.getState(),
+        sessionId,
+      );
 
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
 
       const hasComposerContent = (payload?.segments.length ?? 0) > 0;
-      const hasExternalContent = !externalPartsSelectors.isEmpty(externalState);
+      const hasExternalContent = !externalPartsSelectors.isEmpty(sessionId);
 
       if (
         (!hasComposerContent && !hasExternalContent) ||
@@ -146,8 +158,8 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
       } catch {
         toast.danger('Failed to send message');
       } finally {
-        composerSubmitAfter();
-        useExternalPartsStore.getState().reset();
+        composerSubmitAfter(sessionId);
+        useExternalPartsStore.getState().reset(sessionId);
       }
     },
     [isPending, sendMessage, sendShellCommand, sendCommand],

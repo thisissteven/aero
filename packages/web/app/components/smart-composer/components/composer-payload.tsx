@@ -1,9 +1,16 @@
 import { cn } from '@aero/ui';
 
-import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
+import {
+  getComposerSession,
+  useComposerStore,
+} from '@/app/components/smart-composer/smart-composer-store';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function ComposerPayload() {
-  const payload = useComposerStore((state) => state.payload);
+  const sessionId = useSessionId();
+  const payload = useComposerStore(
+    (state) => getComposerSession(state, sessionId).payload,
+  );
 
   return (
     <div>

@@ -1,9 +1,10 @@
-import { Button, IconButton, Popover, TextArea } from '@aero/ui';
+import { IconButton, TextArea } from '@aero/ui';
 import { Check, Pencil, TrashBin } from '@gravity-ui/icons';
 import React, { useState } from 'react';
 
 import type { ChatQuoteItem } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 interface ChatQuoteCardProps {
   quote: ChatQuoteItem;
@@ -20,13 +21,15 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
   const updateChatQuote = useExternalPartsStore((s) => s.updateChatQuote);
   const removeChatQuote = useExternalPartsStore((s) => s.removeChatQuote);
 
+  const sessionId = useSessionId();
+
   const startEdit = () => {
     setDraft(quote.comment);
     setIsEditing(true);
   };
 
   const commit = () => {
-    updateChatQuote(quote.id, { comment: draft.trim() });
+    updateChatQuote(sessionId, quote.id, { comment: draft.trim() });
     setIsEditing(false);
   };
 
@@ -61,7 +64,7 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
               <IconButton
                 variant='ghost'
                 aria-label='Delete quote'
-                onPress={() => removeChatQuote(quote.id)}
+                onPress={() => removeChatQuote(sessionId, quote.id)}
               >
                 <TrashBin />
               </IconButton>
@@ -78,7 +81,7 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
               <IconButton
                 variant='ghost'
                 aria-label='Delete quote'
-                onPress={() => removeChatQuote(quote.id)}
+                onPress={() => removeChatQuote(sessionId, quote.id)}
               >
                 <TrashBin />
               </IconButton>
@@ -121,6 +124,12 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
                   e.preventDefault();
                   cancel();
                 }
+              }}
+              onFocus={(e) => {
+                const el = e.currentTarget;
+                requestAnimationFrame(() => {
+                  el.setSelectionRange(el.value.length, el.value.length);
+                });
               }}
             />
           ) : (

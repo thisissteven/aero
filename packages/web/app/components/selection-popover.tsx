@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 const VIEWPORT_MARGIN = 12;
 const OFFSET = 8;
@@ -24,6 +25,8 @@ export const SelectionPopover = React.memo(function SelectionPopover({
   containerRef,
 }: SelectionPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const sessionId = useSessionId();
 
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [mode, setMode] = useState<'actions' | 'comment'>('actions');
@@ -251,7 +254,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                   onSubmit={(e) => {
                     e.preventDefault();
 
-                    addChatQuote({
+                    addChatQuote(sessionId, {
                       selection: selection.text,
                       comment: comment.trim(),
                     });
