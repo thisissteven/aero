@@ -28,7 +28,11 @@ const capabilities = new Hono()
       harness.listSkillsCompact(directory),
     ]);
 
-    return c.json({ agents, commands, skills });
+    return c.json({
+      agents: agents.filter((agent) => agent.mode !== 'primary'),
+      commands,
+      skills,
+    });
   })
 
   // GET /api/capabilities/agents?harnessId=...&directory=...

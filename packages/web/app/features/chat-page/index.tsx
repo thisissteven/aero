@@ -2,7 +2,7 @@
 
 import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef } from 'react';
-
+import { ChatQuotesPanel } from '@/app/components/chat-quotes-panel';
 import {
   ChatActivityIndicator,
   WithScrollToBottomWrapper,
@@ -104,6 +104,7 @@ export function ChatPage({
               <SessionDiff workspace={workspace} />
             </div>
           </OfflineWrapper>
+          <ChatQuotesPanel />
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>

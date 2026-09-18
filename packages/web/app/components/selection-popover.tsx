@@ -1,8 +1,8 @@
 import { Button, cn, Popover, Separator, TextArea } from '@aero/ui';
 import { Paperclip } from '@gravity-ui/icons';
 import type { RefObject } from 'react';
-import React, { useEffect, useRef, useState } from 'react';
-
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 
@@ -27,8 +27,17 @@ export const SelectionPopover = React.memo(function SelectionPopover({
 
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [mode, setMode] = useState<'actions' | 'comment'>('actions');
+  const [comment, setComment] = useState('');
 
+  const addChatQuote = useExternalPartsStore((s) => s.addChatQuote);
   const { copy } = useCopyToClipboard();
+
+  const close = useCallback(() => {
+    setSelection(null);
+    setMode('actions');
+    setComment('');
+    window.getSelection()?.removeAllRanges();
+  }, []);
 
   useKeyPress(
     'C',
@@ -47,12 +56,6 @@ export const SelectionPopover = React.memo(function SelectionPopover({
   );
 
   useEffect(() => {
-    const clearSelection = () => {
-      setSelection(null);
-      setMode('actions');
-      window.getSelection()?.removeAllRanges();
-    };
-
     const handleMouseUp = () => {
       requestAnimationFrame(() => {
         const container = containerRef.current;
@@ -108,6 +111,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
             : 'backward';
 
         setMode('actions');
+        setComment('');
 
         setSelection({
           text,
@@ -129,7 +133,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
         return;
       }
 
-      clearSelection();
+      close();
     };
 
     document.addEventListener('mouseup', handleMouseUp);
@@ -139,7 +143,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousedown', handleMouseDown);
     };
-  }, [containerRef, selection]);
+  }, [containerRef, selection, close]);
 
   if (!selection) {
     return null;
@@ -182,11 +186,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
       <Popover
         isOpen
         onOpenChange={(open) => {
-          if (!open) {
-            setSelection(null);
-            setMode('actions');
-            window.getSelection()?.removeAllRanges();
-          }
+          if (!open) close();
         }}
       >
         <Popover.Trigger
@@ -239,7 +239,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     event.preventDefault();
                   }}
                   onPress={() => {
-                    // TODO: Add to notes
+                    // TODO: add to notes
                   }}
                 >
                   Add to notes
@@ -250,7 +250,13 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    alert('yoo');
+
+                    addChatQuote({
+                      selection: selection.text,
+                      comment: comment.trim(),
+                    });
+
+                    close();
                   }}
                 >
                   <TextArea
@@ -259,6 +265,8 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     aria-label='Comment'
                     placeholder='Add a comment...'
                     className='min-h-9 w-full resize-none scrollbar-thin rounded-lg'
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();

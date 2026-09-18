@@ -548,9 +548,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         unwrap(await client.app.agents({ directory })),
       );
 
-      return entries
-        .filter((agent) => !agent.hidden && agent.mode !== 'primary')
-        .map(toAeroAgentCompact);
+      return entries.filter((agent) => !agent.hidden).map(toAeroAgentCompact);
     },
 
     async listMCPs(directory) {

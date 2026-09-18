@@ -60,6 +60,10 @@ export interface ExternalPartsState {
   clearFileAttachments: () => void;
 
   addChatQuote: (quote: Omit<ChatQuoteItem, 'id'>) => string;
+  updateChatQuote: (
+    id: string,
+    patch: Partial<Omit<ChatQuoteItem, 'id'>>,
+  ) => void;
   removeChatQuote: (id: string) => void;
   clearChatQuotes: () => void;
 
@@ -146,6 +150,13 @@ export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
     set((state) => ({ chatQuotes: [...state.chatQuotes, { ...quote, id }] }));
     return id;
   },
+
+  updateChatQuote: (id, patch) =>
+    set((state) => ({
+      chatQuotes: state.chatQuotes.map((q) =>
+        q.id === id ? { ...q, ...patch } : q,
+      ),
+    })),
 
   removeChatQuote: (id) =>
     set((state) => ({
