@@ -1,7 +1,6 @@
+import { PromptInput } from '@aero/ui';
 import { File, Folder, Picture, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { PromptInput } from '@aero/ui';
 
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 

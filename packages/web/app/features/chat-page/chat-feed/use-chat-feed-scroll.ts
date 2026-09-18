@@ -21,6 +21,8 @@ const PROGRAMMATIC_INSTANT_MS = 120;
 const PROGRAMMATIC_SMOOTH_MS = 500;
 const PROGRAMMATIC_TOC_MS = 200;
 
+const SCROLL_OFFSET = 48;
+
 export interface UserAnchor {
   groupIndex: number;
   flatIndex: number;
@@ -141,7 +143,7 @@ export function useChatFeedScroll({
       v.scrollToIndex(flatItemsLengthRef.current - 1, {
         align: 'end',
         smooth: false,
-        offset: 48,
+        offset: SCROLL_OFFSET,
       });
 
       if (tries++ < INITIAL_SCROLL_SETTLE_TRIES) {
@@ -409,7 +411,7 @@ export function useChatFeedScroll({
       v.scrollToIndex(flatItemsLengthRef.current - 1, {
         align: 'end',
         smooth: useSmooth,
-        offset: 48,
+        offset: SCROLL_OFFSET,
       });
     },
     [sessionId, virtualizerRef, scrollRef, patchScroll, beginProgrammatic],

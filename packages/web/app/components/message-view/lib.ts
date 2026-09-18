@@ -16,6 +16,7 @@
 // This is defensive and works for both in-place mutation and replace-by-ref
 // streaming patterns.
 
+import { logger } from '@aero/ui';
 import { formatElapsedMs } from '@/app/hooks/useElapsedTime';
 import { formatDateTime } from '@/app/lib/date';
 import {

@@ -1,6 +1,6 @@
 import { cn } from '@aero/ui';
 import { ReactNode } from 'react';
-
+import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
 import { WorktreesDropdown } from '@/app/features/new-session-page/worktrees-dropdown';
@@ -15,14 +15,16 @@ export function WorkspaceWorktreeDropdownWrapper({
   const isChat = state === 'chat';
 
   return (
-    <div className='mx-auto w-full max-w-[720px] space-y-1'>
+    <div className={cn('mx-auto w-full max-w-[720px]', isChat && 'mb-1')}>
+      <FileAttachments />
+
       <div
         className={cn(
           'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
           isChat ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
         )}
       >
-        <div className='min-h-0 overflow-hidden'>
+        <div className='min-h-0 overflow-hidden mb-1'>
           <div className='flex w-full justify-start gap-2 pb-1 px-2'>
             <WorkspacesDropdown />
             <WorktreesDropdown />

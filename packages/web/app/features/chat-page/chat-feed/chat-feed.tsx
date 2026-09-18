@@ -10,6 +10,8 @@ import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store
 import { ReplyToPermission } from '@/app/features/chat-page/chat-feed/reply-to-permission';
 import { ReplyToQuestion } from '@/app/features/chat-page/chat-feed/reply-to-question';
 import { RevertedMessages } from '@/app/features/chat-page/chat-feed/reverted-messages';
+import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
+import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { useChatFeedScroll } from '@/app/features/chat-page/chat-feed/use-chat-feed-scroll';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { useSessionId } from '@/app/providers/SessionIdProvider';

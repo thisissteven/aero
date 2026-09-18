@@ -1,13 +1,15 @@
 import { cn, Popover } from '@aero/ui';
 import { ChevronDown, CircleCheck, CircleStop, Clock } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
-export function SessionTodos({ sessionId }: { sessionId: string }) {
+export const SessionTodos = memo(function SessionTodos() {
+  const sessionId = useSessionId();
   const { data: todos } = useSessionTodos(undefined, sessionId);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -28,8 +30,8 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   if (tasksCompleted) {
     return (
-      <div className='px-2 mb-1 w-fit ml-auto flex items-center justify-end gap-1 text-sm md:max-w-sm @max-md:hidden backdrop-blur-sm rounded-full border border-separator py-1'>
-        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle max-md:hidden'>
+      <div className='mb-2 p-2 w-fit flex items-center gap-1 text-sm rounded-xl border border-separator bg-surface-secondary/60'>
+        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           All tasks completed
         </span>
         <Icon data={CircleCheck} size={12} className='text-success shrink-0' />
@@ -39,8 +41,8 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none md:max-w-sm @max-md:hidden border border-separator'>
-        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle @max-md:hidden'>
+      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex shrink-0 items-center gap-1 rounded-xl p-2 text-sm  focus-visible:ring-2 focus-visible:outline-none border border-separator bg-surface-secondary/60 w-fit'>
+        <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           {inProgress.length > 0
             ? inProgress[0].content
             : todos[todos.length - 1].content}
@@ -63,9 +65,9 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
         />
       </Popover.Trigger>
       <Popover.Content
-        placement='top right'
+        placement='top start'
         className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
-        offset={4}
+        offset={8}
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>
@@ -123,4 +125,4 @@ export function SessionTodos({ sessionId }: { sessionId: string }) {
       </Popover.Content>
     </Popover>
   );
-}
+});

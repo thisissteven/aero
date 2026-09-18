@@ -1,18 +1,20 @@
 import { cn, Popover } from '@aero/ui';
 import { ChevronDown, PencilToLine } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useGitDiff } from '@/app/hooks/api/git';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
-export function SessionDiff({ workspace }: { workspace?: string }) {
-  const { data: diffData, isLoading } = useGitDiff(workspace);
+export const SessionDiff = memo(function SessionDiff() {
+  const directory = useSessionDirectory();
+  const { data: diffData, isLoading } = useGitDiff(directory);
   const [isOpen, setIsOpen] = useState(false);
 
   const isChatInputExpanded = useChatInputExpanded();
@@ -40,7 +42,7 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent mb-1 flex items-center justify-start gap-1 rounded-full px-2 py-1 text-sm backdrop-blur-sm focus-visible:ring-2 focus-visible:outline-none @max-md:hidden border border-separator w-fit ml-auto'>
+      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex items-center justify-start gap-1 rounded-xl p-2 text-sm focus-visible:ring-2 focus-visible:outline-none border border-separator w-fit bg-surface-secondary/60'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed
@@ -64,12 +66,12 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
       </Popover.Trigger>
 
       <Popover.Content
-        placement='top right'
-        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
-        offset={4}
+        placement='top start'
+        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm min-w-44'
+        offset={8}
       >
         <Popover.Dialog className='p-0'>
-          <Popover.Heading className='p-2'>
+          <Popover.Heading className='px-2 pb-1 pt-2'>
             Changed files {fileCount}
           </Popover.Heading>
 
@@ -83,12 +85,12 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
                 return (
                   <li
                     key={file.path}
-                    className='flex items-center justify-between gap-3 text-sm hover:bg-surface-hover px-2 rounded-md cursor-pointer py-1'
+                    className='flex items-center justify-between gap-3 text-sm hover:bg-default/40 px-2 rounded-md cursor-pointer py-1'
                     onClick={() => {
-                      if (!workspace) return;
+                      if (!directory) return;
                       const relativePath = toWorkspaceRelative(
                         file.path,
-                        workspace,
+                        directory,
                       );
                       useSidePanelStore.getState().setActiveNavItem('files');
                       openFileWhenReady(relativePath);
@@ -124,4 +126,4 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
       </Popover.Content>
     </Popover>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { toast } from '@aero/ui';
+import { logger, toast } from '@aero/ui';
 import { useCallback, useState } from 'react';
 import {
   composerSubmitAfter,
@@ -16,6 +16,7 @@ import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store
 import { buildMessageParts } from '@/app/features/chat-page/chat-input/build-message-parts';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
+  externalPartsSelectors,
   getExternalPartsSession,
   useExternalPartsStore,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
@@ -60,8 +61,8 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const isPending = status !== 'idle';
   const inputDisabled = isDisabled || (session && session.readOnly);
 
-  const quotes = useExternalPartsStore(
-    (state) => getExternalPartsSession(state, sessionId).chatQuotes,
+  const isExternalPartEmpty = useExternalPartsStore(
+    externalPartsSelectors.isEmpty(sessionId),
   );
 
   const handleSend = useCallback(
@@ -149,7 +150,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
             parts,
           });
         } else {
-          const parts = buildMessageParts(
+          const parts = await buildMessageParts(
             text,
             segments as ComposerSegment[],
             externalState,
@@ -196,7 +197,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   });
 
   return {
-    text: segments.length || quotes.length ? 'text' : '',
+    text: segments.length || !isExternalPartEmpty ? 'text' : '',
     inputDisabled,
     handleSend,
     handleAbort,

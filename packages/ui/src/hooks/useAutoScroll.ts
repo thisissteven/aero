@@ -8,6 +8,8 @@ interface UseAutoScrollOptions {
   enabled?: boolean;
 }
 
+const SCROLL_OFFSET = 1080;
+
 export function useAutoScroll({
   scrollRef,
   contentRef,
@@ -77,7 +79,7 @@ export function useAutoScroll({
         return false;
       }
 
-      scrollEl.scrollTop = scrollEl.scrollHeight + 48;
+      scrollEl.scrollTop = scrollEl.scrollHeight + SCROLL_OFFSET;
 
       return true;
     };
@@ -174,7 +176,7 @@ export function useAutoScroll({
         return;
       }
 
-      scrollEl.scrollTop = scrollEl.scrollHeight + 48;
+      scrollEl.scrollTop = scrollEl.scrollHeight + SCROLL_OFFSET;
     };
 
     streamEndRaf1Ref.current = requestAnimationFrame(() => {

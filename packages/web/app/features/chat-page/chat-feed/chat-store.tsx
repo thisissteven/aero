@@ -1,12 +1,11 @@
+import { logger } from '@aero/ui';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-
 import {
   buildFlatConversationItems,
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
-
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
@@ -751,22 +750,6 @@ function handleSessionError(
   error: NonNullable<Extract<AeroEvent, { type: 'session.error' }>['error']>,
   revertMessageId?: string,
 ) {
-  if (useChatStore.getState().scrollBySession[sessionId].isAtBottom) {
-    if (state.activeSessionId === sessionId) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          useMainChatScrollStore.getState().scrollToBottom();
-        });
-      });
-    } else {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          useSideChatScrollStore.getState().scrollToBottom();
-        });
-      });
-    }
-  }
-
   let turnIndex = -1;
 
   for (let i = current.turns.length - 1; i >= 0; i--) {
@@ -871,28 +854,32 @@ function handleMessagePartUpdated(
     lastTurn?.role === 'assistant' &&
     previousTurn.parts?.some(
       (part) => part.type === 'text' && part.text === SHELL_TEMPLATE_TEXT,
-    );
+    ) &&
+    event.part.type === 'tool' &&
+    event.part.status === 'completed';
 
   if (isPreviousUserToolMessage) {
     useKeepMountedStoreFeed
       .getState()
       .setKeep(`${event.messageId}-part-0`, true);
 
-    if (useChatStore.getState().scrollBySession[event.sessionId].isAtBottom) {
-      if (state.activeSessionId === sessionId) {
-        requestAnimationFrame(() => {
+    setTimeout(() => {
+      if (useChatStore.getState().scrollBySession[event.sessionId].isAtBottom) {
+        if (state.activeSessionId === sessionId) {
           requestAnimationFrame(() => {
-            useMainChatScrollStore.getState().scrollToBottom();
+            requestAnimationFrame(() => {
+              useMainChatScrollStore.getState().scrollToBottom();
+            });
           });
-        });
-      } else {
-        requestAnimationFrame(() => {
+        } else {
           requestAnimationFrame(() => {
-            useSideChatScrollStore.getState().scrollToBottom();
+            requestAnimationFrame(() => {
+              useSideChatScrollStore.getState().scrollToBottom();
+            });
           });
-        });
+        }
       }
-    }
+    }, 300);
   }
 
   if (

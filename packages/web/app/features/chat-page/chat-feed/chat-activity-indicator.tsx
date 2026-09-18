@@ -263,7 +263,7 @@ export const WithScrollToBottomWrapper = React.memo(
         <button
           role='status'
           aria-live='polite'
-          className='border-separator text-muted mx-2 mb-1 flex shrink-0 items-center gap-1 rounded-full border bg-transparent px-2 py-1 backdrop-blur-sm'
+          className='border-separator text-muted mx-3 mb-2 flex shrink-0 items-center gap-1 rounded-xl border bg-transparent px-2 py-1 backdrop-blur-sm'
           disabled={!showButton}
           onClick={showButton ? onScrollToBottom : undefined}
         >

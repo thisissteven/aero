@@ -133,26 +133,43 @@ function formatChatQuote(quote: ChatQuoteItem) {
 }
 
 /**
+ * Blob URLs are browser-scoped and rejected by opencode's URL validator
+ * (http/https/data only). Data URLs travel with the request and are
+ * accepted, so we read the File at send time.
+ */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () =>
+      reject(reader.error ?? new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * Order:
  *   1. file attachments
  *   2. chat quotes (one text part each)
  *   3. browser annotations (image + text)
  *   4. subtask (at most one)
  */
-export function buildExternalParts(
+export async function buildExternalParts(
   state: Pick<
     SessionExternalPartsState,
     'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
   >,
-): AeroPartUserMessage[] {
+): Promise<AeroPartUserMessage[]> {
   const parts: AeroPartUserMessage[] = [];
 
   for (const attachment of state.fileAttachments) {
+    const url = await fileToDataUrl(attachment.file);
+
     parts.push({
       type: 'file',
       mime: attachment.mime,
       filename: attachment.filename,
-      url: attachment.url,
+      url,
     });
   }
 
@@ -201,14 +218,14 @@ export function buildExternalParts(
  * Build the full `parts` array for `sendMessage`:
  *   [ primary text, composer tokens..., external parts... ]
  */
-export function buildMessageParts(
+export async function buildMessageParts(
   text: string,
   segments: ComposerSegment[],
   external: Pick<
     SessionExternalPartsState,
     'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
   >,
-): AeroPartUserMessage[] {
+): Promise<AeroPartUserMessage[]> {
   const parts: AeroPartUserMessage[] = [];
 
   if (text) {
@@ -216,7 +233,7 @@ export function buildMessageParts(
   }
 
   parts.push(...buildComposerTokenParts(segments));
-  parts.push(...buildExternalParts(external));
+  parts.push(...(await buildExternalParts(external)));
 
   return parts;
 }

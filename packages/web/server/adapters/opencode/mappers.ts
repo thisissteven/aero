@@ -497,9 +497,8 @@ export function toAeroPart(p: Part): AeroPart {
 export function isNonUserText(p: Part, role: Message['role']): boolean {
   const isSynthetic =
     p.type === 'text' && p.synthetic === true && p.text !== SHELL_TEMPLATE_TEXT;
-  const isFilePart = p.type === 'file';
   const isAgentPart = p.type === 'agent';
-  const trueConditions = isSynthetic || isFilePart || isAgentPart;
+  const trueConditions = isSynthetic || isAgentPart;
   return role === 'user' && trueConditions;
 }
 

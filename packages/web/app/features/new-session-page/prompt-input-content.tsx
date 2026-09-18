@@ -11,7 +11,7 @@ export function PromptInputContent() {
       <SmartComposer
         enabledClassName={cn(
           isChatMode
-            ? 'h-[calc(100vh-152px)] max-h-[calc(100vh-152px)]'
+            ? 'h-[calc(100vh-144px)] max-h-[calc(100vh-144px)]'
             : 'h-[calc(100vh-172px)] max-h-[calc(100vh-172px)]',
         )}
       />

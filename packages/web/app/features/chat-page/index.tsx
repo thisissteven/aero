@@ -14,6 +14,7 @@ import {
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
+import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
@@ -101,12 +102,12 @@ export function ChatPage({
               </WithScrollToBottomWrapper>
               <ChatQuotesPanel />
             </div>
-
-            <div className='absolute right-0 -translate-y-full'>
-              <SessionTodos sessionId={sessionId} />
-              <SessionDiff workspace={workspace} />
-            </div>
           </OfflineWrapper>
+          <div className='flex flex-wrap gap-2 mx-3'>
+            <SessionDiff />
+            <SessionTodos />
+          </div>
+          <FileAttachments />
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>
