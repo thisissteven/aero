@@ -2,10 +2,16 @@ import type {
   AeroPartUserMessage,
   AeroSkill,
 } from '@/server/services/harness/types';
+import { listSnippets } from '@/server/services/snippets';
 
 type SkillRefPart = AeroPartUserMessage & {
   type: 'text';
   metadata: { kind: 'skill'; name: string };
+};
+
+type SnippetRefPart = AeroPartUserMessage & {
+  type: 'text';
+  metadata: { kind: 'snippet'; name: string };
 };
 
 type AgentPart = AeroPartUserMessage & { type: 'agent'; name: string };
@@ -16,6 +22,12 @@ function isSkillRef(part: AeroPartUserMessage): part is SkillRefPart {
   if (part.type !== 'text') return false;
   const meta = part.metadata as { kind?: unknown; name?: unknown } | undefined;
   return meta?.kind === 'skill' && typeof meta.name === 'string';
+}
+
+function isSnippetRef(part: AeroPartUserMessage): part is SnippetRefPart {
+  if (part.type !== 'text') return false;
+  const meta = part.metadata as { kind?: unknown; name?: unknown } | undefined;
+  return meta?.kind === 'snippet' && typeof meta.name === 'string';
 }
 
 function isAgentPart(part: AeroPartUserMessage): part is AgentPart {
@@ -29,7 +41,12 @@ function isFilePart(part: AeroPartUserMessage): part is FilePart {
 function isPrimaryText(
   part: AeroPartUserMessage,
 ): part is AeroPartUserMessage & { type: 'text' } {
-  return part.type === 'text' && !part.synthetic && !isSkillRef(part);
+  return (
+    part.type === 'text' &&
+    !part.synthetic &&
+    !isSkillRef(part) &&
+    !isSnippetRef(part)
+  );
 }
 
 function normalizePart<T extends AeroPartUserMessage>(part: T): T {
@@ -37,10 +54,6 @@ function normalizePart<T extends AeroPartUserMessage>(part: T): T {
   return { ...part, text: part.text.trim() };
 }
 
-/**
- * Keep only the first agent part; drop any subsequent ones. Order of
- * everything else is preserved.
- */
 function keepFirstAgentPart(
   parts: AeroPartUserMessage[],
 ): AeroPartUserMessage[] {
@@ -64,7 +77,6 @@ function hasResolvableUrl(url: string): boolean {
   return KNOWN_SCHEME.test(url);
 }
 
-/** `/home/x` on POSIX, `C:\x` or `C:/x` on Windows. */
 function isAbsolutePath(p: string): boolean {
   return p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p);
 }
@@ -76,8 +88,6 @@ function toFileUrl(directory: string, inputPath: string): string {
     ? normalizedInput
     : `${directory.replace(/\\/g, '/').replace(/\/+$/, '')}/${normalizedInput.replace(/^\/+/, '')}`;
 
-  // POSIX: /home/...  -> file:///home/...
-  // Windows: C:/...   -> file:///C:/...
   return abs.startsWith('/') ? `file://${abs}` : `file:///${abs}`;
 }
 
@@ -85,8 +95,6 @@ function normalizeFilePart(
   part: FilePart,
   directory: string,
 ): AeroPartUserMessage {
-  // Always drop `source` — opencode's file parts don't carry it and
-  // including it is what makes prompt() reject.
   const { source: _source, ...rest } = part;
   const url = rest.url;
 
@@ -104,6 +112,45 @@ function normalizeFileParts(
   return parts.map((part) =>
     isFilePart(part) ? normalizeFilePart(part, directory) : part,
   );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Snippet expansion                                                  */
+/* ------------------------------------------------------------------ */
+
+async function expandSnippetParts(
+  parts: AeroPartUserMessage[],
+): Promise<AeroPartUserMessage[]> {
+  const refs = parts.filter(isSnippetRef);
+  if (refs.length === 0) return parts;
+
+  let byName: Map<string, { name: string; content: string }>;
+  try {
+    const snippets = await listSnippets();
+    byName = new Map(snippets.map((s) => [s.name, s]));
+  } catch {
+    // If we can't read the snippets dir, don't blow up the send —
+    // just pass refs through unresolved.
+    byName = new Map();
+  }
+
+  return parts.map((part) => {
+    if (!isSnippetRef(part)) return part;
+
+    const snippet = byName.get(part.metadata.name);
+    if (!snippet) {
+      // Unknown snippet: keep the ref as-is but mark synthetic so it
+      // doesn't render in the transcript.
+      return { ...part, synthetic: true };
+    }
+
+    return {
+      type: 'text',
+      text: snippet.content.trim(),
+      synthetic: true,
+      metadata: { kind: 'snippet', name: snippet.name },
+    } satisfies AeroPartUserMessage;
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,25 +186,37 @@ function invokedPart(skill: AeroSkill): AeroPartUserMessage {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/*  Entry point                                                        */
+/* ------------------------------------------------------------------ */
+
 export async function expandMessageParts(
   parts: AeroPartUserMessage[],
   directory: string,
   harness: { listSkills: (dir: string) => Promise<AeroSkill[]> },
 ): Promise<AeroPartUserMessage[]> {
-  const dedupedParts = keepFirstAgentPart(parts);
-  const resolvedParts = normalizeFileParts(dedupedParts, directory);
-  const skillRefs = resolvedParts.filter(isSkillRef);
+  const deduped = keepFirstAgentPart(parts);
+  const resolved = normalizeFileParts(deduped, directory);
+  const withSnippets = await expandSnippetParts(resolved);
+
+  const skillRefs = withSnippets.filter(isSkillRef);
 
   if (skillRefs.length === 0) {
-    return resolvedParts.map(normalizePart);
+    return withSnippets.map(normalizePart);
   }
 
-  const skills = await harness.listSkills(directory);
+  let skills: AeroSkill[];
+  try {
+    skills = await harness.listSkills(directory);
+  } catch {
+    skills = [];
+  }
+
   const byName = new Map(skills.map((s) => [s.name, s]));
 
-  // Resolve in order of appearance; dedupe by name (first wins).
   const seen = new Set<string>();
   const uniqueSkills: AeroSkill[] = [];
+  const unresolvedSkillRefs: SkillRefPart[] = [];
 
   for (const ref of skillRefs) {
     const name = ref.metadata.name;
@@ -166,15 +225,14 @@ export async function expandMessageParts(
 
     const skill = byName.get(name);
     if (!skill) {
-      throw new Error(`Unknown skill referenced in message: ${name}`);
+      unresolvedSkillRefs.push(ref);
+      continue;
     }
     uniqueSkills.push(skill);
   }
 
-  const primaryTextParts = resolvedParts.filter(isPrimaryText);
+  const primaryTextParts = withSnippets.filter(isPrimaryText);
 
-  // Bare = exactly one unique skill, and the only primary text is `/<name>`.
-  // Multiple skills are never "bare" — we always keep the user's text.
   const bare =
     uniqueSkills.length === 1 &&
     primaryTextParts.length === 1 &&
@@ -182,11 +240,18 @@ export async function expandMessageParts(
 
   const out: AeroPartUserMessage[] = [];
 
-  for (const part of resolvedParts) {
-    if (isSkillRef(part)) continue;
+  for (const part of withSnippets) {
+    if (isSkillRef(part)) {
+      // Unknown skill: keep the ref as-is, marked synthetic so it's
+      // hidden from the transcript.
+      if (unresolvedSkillRefs.includes(part)) {
+        out.push({ ...part, synthetic: true });
+      }
+      // Known skill: handled by the append below.
+      continue;
+    }
 
     if (bare && isPrimaryText(part)) {
-      // Replace the bare trigger with the skill content.
       out.push(contentPart(uniqueSkills[0]));
       continue;
     }
@@ -194,8 +259,10 @@ export async function expandMessageParts(
     out.push(normalizePart(part));
   }
 
-  out.push(mentionedPart(uniqueSkills));
-  out.push(invokedPart(uniqueSkills[0]));
+  if (uniqueSkills.length > 0) {
+    out.push(mentionedPart(uniqueSkills));
+    out.push(invokedPart(uniqueSkills[0]));
+  }
 
   return out;
 }

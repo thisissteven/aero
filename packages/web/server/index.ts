@@ -17,6 +17,7 @@ import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
 import providerRoutes from './routes/providers';
 import sessionRoutes from './routes/sessions';
+import snippetRoutes from './routes/snippets';
 import systemRoutes from './routes/system';
 import terminalRoutes from './routes/terminal';
 import workspaceRoutes from './routes/workspaces';
@@ -44,7 +45,8 @@ const app = new Hono()
   .route('/config', configRoutes)
   .route('/folder-picker', folderPickerRoutes)
   .route('/discovery', discoveryRoutes)
-  .route('/fs', fsRawRoutes);
+  .route('/fs', fsRawRoutes)
+  .route('/snippets', snippetRoutes);
 
 // Ensure the pool is initialized before any incoming API request proceeds
 let poolInitPromise: Promise<void> | null = null;

@@ -226,7 +226,9 @@ function enqueueSave(settings: AeroSettings): Promise<void> {
 
   // Keep the queue alive after a failure so one failed write doesn't
   // permanently block all future writes.
-  writeQueue = savePromise.catch(() => {});
+  writeQueue = savePromise.catch(() => {
+    //
+  });
 
   return savePromise;
 }
