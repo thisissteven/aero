@@ -103,11 +103,11 @@ export function ChatPage({
               <ChatQuotesPanel />
             </div>
           </OfflineWrapper>
-          <div className='flex flex-wrap gap-2 mx-3'>
+          <FileAttachments />
+          <div className='flex flex-wrap gap-2 mx-2'>
             <SessionDiff />
             <SessionTodos />
           </div>
-          <FileAttachments />
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>

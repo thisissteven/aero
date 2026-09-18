@@ -1,3 +1,4 @@
+import { cn } from '@aero/ui';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ExternalFileAttachment,
@@ -26,7 +27,7 @@ export function FileAttachments() {
     (state) => state.removeFileAttachment,
   );
 
-  const [preview, setPreview] = useState<ExternalFileAttachment | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const { media, files } = useMemo(() => {
     const media: ExternalFileAttachment[] = [];
@@ -42,18 +43,32 @@ export function FileAttachments() {
   const handleRemove = useCallback(
     (id: string) => {
       removeFileAttachment(sessionId, id);
-      setPreview((current) => (current?.id === id ? null : current));
     },
     [removeFileAttachment, sessionId],
   );
 
   const isChatInputExpanded = useChatInputExpanded();
 
+  // Resolve index at render time. If the previewed item was removed,
+  // findIndex returns -1 and the lightbox closes on its own.
+  const previewIndex = previewId
+    ? media.findIndex((a) => a.id === previewId)
+    : -1;
+
+  const handleNavigate = useCallback(
+    (nextIndex: number) => {
+      setPreviewId(media[nextIndex]?.id ?? null);
+    },
+    [media],
+  );
+
   if (attachments.length === 0 || isChatInputExpanded) return null;
 
   return (
     <>
-      <div className='flex flex-col gap-2 px-2 pb-2'>
+      <div
+        className={cn('flex flex-col gap-2 px-2', sessionId ? 'pb-2' : 'pb-1')}
+      >
         {media.length > 0 && (
           <div className='flex flex-wrap gap-1.5'>
             {media.map((attachment) => (
@@ -61,7 +76,7 @@ export function FileAttachments() {
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={handleRemove}
-                onPreview={setPreview}
+                onPreview={(a) => setPreviewId(a.id)}
               />
             ))}
           </div>
@@ -81,8 +96,10 @@ export function FileAttachments() {
       </div>
 
       <FileAttachmentLightbox
-        attachment={preview}
-        onClose={() => setPreview(null)}
+        attachments={media}
+        index={previewIndex >= 0 ? previewIndex : null}
+        onIndexChange={handleNavigate}
+        onClose={() => setPreviewId(null)}
       />
     </>
   );

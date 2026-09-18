@@ -42,7 +42,7 @@ export const SessionDiff = memo(function SessionDiff() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex items-center justify-start gap-1 rounded-xl p-2 text-sm focus-visible:ring-2 focus-visible:outline-none border border-separator w-fit bg-surface-secondary/60'>
+      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex items-center justify-start gap-1 rounded-lg px-2 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none border border-separator w-fit bg-surface-secondary'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
           {fileCount} {fileCount === 1 ? 'file' : 'files'} changed
@@ -67,7 +67,7 @@ export const SessionDiff = memo(function SessionDiff() {
 
       <Popover.Content
         placement='top start'
-        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm min-w-44'
+        className='max-w-[calc(100vw-2rem)] rounded-lg md:max-w-sm min-w-44'
         offset={8}
       >
         <Popover.Dialog className='p-0'>

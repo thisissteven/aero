@@ -11,6 +11,35 @@
   border-radius: 12px;
   --border-width: 1.5px;
   cursor: zoom-in;
+
+  /* Light-mode defaults (dark beams on light bg). Overridden below
+     under .dark / [data-theme="dark"]. */
+  --frost-1: rgba(0, 0, 0, 0.45);
+  --frost-2: rgba(0, 0, 0, 0.15);
+  --frost-3: rgba(0, 0, 0, 0.08);
+  --frost-4: rgba(0, 0, 0, 0.32);
+  --beam-1: rgba(0, 0, 0, 0.4);
+  --beam-2: rgba(0, 0, 0, 0.06);
+  --beam-3: rgba(0, 0, 0, 0.06);
+  --beam-4: rgba(0, 0, 0, 0.4);
+  --beam-5: rgba(0, 0, 0, 0.4);
+  --shimmer-color: rgba(0, 0, 0, 0.28);
+  --check-color: var(--foreground);
+}
+
+:global(.dark) .wrapper,
+:global([data-theme="dark"]) .wrapper {
+  --frost-1: rgba(255, 255, 255, 0.65);
+  --frost-2: rgba(255, 255, 255, 0.22);
+  --frost-3: rgba(255, 255, 255, 0.12);
+  --frost-4: rgba(255, 255, 255, 0.45);
+  --beam-1: rgba(255, 255, 255, 0.5);
+  --beam-2: rgba(255, 255, 255, 0.1);
+  --beam-3: rgba(255, 255, 255, 0.1);
+  --beam-4: rgba(255, 255, 255, 0.5);
+  --beam-5: rgba(255, 255, 255, 0.5);
+  --shimmer-color: rgba(255, 255, 255, 0.4);
+  --check-color: white;
 }
 
 .imageWrapper {
@@ -28,6 +57,11 @@
   height: 100%;
   object-fit: cover;
   border-radius: 0;
+  /* Chrome/Firefox pop the mini-player or PiP hover chrome on
+     videos/images; blocking pointer events suppresses it. */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .borderFrosted,
@@ -45,10 +79,10 @@
 .borderFrosted {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.22) 35%,
-    rgba(255, 255, 255, 0.12) 60%,
-    rgba(255, 255, 255, 0.45) 100%
+    var(--frost-1) 0%,
+    var(--frost-2) 35%,
+    var(--frost-3) 60%,
+    var(--frost-4) 100%
   );
   backdrop-filter: blur(4px) saturate(180%);
   -webkit-backdrop-filter: blur(4px) saturate(180%);
@@ -61,7 +95,7 @@
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
   opacity: 0;
-  animation: revealIdleBorder 0.4s ease forwards 1.5s;
+  animation: revealIdleBorder 0.4s ease forwards 1s;
   z-index: 2;
 }
 
@@ -69,14 +103,19 @@
   filter: brightness(1.35);
 }
 
+:global(.dark) .wrapper:hover .borderFrosted,
+:global([data-theme="dark"]) .wrapper:hover .borderFrosted {
+  filter: brightness(1.35);
+}
+
 .borderRotating {
   background: conic-gradient(
     from var(--angle),
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.1) 25%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.5) 75%,
-    rgba(255, 255, 255, 0.5) 100%
+    var(--beam-1) 0%,
+    var(--beam-2) 25%,
+    var(--beam-3) 50%,
+    var(--beam-4) 75%,
+    var(--beam-5) 100%
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -88,7 +127,7 @@
   mask-composite: exclude;
   animation:
     spin 1s linear infinite,
-    fadeOutRotating 0.4s ease forwards 1.5s;
+    fadeOutRotating 0.4s ease forwards 1s;
   z-index: 3;
 }
 
@@ -100,13 +139,13 @@
   height: 100%;
   background: linear-gradient(
     to top,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0) 100%
+    transparent 0%,
+    var(--shimmer-color) 50%,
+    transparent 100%
   );
   animation:
     shimmerUp 1s infinite linear,
-    fadeOutRotating 0.4s ease forwards 1.5s;
+    fadeOutRotating 0.4s ease forwards 1s;
 }
 
 .checkSvg {
@@ -118,18 +157,18 @@
   height: 26px;
   pointer-events: none;
   z-index: 3;
-  animation: fadeOutCheck 0.4s ease forwards 2.5s;
+  animation: fadeOutCheck 0.4s ease forwards 1.5s;
 }
 
 .checkMark {
   fill: none;
-  stroke: white;
+  stroke: var(--check-color);
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  animation: drawCheck 0.4s ease-out 1.5s forwards;
+  animation: drawCheck 0.4s ease-out 0.5s forwards;
 }
 
 .removeButton {
@@ -138,8 +177,10 @@
   right: -6px;
   width: 18px;
   height: 18px;
-  background-color: var(--overlay);
-  color: var(--overlay-foreground);
+  background-color: color-mix(in oklab, var(--surface) 60%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--foreground);
   border: 1px solid var(--border);
   border-radius: 50%;
   display: flex;
@@ -155,14 +196,11 @@
 }
 
 .removeButton:hover {
-  background-color: var(--danger);
-  border-color: var(--danger);
-  color: var(--danger-foreground);
+  background-color: color-mix(in oklab, var(--surface) 85%, transparent);
 }
 
 .wrapper:hover .removeButton {
   opacity: 1;
-  transition-delay: 1.5s;
 }
 
 @keyframes spin {

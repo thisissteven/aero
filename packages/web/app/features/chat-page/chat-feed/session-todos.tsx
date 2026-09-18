@@ -30,7 +30,7 @@ export const SessionTodos = memo(function SessionTodos() {
 
   if (tasksCompleted) {
     return (
-      <div className='mb-2 p-2 w-fit flex items-center gap-1 text-sm rounded-xl border border-separator bg-surface-secondary/60'>
+      <div className='mb-2 px-2 py-1 w-fit flex items-center gap-1 text-sm rounded-lg border border-separator bg-surface-secondary'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           All tasks completed
         </span>
@@ -41,7 +41,7 @@ export const SessionTodos = memo(function SessionTodos() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex shrink-0 items-center gap-1 rounded-xl p-2 text-sm  focus-visible:ring-2 focus-visible:outline-none border border-separator bg-surface-secondary/60 w-fit'>
+      <Popover.Trigger className='mb-2 focus-visible:ring-accent flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm  focus-visible:ring-2 focus-visible:outline-none border border-separator bg-surface-secondary w-fit'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           {inProgress.length > 0
             ? inProgress[0].content
@@ -66,7 +66,7 @@ export const SessionTodos = memo(function SessionTodos() {
       </Popover.Trigger>
       <Popover.Content
         placement='top start'
-        className='max-w-[calc(100vw-2rem)] rounded-xl md:max-w-sm'
+        className='max-w-[calc(100vw-2rem)] rounded-lg md:max-w-sm'
         offset={8}
       >
         <Popover.Dialog className='p-0'>
