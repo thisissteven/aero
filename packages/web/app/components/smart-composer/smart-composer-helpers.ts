@@ -24,7 +24,7 @@ interface TextSegment {
   text: string;
 }
 
-interface TokenSegment {
+export interface TokenSegment {
   type: 'token';
   token: {
     id: string;

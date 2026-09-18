@@ -548,7 +548,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         unwrap(await client.app.agents({ directory })),
       );
 
-      return entries.filter((agent) => !agent.hidden).map(toAeroAgentCompact);
+      return entries
+        .filter((agent) => !agent.hidden && agent.mode !== 'primary')
+        .map(toAeroAgentCompact);
     },
 
     async listMCPs(directory) {
@@ -1074,7 +1076,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     },
 
     sendCommand(sessionID, input, directory) {
-      void withOpencodeClientV2(async (client) =>
+      withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.command({
             sessionID,
@@ -1087,13 +1089,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             parts: input.parts,
           }),
         ),
-      );
+      ).catch((err) => {
+        console.error('[opencode] sendMessage failed', err);
+      });
 
       return true;
     },
 
     sendShellCommand(sessionID, input, directory) {
-      void withOpencodeClientV2(async (client) =>
+      withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.shell({
             sessionID,
@@ -1108,13 +1112,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             command: input.command,
           }),
         ),
-      );
+      ).catch((err) => {
+        console.error('[opencode] sendMessage failed', err);
+      });
 
       return true;
     },
 
     sendMessage(sessionID, input, directory) {
-      void withOpencodeClientV2(async (client) =>
+      withOpencodeClientV2(async (client) =>
         unwrap(
           await client.session.prompt({
             sessionID,
@@ -1131,7 +1137,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             variant: input.variant,
           }),
         ),
-      );
+      ).catch((err) => {
+        console.error('[opencode] sendMessage failed', err);
+      });
 
       return true;
     },
@@ -1388,6 +1396,10 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
 
     case 'message.part.updated': {
       const { part } = event.properties;
+
+      if (part.type === 'text' && part.synthetic) {
+        return null;
+      }
 
       return {
         type: 'message.part.updated',

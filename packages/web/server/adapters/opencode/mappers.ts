@@ -482,6 +482,21 @@ export function toAeroPart(p: Part): AeroPart {
   }
 }
 
+/**
+ * The composer's skill-expansion inserts synthetic text parts (the
+ * "user explicitly mentioned/invoked ..." notices). Those exist only to
+ * steer the model and shouldn't render in the transcript.
+ *
+ * Restrict to user role: synthetic parts on assistant messages may be
+ * legitimate (tool plumbing, sub-agent framing, etc.).
+ */
+export function isHiddenSyntheticUserText(
+  p: Part,
+  role: Message['role'],
+): boolean {
+  return role === 'user' && p.type === 'text' && p.synthetic === true;
+}
+
 export function toAeroMessage(entry: {
   info: Message;
   parts: Part[];
@@ -490,7 +505,9 @@ export function toAeroMessage(entry: {
     id: entry.info.id,
     sessionId: entry.info.sessionID,
     role: entry.info.role,
-    parts: (entry.parts ?? []).map(toAeroPart),
+    parts: (entry.parts ?? [])
+      .filter((p) => !isHiddenSyntheticUserText(p, entry.info.role))
+      .map(toAeroPart),
     error:
       entry.info.role === 'assistant'
         ? {

@@ -4,10 +4,18 @@ import {
   composerSubmitAfter,
   composerSubmitBefore,
 } from '@/app/components/smart-composer/components/composer-submit';
-import { extractCommandPayload } from '@/app/components/smart-composer/smart-composer-helpers';
+import {
+  ComposerSegment,
+  extractCommandPayload,
+} from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerStore } from '@/app/components/smart-composer/smart-composer-store';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
+import { buildMessageParts } from '@/app/features/chat-page/chat-input/build-message-parts';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
+import {
+  externalPartsSelectors,
+  useExternalPartsStore,
+} from '@/app/features/chat-page/chat-input/external-parts-store';
 import {
   useAbortSession,
   useSendCommand,
@@ -44,22 +52,26 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const { data: session } = useSession(undefined, sessionId);
 
   const status = useSessionRuntime(sessionId, (runtime) => runtime.status.type);
-
   const isPending = status !== 'idle';
-
   const inputDisabled = isDisabled || (session && session.readOnly);
 
   const handleSend = useCallback(
     async (sessionId: string) => {
       composerSubmitBefore();
-      const payload = useComposerStore.getState().payload;
-      const text = payload?.text;
+
+      const composerState = useComposerStore.getState();
+      const payload = composerState.payload;
+      const text = payload?.text ?? '';
+      const externalState = useExternalPartsStore.getState();
 
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
 
+      const hasComposerContent = (payload?.segments.length ?? 0) > 0;
+      const hasExternalContent = !externalPartsSelectors.isEmpty(externalState);
+
       if (
-        !text ||
+        (!hasComposerContent && !hasExternalContent) ||
         isPending ||
         !sessionId ||
         !selectedModel?.providerId ||
@@ -78,13 +90,10 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
         return;
       }
 
-      const segments = payload.segments;
-      const isEmpty = segments.length === 0;
-      if (isEmpty) return;
-
-      const isShellMode = useComposerStore.getState().mode === 'shell';
+      const segments = payload?.segments ?? [];
+      const isShellMode = composerState.mode === 'shell';
       const isCommand =
-        segments[0].type === 'token' && segments[0].token.type === 'command';
+        segments[0]?.type === 'token' && segments[0].token.type === 'command';
 
       try {
         if (isShellMode) {
@@ -104,6 +113,9 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
             parts,
           } = extractCommandPayload(segments);
 
+          // NOTE: command flow doesn't currently merge external parts.
+          // If you want attachments alongside a command, concat
+          // buildExternalParts(externalState) into `parts` here.
           sendCommand({
             sessionId,
             model: `${selectedModel.providerId}/${selectedModel.model.id}`,
@@ -114,14 +126,15 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
             parts,
           });
         } else {
+          const parts = buildMessageParts(
+            text,
+            segments as ComposerSegment[],
+            externalState,
+          );
+
           sendMessage({
             sessionId,
-            parts: [
-              {
-                type: 'text',
-                text,
-              },
-            ],
+            parts,
             model: {
               modelId: selectedModel.model.id,
               providerId: selectedModel.providerId,
@@ -134,26 +147,21 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
         toast.danger('Failed to send message');
       } finally {
         composerSubmitAfter();
+        useExternalPartsStore.getState().reset();
       }
     },
-    [isPending, sendMessage, sendShellCommand],
+    [isPending, sendMessage, sendShellCommand, sendCommand],
   );
 
   const handleAbort = useCallback(() => {
-    if (!sessionId || !isPending || isAborting) {
-      return;
-    }
+    if (!sessionId || !isPending || isAborting) return;
 
     setIsAborting(true);
 
     abortSession(sessionId, {
-      onSuccess: () => {
-        setIsAborting(false);
-      },
-
+      onSuccess: () => setIsAborting(false),
       onError: () => {
         setIsAborting(false);
-
         toast.danger('Failed to stop session');
       },
     });

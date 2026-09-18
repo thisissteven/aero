@@ -6,13 +6,13 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 
 import { getSessionEventHub } from '@/server/services/sessions/session-event-hub';
+import { expandMessageParts } from '@/server/services/sessions/session-message-part';
 import {
   listArchivedSessionsAcrossAdapters,
   listSessionsAcrossAdapters,
 } from '@/server/services/sessions/sessions-merger';
 import { getPinnedMessages } from '@/server/services/settings';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
-
 import { groupMessages, withPagination } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import type {
@@ -844,7 +844,13 @@ const sessions = new Hono()
 
       const harness = await getActiveAdapter(harnessId);
       const session = await harness.getSession(id);
-      const ok = harness.sendMessage(id, body, session.workspace);
+      const parts = await expandMessageParts(
+        body.parts,
+        session.workspace,
+        harness,
+      );
+
+      const ok = harness.sendMessage(id, { ...body, parts }, session.workspace);
       return c.json(ok);
     },
   )

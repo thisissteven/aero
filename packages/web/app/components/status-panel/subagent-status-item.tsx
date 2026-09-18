@@ -42,16 +42,18 @@ export function SubagentStatusItem({
         <div className='flex items-center justify-between gap-1'>
           <Typography
             type='body-xs'
-            className='text-muted flex items-center justify-between gap-1'
+            className='text-muted flex items-center gap-1 min-w-0'
           >
             {session.model && (
               <>
                 <ProviderLogo
                   providerId={session.model.providerID}
                   alt={session.model.id}
-                  className='size-3.5'
+                  className='size-3.5 shrink-0'
                 />
-                {toPascalCase(session.model.id)}
+                <span className='truncate'>
+                  {toPascalCase(session.model.id)}
+                </span>
               </>
             )}
           </Typography>
@@ -67,7 +69,7 @@ export function SubagentStatusItem({
           )}
 
           {!status && (
-            <span className='text-muted text-xs'>
+            <span className='text-muted text-xs shrink-0'>
               {formatCompactRelativeTime(session.updatedAt, true)}
             </span>
           )}
