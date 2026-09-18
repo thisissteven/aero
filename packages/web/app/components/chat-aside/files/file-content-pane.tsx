@@ -314,7 +314,6 @@ export const FileContentPane = memo(function FileContentPane({
           ...cached,
           content: contents,
           size: contents.length,
-          mtimeMs: Date.now(),
         });
       }
 

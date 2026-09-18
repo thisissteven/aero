@@ -37,16 +37,8 @@
     @apply bg-default/40! backdrop-blur-sm;
   }
 
-  .separator {
-    @apply bg-separator;
-  }
-
   .popover {
     @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
-  }
-
-  .checkbox__control {
-    @apply bg-default/60! backdrop-blur-sm;
   }
 
   .dropdown__popover {

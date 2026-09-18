@@ -76,6 +76,77 @@ pre {
   opacity: 0.4 !important;
 }
 
+[data-search-panel],
+[data-editor-widget] {
+  background: var(--background) !important;
+}
+
+[data-input-box] input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-sm, 6px) !important;
+  background: var(--field-background) !important;
+}
+
+/* Strip the parent's background so it doesn't double up */
+[data-input-box] {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ── Search input: no focus ring ──────────────────────────────────── */
+[data-input-box],
+[data-input-box]:focus,
+[data-input-box]:focus-within,
+[data-input-box]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-input-box] input,
+[data-input-box] input:focus,
+[data-input-box] input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* If Pierre paints its ring with an ::after/::before pseudo, kill that too */
+[data-input-box]::after,
+[data-input-box]::before {
+  display: none !important;
+}
+
+/* ── Close + nav buttons: force color all the way down to the SVG ── */
+[data-search-panel] button[data-search-icon],
+[data-search-panel] [data-search-close],
+[data-search-panel] [data-search-nav] button {
+  color: var(--muted) !important;
+  background: transparent !important;
+}
+
+[data-search-panel] button[data-search-icon]:hover:not(:disabled),
+[data-search-panel] [data-search-close]:hover,
+[data-search-panel] [data-search-nav] button:hover:not(:disabled) {
+  color: var(--foreground) !important;
+  background: var(--surface-hover) !important;
+}
+
+/* The icon itself. Setting color on the button doesn't reach an SVG that
+   uses fill="#…" or a hardcoded stroke. currentColor forces it to inherit. */
+[data-search-panel] button[data-search-icon] svg,
+[data-search-panel] [data-search-close] svg,
+[data-search-panel] [data-search-nav] button svg {
+  color: inherit !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Disabled prev/next — dim, don't recolor */
+[data-search-panel] [data-search-nav] button:disabled {
+  opacity: 0.4 !important;
+}
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, currentColor 15%, transparent) transparent;

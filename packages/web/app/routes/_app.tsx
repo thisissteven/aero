@@ -12,6 +12,7 @@ import {
   SettingsModal,
   useTheme,
 } from '@/app/providers';
+import { DevConsole } from '@/app/providers/dev-console';
 import { GlobalTooltip } from '@/app/providers/global-tooltip/GlobalTooltipProvider';
 import { KeyPressProvider } from '@/app/providers/key-press';
 import { PathnameHandler } from '@/app/providers/PathnameHandler';
@@ -50,7 +51,8 @@ function AppLayout() {
         <KeyPressProvider />
         <PreloadProvider />
         <PathnameHandler />
-        <FloatingLogger />
+        {import.meta.env.DEV && <FloatingLogger />}
+        {import.meta.env.DEV && <DevConsole />}
         <RootSessionIdProvider>
           <ChatShell>
             <Outlet />

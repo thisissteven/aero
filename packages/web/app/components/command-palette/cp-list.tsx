@@ -3,7 +3,7 @@ import { Comment, Gear, Keyboard } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
-import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
+import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
@@ -194,7 +194,7 @@ export function CommandPaletteList() {
         });
       });
 
-      if (hasNextPage) {
+      if (hasNextPage && debouncedSearch !== '') {
         items.push({ kind: 'loader', id: 'sentinel-loader' });
       }
     }
@@ -284,7 +284,7 @@ export function CommandPaletteList() {
                         directory,
                       );
                       useSidePanelStore.getState().setActiveNavItem('files');
-                      useFileViewerStore.getState().openFile(relativePath);
+                      openFileWhenReady(relativePath);
                     })
                   }
                   className='mx-2'

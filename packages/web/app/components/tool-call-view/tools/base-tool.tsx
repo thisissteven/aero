@@ -3,7 +3,7 @@ import { Icon } from '@gravity-ui/uikit';
 
 import React, { ReactNode, SVGProps, useEffect, useRef, useState } from 'react';
 import { openUrl } from '@/app/components/chat-aside/browser/browser-helpers';
-import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
+import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { CodeBlock } from '@/app/components/tool-call-view/code-block';
 import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
@@ -328,7 +328,7 @@ function OpenFileInEditor({ path }: { path?: string }) {
       aria-label='Open in editor'
       onClick={() => {
         useSidePanelStore.getState().setActiveNavItem('files');
-        useFileViewerStore.getState().openFile(relativePath);
+        openFileWhenReady(relativePath);
       }}
     />
   );

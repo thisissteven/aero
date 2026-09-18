@@ -493,9 +493,9 @@ const sessions = new Hono()
       const { model, directory } = c.req.valid('json');
 
       const harness = await getActiveAdapter(harnessId);
-      const todos = await harness.updateActiveModel(model, directory);
+      const updated = await harness.updateActiveModel(model, directory);
 
-      return c.json(todos);
+      return c.json(updated);
     },
   )
 

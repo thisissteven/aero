@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { serve, type ServerWebSocket } from 'bun';
+import { type ServerWebSocket, serve } from 'bun';
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 
@@ -246,6 +246,10 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
               : new Response('Upgrade failed', {
                   status: 400,
                 });
+          }
+
+          if (/^\/api\/sessions\/[^/]+\/stream$/.test(url.pathname)) {
+            server.timeout(req, 0);
           }
 
           return app.fetch(req, server);
