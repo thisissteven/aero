@@ -185,12 +185,31 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
   };
 
   useEffect(() => {
-    if (!editorRef.current) {
-      return;
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Restore this session's draft.
+    const { draftHtml } = getComposerSession(
+      useComposerStore.getState(),
+      sessionId,
+    );
+    editor.innerHTML = draftHtml;
+
+    // Put caret at the end after restore.
+    if (draftHtml) {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
 
-    editorRef.current.spellcheck = false;
-  }, [editorRef]);
+    return () => {
+      // Runs when sessionId changes (key swap) or component unmounts.
+      useComposerStore.getState().setDraftHtml(sessionId, editor.innerHTML);
+    };
+  }, [sessionId, editorRef]);
 
   const enabled = useChatInputExpanded();
 
@@ -227,7 +246,6 @@ export const ComposerTextarea = React.memo(function ComposerTextarea({
 
   return (
     <div
-      key={sessionId}
       id={COMPOSER_TEXTAREA_ID}
       ref={editorRef}
       className={cn(

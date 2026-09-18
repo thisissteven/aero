@@ -53,7 +53,7 @@ export function NewSessionPromptInputWrapper({
         },
       );
 
-      await handleSend(session.id);
+      await handleSend(session.id, true);
 
       addRunningSession(session.id);
       navigate({

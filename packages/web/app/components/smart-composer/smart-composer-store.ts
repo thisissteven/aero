@@ -30,6 +30,7 @@ export interface SessionComposerState {
   historyIndex: number;
 
   payload: ComposerPayload | null;
+  draftHtml: string;
 }
 
 interface ComposerState {
@@ -51,6 +52,7 @@ interface ComposerState {
 
   /** Clears every session's composer. */
   resetAll: () => void;
+  setDraftHtml: (sessionId: string, draftHtml: string) => void;
 }
 
 /** Stable empty composer for sessions that have no state yet. */
@@ -61,6 +63,7 @@ export const EMPTY_COMPOSER_SESSION: SessionComposerState = {
   history: [],
   historyIndex: -1,
   payload: null,
+  draftHtml: '',
 };
 
 export const getComposerSession = (
@@ -195,30 +198,7 @@ export const useComposerStore = create<ComposerState>((set, get) => ({
     }),
 
   resetAll: () => set({ sessions: {} }),
+
+  setDraftHtml: (sessionId, draftHtml) =>
+    set((state) => patchSession(state, sessionId, { draftHtml })),
 }));
-
-/**
- * Derived selectors. All take a `sessionId` and return a `(state) => value`
- * function so they compose with `useComposerStore(...)`.
- */
-export const composerSelectors = {
-  segments: (sessionId: string) => (state: ComposerState) =>
-    getComposerSession(state, sessionId).segments,
-
-  mode: (sessionId: string) => (state: ComposerState) =>
-    getComposerSession(state, sessionId).mode,
-
-  isEmpty: (sessionId: string) => (state: ComposerState) =>
-    getComposerSession(state, sessionId).segments.length === 0,
-
-  text: (sessionId: string) => (state: ComposerState) =>
-    buildText(getComposerSession(state, sessionId).segments),
-
-  canUndo: (sessionId: string) => (state: ComposerState) =>
-    getComposerSession(state, sessionId).historyIndex > 0,
-
-  canRedo: (sessionId: string) => (state: ComposerState) => {
-    const s = getComposerSession(state, sessionId);
-    return s.historyIndex < s.history.length - 1;
-  },
-};

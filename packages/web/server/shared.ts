@@ -84,3 +84,6 @@ export function dedupeWorktreesByDirectory(
   }
   return out;
 }
+
+export const SHELL_TEMPLATE_TEXT =
+  'The following tool was executed by the user';

@@ -16,7 +16,6 @@ import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store
 import { buildMessageParts } from '@/app/features/chat-page/chat-input/build-message-parts';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
-  externalPartsSelectors,
   getExternalPartsSession,
   useExternalPartsStore,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
@@ -61,26 +60,38 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const isPending = status !== 'idle';
   const inputDisabled = isDisabled || (session && session.readOnly);
 
+  const quotes = useExternalPartsStore(
+    (state) => getExternalPartsSession(state, sessionId).chatQuotes,
+  );
+
   const handleSend = useCallback(
-    async (sessionId: string) => {
-      composerSubmitBefore(sessionId);
+    async (sessionId: string, fromNewChat?: boolean) => {
+      const resolvedSessionId = fromNewChat ? 'undefined' : sessionId;
+      composerSubmitBefore(resolvedSessionId);
 
       const composerState = getComposerSession(
         useComposerStore.getState(),
-        sessionId,
+        resolvedSessionId,
       );
+
       const payload = composerState.payload;
       const text = payload?.text ?? '';
       const externalState = getExternalPartsSession(
         useExternalPartsStore.getState(),
-        sessionId,
+        resolvedSessionId,
       );
 
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
 
       const hasComposerContent = (payload?.segments.length ?? 0) > 0;
-      const hasExternalContent = !externalPartsSelectors.isEmpty(sessionId);
+
+      const hasExternalContent = !(
+        externalState.fileAttachments.length === 0 &&
+        externalState.chatQuotes.length === 0 &&
+        externalState.browserAnnotations.length === 0 &&
+        externalState.subtask === null
+      );
 
       if (
         (!hasComposerContent && !hasExternalContent) ||
@@ -158,8 +169,8 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
       } catch {
         toast.danger('Failed to send message');
       } finally {
-        composerSubmitAfter(sessionId);
-        useExternalPartsStore.getState().reset(sessionId);
+        composerSubmitAfter(resolvedSessionId);
+        useExternalPartsStore.getState().reset(resolvedSessionId);
       }
     },
     [isPending, sendMessage, sendShellCommand, sendCommand],
@@ -185,7 +196,7 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   });
 
   return {
-    text: segments.length ? 'text' : '',
+    text: segments.length || quotes.length ? 'text' : '',
     inputDisabled,
     handleSend,
     handleAbort,

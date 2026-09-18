@@ -2,11 +2,13 @@ import { cn, Popover } from '@aero/ui';
 import { ChevronDown, PencilToLine } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
-
+import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useGitDiff } from '@/app/hooks/api/git';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { toWorkspaceRelative } from '@/app/lib/file';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export function SessionDiff({ workspace }: { workspace?: string }) {
@@ -67,12 +69,12 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
         offset={4}
       >
         <Popover.Dialog className='p-0'>
-          <Popover.Heading className='p-3'>
+          <Popover.Heading className='p-2'>
             Changed files {fileCount}
           </Popover.Heading>
 
-          <div className='max-h-[240px] scrollbar-thin overflow-y-auto pl-1'>
-            <ol className='space-y-2 pr-3 pb-3 pl-2'>
+          <div className='max-h-[240px] scrollbar-thin overflow-y-auto'>
+            <ol className='p-1'>
               {diffData.summary.map((file) => {
                 const parts = file.path.split('/');
                 const fileName = parts.pop();
@@ -81,7 +83,17 @@ export function SessionDiff({ workspace }: { workspace?: string }) {
                 return (
                   <li
                     key={file.path}
-                    className='flex items-center justify-between gap-3 text-sm'
+                    className='flex items-center justify-between gap-3 text-sm hover:bg-surface-hover px-2 rounded-md cursor-pointer py-1'
+                    onClick={() => {
+                      if (!workspace) return;
+                      const relativePath = toWorkspaceRelative(
+                        file.path,
+                        workspace,
+                      );
+                      useSidePanelStore.getState().setActiveNavItem('files');
+                      openFileWhenReady(relativePath);
+                      setIsOpen(false);
+                    }}
                   >
                     <div className='flex items-center gap-1.5 overflow-hidden'>
                       <FileTypeIcon

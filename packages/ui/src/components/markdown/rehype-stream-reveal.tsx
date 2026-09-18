@@ -20,6 +20,10 @@ export interface RehypeStreamRevealOptions {
   tokenCount?: number;
 }
 
+// Whitespace run | run of non-CJK, non-space | single CJK char
+const TOKEN_RE =
+  /\s+|[^\s\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]+|[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g;
+
 export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
   const tokenCount = options.tokenCount ?? 6;
 
@@ -55,8 +59,8 @@ export function rehypeStreamReveal(options: RehypeStreamRevealOptions = {}) {
     if (!resolved) return;
 
     const { parent, index, value } = resolved;
-    const parts = value.split(/(\s+)/).filter((p) => p.length > 0);
-    if (parts.length === 0) return;
+    const parts = value.match(TOKEN_RE);
+    if (!parts || parts.length === 0) return;
 
     const start = Math.max(0, parts.length - tokenCount);
     const replacement: RootContent[] = [];

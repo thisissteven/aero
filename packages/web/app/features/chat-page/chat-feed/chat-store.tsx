@@ -23,6 +23,7 @@ import type {
   AeroPermission,
   AeroSessionStatus,
 } from '@/server/services/harness/types';
+import { SHELL_TEMPLATE_TEXT } from '@/server/shared';
 
 interface PendingDelta {
   field: 'text';
@@ -869,9 +870,7 @@ function handleMessagePartUpdated(
     previousTurn?.role === 'user' &&
     lastTurn?.role === 'assistant' &&
     previousTurn.parts?.some(
-      (part) =>
-        part.type === 'text' &&
-        part.text === 'The following tool was executed by the user',
+      (part) => part.type === 'text' && part.text === SHELL_TEMPLATE_TEXT,
     );
 
   if (isPreviousUserToolMessage) {

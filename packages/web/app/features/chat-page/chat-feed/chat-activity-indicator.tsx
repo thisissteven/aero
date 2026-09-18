@@ -259,10 +259,7 @@ export const WithScrollToBottomWrapper = React.memo(
     if (isChatInputExpanded) return null;
 
     return (
-      <div
-        className='absolute left-0 -translate-y-full'
-        data-scroll-to-bottom-type={type}
-      >
+      <div data-scroll-to-bottom-type={type}>
         <button
           role='status'
           aria-live='polite'

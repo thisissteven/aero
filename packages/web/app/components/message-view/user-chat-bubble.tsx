@@ -47,7 +47,7 @@ export const UserChatBubble = memo(
             if (part.type === 'subtask') return part.prompt;
             return undefined;
           })
-          .join(''),
+          .join('\n'),
       [turn.parts],
     );
 

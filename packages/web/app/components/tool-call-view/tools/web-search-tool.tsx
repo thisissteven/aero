@@ -93,7 +93,7 @@ function SearchResults({
         </div>
 
         {results.length > 0 && (
-          <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+          <span className='bg-surface-secondary text-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
             {results.length} results
           </span>
         )}
@@ -216,17 +216,17 @@ export const WebSearchToolView = memo(
           output?.results ? (
             <div className='space-x-1'>
               {isEmpty && (
-                <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                <span className='bg-surface-secondary text-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
                   Found no results
                 </span>
               )}
               {!isEmpty && (
-                <span className='bg-surface-secondary text-muted min-w-0 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                <span className='bg-surface-secondary text-muted min-w-0 truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
                   {getDomain(output.results[0].url)}
                 </span>
               )}
               {!isEmpty && output.results.length - 1 > 0 && (
-                <span className='bg-surface-secondary text-muted shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+                <span className='bg-surface-secondary text-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
                   +{output.results.length - 1}
                 </span>
               )}

@@ -1,3 +1,4 @@
+import { logger } from '@aero/ui';
 import { create } from 'zustand';
 
 /* ------------------------------------------------------------------ */
@@ -262,25 +263,3 @@ export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
     set({ sessions: {} });
   },
 }));
-
-/* ------------------------------------------------------------------ */
-/*  Derived selectors                                                  */
-/* ------------------------------------------------------------------ */
-
-export const externalPartsSelectors = {
-  chatQuotes: (sessionId: string) => (state: ExternalPartsState) =>
-    getExternalPartsSession(state, sessionId).chatQuotes,
-
-  isEmpty: (sessionId: string) => (state: ExternalPartsState) => {
-    const s = getExternalPartsSession(state, sessionId);
-    return (
-      s.fileAttachments.length === 0 &&
-      s.chatQuotes.length === 0 &&
-      s.browserAnnotations.length === 0 &&
-      s.subtask === null
-    );
-  },
-
-  attachmentCount: (sessionId: string) => (state: ExternalPartsState) =>
-    getExternalPartsSession(state, sessionId).fileAttachments.length,
-};

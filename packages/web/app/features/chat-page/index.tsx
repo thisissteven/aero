@@ -92,19 +92,21 @@ export function ChatPage({
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
-            <WithScrollToBottomWrapper
-              type='main'
-              onScrollToBottom={handleScrollToBottom}
-            >
-              <ChatActivityIndicator />
-            </WithScrollToBottomWrapper>
+            <div className='absolute left-0 -translate-y-full'>
+              <WithScrollToBottomWrapper
+                type='main'
+                onScrollToBottom={handleScrollToBottom}
+              >
+                <ChatActivityIndicator />
+              </WithScrollToBottomWrapper>
+              <ChatQuotesPanel />
+            </div>
 
             <div className='absolute right-0 -translate-y-full'>
               <SessionTodos sessionId={sessionId} />
               <SessionDiff workspace={workspace} />
             </div>
           </OfflineWrapper>
-          <ChatQuotesPanel />
           <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>

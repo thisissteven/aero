@@ -32,7 +32,12 @@ import type {
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
 import { getSetting } from '@/server/services/settings';
-import { getBasename, normalizePath, WORKTREE_PATH } from '@/server/shared';
+import {
+  getBasename,
+  normalizePath,
+  SHELL_TEMPLATE_TEXT,
+  WORKTREE_PATH,
+} from '@/server/shared';
 import {
   addWorktreeToWorkspace,
   createWorkspace,
@@ -1395,7 +1400,11 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
     case 'message.part.updated': {
       const { part } = event.properties;
 
-      if (part.type === 'text' && part.synthetic) {
+      if (
+        part.type === 'text' &&
+        part.synthetic &&
+        part.text !== SHELL_TEMPLATE_TEXT
+      ) {
         return null;
       }
 

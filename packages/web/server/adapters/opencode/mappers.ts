@@ -25,7 +25,11 @@ import type {
 import { withOpencodeClientV2 } from '@/server/adapters/opencode/client';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
 import { directoryExists, getSkillScope } from '@/server/helper';
-import { normalizePath, toPascalCase } from '@/server/shared';
+import {
+  normalizePath,
+  SHELL_TEMPLATE_TEXT,
+  toPascalCase,
+} from '@/server/shared';
 import type {
   ExtendedGlobalSession,
   ExtendedSessionV2,
@@ -490,11 +494,19 @@ export function toAeroPart(p: Part): AeroPart {
  * Restrict to user role: synthetic parts on assistant messages may be
  * legitimate (tool plumbing, sub-agent framing, etc.).
  */
-export function isHiddenSyntheticUserText(
-  p: Part,
-  role: Message['role'],
-): boolean {
-  return role === 'user' && p.type === 'text' && p.synthetic === true;
+export function isNonUserText(p: Part, role: Message['role']): boolean {
+  const isSynthetic =
+    p.type === 'text' && p.synthetic === true && p.text !== SHELL_TEMPLATE_TEXT;
+  const isFilePart = p.type === 'file';
+  const isAgentPart = p.type === 'agent';
+  const trueConditions = isSynthetic || isFilePart || isAgentPart;
+  return role === 'user' && trueConditions;
+}
+
+export function getMessageParts(entry: { info: Message; parts: Part[] }) {
+  return (entry.parts ?? [])
+    .filter((p) => !isNonUserText(p, entry.info.role))
+    .map(toAeroPart);
 }
 
 export function toAeroMessage(entry: {
@@ -505,9 +517,7 @@ export function toAeroMessage(entry: {
     id: entry.info.id,
     sessionId: entry.info.sessionID,
     role: entry.info.role,
-    parts: (entry.parts ?? [])
-      .filter((p) => !isHiddenSyntheticUserText(p, entry.info.role))
-      .map(toAeroPart),
+    parts: getMessageParts(entry),
     error:
       entry.info.role === 'assistant'
         ? {
