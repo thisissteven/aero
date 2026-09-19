@@ -1,12 +1,5 @@
 import { ChatMessage, cn, Markdown } from '@aero/ui';
-import {
-  memo,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   MessageActionsCopy,
@@ -51,18 +44,25 @@ export const UserChatBubble = memo(
       [turn.parts],
     );
 
-    // ResizeObserver observing container width changes rather than height changes
-    useEffect(() => {
+    // Measure synchronously before paint, so the first committed layout already
+    // has the correct clamped height. This is what stops Virtua from measuring
+    // a tall unclamped bubble and then having to compensate when the observer
+    // fires a frame later — the "scroll fights back on wheel-up" symptom.
+    useLayoutEffect(() => {
       const el = textRef.current;
       if (!el) return;
 
-      const observer = new ResizeObserver(() => {
-        // Only measure height when fully expanded OR check raw scrollHeight
-        // against client height threshold
+      const measure = () => {
         const overflow = el.scrollHeight > 96;
         setIsOverflowing((prev) => (prev !== overflow ? overflow : prev));
-      });
+      };
 
+      measure();
+
+      // Re-measure on width changes (sidebar toggle, window resize, etc.).
+      // Height changes from our own clamp don't matter — they can't flip the
+      // overflow boolean.
+      const observer = new ResizeObserver(measure);
       observer.observe(el);
       return () => observer.disconnect();
     }, [text]);
@@ -160,5 +160,6 @@ export const UserChatBubble = memo(
       </ChatMessage.User>
     );
   },
-  (prev, next) => prev.turn.id === next.turn.id,
+  (prev, next) =>
+    prev.turn.id === next.turn.id && prev.forkMessageId === next.forkMessageId,
 );

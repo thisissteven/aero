@@ -43,6 +43,12 @@ interface PresetConfig {
   mediumStep: number;
   largeBacklog: number;
   largeStep: number;
+  /**
+   * Fraction of the above-medium backlog consumed per tick as catch-up.
+   * Higher = the reveal aggressively closes the gap when the upstream stream
+   * is producing characters faster than the base step schedule can display.
+   */
+  catchUpRate: number;
   tokenCount: number;
   fadeMs: number;
   liftPx: number;
@@ -57,6 +63,7 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     mediumStep: 2,
     largeBacklog: 240,
     largeStep: 4,
+    catchUpRate: 0.1,
     tokenCount: 4,
     fadeMs: 220,
     liftPx: 1,
@@ -69,6 +76,7 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     mediumStep: 4,
     largeBacklog: 200,
     largeStep: 8,
+    catchUpRate: 0.15,
     tokenCount: 6,
     fadeMs: 180,
     liftPx: 2,
@@ -81,6 +89,7 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     mediumStep: 4,
     largeBacklog: 320,
     largeStep: 8,
+    catchUpRate: 0.25,
     tokenCount: 6,
     fadeMs: 320,
     liftPx: 1,
@@ -93,6 +102,7 @@ const PRESETS: Record<Exclude<StreamRevealPreset, 'off'>, PresetConfig> = {
     mediumStep: 12,
     largeBacklog: 200,
     largeStep: 24,
+    catchUpRate: 0.5,
     tokenCount: 3,
     fadeMs: 100,
     liftPx: 0,
@@ -157,12 +167,23 @@ function useSteppedContent(
       }
 
       const backlog = target.length - current.length;
-      const stepSize =
+      const baseStep =
         backlog > cfg.largeBacklog
           ? cfg.largeStep
           : backlog > cfg.mediumBacklog
             ? cfg.mediumStep
             : cfg.baseStep;
+
+      // Catch-up term. The per-tier step is a hard cap and cannot keep up
+      // when the upstream stream produces more than `largeStep` chars per
+      // tick. A term proportional to the excess backlog lets the reveal drain
+      // arbitrarily fast streams instead of falling behind forever.
+      const catchUp =
+        backlog > cfg.mediumBacklog
+          ? Math.ceil((backlog - cfg.mediumBacklog) * cfg.catchUpRate)
+          : 0;
+
+      const stepSize = Math.max(cfg.baseStep, baseStep + catchUp);
 
       setDisplayed(target.slice(0, current.length + stepSize));
       rafRef.current = requestAnimationFrame(step);
@@ -363,8 +384,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     }, [wasStreamingOnMount]);
 
     // -------- Reveal-mode persistence -----------------------------------
-    // Once a block has rendered segments, it never drops them. Prevents the
-    // DOM shape swap that was masking whitespace differences.
     const [revealModeEverOn, setRevealModeEverOn] = useState<boolean>(
       () => Boolean(preset) && (streaming || settleWindows.has(id)),
     );
@@ -392,6 +411,16 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       [bufferedContent],
     );
 
+    // The stream can end with "\n\n", which produces a trailing empty block.
+    // The settle fade should land on the last block that actually carries
+    // content, not on an empty wrapper.
+    const lastNonEmptyIndex = useMemo(() => {
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        if (blocks[i].trim() !== '') return i;
+      }
+      return -1;
+    }, [blocks]);
+
     const contentRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement | null>(null);
 
@@ -406,6 +435,8 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     // -------- Reveal observer -------------------------------------------
     useLayoutEffect(() => {
       if (!preset) return;
+      if (!streaming && !settling) return;
+
       const root = measureRef.current;
       if (!root) return;
 
@@ -429,7 +460,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
           root.querySelectorAll<HTMLElement>('.stream-reveal__segment'),
         );
 
-        // Seed: any segment already in the DOM at mount is "already shown".
         if (firstProcess) {
           firstProcess = false;
           for (const el of segments) {
@@ -441,7 +471,8 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
           return;
         }
 
-        // During settle, block fade handles the visual.
+        if (segments.length === 0) return;
+
         if (phase === 'settle') {
           for (const el of segments) {
             const len = (el.textContent ?? '').length;
@@ -484,7 +515,7 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       process();
 
       return () => observer.disconnect();
-    }, [preset, id]);
+    }, [preset, id, streaming, settling]);
 
     const revealStyle = preset
       ? ({
@@ -504,23 +535,13 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       >
         <MarkdownFileContext.Provider value={contextValue}>
           <div
-            className={cn(
-              'markdown',
-              blockSettleFading && 'md-settle-fade',
-              className,
-            )}
+            ref={measureRef}
+            className={cn('markdown', className)}
             data-slot='markdown'
             data-stream-reveal={preset ? streamRevealPreset : undefined}
             data-settling={isPostStreamSettle ? 'true' : undefined}
             data-settled={isFullySettled ? 'true' : undefined}
-            style={
-              {
-                ...revealStyle,
-                ...(blockSettleFading
-                  ? { '--md-settle-fade-ms': `${SETTLE_FADE_MS}ms` }
-                  : null),
-              } as React.CSSProperties
-            }
+            style={revealStyle}
             {...props}
           >
             {blocks.map((blockContent, index) => {
@@ -540,6 +561,10 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
                   content={blockContent}
                   isStreamingBlock={isRevealingBlock}
                   streamRevealTokenCount={preset?.tokenCount}
+                  settleFading={
+                    blockSettleFading && index === lastNonEmptyIndex
+                  }
+                  settleFadeMs={SETTLE_FADE_MS}
                 />
               );
             })}

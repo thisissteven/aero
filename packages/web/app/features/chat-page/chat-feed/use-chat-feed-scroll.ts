@@ -308,7 +308,14 @@ export function useChatFeedScroll({
         if (!el) return;
 
         const current = useChatStore.getState().scrollBySession[sessionId];
-        if (current?.pinned === false) return;
+        // Only snap when we KNOW we're pinned. Absence of state is not permission.
+        if (current?.pinned !== true) return;
+
+        // Guard against snapping to bottom when the user has scrolled up but the
+        // store hasn't been updated yet (rAF ordering vs. wheel/scroll).
+        const distanceFromBottom =
+          el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (distanceFromBottom > BOTTOM_THRESHOLD * 4) return;
 
         el.scrollTop = el.scrollHeight;
         prevScrollTopRef.current = el.scrollTop;

@@ -53,7 +53,7 @@ export const AssistantPartView = memo(function AssistantPartView({
                   isFile={handleIsWorktreeFile}
                   onFileClick={handleOpenFileInEditor}
                   streaming={isPartStreaming}
-                  streamRevealPreset='fast'
+                  streamRevealPreset='instant'
                 >
                   {part.text}
                 </Markdown>
