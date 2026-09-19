@@ -19,18 +19,16 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
 
 export function CodeBlockContent(props: CodeBlockCodeProps) {
   const { resolvedTheme, colorTheme } = useTheme();
-  const pierreTheme = useMemo(
-    () => getPierreTheme(colorTheme, resolvedTheme),
-    [colorTheme, resolvedTheme],
-  );
+
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
 
   return (
     <CodeBlock.Code
       {...props}
       theme={pierreTheme.light}
       darkTheme={pierreTheme.dark}
-      // Pierre does NOT infer which theme to use from the `theme` object.
-      // Without this, light mode renders with the wrong token palette.
+      // Pierre does NOT infer which side of the pair to use. Without
+      // this, light mode renders the dark palette.
       themeType={resolvedTheme}
     />
   );

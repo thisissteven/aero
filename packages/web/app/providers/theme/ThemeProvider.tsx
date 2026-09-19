@@ -88,9 +88,13 @@ function updateFavicon(resolved: 'light' | 'dark') {
 }
 
 function applyTheme(theme: Theme, colorTheme: ColorTheme): 'light' | 'dark' {
-  const root = document.documentElement;
-
   const resolved = theme === 'system' ? getSystemTheme() : theme;
+
+  if (typeof document === 'undefined') {
+    return resolved;
+  }
+
+  const root = document.documentElement;
 
   // Light / dark mode
   root.classList.toggle('dark', resolved === 'dark');
@@ -111,6 +115,10 @@ function applyThemeWithoutTransitions(
   theme: Theme,
   colorTheme: ColorTheme,
 ): 'light' | 'dark' {
+  if (typeof document === 'undefined') {
+    return theme === 'system' ? getSystemTheme() : theme;
+  }
+
   const root = document.documentElement;
 
   // Disable transitions across the whole document.

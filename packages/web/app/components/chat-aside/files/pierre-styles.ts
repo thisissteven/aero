@@ -1,151 +1,132 @@
-import {
-  CustomThemeLoader,
-  registerCustomTheme,
-  resolveTheme,
-} from '@pierre/diffs';
-import { CSSProperties } from 'react';
-import { ColorTheme } from '@/app/providers';
+import type { CSSProperties } from 'react';
+import type { ColorTheme } from '@/app/providers';
 
-// ── 1. Your existing Shiki theme map ──────────────────────────────
+// ── Bundled Shiki themes shipped with @pierre/diffs ───────────────
+// These are resolvable by name at any time — no registration step.
+type BundledTheme =
+  | 'andromeeda'
+  | 'aurora-x'
+  | 'ayu-dark'
+  | 'ayu-light'
+  | 'ayu-mirage'
+  | 'catppuccin-frappe'
+  | 'catppuccin-latte'
+  | 'catppuccin-macchiato'
+  | 'catppuccin-mocha'
+  | 'dark-plus'
+  | 'dracula'
+  | 'dracula-soft'
+  | 'everforest-dark'
+  | 'everforest-light'
+  | 'github-dark'
+  | 'github-dark-default'
+  | 'github-dark-dimmed'
+  | 'github-dark-high-contrast'
+  | 'github-light'
+  | 'github-light-default'
+  | 'github-light-high-contrast'
+  | 'gruvbox-dark-hard'
+  | 'gruvbox-dark-medium'
+  | 'gruvbox-dark-soft'
+  | 'gruvbox-light-hard'
+  | 'gruvbox-light-medium'
+  | 'gruvbox-light-soft'
+  | 'horizon'
+  | 'horizon-bright'
+  | 'houston'
+  | 'kanagawa-dragon'
+  | 'kanagawa-lotus'
+  | 'kanagawa-wave'
+  | 'laserwave'
+  | 'light-plus'
+  | 'material-theme'
+  | 'material-theme-darker'
+  | 'material-theme-lighter'
+  | 'material-theme-ocean'
+  | 'material-theme-palenight'
+  | 'min-dark'
+  | 'min-light'
+  | 'monokai'
+  | 'night-owl'
+  | 'night-owl-light'
+  | 'nord'
+  | 'one-dark-pro'
+  | 'one-light'
+  | 'plastic'
+  | 'poimandres'
+  | 'red'
+  | 'rose-pine'
+  | 'rose-pine-dawn'
+  | 'rose-pine-moon'
+  | 'slack-dark'
+  | 'slack-ochin'
+  | 'snazzy-light'
+  | 'solarized-dark'
+  | 'solarized-light'
+  | 'synthwave-84'
+  | 'tokyo-night'
+  | 'vesper'
+  | 'vitesse-black'
+  | 'vitesse-dark'
+  | 'vitesse-light';
+
+// ── ColorTheme → bundled theme names ──────────────────────────────
+// Pierre resolves these directly from its own bundle. Every value is a
+// real bundled theme, so nothing here can fail at render time.
 const PIERRE_THEME_MAP: Partial<
-  Record<ColorTheme, string | { light: string; dark: string }>
+  Record<ColorTheme, { light: BundledTheme; dark: BundledTheme }>
 > = {
   aero: { light: 'github-light', dark: 'github-dark' },
-  amoled: { light: 'github-light', dark: 'github-dark' },
-  aura: 'aura',
+  amoled: { light: 'github-light', dark: 'min-dark' },
+  aura: { light: 'github-light', dark: 'aurora-x' },
   ayu: { light: 'ayu-light', dark: 'ayu-dark' },
-  carbonfox: 'carbonfox',
+  carbonfox: { light: 'github-light', dark: 'github-dark-default' },
   catppuccin: { light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
   cursor: { light: 'github-light', dark: 'github-dark' },
-  dracula: 'dracula',
-  flexoki: { light: 'flexoki-light', dark: 'flexoki-dark' },
+  dracula: { light: 'github-light', dark: 'dracula' },
+  'fields-of-the-shire': { light: 'github-light', dark: 'everforest-dark' },
+  flexoki: { light: 'github-light', dark: 'github-dark' },
   github: { light: 'github-light', dark: 'github-dark' },
   gruvbox: { light: 'gruvbox-light-hard', dark: 'gruvbox-dark-hard' },
-  kanagawa: 'kanagawa-lotus',
-  monokai: 'monokai',
-  nightowl: 'night-owl',
-  nord: 'nord',
+  jetbrains: { light: 'light-plus', dark: 'dark-plus' },
+  kanagawa: { light: 'kanagawa-lotus', dark: 'kanagawa-wave' },
+  'lucent-orng': { light: 'github-light', dark: 'github-dark' },
+  mono: { light: 'min-light', dark: 'min-dark' },
+  'mono-plus': { light: 'min-light', dark: 'min-dark' },
+  monokai: { light: 'github-light', dark: 'monokai' },
+  nightowl: { light: 'night-owl-light', dark: 'night-owl' },
+  nord: { light: 'github-light', dark: 'nord' },
+  'oc-2': { light: 'github-light', dark: 'github-dark' },
+  onedarkpro: { light: 'one-light', dark: 'one-dark-pro' },
+  orng: { light: 'github-light', dark: 'github-dark' },
   rosepine: { light: 'rose-pine-dawn', dark: 'rose-pine' },
-  shadesofpurple: 'shades-of-purple',
+  shadesofpurple: { light: 'github-light', dark: 'synthwave-84' },
   solarized: { light: 'solarized-light', dark: 'solarized-dark' },
-  tokyonight: { light: 'tokyo-night', dark: 'tokyo-night-storm' },
-  vercel: { light: 'vercel-light', dark: 'vercel-dark' },
-  vesper: 'vesper',
+  tokyonight: { light: 'github-light', dark: 'tokyo-night' },
+  vercel: { light: 'github-light', dark: 'github-dark' },
+  vesper: { light: 'github-light', dark: 'vesper' },
   vitesse: { light: 'vitesse-light', dark: 'vitesse-dark' },
-  zenburn: 'zenburn',
+  zenburn: { light: 'github-light', dark: 'github-dark' },
 };
 
-// ── 2. The 10 Pierre themes (for fallback) ────────────────────────
-const PIERRE_THEMES = new Set<string>([
-  'pierre-light',
-  'pierre-light-soft',
-  'pierre-light-vibrant',
-  'pierre-light-protanopia-deuteranopia',
-  'pierre-light-tritanopia',
-  'pierre-dark',
-  'pierre-dark-soft',
-  'pierre-dark-vibrant',
-  'pierre-dark-protanopia-deuteranopia',
-  'pierre-dark-tritanopia',
-]);
-
-// ── 3. Static theme loaders ───────────────────────────────────────
-// Vite requires static import paths so it can pre-bundle the modules.
-// A variable like `import(`@shikijs/themes/${name}`)` is left as-is at
-// runtime and fails with "Failed to resolve module specifier".
-const THEME_LOADERS: Record<string, CustomThemeLoader> = {
-  'github-light': () => import('@shikijs/themes/github-light'),
-  'github-dark': () => import('@shikijs/themes/github-dark'),
-  'ayu-light': () => import('@shikijs/themes/ayu-light'),
-  'ayu-dark': () => import('@shikijs/themes/ayu-dark'),
-  'catppuccin-latte': () => import('@shikijs/themes/catppuccin-latte'),
-  'catppuccin-mocha': () => import('@shikijs/themes/catppuccin-mocha'),
-  dracula: () => import('@shikijs/themes/dracula'),
-  'gruvbox-light-hard': () => import('@shikijs/themes/gruvbox-light-hard'),
-  'gruvbox-dark-hard': () => import('@shikijs/themes/gruvbox-dark-hard'),
-  'kanagawa-lotus': () => import('@shikijs/themes/kanagawa-lotus'),
-  monokai: () => import('@shikijs/themes/monokai'),
-  'night-owl': () => import('@shikijs/themes/night-owl'),
-  nord: () => import('@shikijs/themes/nord'),
-  'rose-pine-dawn': () => import('@shikijs/themes/rose-pine-dawn'),
-  'rose-pine': () => import('@shikijs/themes/rose-pine'),
-  'solarized-light': () => import('@shikijs/themes/solarized-light'),
-  'solarized-dark': () => import('@shikijs/themes/solarized-dark'),
-  'tokyo-night': () => import('@shikijs/themes/tokyo-night'),
-  'vitesse-light': () => import('@shikijs/themes/vitesse-light'),
-  'vitesse-dark': () => import('@shikijs/themes/vitesse-dark'),
+const PIERRE_FALLBACK: { light: BundledTheme; dark: BundledTheme } = {
+  light: 'github-light',
+  dark: 'github-dark',
 };
 
-let isRegistered = false;
-
-export function registerPierreThemes() {
-  if (isRegistered) return;
-
-  const allThemeNames = new Set<string>();
-  for (const entry of Object.values(PIERRE_THEME_MAP)) {
-    if (!entry) continue;
-    if (typeof entry === 'string') {
-      allThemeNames.add(entry);
-    } else {
-      allThemeNames.add(entry.light);
-      allThemeNames.add(entry.dark);
-    }
-  }
-
-  for (const name of allThemeNames) {
-    const loader = THEME_LOADERS[name];
-    if (!loader) {
-      // No loader registered for this name (e.g. aura, carbonfox,
-      // vercel-*, tokyo-night-storm, zenburn, shades-of-purple).
-      // Skip silently — getPierreTheme falls back to Pierre defaults.
-      continue;
-    }
-
-    registerCustomTheme(name, loader);
-    void resolveTheme(name);
-  }
-
-  isRegistered = true;
+/**
+ * Resolves a `ColorTheme` to two bundled Shiki theme names. Pierre
+ * resolves them from its own bundle — no registration, no loading,
+ * no async. The returned strings are always valid.
+ */
+export function getPierreTheme(colorTheme: ColorTheme): {
+  light: BundledTheme;
+  dark: BundledTheme;
+} {
+  return PIERRE_THEME_MAP[colorTheme] ?? PIERRE_FALLBACK;
 }
 
-// ── 4. Resolver with fallback ──────────────────────────────────────
-type PierreThemeValue = { dark: string; light: string };
-
-const PIERRE_FALLBACK: PierreThemeValue = {
-  dark: 'pierre-dark',
-  light: 'pierre-light',
-};
-
-export function getPierreTheme(
-  colorTheme: ColorTheme,
-  resolvedTheme: 'light' | 'dark',
-): PierreThemeValue {
-  const mapped = PIERRE_THEME_MAP[colorTheme];
-  if (!mapped) {
-    return PIERRE_FALLBACK;
-  }
-
-  // String case: return immediately so TS narrows `mapped` below.
-  if (typeof mapped === 'string') {
-    if (!PIERRE_THEMES.has(mapped) && !THEME_LOADERS[mapped]) {
-      return PIERRE_FALLBACK;
-    }
-    return { dark: mapped, light: mapped };
-  }
-
-  // Here `mapped` is narrowed to { light: string; dark: string }.
-  const candidate = resolvedTheme === 'dark' ? mapped.dark : mapped.light;
-  if (
-    !candidate ||
-    (!PIERRE_THEMES.has(candidate) && !THEME_LOADERS[candidate])
-  ) {
-    return PIERRE_FALLBACK;
-  }
-
-  return { dark: mapped.dark, light: mapped.light };
-}
-
-// ── 5. Everything below stays exactly the same ──────────────────────
+// ── Shadow-root CSS (unchanged) ───────────────────────────────────
 
 export function getPierreShadowCss(fontSize: number): string {
   return `

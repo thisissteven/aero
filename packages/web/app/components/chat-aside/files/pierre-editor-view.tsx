@@ -55,10 +55,8 @@ export const PierreEditorView = memo(function PierreEditorView({
   const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
   const fontSize = useFileViewerStore((s) => s.fontSize);
 
-  const pierreTheme = useMemo(
-    () => getPierreTheme(colorTheme, resolvedTheme),
-    [colorTheme, resolvedTheme],
-  );
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
+
   const shadowCss = useMemo(() => getPierreShadowCss(fontSize), [fontSize]);
 
   const pierreFile = (

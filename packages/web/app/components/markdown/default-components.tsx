@@ -24,10 +24,7 @@ const MarkdownCode = memo(function MarkdownCode({
 }: MarkdownCodeProps): ReactElement | null {
   const { resolvedTheme, colorTheme } = useTheme();
 
-  const pierreTheme = useMemo(
-    () => getPierreTheme(colorTheme, resolvedTheme),
-    [colorTheme, resolvedTheme],
-  );
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
 
   const { isFile, onFileClick } = useContext(MarkdownFileContext);
 
