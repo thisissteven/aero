@@ -8,6 +8,8 @@ import {
 import { Components, ExtraProps } from 'react-markdown';
 import { CodeBlock } from '../code-block';
 import { MarkdownFileContext } from './markdown-file-context';
+import { MermaidDiagram } from './mermaid-diagram';
+import { SvgBlock } from './svg-block';
 
 type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps;
 
@@ -64,6 +66,16 @@ const MarkdownCode = memo(function MarkdownCode({
 
   const language = className?.match(/language-(\w+)/)?.[1] ?? 'plaintext';
   const code = String(children ?? '').replace(/\n$/, '');
+
+  // Fenced ```mermaid — render as a diagram, not a code block.
+  if (language === 'mermaid') {
+    return <MermaidDiagram code={code} />;
+  }
+
+  // Fenced ```svg — render as a sanitized inline graphic, not a code block.
+  if (language === 'svg') {
+    return <SvgBlock code={code} />;
+  }
 
   return (
     <CodeBlock>

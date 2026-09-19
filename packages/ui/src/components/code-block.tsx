@@ -293,6 +293,11 @@ export interface CodeBlockCopyButtonProps {
   code: string;
 }
 
+const actionButtonClass = cn(
+  'size-6 min-w-6 shrink-0 rounded-md text-muted',
+  'data-[pressed]:text-foreground',
+);
+
 export const CodeBlockCopyButton = memo(function CodeBlockCopyButton({
   'aria-label': ariaLabel = 'Copy code',
   className,
@@ -326,7 +331,10 @@ export const CodeBlockCopyButton = memo(function CodeBlockCopyButton({
     <Button
       isIconOnly
       aria-label={ariaLabel}
-      className={part('code-block__copy-button', className)}
+      className={cn(
+        part('code-block__copy-button', className),
+        actionButtonClass,
+      )}
       data-slot='code-block-copy-button'
       size='sm'
       variant='ghost'
