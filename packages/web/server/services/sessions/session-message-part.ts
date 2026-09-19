@@ -166,7 +166,11 @@ function formatSkillContent(skill: AeroSkill): string {
 }
 
 function contentPart(skill: AeroSkill): AeroPartUserMessage {
-  return normalizePart({ type: 'text', text: formatSkillContent(skill) });
+  return normalizePart({
+    type: 'text',
+    text: formatSkillContent(skill),
+    metadata: { kind: 'skill', name: skill.name },
+  });
 }
 
 function mentionedPart(skills: AeroSkill[]): AeroPartUserMessage {

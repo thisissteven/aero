@@ -17,16 +17,25 @@ function isMediaAttachment(attachment: ExternalFileAttachment): boolean {
   );
 }
 
-export function FileAttachments() {
-  const sessionId = useSessionId();
+interface FileAttachmentsViewProps {
+  attachments: ExternalFileAttachment[];
+  /** Omit for read-only rendering (e.g. sent messages). */
+  onRemove?: (id: string) => void;
+  className?: string;
+  /** `pending` (default) plays the upload animation; `sent` skips it. */
+  variant?: 'pending' | 'sent';
+}
 
-  const attachments = useExternalPartsStore(
-    (state) => getExternalPartsSession(state, sessionId).fileAttachments,
-  );
-  const removeFileAttachment = useExternalPartsStore(
-    (state) => state.removeFileAttachment,
-  );
-
+/**
+ * Pure presentational view. Works with any list of attachments, whether they
+ * come from the composer store or from a persisted message's parts.
+ */
+export function FileAttachmentsView({
+  attachments,
+  onRemove,
+  className,
+  variant = 'pending',
+}: FileAttachmentsViewProps) {
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const { media, files } = useMemo(() => {
@@ -39,15 +48,6 @@ export function FileAttachments() {
 
     return { media, files };
   }, [attachments]);
-
-  const handleRemove = useCallback(
-    (id: string) => {
-      removeFileAttachment(sessionId, id);
-    },
-    [removeFileAttachment, sessionId],
-  );
-
-  const isChatInputExpanded = useChatInputExpanded();
 
   // Resolve index at render time. If the previewed item was removed,
   // findIndex returns -1 and the lightbox closes on its own.
@@ -62,33 +62,42 @@ export function FileAttachments() {
     [media],
   );
 
-  if (attachments.length === 0 || isChatInputExpanded) return null;
+  if (attachments.length === 0) return null;
 
   return (
     <>
-      <div
-        className={cn('flex flex-col gap-2 px-2', sessionId ? 'pb-2' : 'pb-1')}
-      >
+      <div className={cn('flex flex-col gap-2 px-2', className)}>
         {media.length > 0 && (
-          <div className='flex flex-wrap gap-1.5'>
+          <div
+            className={cn(
+              'flex flex-wrap gap-1.5',
+              variant === 'sent' && 'justify-end',
+            )}
+          >
             {media.map((attachment) => (
               <FileAttachmentTile
                 key={attachment.id}
                 attachment={attachment}
-                onRemove={handleRemove}
+                onRemove={onRemove}
                 onPreview={(a) => setPreviewId(a.id)}
+                variant={variant}
               />
             ))}
           </div>
         )}
 
         {files.length > 0 && (
-          <div className='flex flex-wrap gap-1.5'>
+          <div
+            className={cn(
+              'flex flex-wrap gap-1.5',
+              variant === 'sent' && 'justify-end',
+            )}
+          >
             {files.map((attachment) => (
               <FileAttachmentRow
                 key={attachment.id}
                 attachment={attachment}
-                onRemove={handleRemove}
+                onRemove={onRemove}
               />
             ))}
           </div>
@@ -102,5 +111,36 @@ export function FileAttachments() {
         onClose={() => setPreviewId(null)}
       />
     </>
+  );
+}
+
+/** Store-connected composer version — unchanged public API. */
+export function FileAttachments() {
+  const sessionId = useSessionId();
+
+  const attachments = useExternalPartsStore(
+    (state) => getExternalPartsSession(state, sessionId).fileAttachments,
+  );
+  const removeFileAttachment = useExternalPartsStore(
+    (state) => state.removeFileAttachment,
+  );
+
+  const handleRemove = useCallback(
+    (id: string) => {
+      removeFileAttachment(sessionId, id);
+    },
+    [removeFileAttachment, sessionId],
+  );
+
+  const isChatInputExpanded = useChatInputExpanded();
+
+  if (attachments.length === 0 || isChatInputExpanded) return null;
+
+  return (
+    <FileAttachmentsView
+      attachments={attachments}
+      onRemove={handleRemove}
+      className={sessionId ? 'pb-2' : 'pb-1'}
+    />
   );
 }

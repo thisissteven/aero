@@ -1,4 +1,3 @@
-import { logger } from '@aero/ui';
 import { create } from 'zustand';
 
 /* ------------------------------------------------------------------ */
@@ -10,7 +9,7 @@ export interface ExternalFileAttachment {
   mime: string;
   filename: string;
   url: string;
-  file: File;
+  file?: File;
 }
 
 export interface ChatQuoteItem {

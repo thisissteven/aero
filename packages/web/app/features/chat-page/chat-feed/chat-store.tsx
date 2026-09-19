@@ -137,6 +137,33 @@ function getLastUserMessageTime(turns: AeroConversationTurn[]) {
   return null;
 }
 
+function scrollToBottom(
+  event: {
+    sessionId?: string;
+  },
+  sessionId: string,
+) {
+  const currentSessionId = event.sessionId;
+  const currentSessionState = useChatStore.getState();
+  if (currentSessionId) {
+    if (currentSessionState.scrollBySession[currentSessionId].isAtBottom) {
+      if (currentSessionState.activeSessionId === sessionId) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            useMainChatScrollStore.getState().scrollToBottom();
+          });
+        });
+      } else {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            useSideChatScrollStore.getState().scrollToBottom();
+          });
+        });
+      }
+    }
+  }
+}
+
 function getStreamStartTime(
   turns: AeroConversationTurn[],
   status: AeroSessionStatus,
@@ -863,6 +890,7 @@ function handleMessagePartUpdated(
       .setKeep(`${event.messageId}-part-0`, true);
 
     setTimeout(() => {
+      scrollToBottom(event, sessionId);
       if (useChatStore.getState().scrollBySession[event.sessionId].isAtBottom) {
         if (state.activeSessionId === sessionId) {
           requestAnimationFrame(() => {
@@ -1419,6 +1447,9 @@ export const useChatStore = create<ChatStore>()(
                   revertMessageId,
                 );
               });
+
+              scrollToBottom(event, sessionId);
+
               return;
             }
 

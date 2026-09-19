@@ -74,13 +74,7 @@ export const AssistantChatBubble = memo(
                   if (!part.text) return null;
                   return (
                     <div key={blockId} className='relative py-2'>
-                      <Markdown
-                        id={blockId}
-                        isFile={handleIsWorktreeFile}
-                        onFileClick={handleOpenFileInEditor}
-                      >
-                        {part.text}
-                      </Markdown>
+                      <Markdown id={blockId}>{part.text}</Markdown>
                     </div>
                   );
                 }
@@ -91,8 +85,6 @@ export const AssistantChatBubble = memo(
                     <div key={blockId} className='relative'>
                       <ReasoningBlock
                         blockId={blockId}
-                        isFile={handleIsWorktreeFile}
-                        onFileClick={handleOpenFileInEditor}
                         text={part.text}
                         isStreaming={isPartStreaming}
                       />

@@ -23,8 +23,8 @@ export const ChatQuotesPanel = React.memo(function ChatQuotesPanel() {
     <Popover>
       <Popover.Trigger
         className={cn(
-          'mb-1',
-          'border-separator backdrop-blur-sm inline-flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs',
+          'mb-1.5 mx-2',
+          'border-separator backdrop-blur-sm inline-flex w-fit items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs',
         )}
       >
         <Comment className='size-3.5' />

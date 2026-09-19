@@ -226,3 +226,20 @@
     visibility: hidden;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Settled state: skip the upload animation entirely, jump straight to */
+/* the end-state that the animations would have reached. Used for      */
+/* attachments rendered from historical messages.                      */
+/* ------------------------------------------------------------------ */
+
+.wrapper.sent .borderFrosted {
+  opacity: 1;
+  animation: none;
+}
+
+.wrapper.sent .borderRotating,
+.wrapper.sent .shimmerOverlay,
+.wrapper.sent .checkSvg {
+  display: none;
+}

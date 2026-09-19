@@ -163,14 +163,16 @@ export async function buildExternalParts(
   const parts: AeroPartUserMessage[] = [];
 
   for (const attachment of state.fileAttachments) {
-    const url = await fileToDataUrl(attachment.file);
+    if (attachment.file) {
+      const url = await fileToDataUrl(attachment.file);
 
-    parts.push({
-      type: 'file',
-      mime: attachment.mime,
-      filename: attachment.filename,
-      url,
-    });
+      parts.push({
+        type: 'file',
+        mime: attachment.mime,
+        filename: attachment.filename,
+        url,
+      });
+    }
   }
 
   for (const quote of state.chatQuotes) {

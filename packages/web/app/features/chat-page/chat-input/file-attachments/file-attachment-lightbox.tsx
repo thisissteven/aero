@@ -1,7 +1,8 @@
 import { cn } from '@aero/ui';
 import { ChevronLeft, ChevronRight, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
 
@@ -20,6 +21,13 @@ export function FileAttachmentLightbox({
 }: FileAttachmentLightboxProps) {
   const isOpen = index !== null;
   const count = attachments.length;
+
+  // Portals need a DOM target. On the server / first render before mount,
+  // we bail so the component is a no-op for SSR.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
 
   const goPrev = useCallback(() => {
     if (index === null || count === 0) return;
@@ -42,15 +50,29 @@ export function FileAttachmentLightbox({
 
     document.addEventListener('keydown', onKeyDown);
 
+    // Scroll lock that doesn't shift layout when a desktop scrollbar
+    // disappears. Reserve its width as padding on <body>.
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
     const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+
     document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      const currentPadding =
+        parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+      document.body.style.paddingRight = `${currentPadding + scrollbarWidth}px`;
+    }
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
     };
   }, [isOpen, onClose, goPrev, goNext]);
 
+  if (!portalTarget) return null;
   if (index === null || count === 0) return null;
 
   const attachment = attachments[index];
@@ -59,7 +81,7 @@ export function FileAttachmentLightbox({
   const isVideo = attachment.mime.startsWith('video/');
   const showNav = count > 1;
 
-  return (
+  return createPortal(
     <div
       className={cn(
         'fixed inset-0 z-50 grid place-items-center p-8',
@@ -174,6 +196,7 @@ export function FileAttachmentLightbox({
           {attachment.filename}
         </span>
       </div>
-    </div>
+    </div>,
+    portalTarget,
   );
 }

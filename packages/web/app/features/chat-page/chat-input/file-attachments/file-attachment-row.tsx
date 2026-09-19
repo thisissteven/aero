@@ -5,7 +5,8 @@ import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/exte
 
 interface FileAttachmentRowProps {
   attachment: ExternalFileAttachment;
-  onRemove: (id: string) => void;
+  /** Omit for read-only rendering (e.g. sent messages). */
+  onRemove?: (id: string) => void;
 }
 
 export function FileAttachmentRow({
@@ -28,29 +29,31 @@ export function FileAttachmentRow({
         className='min-w-0 flex-1 text-xs'
       />
 
-      <button
-        type='button'
-        className={cn(
-          'absolute top-1/2 -translate-y-1/2 right-1 shrink-0 size-4 grid place-items-center',
-          'opacity-0 group-hover/row:opacity-100 transition-opacity',
-          'text-muted bg-surface-secondary rounded border border-separator',
-        )}
-        onClick={() => onRemove(attachment.id)}
-        aria-label={`Remove ${attachment.filename}`}
-      >
-        <svg
-          viewBox='0 0 24 24'
-          fill='none'
-          stroke='currentColor'
-          strokeWidth={2}
-          strokeLinecap='round'
-          width={10}
-          height={10}
+      {onRemove && (
+        <button
+          type='button'
+          className={cn(
+            'absolute top-1/2 -translate-y-1/2 right-1 shrink-0 size-4 grid place-items-center',
+            'opacity-0 group-hover/row:opacity-100 transition-opacity',
+            'text-muted bg-surface-secondary rounded border border-separator',
+          )}
+          onClick={() => onRemove(attachment.id)}
+          aria-label={`Remove ${attachment.filename}`}
         >
-          <line x1='18' y1='6' x2='6' y2='18' />
-          <line x1='6' y1='6' x2='18' y2='18' />
-        </svg>
-      </button>
+          <svg
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth={2}
+            strokeLinecap='round'
+            width={10}
+            height={10}
+          >
+            <line x1='18' y1='6' x2='6' y2='18' />
+            <line x1='6' y1='6' x2='18' y2='18' />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
