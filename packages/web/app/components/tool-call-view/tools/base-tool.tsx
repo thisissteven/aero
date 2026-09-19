@@ -14,6 +14,17 @@ import { toWorkspaceRelative } from '@/app/lib/file';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
+/**
+ * Blocks whose stream-in fade has already played in this session.
+ *
+ * virtua (esp. on Firefox) unmounts and remounts rows aggressively during
+ * scroll. Component state and refs are destroyed on unmount, so a per-instance
+ * `useState`/`useRef` gate re-arms on every remount, leaving the row stuck at
+ * `opacity: 0` for its whole lifetime. Tracking "already revealed" at module
+ * scope survives remounts, so the fade plays exactly once per block.
+ */
+const revealedBlocks = new Set<string>();
+
 export function BaseTool({
   blockId,
   status,
@@ -76,13 +87,24 @@ export function BaseTool({
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
   const wasStreamingOnMount = useRef(isStreaming).current;
-  const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
+
+  // If this block was streamed in and has already had its reveal, a remount
+  // (virtua scroll churn) should come back visible — not re-run the fade.
+  const [isVisible, setIsVisible] = useState(
+    () => !wasStreamingOnMount || revealedBlocks.has(blockId),
+  );
 
   useEffect(() => {
     if (!wasStreamingOnMount) return;
-    const timer = setTimeout(() => setIsVisible(true), 300);
+    if (revealedBlocks.has(blockId)) return;
+
+    const timer = setTimeout(() => {
+      revealedBlocks.add(blockId);
+      setIsVisible(true);
+    }, 300);
+
     return () => clearTimeout(timer);
-  }, [wasStreamingOnMount]);
+  }, [wasStreamingOnMount, blockId]);
 
   const shouldAnimate = wasStreamingOnMount && isVisible;
   const isDisabled = ((!hasContent && !error) || isStreaming) && !forceEnabled;

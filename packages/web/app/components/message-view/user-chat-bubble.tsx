@@ -23,7 +23,6 @@ export const UserChatBubble = memo(
 
     const bubbleRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
-    const shouldScrollOnCollapseRef = useRef(false);
 
     const text = useMemo(
       () =>
@@ -72,42 +71,30 @@ export const UserChatBubble = memo(
     const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
 
     const handleToggle = () => {
-      if (isExpanded) {
-        shouldScrollOnCollapseRef.current = true;
+      const bubbleEl = bubbleRef.current;
+      if (isExpanded && bubbleEl) {
+        const scrollContainer =
+          bubbleEl.closest<HTMLElement>('.overflow-y-auto');
+
+        if (scrollContainer) {
+          const topOffset = 32;
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const bubbleRect = bubbleEl.getBoundingClientRect();
+          const targetScrollTop =
+            scrollContainer.scrollTop +
+            (bubbleRect.top - containerRect.top) -
+            topOffset;
+
+          scrollContainer.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'instant',
+          });
+        } else {
+          bubbleEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+        }
       }
       setKeep(turn.id, !isExpanded);
     };
-
-    useLayoutEffect(() => {
-      if (
-        !shouldScrollOnCollapseRef.current ||
-        isExpanded ||
-        !bubbleRef.current
-      )
-        return;
-
-      shouldScrollOnCollapseRef.current = false;
-
-      const bubbleEl = bubbleRef.current;
-      const scrollContainer = bubbleEl.closest<HTMLElement>('.overflow-y-auto');
-
-      if (scrollContainer) {
-        const topOffset = 32;
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const bubbleRect = bubbleEl.getBoundingClientRect();
-        const targetScrollTop =
-          scrollContainer.scrollTop +
-          (bubbleRect.top - containerRect.top) -
-          topOffset;
-
-        scrollContainer.scrollTo({
-          top: Math.max(0, targetScrollTop),
-          behavior: 'instant',
-        });
-      } else {
-        bubbleEl.scrollIntoView({ behavior: 'instant', block: 'start' });
-      }
-    }, [isExpanded]);
 
     return (
       <ChatMessage.User ref={bubbleRef} className='relative'>

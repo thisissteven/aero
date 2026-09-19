@@ -5,6 +5,7 @@ import {
   ChainOfThought,
   cn,
   DisclosureIndicator,
+  logger,
   ScrollShadow,
   TextEffect,
 } from '@aero/ui';
@@ -18,16 +19,23 @@ import { stripMarkdown } from '@/app/lib/file';
 const THINK_SWAP = 150;
 const THINK_GAP = 50;
 
+/**
+ * Reasoning blocks whose stream-in fade has already played in this session.
+ *
+ * virtua (esp. on Firefox) unmounts and remounts rows aggressively during
+ * scroll. Component state and refs are destroyed on unmount, so a per-instance
+ * `useState`/`useRef` gate re-arms on every remount, leaving the row stuck at
+ * `opacity: 0` for its whole lifetime. Tracking "already revealed" at module
+ * scope survives remounts, so the fade plays exactly once per block.
+ */
+const revealedReasoningBlocks = new Set<string>();
+
 export const ReasoningBlock = memo(function ReasoningBlock({
   blockId,
-  isFile,
-  onFileClick,
   text,
   isStreaming,
 }: {
   blockId: string;
-  isFile: (path: string) => boolean;
-  onFileClick: (path: string) => void;
   text: string;
   isStreaming: boolean;
 }): ReactElement {
@@ -44,20 +52,26 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   const wasStreamingOnMount = useRef(isStreaming).current;
 
   /*
-   * Track visibility state to orchestrate the 200ms delay.
-   * If historic (not streaming), bypass the delay and show immediately.
+   * Reveal gate. Same logic as before, but backed by a module-level Set so
+   * that a virtua remount after the fade has already played comes back
+   * visible instead of re-arming the 300 ms timer (and getting cancelled
+   * before it fires, leaving the row invisible).
    */
-  const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
+  const [isVisible, setIsVisible] = useState(
+    () => !wasStreamingOnMount || revealedReasoningBlocks.has(blockId),
+  );
 
   useEffect(() => {
     if (!wasStreamingOnMount) return;
+    if (revealedReasoningBlocks.has(blockId)) return;
 
     const timer = setTimeout(() => {
+      revealedReasoningBlocks.add(blockId);
       setIsVisible(true);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [wasStreamingOnMount]);
+  }, [wasStreamingOnMount, blockId]);
 
   /*
    * Only reveal text for blocks that were streamed in this session and
@@ -121,7 +135,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
 
               <Icon
                 data={Bulb}
-                className='text-muted absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
+                className='text-foreground/60 absolute inset-0 transition group-hover/cot:opacity-0 group-has-[svg[data-expanded=true]]/cot:opacity-0'
                 style={{
                   width: 12,
                   height: 12,
@@ -164,8 +178,6 @@ export const ReasoningBlock = memo(function ReasoningBlock({
               <ChainOfThought.Step>
                 <AdaptiveMarkdown
                   id={`${blockId}-reason`}
-                  isFile={isFile}
-                  onFileClick={onFileClick}
                   scrollRef={scrollRef}
                   isStreaming={isStreaming}
                 >
@@ -192,6 +204,8 @@ const ThinkingPreview = memo(function ThinkingPreview({
   const pendingTextRef = useRef(preview);
   const previousPreviewRef = useRef(preview);
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const rafNestedRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!preview || preview === previousPreviewRef.current) {
@@ -210,6 +224,7 @@ const ThinkingPreview = memo(function ThinkingPreview({
     }
 
     gapTimerRef.current = setTimeout(() => {
+      gapTimerRef.current = null;
       const nextText = pendingTextRef.current;
 
       // Replace the outgoing copy with the incoming copy.
@@ -220,8 +235,10 @@ const ThinkingPreview = memo(function ThinkingPreview({
       setIsEntering(true);
 
       // Force reflow, then release .is-enter-start.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        rafNestedRef.current = requestAnimationFrame(() => {
+          rafNestedRef.current = null;
           setIsEntering(false);
         });
       });
@@ -230,6 +247,15 @@ const ThinkingPreview = memo(function ThinkingPreview({
     return () => {
       if (gapTimerRef.current) {
         clearTimeout(gapTimerRef.current);
+        gapTimerRef.current = null;
+      }
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (rafNestedRef.current !== null) {
+        cancelAnimationFrame(rafNestedRef.current);
+        rafNestedRef.current = null;
       }
     };
   }, [preview]);

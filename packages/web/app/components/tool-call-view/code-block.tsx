@@ -199,7 +199,7 @@ export const CodeBlockFooter = memo(function CodeBlockFooter({
   return (
     <div
       className={cn(
-        'flex h-8 items-center justify-end gap-2 border-t border-separator px-3',
+        'flex h-8 items-center justify-start gap-2 border-t border-separator px-3',
         'text-muted text-xs bg-surface',
         className,
       )}

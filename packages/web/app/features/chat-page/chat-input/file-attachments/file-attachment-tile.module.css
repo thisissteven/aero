@@ -9,26 +9,9 @@
   width: 60px;
   height: 60px;
   border-radius: 12px;
-  --border-width: 1.5px;
+  --border-width: 1.25px;
   cursor: zoom-in;
 
-  /* Light-mode defaults (dark beams on light bg). Overridden below
-     under .dark / [data-theme="dark"]. */
-  --frost-1: rgba(0, 0, 0, 0.45);
-  --frost-2: rgba(0, 0, 0, 0.15);
-  --frost-3: rgba(0, 0, 0, 0.08);
-  --frost-4: rgba(0, 0, 0, 0.32);
-  --beam-1: rgba(0, 0, 0, 0.4);
-  --beam-2: rgba(0, 0, 0, 0.06);
-  --beam-3: rgba(0, 0, 0, 0.06);
-  --beam-4: rgba(0, 0, 0, 0.4);
-  --beam-5: rgba(0, 0, 0, 0.4);
-  --shimmer-color: rgba(0, 0, 0, 0.28);
-  --check-color: var(--foreground);
-}
-
-:global(.dark) .wrapper,
-:global([data-theme="dark"]) .wrapper {
   --frost-1: rgba(255, 255, 255, 0.65);
   --frost-2: rgba(255, 255, 255, 0.22);
   --frost-3: rgba(255, 255, 255, 0.12);

@@ -29,6 +29,17 @@ const MAX_STAGGER_INDEX = 4;
 
 const settleWindows = new Map<string, number>();
 
+/**
+ * Markdown instances whose stream-in fade has already played in this session.
+ *
+ * virtua (esp. on Firefox) unmounts and remounts rows aggressively during
+ * scroll. Component state and refs are destroyed on unmount, so a per-instance
+ * `useState`/`useRef` gate re-arms on every remount, leaving the row stuck at
+ * `opacity: 0` for its whole lifetime. Tracking "already revealed" at module
+ * scope survives remounts, so the fade plays exactly once per markdown id.
+ */
+const revealedMarkdown = new Set<string>();
+
 export type StreamRevealPreset =
   | 'claude'
   | 'chatgpt'
@@ -374,14 +385,26 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     }, [streaming, preset, id]);
 
     // -------- isVisible delay -------------------------------------------
+    // Same fix as BaseTool/ReasoningBlock: back the "already revealed" flag
+    // with a module-level Set keyed on `id`, so a virtua remount after the
+    // fade has already played comes back visible instead of re-arming the
+    // 300 ms timer (and getting cancelled before it fires).
     const wasStreamingOnMount = useRef(streaming).current;
-    const [isVisible, setIsVisible] = useState(!wasStreamingOnMount);
+    const [isVisible, setIsVisible] = useState(
+      () => !wasStreamingOnMount || revealedMarkdown.has(id),
+    );
 
     useEffect(() => {
       if (!wasStreamingOnMount) return;
-      const timer = setTimeout(() => setIsVisible(true), 300);
+      if (revealedMarkdown.has(id)) return;
+
+      const timer = setTimeout(() => {
+        revealedMarkdown.add(id);
+        setIsVisible(true);
+      }, 300);
+
       return () => clearTimeout(timer);
-    }, [wasStreamingOnMount]);
+    }, [wasStreamingOnMount, id]);
 
     // -------- Reveal-mode persistence -----------------------------------
     const [revealModeEverOn, setRevealModeEverOn] = useState<boolean>(

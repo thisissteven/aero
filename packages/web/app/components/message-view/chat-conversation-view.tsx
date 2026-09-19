@@ -1,6 +1,5 @@
-import { logger } from '@aero/ui';
 import { InfoIcon } from '@aero/ui/icons';
-import { memo, useMemo, useRef } from 'react';
+import { memo, useMemo } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
@@ -26,7 +25,9 @@ export function ChatConversationView({
     const out: number[] = [];
     for (const id in keepIds) {
       const idx = idToIndex.get(id);
-      if (idx !== undefined) out.push(idx);
+      if (idx !== undefined && idx >= 0 && idx < flatItems.length) {
+        out.push(idx);
+      }
     }
     return out;
   }, [keepIds, flatItems]);
@@ -37,9 +38,8 @@ export function ChatConversationView({
       scrollRef={scrollRef}
       keepMounted={keepMounted}
       data={flatItems}
-      // onScroll={onScroll}
-      // set shift = true if loading older messages, shift = false if streaming
-      // shift={isStreaming ? false : true}
+      onScroll={onScroll}
+      bufferSize={500}
     >
       {(item) => <VirtualRow key={item.id} item={item} />}
     </Virtualizer>
@@ -62,7 +62,7 @@ const VirtualRow = memo(function VirtualRow({
   }
 
   return (
-    <div className='mx-auto w-full px-3 [contain:layout_style] md:max-w-[720px]'>
+    <div className='mx-auto w-full px-3 md:max-w-[720px]'>
       {item.type === 'user' && (
         <UserChatBubble turn={item.turn} forkMessageId={item.forkMessageId} />
       )}

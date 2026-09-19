@@ -4,7 +4,6 @@ import { cn, Disclosure } from '@heroui/react';
 import type { ComponentPropsWithRef, ReactElement, ReactNode } from 'react';
 import { createContext, useContext, useMemo } from 'react';
 import { Button } from 'react-aria-components/Button';
-
 import { TextShimmer } from './text-shimmer';
 
 interface ChainOfThoughtContextValue {
@@ -99,7 +98,12 @@ export function ChainOfThoughtTrigger({
             {isStreaming ? <TextShimmer>{children}</TextShimmer> : children}
           </div>
 
-          <div className='text-muted flex min-w-0 flex-1 justify-start transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0'>
+          <div
+            className={cn(
+              'text-muted flex min-w-0 flex-1 justify-start',
+              'transition-opacity group-has-[svg[data-expanded=true]]/cot:opacity-0',
+            )}
+          >
             {preview}
           </div>
         </div>

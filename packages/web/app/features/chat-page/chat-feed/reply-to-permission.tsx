@@ -1,7 +1,10 @@
 import { Button } from '@aero/ui';
 import { Kbd } from '@heroui/react';
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
+import {
+  useChatStore,
+  useSessionRuntime,
+} from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useReplyToPermission,
   useSessionPermissions,
@@ -18,6 +21,10 @@ export type EditToolNames =
 export type WriteToolNames = 'write' | 'create' | 'file_write';
 export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
+
+function removePermissionFromStore(sessionId: string, requestId: string) {
+  useChatStore.getState().removePermission(sessionId, requestId);
+}
 
 export const ReplyToPermission = React.memo(() => {
   const activeSessionId = useSessionId();
@@ -61,6 +68,13 @@ export const ReplyToPermission = React.memo(() => {
   if (currentPermissionRequest) {
     cachedPermissionRef.current = currentPermissionRequest;
   }
+
+  // Reset the cache once the request is truly gone and we're not animating out.
+  useEffect(() => {
+    if (!currentPermissionRequest && !isExiting) {
+      cachedPermissionRef.current = null;
+    }
+  }, [currentPermissionRequest, isExiting]);
 
   const permissionRequest = isExiting
     ? cachedPermissionRef.current
@@ -109,6 +123,12 @@ export const ReplyToPermission = React.memo(() => {
     const isReject = replyValue === 'reject';
     const requestId = permissionRequest.id;
 
+    // Optimistically drop the permission from the store so the render logic
+    // naturally stops matching. If the reply fails, `refetchPermissions` will
+    // repopulate `sessionPermissions` on the next render and the permission
+    // reappears — self-healing.
+    removePermissionFromStore(activeSessionId, requestId);
+
     void execute({
       action: () =>
         reply({
@@ -123,6 +143,27 @@ export const ReplyToPermission = React.memo(() => {
       },
     });
   };
+
+  // Reconciliation: if the server says nothing is pending, drop stale store
+  // entries. A short stability window avoids racing a freshly-streamed
+  // permission that the server hasn't recorded yet.
+  useEffect(() => {
+    if (isPermissionsLoading) return;
+    if (sessionPermissions.length > 0) return;
+    if (!storePermission) return;
+
+    const staleId = storePermission.id;
+    const timer = setTimeout(() => {
+      removePermissionFromStore(activeSessionId, staleId);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [
+    sessionPermissions,
+    isPermissionsLoading,
+    storePermission,
+    activeSessionId,
+  ]);
 
   // Keyboard shortcut handler
   useEffect(() => {
