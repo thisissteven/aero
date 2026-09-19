@@ -7,19 +7,38 @@ interface FileAttachmentRowProps {
   attachment: ExternalFileAttachment;
   /** Omit for read-only rendering (e.g. sent messages). */
   onRemove?: (id: string) => void;
+  /** Omit to make the row non-clickable. */
+  onOpen?: (attachment: ExternalFileAttachment) => void;
 }
 
 export function FileAttachmentRow({
   attachment,
   onRemove,
+  onOpen,
 }: FileAttachmentRowProps) {
   return (
     <div
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen ? () => onOpen(attachment) : undefined}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpen(attachment);
+              }
+            }
+          : undefined
+      }
       className={cn(
         'relative group/row flex items-center gap-1.5 rounded-lg',
         'border border-border bg-surface-secondary',
         'px-2 py-1 max-w-56',
         'text-xs text-foreground',
+        onOpen && 'cursor-pointer hover:bg-surface',
+        onOpen &&
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border',
       )}
     >
       <FileTypeIcon filePath={attachment.filename} />
@@ -37,7 +56,10 @@ export function FileAttachmentRow({
             'opacity-0 group-hover/row:opacity-100 transition-opacity',
             'text-muted bg-surface-secondary rounded border border-separator',
           )}
-          onClick={() => onRemove(attachment.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(attachment.id);
+          }}
           aria-label={`Remove ${attachment.filename}`}
         >
           <svg

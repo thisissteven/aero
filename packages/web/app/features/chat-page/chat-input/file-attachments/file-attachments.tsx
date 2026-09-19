@@ -8,6 +8,7 @@ import {
 import { FileAttachmentLightbox } from '@/app/features/chat-page/chat-input/file-attachments/file-attachment-lightbox';
 import { FileAttachmentRow } from '@/app/features/chat-page/chat-input/file-attachments/file-attachment-row';
 import { FileAttachmentTile } from '@/app/features/chat-page/chat-input/file-attachments/file-attachment-tile';
+import { FileContentsSheet } from '@/app/features/chat-page/chat-input/file-attachments/file-contents-sheet';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
@@ -37,6 +38,8 @@ export function FileAttachmentsView({
   variant = 'pending',
 }: FileAttachmentsViewProps) {
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [openAttachment, setOpenAttachment] =
+    useState<ExternalFileAttachment | null>(null);
 
   const { media, files } = useMemo(() => {
     const media: ExternalFileAttachment[] = [];
@@ -98,6 +101,7 @@ export function FileAttachmentsView({
                 key={attachment.id}
                 attachment={attachment}
                 onRemove={onRemove}
+                onOpen={setOpenAttachment}
               />
             ))}
           </div>
@@ -109,6 +113,11 @@ export function FileAttachmentsView({
         index={previewIndex >= 0 ? previewIndex : null}
         onIndexChange={handleNavigate}
         onClose={() => setPreviewId(null)}
+      />
+
+      <FileContentsSheet
+        attachment={openAttachment}
+        onClose={() => setOpenAttachment(null)}
       />
     </>
   );

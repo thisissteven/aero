@@ -7,6 +7,25 @@ export function getLastPathName(path: string): string {
   );
 }
 
+/**
+ * Returns the lowercase file extension without the leading dot.
+ * Returns an empty string when there is no usable extension.
+ *
+ *   "report.tar.gz"  -> "gz"
+ *   "README"         -> ""
+ *   ".gitignore"     -> ""   (dotfile, not an extension)
+ *   "archive."       -> ""
+ */
+export function getFileExtension(filename: string): string {
+  const lastDot = filename.lastIndexOf('.');
+
+  // No dot, or the dot is the first char (dotfile like ".env"),
+  // or the dot is the last char ("archive.").
+  if (lastDot <= 0 || lastDot === filename.length - 1) return '';
+
+  return filename.slice(lastDot + 1).toLowerCase();
+}
+
 export const handleDownloadMarkdown = (content: string, filename: string) => {
   // 1. Create a Blob with the markdown content
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });

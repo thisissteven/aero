@@ -614,6 +614,36 @@ function buildUpdatedMessageRuntime(
   };
 }
 
+/**
+ * Mirrors the visibility filter inside `buildFlatConversationItems` so we can
+ * detect when a part update would change the flat layout (which forces a full
+ * rebuild).
+ *
+ * Rules (must stay in sync with buildFlatConversationItems):
+ *   - text / reasoning: hidden while empty, unless currently streaming.
+ *   - tool with toolName === 'question' && status === 'running': hidden.
+ *   - everything else: visible.
+ */
+function isPartVisibleInFlatItems(
+  part: AeroPart,
+  isPartStreaming: boolean,
+): boolean {
+  if (part.type === 'text' || part.type === 'reasoning') {
+    if (!part.text || !part.text.trim()) return isPartStreaming;
+    return true;
+  }
+
+  if (
+    part.type === 'tool' &&
+    part.toolName === 'question' &&
+    part.status === 'running'
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 function updatePartInRuntime(
   current: SessionRuntime,
   event: Extract<AeroEvent, { type: 'message.part.updated' }>,
@@ -626,12 +656,13 @@ function updatePartInRuntime(
     return null;
   }
 
-  const nextTurns = current.turns.slice();
-  const currentTurn = nextTurns[turnIndex];
+  const currentTurn = current.turns[turnIndex];
   const partIndex = currentTurn.parts.findIndex(
     (currentPart) => currentPart.id === part.id,
   );
 
+  // Build the next turns array first — both paths share it.
+  const nextTurns = current.turns.slice();
   if (partIndex === -1) {
     nextTurns[turnIndex] = {
       ...currentTurn,
@@ -646,6 +677,73 @@ function updatePartInRuntime(
     };
   }
 
+  const streamStartedAt =
+    current.streamStartedAt ??
+    getStreamStartTime(nextTurns, current.status, null);
+
+  // ---------------------------------------------------------------------
+  // Fast path
+  //
+  // Conditions for a targeted single-item patch:
+  //   1. We're not in a revert pass (revert rewrites the whole list).
+  //   2. The part already exists in the turn (not appended).
+  //   3. The turn is the one currently streaming.
+  //   4. The part's visibility in the flat list does not flip.
+  //
+  // When (1)-(4) hold, updating a part only mutates the fields of a single
+  // `assistant-part` flat item. No footer / spacer / other-part items change,
+  // so we can bypass `buildRuntime` completely.
+  // ---------------------------------------------------------------------
+  if (
+    !revertMessageId &&
+    partIndex !== -1 &&
+    current.isStreaming &&
+    turnIndex === current.turns.length - 1
+  ) {
+    const isLastPartInTurn = partIndex === currentTurn.parts.length - 1;
+    // The last part in the streaming turn is the one that gets
+    // `isPartStreaming: true` in the flat list.
+    const isPartStreaming = isLastPartInTurn;
+
+    const wasVisible = isPartVisibleInFlatItems(
+      currentTurn.parts[partIndex],
+      isPartStreaming,
+    );
+    const nowVisible = isPartVisibleInFlatItems(part, isPartStreaming);
+
+    if (wasVisible === nowVisible) {
+      if (!nowVisible) {
+        // Part stays hidden — no flat item to patch at all.
+        return {
+          ...current,
+          turns: nextTurns,
+          streamStartedAt,
+        };
+      }
+
+      const nextFlatItems = updateFlatAssistantPart(
+        current.flatItems,
+        currentTurn.id,
+        partIndex,
+        part,
+      );
+
+      if (nextFlatItems) {
+        return {
+          ...current,
+          turns: nextTurns,
+          flatItems: nextFlatItems,
+          streamStartedAt,
+        };
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Slow path: layout-changing update (new part appended, tool 'question'
+  // flipped to completed, usage-exceeded/error item appeared, non-streaming
+  // turn where the footer may need recomputing, etc.).
+  // ---------------------------------------------------------------------
   const runtime: SessionRuntime = {
     ...current,
     ...buildRuntime(
@@ -655,9 +753,7 @@ function updatePartInRuntime(
       current.usageExceeded,
       current,
     ),
-    streamStartedAt:
-      current.streamStartedAt ??
-      getStreamStartTime(nextTurns, current.status, null),
+    streamStartedAt,
   };
 
   return runtime;
@@ -1468,7 +1564,7 @@ export const useChatStore = create<ChatStore>()(
                   event.requestId,
                 );
 
-                return commitRuntime(state, sessionId, runtime);
+                return commitRuntime(state, event.sessionId, runtime);
               });
               return;
             }

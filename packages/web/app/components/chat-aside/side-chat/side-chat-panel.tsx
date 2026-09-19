@@ -96,16 +96,13 @@ export function SideChatPage() {
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
-            <WithScrollToBottomWrapper
-              type='side'
-              onScrollToBottom={handleScrollToBottom}
-            >
-              <ChatActivityIndicator />
-            </WithScrollToBottomWrapper>
-
-            <div className='absolute right-0 -translate-y-full'>
-              <SessionTodos />
-              <SessionDiff />
+            <div className='absolute left-0 -translate-y-full -mx-1'>
+              <WithScrollToBottomWrapper
+                type='side'
+                onScrollToBottom={handleScrollToBottom}
+              >
+                <ChatActivityIndicator />
+              </WithScrollToBottomWrapper>
             </div>
           </OfflineWrapper>
 

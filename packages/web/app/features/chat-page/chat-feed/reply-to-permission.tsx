@@ -22,10 +22,6 @@ export type WriteToolNames = 'write' | 'create' | 'file_write';
 export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
 
-function removePermissionFromStore(sessionId: string, requestId: string) {
-  useChatStore.getState().removePermission(sessionId, requestId);
-}
-
 export const ReplyToPermission = React.memo(() => {
   const activeSessionId = useSessionId();
 
@@ -69,13 +65,6 @@ export const ReplyToPermission = React.memo(() => {
     cachedPermissionRef.current = currentPermissionRequest;
   }
 
-  // Reset the cache once the request is truly gone and we're not animating out.
-  useEffect(() => {
-    if (!currentPermissionRequest && !isExiting) {
-      cachedPermissionRef.current = null;
-    }
-  }, [currentPermissionRequest, isExiting]);
-
   const permissionRequest = isExiting
     ? cachedPermissionRef.current
     : currentPermissionRequest;
@@ -115,6 +104,8 @@ export const ReplyToPermission = React.memo(() => {
     return null;
   });
 
+  const removePermission = useChatStore((s) => s.removePermission);
+
   const handleReply = (replyValue: 'once' | 'always' | 'reject') => {
     if (isPendingReply || !permissionRequest || isExiting) {
       return;
@@ -123,19 +114,22 @@ export const ReplyToPermission = React.memo(() => {
     const isReject = replyValue === 'reject';
     const requestId = permissionRequest.id;
 
-    // Optimistically drop the permission from the store so the render logic
-    // naturally stops matching. If the reply fails, `refetchPermissions` will
-    // repopulate `sessionPermissions` on the next render and the permission
-    // reappears — self-healing.
-    removePermissionFromStore(activeSessionId, requestId);
-
     void execute({
-      action: () =>
-        reply({
+      action: async () => {
+        await reply({
           sessionId: activeSessionId,
           requestId,
           reply: replyValue,
-        }),
+        });
+
+        // Server is now authoritative: if it no longer has this request,
+        // drop it from the store so a missed `permission.replied` event
+        // can't leave the banner stuck.
+        const { data: fresh } = await refetchPermissions();
+        if (fresh && !fresh.some((p) => p.id === requestId)) {
+          removePermission(activeSessionId, requestId);
+        }
+      },
       refetch: refetchPermissions,
       messages: {
         loading: isReject ? 'Rejecting request...' : 'Authorizing request...',
@@ -143,27 +137,6 @@ export const ReplyToPermission = React.memo(() => {
       },
     });
   };
-
-  // Reconciliation: if the server says nothing is pending, drop stale store
-  // entries. A short stability window avoids racing a freshly-streamed
-  // permission that the server hasn't recorded yet.
-  useEffect(() => {
-    if (isPermissionsLoading) return;
-    if (sessionPermissions.length > 0) return;
-    if (!storePermission) return;
-
-    const staleId = storePermission.id;
-    const timer = setTimeout(() => {
-      removePermissionFromStore(activeSessionId, staleId);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [
-    sessionPermissions,
-    isPermissionsLoading,
-    storePermission,
-    activeSessionId,
-  ]);
 
   // Keyboard shortcut handler
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { cn } from '@aero/ui';
+import { Video } from '@gravity-ui/icons';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
 import styles from './file-attachment-tile.module.css';
 
@@ -39,15 +40,23 @@ export function FileAttachmentTile({
     >
       <div className={styles.imageWrapper}>
         {isVideo ? (
-          <video
-            src={attachment.url}
-            className={styles.image}
-            muted
-            loop
-            playsInline
-            autoPlay={!isSent}
-            preload={isSent ? 'metadata' : 'auto'}
-          />
+          isSent ? (
+            <div className={styles.image}>
+              <div className='grid place-items-center h-full'>
+                <Video className='size-6 text-muted/50 stroke-[0.5px]' />
+              </div>
+            </div>
+          ) : (
+            <video
+              src={attachment.url}
+              className={styles.image}
+              muted
+              loop
+              playsInline
+              autoPlay
+              preload='auto'
+            />
+          )
         ) : (
           <img
             src={attachment.url}

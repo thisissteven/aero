@@ -4,10 +4,10 @@ import {
   memo,
   ReactElement,
   useContext,
+  useMemo,
 } from 'react';
 import { Components, ExtraProps } from 'react-markdown';
-import { getShikiTheme } from '@/app/components/code-block/get-shiki-theme';
-import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
+import { getPierreTheme } from '@/app/components/chat-aside/files/pierre-styles';
 import { useTheme } from '@/app/providers/theme';
 import { CodeBlock } from '../code-block/code-block';
 import { MarkdownFileContext } from './markdown-file-context';
@@ -22,12 +22,12 @@ const MarkdownCode = memo(function MarkdownCode({
   node,
   ...props
 }: MarkdownCodeProps): ReactElement | null {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, colorTheme } = useTheme();
 
-  const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
-  const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
-
-  const isDark = resolvedTheme === 'dark';
+  const pierreTheme = useMemo(
+    () => getPierreTheme(colorTheme, resolvedTheme),
+    [colorTheme, resolvedTheme],
+  );
 
   const { isFile, onFileClick } = useContext(MarkdownFileContext);
 
@@ -88,20 +88,23 @@ const MarkdownCode = memo(function MarkdownCode({
   }
 
   return (
-    <CodeBlock className='bg-default border-muted/10'>
-      <CodeBlock.Header className='border-muted/10'>
+    <CodeBlock className='bg-background'>
+      <CodeBlock.Header className='bg-surface'>
         <span className='text-foreground text-xs uppercase'>{language}</span>
-        <CodeBlock.CopyButton code={code} />
+        <div className='flex justify-end items-center'>
+          <CodeBlock.WrapButton />
+          <CodeBlock.CopyButton code={code} />
+        </div>
       </CodeBlock.Header>
 
       <CodeBlock.Code
         code={code}
         language={language}
-        theme={getShikiTheme(colorThemeLight, 'light')}
-        darkTheme={getShikiTheme(colorThemeDark, 'dark')}
+        theme={pierreTheme.light}
+        darkTheme={pierreTheme.dark}
         // Pierre does NOT infer which theme to use from the `theme` object.
         // Without this, light mode renders with the wrong token palette.
-        themeType={isDark ? 'dark' : 'light'}
+        themeType={resolvedTheme}
         className='p-1'
       />
     </CodeBlock>

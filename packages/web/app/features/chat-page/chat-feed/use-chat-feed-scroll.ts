@@ -21,7 +21,7 @@ const PROGRAMMATIC_INSTANT_MS = 120;
 const PROGRAMMATIC_SMOOTH_MS = 500;
 const PROGRAMMATIC_TOC_MS = 200;
 
-const SCROLL_OFFSET = 48;
+const SCROLL_OFFSET = 1080;
 
 export interface UserAnchor {
   groupIndex: number;
