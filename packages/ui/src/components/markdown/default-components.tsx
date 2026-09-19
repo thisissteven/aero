@@ -89,7 +89,34 @@ const MarkdownCode = memo(function MarkdownCode({
   );
 });
 
+type MarkdownLinkProps = ComponentPropsWithoutRef<'a'> & ExtraProps;
+
+const MarkdownLink = memo(function MarkdownLink({
+  children,
+  className,
+  href,
+  ...props
+}: MarkdownLinkProps): ReactElement {
+  return (
+    <a
+      href={href}
+      target='_blank'
+      rel='noopener noreferrer'
+      className={cn(
+        'text-accent underline decoration-dashed decoration-[1px] underline-offset-2',
+        'transition-opacity hover:opacity-80',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-sm',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </a>
+  );
+});
+
 export const defaultComponents: Components = {
   code: MarkdownCode,
   pre: ({ children }) => <>{children}</>,
+  a: MarkdownLink,
 };

@@ -92,7 +92,7 @@ export const MermaidDiagram = memo(function MermaidDiagram({
           // SVG, not raw model/user markup passed straight to the DOM.
           // oxlint-disable-next-line react/no-danger
           <div
-            className='flex items-center justify-center [&_svg]:max-h-[38vh] [&_svg]:max-w-full'
+            className='select-none flex items-center justify-center [&_svg]:max-h-[38vh] [&_svg]:max-w-full'
             dangerouslySetInnerHTML={{ __html: svg }}
           />
         ) : (

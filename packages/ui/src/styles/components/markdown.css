@@ -145,7 +145,7 @@
     margin-block: calc(var(--spacing, 0.25rem) * 4);
     border-inline-start-width: 3px;
     border-inline-start-style: solid;
-    @apply border-separator;
+    @apply border-muted;
     color: var(--muted);
     padding-inline-start: calc(var(--spacing, 0.25rem) * 4);
     font-style: italic;
