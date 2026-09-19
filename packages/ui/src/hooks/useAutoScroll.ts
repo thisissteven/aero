@@ -8,7 +8,7 @@ interface UseAutoScrollOptions {
   enabled?: boolean;
 }
 
-const SCROLL_OFFSET = 1080;
+const SCROLL_OFFSET = 48;
 
 export function useAutoScroll({
   scrollRef,
@@ -133,7 +133,7 @@ export function useAutoScroll({
         resizeRafRef.current = null;
       }
     };
-  }, [enabled, scrollRef, contentRef, threshold]);
+  }, [enabled, scrollRef, contentRef]);
 
   useLayoutEffect(() => {
     if (!enabled || isStreaming) {

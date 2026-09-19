@@ -5,11 +5,9 @@ import type {
   ComponentPropsWithRef,
   NamedExoticComponent,
   ReactElement,
-  RefObject,
 } from 'react';
 import {
   memo,
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -18,7 +16,6 @@ import {
 } from 'react';
 import type { Components } from 'react-markdown';
 
-import { useAutoScroll } from '../../hooks';
 import {
   defaultComponents,
   MarkdownFileContext,
@@ -204,12 +201,9 @@ export interface MarkdownProps
   id: string;
   isFile?: (path: string) => boolean;
   onFileClick?: (path: string) => void;
-  scrollRef?: RefObject<HTMLElement | null>;
   streaming?: boolean;
   streamRevealPreset?: StreamRevealPreset;
 }
-
-const NULL_REF: RefObject<HTMLElement | null> = { current: null };
 
 function splitIntoBlocks(markdown: string): string[] {
   const lines = markdown.split('\n');
@@ -262,7 +256,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     onFileClick,
     streaming = false,
     streamRevealPreset = 'chatgpt',
-    scrollRef,
     ...props
   }: MarkdownProps): ReactElement {
     const preset =
@@ -402,16 +395,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
     const contentRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLDivElement | null>(null);
 
-    const setMarkdownEl = useCallback(
-      (el: HTMLDivElement | null) => {
-        measureRef.current = el;
-        if (scrollRef) {
-          (scrollRef as { current: HTMLElement | null }).current = el;
-        }
-      },
-      [scrollRef],
-    );
-
     const isPostStreamSettle = Boolean(preset) && !streaming && settling;
 
     const isPostStreamSettleRef = useRef(isPostStreamSettle);
@@ -503,12 +486,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
       return () => observer.disconnect();
     }, [preset, id]);
 
-    useAutoScroll({
-      scrollRef: scrollRef ?? NULL_REF,
-      contentRef,
-      isStreaming: streaming,
-    });
-
     const revealStyle = preset
       ? ({
           '--stream-reveal-fade-ms': `${preset.fadeMs}ms`,
@@ -544,7 +521,6 @@ export const Markdown: NamedExoticComponent<MarkdownProps> = memo(
                   : null),
               } as React.CSSProperties
             }
-            ref={setMarkdownEl}
             {...props}
           >
             {blocks.map((blockContent, index) => {

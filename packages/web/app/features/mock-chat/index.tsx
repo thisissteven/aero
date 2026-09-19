@@ -1,3 +1,5 @@
+import { cn, ScrollShadow } from '@aero/ui';
+import { useAutoScroll } from '@aero/ui/hooks';
 import React, {
   forwardRef,
   useCallback,
@@ -9,9 +11,6 @@ import React, {
   useState,
 } from 'react';
 import { type VirtualizerHandle } from 'virtua';
-
-import { cn, ScrollShadow } from '@aero/ui';
-import { useAutoScroll } from '@aero/ui/hooks';
 
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { buildFlatConversationItems } from '@/app/components/message-view/lib';
@@ -116,7 +115,9 @@ export const MockChatPage = forwardRef<
         <div ref={contentRef} className='pb-4'>
           <ChatConversationView
             flatItems={flatItems}
-            onScroll={() => {}}
+            onScroll={() => {
+              //
+            }}
             scrollRef={scrollRef}
             virtualizerRef={virtualizerRef}
           />

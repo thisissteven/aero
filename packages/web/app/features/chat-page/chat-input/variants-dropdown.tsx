@@ -1,8 +1,7 @@
+import { Button, Command, Popover } from '@aero/ui';
 import { Check, Magnifier, Sparkles } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo, useState } from 'react';
-
-import { Button, Command, Popover } from '@aero/ui';
 
 import { capitalizeFirstLetter } from '@/server/shared';
 

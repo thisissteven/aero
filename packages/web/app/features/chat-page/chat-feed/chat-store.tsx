@@ -1,4 +1,3 @@
-import { logger } from '@aero/ui';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
@@ -1379,24 +1378,23 @@ export const useChatStore = create<ChatStore>()(
         },
 
         handleStreamEvent: (sessionId, event, revertMessageId) => {
-          set((state) => {
-            const current = getRuntime(state.sessions, sessionId);
+          switch (event.type) {
+            case 'session.updated': {
+              queryClient.setQueryData(
+                sessionKeys.detail(event.session.harnessId, sessionId),
+                event.session,
+              );
 
-            switch (event.type) {
-              case 'session.updated': {
-                queryClient.setQueryData(
-                  sessionKeys.detail(event.session.harnessId, sessionId),
-                  event.session,
-                );
+              queryClient.invalidateQueries({
+                queryKey: sessionKeys.context(undefined, sessionId),
+              });
 
-                queryClient.invalidateQueries({
-                  queryKey: sessionKeys.context(undefined, sessionId),
-                });
+              return;
+            }
 
-                return state;
-              }
-
-              case 'session.status':
+            case 'session.status':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleSessionStatus(
                   state,
                   sessionId,
@@ -1405,10 +1403,14 @@ export const useChatStore = create<ChatStore>()(
                   'stream',
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'session.error': {
-                if (!event.error) return state;
+            case 'session.error': {
+              if (!event.error) return;
 
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleSessionError(
                   state,
                   sessionId,
@@ -1416,16 +1418,19 @@ export const useChatStore = create<ChatStore>()(
                   event.error,
                   revertMessageId,
                 );
-              }
+              });
+              return;
+            }
 
-              case 'todo.updated': {
-                queryClient.invalidateQueries({
-                  queryKey: sessionKeys.todos(undefined, event.sessionId),
-                });
-                return state;
-              }
+            case 'todo.updated': {
+              queryClient.invalidateQueries({
+                queryKey: sessionKeys.todos(undefined, event.sessionId),
+              });
+              return;
+            }
 
-              case 'permission.replied': {
+            case 'permission.replied': {
+              set((state) => {
                 const current = getRuntime(state.sessions, event.sessionId);
                 const runtime = removePermissionFromRuntime(
                   current,
@@ -1433,9 +1438,12 @@ export const useChatStore = create<ChatStore>()(
                 );
 
                 return commitRuntime(state, sessionId, runtime);
-              }
+              });
+              return;
+            }
 
-              case 'permission.asked': {
+            case 'permission.asked': {
+              set((state) => {
                 const current = getRuntime(state.sessions, event.sessionId);
                 const runtime: SessionRuntime = {
                   ...current,
@@ -1446,9 +1454,13 @@ export const useChatStore = create<ChatStore>()(
                 };
 
                 return commitRuntime(state, event.sessionId, runtime);
-              }
+              });
+              return;
+            }
 
-              case 'message.updated':
+            case 'message.updated':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleMessageUpdated(
                   state,
                   sessionId,
@@ -1457,8 +1469,17 @@ export const useChatStore = create<ChatStore>()(
                   pendingPartUpdates,
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'message.part.updated':
+            case 'message.part.updated':
+              if (
+                event.part.type === 'step-start' ||
+                event.part.type == 'step-finish'
+              )
+                return;
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleMessagePartUpdated(
                   state,
                   sessionId,
@@ -1468,8 +1489,12 @@ export const useChatStore = create<ChatStore>()(
                   pendingPartUpdates,
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'message.part.delta':
+            case 'message.part.delta':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleMessagePartDelta(
                   state,
                   sessionId,
@@ -1478,8 +1503,12 @@ export const useChatStore = create<ChatStore>()(
                   pendingDeltas,
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'message.part.removed':
+            case 'message.part.removed':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleMessagePartRemoved(
                   state,
                   sessionId,
@@ -1488,8 +1517,12 @@ export const useChatStore = create<ChatStore>()(
                   pendingDeltas,
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'message.removed':
+            case 'message.removed':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleMessageRemoved(
                   state,
                   sessionId,
@@ -1498,19 +1531,24 @@ export const useChatStore = create<ChatStore>()(
                   pendingPartUpdates,
                   revertMessageId,
                 );
+              });
+              return;
 
-              case 'session.idle':
+            case 'session.idle':
+              set((state) => {
+                const current = getRuntime(state.sessions, sessionId);
                 return handleSessionIdle(
                   state,
                   sessionId,
                   current,
                   revertMessageId,
                 );
+              });
+              return;
 
-              default:
-                return state;
-            }
-          });
+            default:
+              return;
+          }
         },
 
         resetSession: (sessionId) => {

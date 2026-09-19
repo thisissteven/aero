@@ -43,7 +43,7 @@
 
   /* Paragraphs */
   .markdown p {
-    margin-bottom: calc(var(--spacing, 0.25rem) * 4);
+    margin-bottom: calc(var(--spacing, 0.25rem) * 1);
   }
 
   .markdown p:last-child {

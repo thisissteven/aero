@@ -38,8 +38,7 @@ export function SideChatPanel() {
 export function SideChatPage() {
   const sessionId = useSessionId();
 
-  const { session, turns: groups, notFound } = useSessionPage(sessionId);
-  const workspace = session?.workspace;
+  const { turns: groups, notFound } = useSessionPage(sessionId);
 
   const feedRef = useRef<ChatFeedRef | null>(null);
 
@@ -105,8 +104,8 @@ export function SideChatPage() {
             </WithScrollToBottomWrapper>
 
             <div className='absolute right-0 -translate-y-full'>
-              <SessionTodos sessionId={sessionId} />
-              <SessionDiff workspace={workspace} />
+              <SessionTodos />
+              <SessionDiff />
             </div>
           </OfflineWrapper>
 

@@ -7,10 +7,8 @@ import type { Components } from 'react-markdown';
 import { Markdown } from './markdown';
 import { VirtualizedMarkdown } from './virtualized-markdown';
 
-export interface AdaptiveMarkdownProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children'
-> {
+export interface AdaptiveMarkdownProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   children: string;
   components?: Partial<Components>;
   id: string;
@@ -49,7 +47,7 @@ export const AdaptiveMarkdown = memo(function AdaptiveMarkdown({
       {children}
     </VirtualizedMarkdown>
   ) : (
-    <Markdown scrollRef={scrollRef} streaming={isStreaming} {...props}>
+    <Markdown streaming={isStreaming} {...props}>
       {children}
     </Markdown>
   );

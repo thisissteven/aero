@@ -1,10 +1,9 @@
+import { logger } from '@aero/ui';
 import { InfoIcon } from '@aero/ui/icons';
-import { useMemo } from 'react';
+import { memo, useMemo, useRef } from 'react';
 import { Virtualizer, VirtualizerHandle } from 'virtua';
-
 import { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
-
 import { AssistantFooterView } from './assistant-footer-view';
 import { AssistantPartView } from './assistant-part-view';
 import { UserChatBubble } from './user-chat-bubble';
@@ -38,72 +37,70 @@ export function ChatConversationView({
       scrollRef={scrollRef}
       keepMounted={keepMounted}
       data={flatItems}
-      onScroll={onScroll}
+      // onScroll={onScroll}
       // set shift = true if loading older messages, shift = false if streaming
       // shift={isStreaming ? false : true}
     >
-      {(item) => {
-        if (item.type === 'spacer-first-item') {
-          return <div key={item.id} className='h-8 w-full shrink-0' />;
-        }
-        if (item.type === 'spacer') {
-          return <div key={item.id} className='h-2 w-full shrink-0' />;
-        }
-        if (item.type === 'spacer-footer') {
-          return <div key={item.id} className='h-8 w-full shrink-0' />;
-        }
-
-        return (
-          <div
-            key={item.id}
-            className='mx-auto w-full px-3 [contain:layout_style] md:max-w-[720px]'
-          >
-            {item.type === 'user' && (
-              <UserChatBubble
-                turn={item.turn}
-                forkMessageId={item.forkMessageId}
-              />
-            )}
-            {item.type === 'assistant-part' && (
-              <AssistantPartView
-                turnId={item.turnId}
-                part={item.part}
-                partIndex={item.partIndex}
-                isPartStreaming={item.isPartStreaming}
-              />
-            )}
-            {item.type === 'assistant-error' && (
-              <div className='relative pt-4 pb-2 @max-sm:break-all'>
-                <div className='text-danger bg-danger-soft border-danger-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
-                  <InfoIcon className='size-4 font-normal shrink-0' />
-                  <div className='align-middle'>{item.message}</div>
-                </div>
-              </div>
-            )}
-            {item.type === 'assistant-turn-aborted' && (
-              <div className='relative pt-4 pb-2 @max-sm:break-all'>
-                <div className='text-accent bg-accent-soft border-accent-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
-                  <InfoIcon className='size-4 font-normal shrink-0' />
-                  <div className='align-middle'>{item.message}</div>
-                </div>
-              </div>
-            )}
-            {item.type === 'assistant-usage-exceeded' && (
-              <div className='relative py-2 @max-sm:break-all'>
-                <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-lg border px-4 py-2 text-sm'>
-                  <div>
-                    <b>{item.title}</b>
-                  </div>
-                  {item.message}
-                </div>
-              </div>
-            )}
-            {item.type === 'assistant-footer' && (
-              <AssistantFooterView item={item} />
-            )}
-          </div>
-        );
-      }}
+      {(item) => <VirtualRow key={item.id} item={item} />}
     </Virtualizer>
   );
 }
+
+const VirtualRow = memo(function VirtualRow({
+  item,
+}: {
+  item: FlatConversationVirtualItem;
+}) {
+  if (item.type === 'spacer-first-item') {
+    return <div className='h-8 w-full shrink-0' />;
+  }
+  if (item.type === 'spacer') {
+    return <div className='h-2 w-full shrink-0' />;
+  }
+  if (item.type === 'spacer-footer') {
+    return <div className='h-8 w-full shrink-0' />;
+  }
+
+  return (
+    <div className='mx-auto w-full px-3 [contain:layout_style] md:max-w-[720px]'>
+      {item.type === 'user' && (
+        <UserChatBubble turn={item.turn} forkMessageId={item.forkMessageId} />
+      )}
+      {item.type === 'assistant-part' && (
+        <AssistantPartView
+          turnId={item.turnId}
+          part={item.part}
+          partIndex={item.partIndex}
+          isPartStreaming={item.isPartStreaming}
+        />
+      )}
+      {item.type === 'assistant-error' && (
+        <div className='relative pt-4 pb-2 @max-sm:break-all'>
+          <div className='text-danger bg-danger-soft border-danger-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
+            <InfoIcon className='size-4 font-normal shrink-0' />
+            <div className='align-middle'>{item.message}</div>
+          </div>
+        </div>
+      )}
+      {item.type === 'assistant-turn-aborted' && (
+        <div className='relative pt-4 pb-2 @max-sm:break-all'>
+          <div className='text-accent bg-accent-soft border-accent-soft/50 flex w-fit items-center gap-2 rounded-lg border py-2 pr-4 pl-3 text-sm'>
+            <InfoIcon className='size-4 font-normal shrink-0' />
+            <div className='align-middle'>{item.message}</div>
+          </div>
+        </div>
+      )}
+      {item.type === 'assistant-usage-exceeded' && (
+        <div className='relative py-2 @max-sm:break-all'>
+          <div className='text-warning bg-warning-soft border-warning-soft/50 w-fit rounded-lg border px-4 py-2 text-sm'>
+            <div>
+              <b>{item.title}</b>
+            </div>
+            {item.message}
+          </div>
+        </div>
+      )}
+      {item.type === 'assistant-footer' && <AssistantFooterView item={item} />}
+    </div>
+  );
+});

@@ -1,4 +1,4 @@
-import { ChatMessage, cn } from '@aero/ui';
+import { ChatMessage, cn, Markdown } from '@aero/ui';
 import {
   memo,
   useEffect,
@@ -50,16 +50,6 @@ export const UserChatBubble = memo(
           .join('\n'),
       [turn.parts],
     );
-
-    // Synchronous layout effect for initial clamp without flicker
-    useLayoutEffect(() => {
-      const el = textRef.current;
-      if (!el) return;
-
-      // Temporary check on scrollHeight vs clientHeight or a fixed max threshold
-      const overflow = el.scrollHeight > 96;
-      setIsOverflowing(overflow);
-    }, [text]);
 
     // ResizeObserver observing container width changes rather than height changes
     useEffect(() => {
@@ -123,7 +113,7 @@ export const UserChatBubble = memo(
       <ChatMessage.User ref={bubbleRef} className='relative'>
         <ChatMessage.Bubble
           className={cn(
-            'max-w-4/5',
+            'max-w-4/5 px-3 rounded-xl',
             isOverflowing && !isExpanded && 'cursor-pointer',
           )}
           onClick={() => {
@@ -134,12 +124,11 @@ export const UserChatBubble = memo(
           <div className='relative'>
             <div
               ref={textRef}
-              className={cn(
-                'overflow-hidden font-sans text-sm break-words whitespace-pre-wrap',
-                !isExpanded && isOverflowing && 'line-clamp-3',
-              )}
+              className={cn(!isExpanded && isOverflowing && 'line-clamp-3')}
             >
-              {text}
+              <Markdown id={turn.id} streaming={false} streamRevealPreset='off'>
+                {text}
+              </Markdown>
             </div>
 
             {isOverflowing && (
