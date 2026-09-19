@@ -1,5 +1,4 @@
 import { cn, ScrollShadow } from '@aero/ui';
-import { useAutoScroll } from '@aero/ui/hooks';
 import React, {
   forwardRef,
   useCallback,
@@ -11,12 +10,11 @@ import React, {
   useState,
 } from 'react';
 import { type VirtualizerHandle } from 'virtua';
-
+import { useAutoScroll } from '@/app/components/markdown/use-auto-scroll';
 import { ChatConversationView } from '@/app/components/message-view/chat-conversation-view';
 import { buildFlatConversationItems } from '@/app/components/message-view/lib';
 import { useScrollbarWidth } from '@/app/hooks/useScrollbarWidth';
 import { AeroConversationTurn } from '@/server/services/harness/types';
-
 import { useMockStreamFeed } from './useMockStreamFeed';
 
 export interface MockChatPageRef {

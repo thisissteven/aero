@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@heroui/react';
+import { cn } from '@aero/ui';
 import type {
   ComponentPropsWithRef,
   NamedExoticComponent,
@@ -10,12 +10,10 @@ import type {
 import { memo, useMemo, useRef } from 'react';
 import type { Components } from 'react-markdown';
 import { Virtualizer } from 'virtua';
-import { useAutoScroll } from '../hooks';
-import {
-  defaultComponents,
-  MarkdownFileContext,
-  MemoizedBlock,
-} from './markdown';
+import { defaultComponents } from '@/app/components/markdown/default-components';
+import { MarkdownFileContext } from '@/app/components/markdown/markdown-file-context';
+import { MemoizedBlock } from '@/app/components/markdown/memoized-block';
+import { useAutoScroll } from '@/app/components/markdown/use-auto-scroll';
 
 /**
  * Splits markdown into top-level blocks on blank-line boundaries, keeping

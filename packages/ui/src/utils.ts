@@ -1,8 +1,8 @@
 export {
   cn,
-  dom,
   type DOMRenderFunction,
   type DOMRenderProps,
+  dom,
   tv,
   type VariantProps,
 } from '@heroui/react';

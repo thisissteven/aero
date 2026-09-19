@@ -1,4 +1,4 @@
-import { cn } from '@heroui/react';
+import { cn } from '@aero/ui';
 import {
   ComponentPropsWithoutRef,
   memo,
@@ -6,7 +6,10 @@ import {
   useContext,
 } from 'react';
 import { Components, ExtraProps } from 'react-markdown';
-import { CodeBlock } from '../code-block';
+import { getShikiTheme } from '@/app/components/code-block/get-shiki-theme';
+import { useAppearanceStore } from '@/app/providers/settings/appearance/appearance-store';
+import { useTheme } from '@/app/providers/theme';
+import { CodeBlock } from '../code-block/code-block';
 import { MarkdownFileContext } from './markdown-file-context';
 import { MermaidDiagram } from './mermaid-diagram';
 import { SvgBlock } from './svg-block';
@@ -19,6 +22,13 @@ const MarkdownCode = memo(function MarkdownCode({
   node,
   ...props
 }: MarkdownCodeProps): ReactElement | null {
+  const { resolvedTheme } = useTheme();
+
+  const colorThemeLight = useAppearanceStore((state) => state.lightTheme);
+  const colorThemeDark = useAppearanceStore((state) => state.darkTheme);
+
+  const isDark = resolvedTheme === 'dark';
+
   const { isFile, onFileClick } = useContext(MarkdownFileContext);
 
   const isInline =
@@ -78,13 +88,22 @@ const MarkdownCode = memo(function MarkdownCode({
   }
 
   return (
-    <CodeBlock>
-      <CodeBlock.Header>
-        <span className='text-muted text-xs uppercase'>{language}</span>
+    <CodeBlock className='bg-default border-muted/10'>
+      <CodeBlock.Header className='border-muted/10'>
+        <span className='text-foreground text-xs uppercase'>{language}</span>
         <CodeBlock.CopyButton code={code} />
       </CodeBlock.Header>
 
-      <CodeBlock.Code code={code} language={language} />
+      <CodeBlock.Code
+        code={code}
+        language={language}
+        theme={getShikiTheme(colorThemeLight, 'light')}
+        darkTheme={getShikiTheme(colorThemeDark, 'dark')}
+        // Pierre does NOT infer which theme to use from the `theme` object.
+        // Without this, light mode renders with the wrong token palette.
+        themeType={isDark ? 'dark' : 'light'}
+        className='p-1'
+      />
     </CodeBlock>
   );
 });

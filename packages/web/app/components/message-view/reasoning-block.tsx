@@ -1,18 +1,16 @@
 'use client';
 
 import {
-  AdaptiveMarkdown,
   ChainOfThought,
   cn,
   DisclosureIndicator,
-  logger,
   ScrollShadow,
   TextEffect,
 } from '@aero/ui';
 import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, ReactElement, useEffect, useRef, useState } from 'react';
-
+import { AdaptiveMarkdown } from '@/app/components/markdown/adaptive-markdown';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 

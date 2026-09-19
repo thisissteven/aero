@@ -3,7 +3,7 @@
 import mermaid from 'mermaid';
 import type { ReactElement } from 'react';
 import { memo, useEffect, useRef, useState } from 'react';
-import { CodeBlock } from '../code-block';
+import { CodeBlock } from '../code-block/code-block';
 import { DiagramFrame } from './diagram-frame';
 
 let initialized = false;

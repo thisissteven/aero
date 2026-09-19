@@ -13,7 +13,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { CodeBlockCopyButton } from '../code-block';
+import { CodeBlock } from '../code-block/code-block';
 
 // ---- icons (inline-SVG, matching CodeBlock's pattern) --------------------
 
@@ -436,7 +436,7 @@ export const DiagramFrame = memo(function DiagramFrame({
             </Button>
           </>
         )}
-        <CodeBlockCopyButton code={code} aria-label={`Copy ${label} code`} />
+        <CodeBlock.CopyButton code={code} aria-label={`Copy ${label} code`} />
         <Button
           isIconOnly
           aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}

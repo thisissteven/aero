@@ -1,8 +1,7 @@
 // assistant-part-view.tsx
 
-import { Markdown } from '@aero/ui';
 import { memo } from 'react';
-
+import { Markdown } from '@/app/components/markdown/markdown';
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
 import { ToolCallView } from '@/app/components/tool-call-view/tool-call-view';
 import { AeroPart } from '@/server/services/harness/types';

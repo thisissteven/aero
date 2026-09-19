@@ -12,10 +12,8 @@
 @import "./components/chat-message.css";
 @import "./components/chat-message-actions.css";
 @import "./components/chat-source.css";
-@import "./components/chat-tool.css";
 @import "./components/chain-of-thought.css";
 @import "./components/command.css";
-@import "./components/code-block.css";
 @import "./components/context-menu.css";
 @import "./components/dropdown.css";
 @import "./components/floating-toc.css";
@@ -72,7 +70,6 @@
 @source "../components/**/*.tsx";
 
 @import "../../generated/themes.css";
-@import "katex/dist/katex.min.css";
 
 :root {
   --chart-1: oklch(from var(--accent) calc(l - 0.24) c h);

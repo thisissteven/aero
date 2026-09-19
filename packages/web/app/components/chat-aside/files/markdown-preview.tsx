@@ -1,8 +1,9 @@
 'use client';
 
-import { Markdown, MarkdownComponents } from '@aero/ui';
 import { memo, useCallback, useMemo } from 'react';
+import { Components as MarkdownComponents } from 'react-markdown';
 import { resolveMarkdownUrl } from '@/app/components/chat-aside/files/markdown-url';
+import { Markdown } from '@/app/components/markdown/markdown';
 
 export interface MarkdownPreviewProps {
   /** Raw markdown source. */

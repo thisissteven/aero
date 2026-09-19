@@ -6,7 +6,7 @@ import rehypeParse from 'rehype-parse';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
-import { CodeBlock } from '../code-block';
+import { CodeBlock } from '../code-block/code-block';
 import { DiagramFrame } from './diagram-frame';
 import { svgSanitizeSchema } from './svg-sanitize-schema';
 

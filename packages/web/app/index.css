@@ -3,6 +3,7 @@
 @source "./components/**/*.tsx";
 @source "./features/**/*.tsx";
 @source "./routes/**/*.tsx";
+@import "katex/dist/katex.min.css";
 
 @layer base {
   button:not(:disabled),

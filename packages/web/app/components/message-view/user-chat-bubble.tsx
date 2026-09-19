@@ -1,5 +1,6 @@
-import { ChatMessage, cn, Markdown } from '@aero/ui';
+import { ChatMessage, cn } from '@aero/ui';
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Markdown } from '@/app/components/markdown/markdown';
 import { ChatQuote } from '@/app/components/message-view/chat-quote';
 import {
   MessageActionsCopy,

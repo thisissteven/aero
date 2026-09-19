@@ -1,9 +1,19 @@
 {
   "name": "@aero/root",
-  "private": true,
   "version": "0.0.0",
-  "packageManager": "bun@1.3.14",
-  "workspaces": ["apps/*", "packages/*"],
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "globals": "^15.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
+    "turbo": "2.10.7",
+    "typescript": "6.0.3"
+  },
   "catalog": {
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",
@@ -27,6 +37,13 @@
     "turbo": "2.10.7",
     "virtua": "^0.51.3"
   },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx,json,css}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "packageManager": "bun@1.3.14",
+  "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -44,22 +61,5 @@
     "web:start": "turbo run start --filter=@aero/web",
     "tree": "node ./scripts/tree.js"
   },
-  "devDependencies": {
-    "@biomejs/biome": "2.5.13",
-    "@commitlint/cli": "^19.6.0",
-    "@commitlint/config-conventional": "^19.6.0",
-    "@tailwindcss/vite": "^4.3.3",
-    "globals": "^15.14.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.3.0",
-    "stylelint": "^17.14.1",
-    "stylelint-config-standard": "^40.0.0",
-    "turbo": "2.10.7",
-    "typescript": "6.0.3"
-  },
-  "lint-staged": {
-    "*.{js,ts,jsx,tsx,json,css}": [
-      "biome check --write --no-errors-on-unmatched"
-    ]
-  }
+  "workspaces": ["apps/*", "packages/*"]
 }

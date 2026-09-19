@@ -1,6 +1,12 @@
+import {
+  CustomThemeLoader,
+  registerCustomTheme,
+  resolveTheme,
+} from '@pierre/diffs';
 import { CSSProperties } from 'react';
 import { ColorTheme } from '@/app/providers';
 
+// ── 1. Your existing Shiki theme map ──────────────────────────────
 const PIERRE_THEME_MAP: Partial<
   Record<ColorTheme, string | { light: string; dark: string }>
 > = {
@@ -29,7 +35,86 @@ const PIERRE_THEME_MAP: Partial<
   zenburn: 'zenburn',
 };
 
+// ── 2. The 10 Pierre themes (for fallback) ────────────────────────
+const PIERRE_THEMES = new Set<string>([
+  'pierre-light',
+  'pierre-light-soft',
+  'pierre-light-vibrant',
+  'pierre-light-protanopia-deuteranopia',
+  'pierre-light-tritanopia',
+  'pierre-dark',
+  'pierre-dark-soft',
+  'pierre-dark-vibrant',
+  'pierre-dark-protanopia-deuteranopia',
+  'pierre-dark-tritanopia',
+]);
+
+// ── 3. Static theme loaders ───────────────────────────────────────
+// Vite requires static import paths so it can pre-bundle the modules.
+// A variable like `import(`@shikijs/themes/${name}`)` is left as-is at
+// runtime and fails with "Failed to resolve module specifier".
+const THEME_LOADERS: Record<string, CustomThemeLoader> = {
+  'github-light': () => import('@shikijs/themes/github-light'),
+  'github-dark': () => import('@shikijs/themes/github-dark'),
+  'ayu-light': () => import('@shikijs/themes/ayu-light'),
+  'ayu-dark': () => import('@shikijs/themes/ayu-dark'),
+  'catppuccin-latte': () => import('@shikijs/themes/catppuccin-latte'),
+  'catppuccin-mocha': () => import('@shikijs/themes/catppuccin-mocha'),
+  dracula: () => import('@shikijs/themes/dracula'),
+  'gruvbox-light-hard': () => import('@shikijs/themes/gruvbox-light-hard'),
+  'gruvbox-dark-hard': () => import('@shikijs/themes/gruvbox-dark-hard'),
+  'kanagawa-lotus': () => import('@shikijs/themes/kanagawa-lotus'),
+  monokai: () => import('@shikijs/themes/monokai'),
+  'night-owl': () => import('@shikijs/themes/night-owl'),
+  nord: () => import('@shikijs/themes/nord'),
+  'rose-pine-dawn': () => import('@shikijs/themes/rose-pine-dawn'),
+  'rose-pine': () => import('@shikijs/themes/rose-pine'),
+  'solarized-light': () => import('@shikijs/themes/solarized-light'),
+  'solarized-dark': () => import('@shikijs/themes/solarized-dark'),
+  'tokyo-night': () => import('@shikijs/themes/tokyo-night'),
+  'vitesse-light': () => import('@shikijs/themes/vitesse-light'),
+  'vitesse-dark': () => import('@shikijs/themes/vitesse-dark'),
+};
+
+let isRegistered = false;
+
+export function registerPierreThemes() {
+  if (isRegistered) return;
+
+  const allThemeNames = new Set<string>();
+  for (const entry of Object.values(PIERRE_THEME_MAP)) {
+    if (!entry) continue;
+    if (typeof entry === 'string') {
+      allThemeNames.add(entry);
+    } else {
+      allThemeNames.add(entry.light);
+      allThemeNames.add(entry.dark);
+    }
+  }
+
+  for (const name of allThemeNames) {
+    const loader = THEME_LOADERS[name];
+    if (!loader) {
+      // No loader registered for this name (e.g. aura, carbonfox,
+      // vercel-*, tokyo-night-storm, zenburn, shades-of-purple).
+      // Skip silently — getPierreTheme falls back to Pierre defaults.
+      continue;
+    }
+
+    registerCustomTheme(name, loader);
+    void resolveTheme(name);
+  }
+
+  isRegistered = true;
+}
+
+// ── 4. Resolver with fallback ──────────────────────────────────────
 type PierreThemeValue = { dark: string; light: string };
+
+const PIERRE_FALLBACK: PierreThemeValue = {
+  dark: 'pierre-dark',
+  light: 'pierre-light',
+};
 
 export function getPierreTheme(
   colorTheme: ColorTheme,
@@ -37,13 +122,30 @@ export function getPierreTheme(
 ): PierreThemeValue {
   const mapped = PIERRE_THEME_MAP[colorTheme];
   if (!mapped) {
-    return { dark: 'pierre-dark', light: 'pierre-light' };
+    return PIERRE_FALLBACK;
   }
+
+  // String case: return immediately so TS narrows `mapped` below.
   if (typeof mapped === 'string') {
+    if (!PIERRE_THEMES.has(mapped) && !THEME_LOADERS[mapped]) {
+      return PIERRE_FALLBACK;
+    }
     return { dark: mapped, light: mapped };
   }
+
+  // Here `mapped` is narrowed to { light: string; dark: string }.
+  const candidate = resolvedTheme === 'dark' ? mapped.dark : mapped.light;
+  if (
+    !candidate ||
+    (!PIERRE_THEMES.has(candidate) && !THEME_LOADERS[candidate])
+  ) {
+    return PIERRE_FALLBACK;
+  }
+
   return { dark: mapped.dark, light: mapped.light };
 }
+
+// ── 5. Everything below stays exactly the same ──────────────────────
 
 export function getPierreShadowCss(fontSize: number): string {
   return `

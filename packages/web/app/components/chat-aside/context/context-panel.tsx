@@ -1,5 +1,4 @@
 import {
-  CodeBlock,
   cn,
   Disclosure,
   Label,
@@ -9,7 +8,8 @@ import {
 } from '@aero/ui';
 import { memo, useMemo } from 'react';
 import { VList } from 'virtua';
-import { CodeBlockContent } from '@/app/components/tool-call-view/code-block-content';
+import { CodeBlock } from '@/app/components/code-block/code-block';
+import { CodeBlockContent } from '@/app/components/code-block/code-block-content';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
 import { formatDateTimeFull } from '@/app/lib/date';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -412,13 +412,16 @@ const MessageItem = memo(
           </Disclosure.Trigger>
         </Disclosure.Heading>
         <Disclosure.Content>
-          <CodeBlock className='bg-transparent'>
-            <CodeBlockContent
-              code={msg.rawContent}
-              language='json'
-              scrollOverflow
-            />
-          </CodeBlock>
+          {isExpanded && (
+            <CodeBlock className='border-0 py-2'>
+              <CodeBlockContent
+                code={msg.rawContent}
+                language='json'
+                scrollOverflow
+                className='p-1'
+              />
+            </CodeBlock>
+          )}
         </Disclosure.Content>
       </Disclosure>
     );

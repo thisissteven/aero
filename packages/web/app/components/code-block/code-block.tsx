@@ -19,7 +19,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { CopyMotionIcon } from '@/app/components/tool-call-view/code-block-icons';
+import { CopyMotionIcon } from './code-block-icons';
 
 // ── Shadow-root CSS ─────────────────────────────────────────────────────────
 //
@@ -118,14 +118,14 @@ const useCodeBlock = (): CodeBlockContextValue => useContext(CodeBlockContext);
 
 // ── Root / Header / Footer ──────────────────────────────────────────────────
 
-export interface CodeBlockRootProps extends ComponentPropsWithRef<'div'> {
+interface CodeBlockRootProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
   defaultWrap?: boolean;
   defaultViewMode?: ViewMode;
   defaultThemeType?: ThemeType;
 }
 
-export function CodeBlockRoot({
+function CodeBlockRoot({
   children,
   className,
   defaultWrap = true,
@@ -163,11 +163,11 @@ export function CodeBlockRoot({
   );
 }
 
-export interface CodeBlockHeaderProps extends ComponentPropsWithRef<'div'> {
+interface CodeBlockHeaderProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
 
-export const CodeBlockHeader = memo(function CodeBlockHeader({
+const CodeBlockHeader = memo(function CodeBlockHeader({
   children,
   className,
   ...props
@@ -187,11 +187,11 @@ export const CodeBlockHeader = memo(function CodeBlockHeader({
   );
 });
 
-export interface CodeBlockFooterProps extends ComponentPropsWithRef<'div'> {
+interface CodeBlockFooterProps extends ComponentPropsWithRef<'div'> {
   children: ReactNode;
 }
 
-export const CodeBlockFooter = memo(function CodeBlockFooter({
+const CodeBlockFooter = memo(function CodeBlockFooter({
   children,
   className,
   ...props
@@ -213,7 +213,7 @@ export const CodeBlockFooter = memo(function CodeBlockFooter({
 
 // ── Code block ──────────────────────────────────────────────────────────────
 
-export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
+interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   code: string;
   language?: string;
   theme?: string;
@@ -228,7 +228,7 @@ export interface CodeBlockCodeProps extends ComponentPropsWithRef<'div'> {
   unsafeCSS?: string;
 }
 
-export const CodeBlockCode = memo(function CodeBlockCode({
+const CodeBlockCode = memo(function CodeBlockCode({
   className,
   code,
   darkTheme = 'github-dark',
@@ -320,7 +320,7 @@ export const CodeBlockCode = memo(function CodeBlockCode({
 
 // ── Dedicated diff ──────────────────────────────────────────────────────────
 
-export interface CodeBlockDiffProps extends ComponentPropsWithRef<'div'> {
+interface CodeBlockDiffProps extends ComponentPropsWithRef<'div'> {
   patch: string;
   theme?: string;
   darkTheme?: string;
@@ -330,7 +330,7 @@ export interface CodeBlockDiffProps extends ComponentPropsWithRef<'div'> {
   unsafeCSS?: string;
 }
 
-export const CodeBlockDiff = memo(function CodeBlockDiff({
+const CodeBlockDiff = memo(function CodeBlockDiff({
   className,
   darkTheme = 'github-dark',
   patch,
@@ -381,13 +381,13 @@ export const CodeBlockDiff = memo(function CodeBlockDiff({
 
 // ── Change summary ──────────────────────────────────────────────────────────
 
-export interface CodeBlockChangeSummaryProps {
+interface CodeBlockChangeSummaryProps {
   additions: number;
   deletions: number;
   className?: string;
 }
 
-export const CodeBlockChangeSummary = memo(function CodeBlockChangeSummary({
+const CodeBlockChangeSummary = memo(function CodeBlockChangeSummary({
   additions,
   deletions,
   className,
@@ -407,12 +407,12 @@ const actionButtonClass = cn(
   'data-[pressed]:text-foreground',
 );
 
-export interface CodeBlockWrapButtonProps {
+interface CodeBlockWrapButtonProps {
   'aria-label'?: string;
   className?: string;
 }
 
-export const CodeBlockWrapButton = memo(function CodeBlockWrapButton({
+const CodeBlockWrapButton = memo(function CodeBlockWrapButton({
   'aria-label': ariaLabel = 'Toggle line wrap',
   className,
   ...props
@@ -439,12 +439,12 @@ export const CodeBlockWrapButton = memo(function CodeBlockWrapButton({
   );
 });
 
-export interface CodeBlockViewModeButtonProps {
+interface CodeBlockViewModeButtonProps {
   'aria-label'?: string;
   className?: string;
 }
 
-export const CodeBlockViewModeButton = memo(function CodeBlockViewModeButton({
+const CodeBlockViewModeButton = memo(function CodeBlockViewModeButton({
   'aria-label': ariaLabel = 'Toggle split view',
   className,
   ...props
@@ -474,13 +474,13 @@ export const CodeBlockViewModeButton = memo(function CodeBlockViewModeButton({
   );
 });
 
-export interface CodeBlockOpenInBrowserButtonProps {
+interface CodeBlockOpenInBrowserButtonProps {
   'aria-label'?: string;
   className?: string;
   onClick: () => void;
 }
 
-export const CodeBlockOpenInBrowserButton = memo(
+const CodeBlockOpenInBrowserButton = memo(
   function CodeBlockOpenInBrowserButton({
     'aria-label': ariaLabel = 'Open',
     className,
@@ -510,7 +510,7 @@ export interface CodeBlockOpenButtonProps {
   onClick: () => void;
 }
 
-export const CodeBlockOpenButton = memo(function CodeBlockOpenButton({
+const CodeBlockOpenButton = memo(function CodeBlockOpenButton({
   'aria-label': ariaLabel = 'Open',
   className,
   onClick,
@@ -532,13 +532,13 @@ export const CodeBlockOpenButton = memo(function CodeBlockOpenButton({
   );
 });
 
-export interface CodeBlockCopyButtonProps {
+interface CodeBlockCopyButtonProps {
   'aria-label'?: string;
   className?: string;
   code: string;
 }
 
-export const CodeBlockCopyButton = memo(function CodeBlockCopyButton({
+const CodeBlockCopyButton = memo(function CodeBlockCopyButton({
   'aria-label': ariaLabel = 'Copy code',
   className,
   code,

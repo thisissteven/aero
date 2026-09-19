@@ -10,11 +10,10 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
-import { useSession } from '@/app/hooks/api/sessions';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
-import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 interface DetectedApp {
   id: string;
@@ -34,15 +33,11 @@ async function openApp(path: string, appId: string): Promise<boolean> {
 }
 
 export function OpenInActions() {
-  const sessionId = useSessionId();
+  const directory = useSessionDirectory();
 
-  const { data: session } = useSession(undefined, sessionId);
+  if (!directory) return null;
 
-  const workspace = session?.workspace;
-
-  if (!sessionId || !workspace) return null;
-
-  return <OpenInActionsContent projectPath={workspace} />;
+  return <OpenInActionsContent projectPath={directory} />;
 }
 
 function OpenInActionsContent({ projectPath }: { projectPath: string }) {

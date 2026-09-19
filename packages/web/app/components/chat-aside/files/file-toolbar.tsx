@@ -17,8 +17,8 @@ import {
 } from '@/app/components/chat-aside/files/file-viewer-store';
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import { ToolbarButton } from '@/app/components/chat-aside/files/toolbar-button';
+import { CopyMotionIcon } from '@/app/components/code-block/code-block-icons';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
-import { CopyMotionIcon } from '@/app/components/tool-call-view/code-block-icons';
 
 export interface FileToolbarProps {
   filePath: string;

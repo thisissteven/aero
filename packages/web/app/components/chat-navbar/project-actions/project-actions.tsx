@@ -8,20 +8,15 @@ import {
 } from '@/app/components/chat-aside/terminal/terminal-controllers';
 import { useTerminalStore } from '@/app/components/chat-aside/terminal/terminal-store';
 import { useDiscoverScript } from '@/app/hooks/api/discovery';
-import { useSession } from '@/app/hooks/api/sessions';
-import { useSessionId } from '@/app/providers/SessionIdProvider';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function ProjectActions() {
-  const sessionId = useSessionId();
+  const directory = useSessionDirectory();
 
-  const { data: session } = useSession(undefined, sessionId);
+  if (!directory) return null;
 
-  const workspace = session?.workspace;
-
-  if (!sessionId || !workspace) return null;
-
-  return <ProjectActionsContent projectPath={workspace} />;
+  return <ProjectActionsContent projectPath={directory} />;
 }
 
 export function ProjectActionsContent({

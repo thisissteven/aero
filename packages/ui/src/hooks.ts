@@ -17,4 +17,3 @@ export {
   useSafeLayoutEffect,
   useTheme,
 } from '@heroui/react';
-export { useAutoScroll } from './hooks/useAutoScroll';

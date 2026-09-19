@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@heroui/react';
+import { cn } from '@aero/ui';
 import type {
   ComponentPropsWithRef,
   NamedExoticComponent,
@@ -15,12 +15,9 @@ import {
   useState,
 } from 'react';
 import type { Components } from 'react-markdown';
-
-import {
-  defaultComponents,
-  MarkdownFileContext,
-  MemoizedBlock,
-} from '../markdown';
+import { defaultComponents } from '@/app/components/markdown/default-components';
+import { MarkdownFileContext } from '@/app/components/markdown/markdown-file-context';
+import { MemoizedBlock } from '@/app/components/markdown/memoized-block';
 
 const SETTLE_FADE_MS = 320;
 const SETTLE_HOLD_MS = SETTLE_FADE_MS + 500;
