@@ -13,6 +13,7 @@
       "dependsOn": ["build"],
       "persistent": true,
       "env": [
+        "PORT",
         "HTTP_PROXY",
         "HTTPS_PROXY",
         "NO_PROXY",
@@ -20,6 +21,11 @@
         "https_proxy",
         "no_proxy"
       ]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": []
     },
     "dev": {
       "cache": false,

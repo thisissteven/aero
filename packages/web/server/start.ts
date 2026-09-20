@@ -35,19 +35,29 @@ const app = new Hono();
 
 app.route('/', api);
 
-app.use(
-  '/*',
-  serveStatic({
-    root: './dist',
-  }),
-);
+const apiOnly = process.env.AERO_API_ONLY === '1';
 
-app.get(
-  '*',
-  serveStatic({
-    path: './dist/index.html',
-  }),
-);
+if (!apiOnly) {
+  app.use(
+    '/*',
+    serveStatic({
+      root: './dist',
+    }),
+  );
+
+  app.get(
+    '*',
+    serveStatic({
+      path: './dist/index.html',
+    }),
+  );
+}
+
+if (apiOnly) {
+  app.notFound((c) =>
+    c.json({ success: false, message: 'API-only mode' }, 404),
+  );
+}
 
 type TerminalSocketData = {
   kind: 'terminal';

@@ -58,12 +58,13 @@
     "storybook:preview": "turbo run preview --filter=@aero/storybook",
     "web:dev": "turbo run dev --filter=@aero/web",
     "web:build": "turbo run build --filter=@aero/web",
-    "cli:start": "cd packages/cli && bun src/index.ts serve",
-    "cli:dev": "cd packages/cli && bun src/index.ts",
-    "cli:build": "cd packages/cli && bun run build",
-    "cli:test": "cd packages/cli && bun test",
-    "cli:check-types": "cd packages/cli && bun run check-types",
     "web:start": "turbo run start --filter=@aero/web",
+    "cli:start": "turbo run start --filter=@aero/cli",
+    "cli:dev": "turbo run dev --filter=@aero/cli",
+    "cli:build": "turbo run build --filter=@aero/cli",
+    "cli:test": "turbo run test --filter=@aero/cli",
+    "cli:check-types": "turbo run check-types --filter=@aero/cli",
+    "cli": "bun run ./packages/cli/dist/index.js",
     "tree": "node ./scripts/tree.js"
   },
   "workspaces": ["apps/*", "packages/*"]
