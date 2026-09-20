@@ -29,3 +29,15 @@ export async function getOpencodeClientV2(): Promise<{
 
 export const withOpencodeClient = withOpencodeClientV2;
 export const getOpencodeClient = getOpencodeClientV2;
+
+export async function getOpencodeStreamingClientV2(): Promise<{
+  client: OpencodeClientV2;
+  node: PoolNodeV2;
+}> {
+  const node = await opencodePoolV2.getStreamingNode();
+
+  return {
+    client: node.client,
+    node,
+  };
+}

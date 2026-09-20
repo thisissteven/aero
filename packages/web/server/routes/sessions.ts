@@ -891,28 +891,32 @@ const sessions = new Hono()
         const events = hub.subscribe(sessionId);
         const iterator = events[Symbol.asyncIterator]();
 
+        let lastWrite = Date.now();
+        const heartbeat = setInterval(() => {
+          if (controller.signal.aborted) return;
+          if (Date.now() - lastWrite < 10_000) return;
+          lastWrite = Date.now();
+          void stream.writeSSE({ event: 'ping', data: '' });
+        }, 10_000);
+
         try {
           await hub.waitUntilReady();
           if (controller.signal.aborted) return;
+
           await stream.writeSSE({ event: 'ready', data: '' });
+          lastWrite = Date.now();
 
           while (!controller.signal.aborted) {
-            let result;
-            try {
-              result = await iterator.next();
-            } catch (err) {
-              console.error('[sse] iterator threw, ending stream', err);
-              break;
-            }
+            const result = await iterator.next();
             if (result.done) break;
             await stream.writeSSE({
               event: result.value.type,
               data: JSON.stringify(result.value),
             });
+            lastWrite = Date.now();
           }
-        } catch (err) {
-          console.error('[sse] streamSSE callback threw', err);
         } finally {
+          clearInterval(heartbeat);
           controller.abort();
           try {
             await iterator.return?.();

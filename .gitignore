@@ -33,6 +33,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
+# CLI server state (PID tracking, logs)
+.aero/
+packages/cli/.aero/
+.aero/cli-server.pid
+packages/cli/.aero/cli-server.pid
+
 # Build output
 .turbo/
 

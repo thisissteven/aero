@@ -1,17 +1,28 @@
 {
   "name": "@aero/cli",
   "version": "0.0.0",
+  "bin": {
+    "aero": "./dist/index.js"
+  },
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsup",
+    "build": "cd ../web && bun run build && node ../cli/scripts/copy-web.js && cd ../cli && tsup src/index.ts",
+    "prestart": "node -e \"require('fs').existsSync('./dist/index.html') || (console.error('Run cli:build first. Missing dist/index.html'), process.exit(1))\"",
     "lint": "bunx --bun eslint . --fix-dry-run --cache",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "start": "tsx src/index.ts serve",
+    "test": "bun test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
   "devDependencies": {
-    "tsx": "^4.19.2",
-    "tsup": "^8.3.5"
+    "@types/bun": "^1.3.14",
+    "@types/node": "catalog:",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2"
   }
 }
