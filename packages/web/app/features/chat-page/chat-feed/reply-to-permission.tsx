@@ -237,7 +237,7 @@ export const ReplyToPermission = React.memo(() => {
       <div className='overflow-hidden pb-3'>
         <div className='bg-surface text-surface-foreground border-separator flex flex-col gap-3 rounded-xl border p-4'>
           {/* Permission Header */}
-          <div className='text-foreground text-sm leading-5 font-medium'>
+          <div className='text-foreground text-sm leading-5 font-medium line-clamp-3'>
             Allow Agent to <span className='font-semibold'>{actionTitle}</span>?
           </div>
 

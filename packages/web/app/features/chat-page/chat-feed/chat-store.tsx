@@ -1486,6 +1486,9 @@ export const useChatStore = create<ChatStore>()(
 
                 return commitRuntime(state, event.sessionId, runtime);
               });
+
+              scrollToBottom(event, sessionId);
+
               return;
             }
 
@@ -1521,6 +1524,13 @@ export const useChatStore = create<ChatStore>()(
                   revertMessageId,
                 );
               });
+
+              if (
+                event.part.type === 'tool' &&
+                event.part.toolName === 'question'
+              ) {
+                scrollToBottom(event, sessionId);
+              }
               return;
 
             case 'message.part.delta':

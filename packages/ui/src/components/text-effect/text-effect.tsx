@@ -7,9 +7,9 @@ export type TextEffectProps = {
   children: string;
   as?: keyof React.JSX.IntrinsicElements;
   className?: string;
-  duration?: number; // ms, fade duration per character
-  stagger?: number; // ms, delay added per character index
-  delay?: number; // ms, delay before the first character
+  duration?: number;
+  stagger?: number;
+  delay?: number;
   style?: React.CSSProperties;
   onAnimationComplete?: () => void;
 };
@@ -29,9 +29,14 @@ export function TextEffect({
   return (
     <>
       <style>{`
+        /* Outer span: only for layout, never animated */
         .text-effect__char {
           display: inline-block;
           white-space: pre;
+        }
+        /* Inner span: the actual animation */
+        .text-effect__char-inner {
+          display: inline-block;
           opacity: 0;
           transform: translateY(4px);
           animation-name: text-effect-fade-in;
@@ -45,18 +50,19 @@ export function TextEffect({
       `}</style>
       <Tag className={cn('text-effect', className)} style={style}>
         {chars.map((char, index) => (
-          <span
-            key={index}
-            className='text-effect__char'
-            style={{
-              animationDuration: `${duration}ms`,
-              animationDelay: `${delay + index * stagger}ms`,
-            }}
-            onAnimationEnd={
-              index === chars.length - 1 ? onAnimationComplete : undefined
-            }
-          >
-            {char}
+          <span key={index} className='text-effect__char'>
+            <span
+              className='text-effect__char-inner'
+              style={{
+                animationDuration: `${duration}ms`,
+                animationDelay: `${delay + index * stagger}ms`,
+              }}
+              onAnimationEnd={
+                index === chars.length - 1 ? onAnimationComplete : undefined
+              }
+            >
+              {char}
+            </span>
           </span>
         ))}
       </Tag>

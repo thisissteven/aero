@@ -52,6 +52,23 @@ function parseChatQuotePart(text: string): { quote: string; comment: string } {
   };
 }
 
+/**
+ * Re-render only when the turn's identity or its part count changes.
+ * Streaming appends parts, so `parts.length` is the signal that the bubble
+ * gained content; anything else (metadata tweaks, new object identity from
+ * the parent) is ignored.
+ */
+function areUserChatBubblePropsEqual(
+  prev: UserChatBubbleProps,
+  next: UserChatBubbleProps,
+) {
+  return (
+    prev.turn.id === next.turn.id &&
+    prev.turn.parts.length === next.turn.parts.length &&
+    prev.forkMessageId === next.forkMessageId
+  );
+}
+
 export const UserChatBubble = memo(function UserChatBubble({
   turn,
   forkMessageId,
@@ -236,4 +253,4 @@ export const UserChatBubble = memo(function UserChatBubble({
       </div>
     </ChatMessage.User>
   );
-});
+}, areUserChatBubblePropsEqual);
