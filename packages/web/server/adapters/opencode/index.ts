@@ -4,7 +4,7 @@ import type { Event } from '@opencode-ai/sdk/v2';
 import pLimit from 'p-limit';
 
 import {
-  getOpencodeStreamingClientV2,
+  getOpencodeClientV2,
   withOpencodeClientV2,
 } from '@/server/adapters/opencode/client';
 import { opencodePoolV2 } from '@/server/adapters/opencode/pool';
@@ -1205,7 +1205,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     async *streamEvents(options = {}): AsyncIterable<AeroEvent> {
       const { sessionId, signal, onConnected } = options;
 
-      const { node } = await getOpencodeStreamingClientV2();
+      const { node, release } = await getOpencodeClientV2();
 
       const controller = new AbortController();
 
@@ -1287,7 +1287,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
               continue;
             }
 
-            const mapped = await mapOpencodeEvent(payload as Event);
+            let mapped: AeroEvent | null = null;
+            try {
+              mapped = await mapOpencodeEvent(payload as Event);
+            } catch (err) {
+              console.error('[opencode] mapOpencodeEvent failed', err);
+              separatorIndex = buffer.indexOf('\n\n');
+              continue;
+            }
 
             if (!mapped) {
               separatorIndex = buffer.indexOf('\n\n');
@@ -1320,6 +1327,8 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         } catch {
           // Ignore cancellation errors.
         }
+
+        release();
       }
     },
   };

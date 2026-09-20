@@ -6,12 +6,10 @@ import {
   CircleCheck,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import React, { useEffect, useMemo, useState } from 'react';
-import type {
-  QuestionOption,
-  QuestionPart,
-} from '@/app/components/tool-call-view/tools/tool-types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { QuestionOption } from '@/app/components/tool-call-view/tools/tool-types';
 import {
+  type AeroQuestionRequest,
   useChatStore,
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -33,46 +31,40 @@ export const ReplyToQuestion = React.memo(() => {
     return state.awaitingQuestions.includes(activeSessionId);
   });
 
-  const questionPart = useSessionRuntime(
+  // ── Render source: store, keyed by callID. No network required. ────────
+  const storeQuestion = useSessionRuntime(
     activeSessionId,
-    (runtime): QuestionPart | null => {
-      if (!isAwaitingQuestion || !runtime) {
-        return null;
-      }
-
-      for (
-        let turnIndex = runtime.turns.length - 1;
-        turnIndex >= 0;
-        turnIndex--
-      ) {
-        const turn = runtime.turns[turnIndex];
-
-        for (
-          let partIndex = turn.parts.length - 1;
-          partIndex >= 0;
-          partIndex--
-        ) {
-          const part = turn.parts[partIndex];
-
-          if (
-            part.type === 'tool' &&
-            part.toolName === 'question' &&
-            part.status === 'running'
-          ) {
-            return part as QuestionPart;
-          }
-        }
-      }
-
-      return null;
+    (runtime): AeroQuestionRequest | null => {
+      if (!runtime || runtime.questions.length === 0) return null;
+      return runtime.questions[runtime.questions.length - 1];
     },
   );
 
-  const {
-    data: sessionQuestions = [],
-    isLoading: isQuestionsLoading,
-    refetch: refetchQuestions,
-  } = useSessionQuestions(undefined, activeSessionId);
+  const cachedRef = useRef(storeQuestion);
+  if (storeQuestion) cachedRef.current = storeQuestion;
+  const questionRequest = isExiting ? cachedRef.current : storeQuestion;
+
+  const questions = questionRequest?.questions ?? [];
+
+  // ── Submit-identity resolver: que_... id via the REST list. ────────────
+  // Only needed at click-time; the banner paints before this resolves.
+  const { data: sessionQuestions = [], refetch: refetchQuestions } =
+    useSessionQuestions(undefined, activeSessionId);
+
+  // Fire one refetch the moment a question banner appears so the que_ id
+  // is warm by the time the user finishes answering.
+  useEffect(() => {
+    if (!isAwaitingQuestion || !questionRequest?.callID) return;
+    void refetchQuestions();
+  }, [isAwaitingQuestion, questionRequest?.callID, refetchQuestions]);
+
+  const serverRequestId = useMemo(() => {
+    if (!questionRequest) return null;
+    const match = sessionQuestions.find(
+      (q) => q.tool?.callID === questionRequest.callID,
+    );
+    return match?.id ?? null;
+  }, [questionRequest, sessionQuestions]);
 
   const { mutateAsync: reply, isPending: isPendingReply } =
     useReplyToQuestion(undefined);
@@ -80,35 +72,7 @@ export const ReplyToQuestion = React.memo(() => {
   const { mutateAsync: reject, isPending: isPendingReject } =
     useRejectQuestion(undefined);
 
-  useEffect(() => {
-    if (!activeSessionId || !isAwaitingQuestion) {
-      return;
-    }
-
-    void refetchQuestions();
-  }, [
-    activeSessionId,
-    isAwaitingQuestion,
-    questionPart?.id,
-    questionPart?.callID,
-    refetchQuestions,
-  ]);
-
-  const questionRequest = useMemo(() => {
-    if (!questionPart) {
-      return null;
-    }
-
-    return (
-      sessionQuestions.find(
-        (question) =>
-          question.sessionID === questionPart.sessionID &&
-          question.tool?.callID === questionPart.callID,
-      ) ?? null
-    );
-  }, [questionPart, sessionQuestions]);
-
-  const questions = questionRequest?.questions ?? [];
+  const removeQuestion = useChatStore((s) => s.removeQuestion);
 
   const [answers, setAnswers] = useState<string[][]>([]);
   const [customAnswers, setCustomAnswers] = useState<string[]>([]);
@@ -116,25 +80,18 @@ export const ReplyToQuestion = React.memo(() => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   useEffect(() => {
-    if (!questionPart || !questionRequest) {
-      return;
-    }
+    if (!questionRequest) return;
 
-    setAnswers((current) => questions.map((_, index) => current[index] ?? []));
-
-    setCustomAnswers((current) =>
-      questions.map((_, index) => current[index] ?? ''),
-    );
-
+    setAnswers((current) => questions.map((_, i) => current[i] ?? []));
+    setCustomAnswers((current) => questions.map((_, i) => current[i] ?? ''));
     setCurrentQuestionIndex((current) =>
       Math.min(Math.max(current, 0), Math.max(questions.length - 1, 0)),
     );
-  }, [questionPart?.id, questionRequest?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionRequest?.callID]);
 
   useEffect(() => {
-    if (isAwaitingQuestion) {
-      return;
-    }
+    if (isAwaitingQuestion) return;
 
     setAnswers([]);
     setCustomAnswers([]);
@@ -150,15 +107,9 @@ export const ReplyToQuestion = React.memo(() => {
         const selected = answers[index] ?? [];
         const customAnswer = customAnswers[index]?.trim() ?? '';
 
-        if (!customAnswer) {
-          return selected;
-        }
+        if (!customAnswer) return selected;
 
-        const isMultiple = Boolean(
-          (questions[index] as { multiple?: boolean }).multiple,
-        );
-
-        if (isMultiple) {
+        if (questions[index]?.multiple) {
           return selected.includes(customAnswer)
             ? selected
             : [...selected, customAnswer];
@@ -169,41 +120,29 @@ export const ReplyToQuestion = React.memo(() => {
     [answers, customAnswers, questions],
   );
 
-  const answeredCount = normalizedAnswers.filter(
-    (answer) => answer.length > 0,
-  ).length;
-
+  const answeredCount = normalizedAnswers.filter((a) => a.length > 0).length;
   const allAnswered =
     questions.length > 0 && answeredCount === questions.length;
 
   const currentQuestion = questions[currentQuestionIndex];
-
   const isFirstQuestion = currentQuestionIndex === 0;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
-
   const currentAnswered =
     (normalizedAnswers[currentQuestionIndex]?.length ?? 0) > 0;
 
-  // 2. Allow rendering while exiting so the collapse/fade animation can play out fully
   const shouldRender =
     isAwaitingQuestion &&
-    questionPart &&
-    questionRequest &&
-    !isQuestionsLoading &&
+    Boolean(questionRequest) &&
     questions.length > 0 &&
     Boolean(currentQuestion);
 
-  if (!shouldRender && !isExiting) {
-    return null;
-  }
+  if (!shouldRender && !isExiting) return null;
 
   const handleAnswerChange = (values: string[]) => {
-    if (isSubmitting || isExiting) {
-      return;
-    }
+    if (isSubmitting || isExiting) return;
 
     setAnswers((current) => {
-      const next = current.map((answer) => [...answer]);
+      const next = current.map((a) => [...a]);
       next[currentQuestionIndex] = values;
       return next;
     });
@@ -218,9 +157,7 @@ export const ReplyToQuestion = React.memo(() => {
   };
 
   const handleCustomAnswerChange = (value: string) => {
-    if (isSubmitting || isExiting) {
-      return;
-    }
+    if (isSubmitting || isExiting) return;
 
     setCustomAnswers((current) => {
       const next = [...current];
@@ -228,49 +165,49 @@ export const ReplyToQuestion = React.memo(() => {
       return next;
     });
 
-    if (value.trim()) {
-      const isMultiple = Boolean(
-        (currentQuestion as { multiple?: boolean } | undefined)?.multiple,
-      );
-
-      if (!isMultiple) {
-        setAnswers((current) => {
-          const next = current.map((answer) => [...answer]);
-          next[currentQuestionIndex] = [];
-          return next;
-        });
-      }
+    if (value.trim() && !currentQuestion?.multiple) {
+      setAnswers((current) => {
+        const next = current.map((a) => [...a]);
+        next[currentQuestionIndex] = [];
+        return next;
+      });
     }
   };
 
   const handlePrevious = () => {
-    if (isSubmitting || isFirstQuestion || isExiting) {
-      return;
-    }
-
-    setCurrentQuestionIndex((current) => current - 1);
+    if (isSubmitting || isFirstQuestion || isExiting) return;
+    setCurrentQuestionIndex((c) => c - 1);
   };
 
   const handleNext = () => {
-    if (isSubmitting || isLastQuestion || !currentAnswered || isExiting) {
-      return;
-    }
-
-    setCurrentQuestionIndex((current) => current + 1);
+    if (isSubmitting || isLastQuestion || !currentAnswered || isExiting) return;
+    setCurrentQuestionIndex((c) => c + 1);
   };
 
   const handleSubmit = () => {
-    if (!allAnswered || isSubmitting || isExiting || !questionRequest) {
+    if (
+      !allAnswered ||
+      isSubmitting ||
+      isExiting ||
+      !questionRequest ||
+      !serverRequestId
+    ) {
       return;
     }
 
+    const { sessionID, callID } = questionRequest;
+
     void execute({
-      action: () =>
-        reply({
-          sessionId: questionRequest.sessionID,
-          requestId: questionRequest.id,
+      action: async () => {
+        await reply({
+          sessionId: sessionID,
+          requestId: serverRequestId, // ← que_...
           answers: normalizedAnswers,
-        }),
+        });
+        // Drop the local entry keyed by callID; server owns the source of
+        // truth from here.
+        removeQuestion(sessionID, callID);
+      },
       refetch: refetchQuestions,
       messages: {
         loading: 'Submitting answers...',
@@ -280,16 +217,20 @@ export const ReplyToQuestion = React.memo(() => {
   };
 
   const handleReject = () => {
-    if (isSubmitting || isExiting || !questionRequest) {
+    if (isSubmitting || isExiting || !questionRequest || !serverRequestId) {
       return;
     }
 
+    const { sessionID, callID } = questionRequest;
+
     void execute({
-      action: () =>
-        reject({
-          sessionId: questionRequest.sessionID,
-          requestId: questionRequest.id,
-        }),
+      action: async () => {
+        await reject({
+          sessionId: sessionID,
+          requestId: serverRequestId, // ← que_...
+        });
+        removeQuestion(sessionID, callID);
+      },
       refetch: refetchQuestions,
       messages: {
         loading: 'Rejecting question...',
@@ -298,13 +239,15 @@ export const ReplyToQuestion = React.memo(() => {
     });
   };
 
-  const isMultiple = Boolean(
-    (currentQuestion as { multiple?: boolean } | undefined)?.multiple,
-  );
-
+  const isMultiple = Boolean(currentQuestion?.multiple);
   const options = (currentQuestion?.options ?? []) as QuestionOption[];
-
   const currentCustomAnswer = customAnswers[currentQuestionIndex] ?? '';
+
+  // `serverRequestId` is nearly always populated by the time the user clicks.
+  // If it somehow isn't, we surface it via a disabled button rather than
+  // silently failing the mutation.
+  const canSubmit = allAnswered && Boolean(serverRequestId);
+  const canReject = Boolean(serverRequestId);
 
   return (
     <div
@@ -447,7 +390,7 @@ export const ReplyToQuestion = React.memo(() => {
                   <Button
                     variant='danger-soft'
                     size='sm'
-                    isDisabled={isSubmitting || isExiting}
+                    isDisabled={isSubmitting || isExiting || !canReject}
                     onPress={handleReject}
                   >
                     Reject
@@ -479,7 +422,7 @@ export const ReplyToQuestion = React.memo(() => {
                     ) : (
                       <Button
                         size='sm'
-                        isDisabled={!allAnswered || isSubmitting || isExiting}
+                        isDisabled={!canSubmit || isSubmitting || isExiting}
                         onPress={handleSubmit}
                       >
                         {isPendingReply ? 'Submitting…' : 'Continue'}

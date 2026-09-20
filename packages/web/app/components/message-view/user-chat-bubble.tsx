@@ -52,6 +52,11 @@ function parseChatQuotePart(text: string): { quote: string; comment: string } {
   };
 }
 
+interface UserChatBubbleProps {
+  turn: AeroConversationTurn;
+  forkMessageId: string;
+}
+
 /**
  * Re-render only when the turn's identity or its part count changes.
  * Streaming appends parts, so `parts.length` is the signal that the bubble

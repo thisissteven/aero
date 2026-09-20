@@ -33,6 +33,22 @@ type RevertedMessage = {
   messageId: string;
 };
 
+export interface AeroQuestion {
+  question: string;
+  header?: string;
+  multiple?: boolean;
+  options?: Array<{ label: string; description?: string }>;
+}
+
+export interface AeroQuestionRequest {
+  /** Stable request key. We use the tool part's callID. */
+  id: string;
+  sessionID: string;
+  callID: string;
+  messageID: string;
+  questions: AeroQuestion[];
+}
+
 export interface SessionScrollState {
   /** Auto-scroll follows streaming output? */
   pinned: boolean;
@@ -68,6 +84,7 @@ interface SessionRuntime {
 
   messageTurnIds: Record<string, string>;
   permissions: AeroPermission[];
+  questions: AeroQuestionRequest[];
 }
 
 interface ChatStore {
@@ -118,6 +135,8 @@ interface ChatStore {
 
   addPermission: (permission: AeroPermission) => void;
   removePermission: (sessionId: string, requestId: string) => void;
+
+  removeQuestion: (sessionId: string, requestId: string) => void;
 
   addUnreadSession: (sessionId: string, status: 'success' | 'error') => void;
   removeUnreadSession: (sessionId: string) => void;
@@ -242,6 +261,7 @@ const EMPTY_RUNTIME: SessionRuntime = Object.freeze({
   hasHydrated: false,
   messageTurnIds: {},
   permissions: [],
+  questions: [],
   flatItems: [],
   groupFlatIndex: [],
   isStreaming: false,
@@ -334,6 +354,50 @@ function removePermissionFromRuntime(
   return {
     ...runtime,
     permissions,
+  };
+}
+
+function upsertQuestion(
+  questions: AeroQuestionRequest[],
+  question: AeroQuestionRequest,
+) {
+  const existingIndex = questions.findIndex((q) => q.id === question.id);
+  if (existingIndex === -1) return [...questions, question];
+  const next = questions.slice();
+  next[existingIndex] = question;
+  return next;
+}
+
+function removeQuestionFromRuntime(runtime: SessionRuntime, requestId: string) {
+  const questions = runtime.questions.filter((q) => q.id !== requestId);
+  if (questions.length === runtime.questions.length) return runtime;
+  return { ...runtime, questions };
+}
+
+function getQuestionCallId(part: AeroPart): string | null {
+  if (part.type !== 'tool') return null;
+  if (part.toolName !== 'question') return null;
+  return part.callID ?? null;
+}
+
+function extractQuestionRequest(
+  part: AeroPart,
+  fallbackSessionId: string,
+): AeroQuestionRequest | null {
+  if (part.type !== 'tool') return null;
+  if (part.toolName !== 'question') return null;
+  if (part.status !== 'running') return null;
+
+  const rawInput = (part as { input?: { questions?: unknown } }).input;
+  if (!rawInput || !Array.isArray(rawInput.questions)) return null;
+  if (rawInput.questions.length === 0) return null;
+
+  return {
+    id: part.callID,
+    sessionID: part.sessionID ?? fallbackSessionId,
+    callID: part.callID,
+    messageID: part.messageID,
+    questions: rawInput.questions as AeroQuestion[],
   };
 }
 
@@ -866,6 +930,31 @@ function handleMessagePartUpdated(
     }
   }
 
+  // ── Capture / retire question payload straight off the tool part ───────
+  // Use `event.part` (full AeroPart union), NOT the `part` local above —
+  // that local was reassigned inside the delta-merge branch and TS keeps
+  // it narrowed to the text/reasoning variant from then on.
+  let workingRuntime = current;
+
+  const sourcePart = event.part;
+  if (sourcePart.type === 'tool' && sourcePart.toolName === 'question') {
+    if (sourcePart.status === 'running') {
+      const req = extractQuestionRequest(sourcePart, sessionId);
+      if (req) {
+        workingRuntime = {
+          ...workingRuntime,
+          questions: upsertQuestion(workingRuntime.questions, req),
+        };
+      }
+    } else {
+      workingRuntime = removeQuestionFromRuntime(
+        workingRuntime,
+        sourcePart.callID,
+      );
+    }
+  }
+  // ───────────────────────────────────────────────────────────────────────
+
   if (part.type === 'tool' && part.toolName === 'task') {
     queryClient.invalidateQueries({
       queryKey: sessionKeys.children(undefined, sessionId),
@@ -932,7 +1021,12 @@ function handleMessagePartUpdated(
     }
   }
 
-  const runtime = updatePartInRuntime(current, event, part, revertMessageId);
+  const runtime = updatePartInRuntime(
+    workingRuntime,
+    event,
+    part,
+    revertMessageId,
+  );
 
   if (!runtime) {
     const pendingMessageKey = `${sessionId}:${event.messageId}`;
@@ -940,8 +1034,19 @@ function handleMessagePartUpdated(
 
     pendingPartUpdates.set(pendingMessageKey, [...pendingMessageParts, part]);
 
+    // Keep the question we stashed even though the turn isn't materialized yet.
+    const sessions = {
+      ...state.sessions,
+      [sessionId]: workingRuntime,
+    };
+
     return {
       ...state,
+      sessions,
+      activeSession:
+        state.activeSessionId === sessionId
+          ? workingRuntime
+          : state.activeSession,
       awaitingQuestions:
         part.type === 'tool' &&
         part.toolName === 'question' &&
@@ -1102,6 +1207,7 @@ function handleSessionIdle(
     streamStartedAt: null,
     hasLiveStatus: true,
     usageExceeded: undefined,
+    questions: [],
     ...buildRuntime(current.turns, false, revertMessageId, undefined, current),
     isStreaming: false,
   };
@@ -1374,6 +1480,16 @@ export const useChatStore = create<ChatStore>()(
           set((state) => {
             const current = getRuntime(state.sessions, sessionId);
             const runtime = removePermissionFromRuntime(current, requestId);
+
+            if (runtime === current) return state;
+            return commitRuntime(state, sessionId, runtime);
+          });
+        },
+
+        removeQuestion: (sessionId, requestId) => {
+          set((state) => {
+            const current = getRuntime(state.sessions, sessionId);
+            const runtime = removeQuestionFromRuntime(current, requestId);
 
             if (runtime === current) return state;
             return commitRuntime(state, sessionId, runtime);

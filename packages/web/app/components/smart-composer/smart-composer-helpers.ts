@@ -165,9 +165,7 @@ export function unifiedSearch(
   const results: SearchItem[] = [];
 
   if (trigger === '@') {
-    const agents = query === '' ? data.agents.slice(0, 5) : data.agents;
-
-    for (const agent of agents) {
+    for (const agent of data.agents) {
       if (matches(agent.name, q)) {
         results.push(
           createItem(
@@ -205,9 +203,7 @@ export function unifiedSearch(
       nonEmptySegments[0].text.startsWith('/');
 
     if (canAddCommand) {
-      const commands = query === '' ? data.commands.slice(0, 5) : data.commands;
-
-      for (const command of commands) {
+      for (const command of data.commands) {
         if (matches(command.name, q)) {
           results.push(
             createItem(
@@ -223,8 +219,7 @@ export function unifiedSearch(
       }
     }
 
-    const skills = query === '' ? data.skills.slice(0, 5) : data.skills;
-    for (const skill of skills) {
+    for (const skill of data.skills) {
       if (matches(skill.name, q)) {
         results.push(
           createItem(

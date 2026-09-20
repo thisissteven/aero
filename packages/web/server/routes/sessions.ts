@@ -886,41 +886,39 @@ const sessions = new Hono()
 
       return streamSSE(c, async (stream) => {
         const controller = new AbortController();
-
-        stream.onAbort(() => {
-          controller.abort();
-        });
+        stream.onAbort(() => controller.abort());
 
         const events = hub.subscribe(sessionId);
         const iterator = events[Symbol.asyncIterator]();
 
         try {
           await hub.waitUntilReady();
-
-          if (controller.signal.aborted) {
-            return;
-          }
-
-          await stream.writeSSE({
-            event: 'ready',
-            data: '',
-          });
+          if (controller.signal.aborted) return;
+          await stream.writeSSE({ event: 'ready', data: '' });
 
           while (!controller.signal.aborted) {
-            const result = await iterator.next();
-
-            if (result.done) {
+            let result;
+            try {
+              result = await iterator.next();
+            } catch (err) {
+              console.error('[sse] iterator threw, ending stream', err);
               break;
             }
-
+            if (result.done) break;
             await stream.writeSSE({
               event: result.value.type,
               data: JSON.stringify(result.value),
             });
           }
+        } catch (err) {
+          console.error('[sse] streamSSE callback threw', err);
         } finally {
           controller.abort();
-          await iterator.return?.();
+          try {
+            await iterator.return?.();
+          } catch {
+            //
+          }
         }
       });
     },
