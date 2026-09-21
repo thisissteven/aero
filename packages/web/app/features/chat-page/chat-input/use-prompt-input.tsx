@@ -1,5 +1,5 @@
 import { toast } from '@aero/ui';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   getComposerSession,
   useComposerStore,
@@ -34,13 +34,25 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const { mutate: abortSession } = useAbortSession(undefined);
   const { data: session } = useSession(undefined, sessionId);
 
+  const isSteerMode = useMemo(() => {
+    const cleanedSegments = segments.filter(
+      (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
+    );
+
+    return (
+      cleanedSegments[0]?.type === 'token' &&
+      cleanedSegments[0].token.type === 'command' &&
+      cleanedSegments[0].token.value.replace(/^\//, '').trim() === 'steer'
+    );
+  }, [segments]);
+
   const inputDisabled = isDisabled || (session && session.readOnly);
 
   const isExternalPartEmpty = useExternalPartsStore(
     externalPartsSelectors.isEmpty(sessionId),
   );
 
-  const { handleSend, isPending } = useHandleSend(sessionId);
+  const { handleSend, isPending } = useHandleSend(sessionId, isSteerMode);
 
   const handleAbort = useCallback(() => {
     if (!sessionId || !isPending || isAborting) return;
@@ -68,5 +80,6 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
     handleAbort,
     isAborting,
     isPending,
+    isSteerMode,
   };
 }

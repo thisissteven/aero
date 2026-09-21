@@ -1,23 +1,17 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { ComposerSegment } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useComposerClipboard } from '@/app/components/smart-composer/use-composer-clipboard';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { ComposerCommandPalette } from './components/composer-cp';
 import { ComposerPlaceholder } from './components/composer-placeholder';
 import { ComposerTextarea } from './components/composer-text-area';
-import { useComposerStore } from './smart-composer-store';
+import { AnyComposerSegment, useComposerStore } from './smart-composer-store';
 import { useComposerPalette } from './use-composer-palette';
 import { useSmartComposer } from './use-smart-composer';
 
 interface SmartComposerProps {
   onSubmit?: (payload: {
     text: string;
-    segments:
-      | ComposerSegment[]
-      | Array<{
-          type: 'shell';
-          text: string;
-        }>;
+    segments: AnyComposerSegment[];
   }) => void;
 
   enabledClassName?: string;

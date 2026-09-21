@@ -48,7 +48,7 @@ const MarkdownCode = memo(function MarkdownCode({
         >
           <code
             className={cn(
-              'markdown__inline-code decoration-primary underline decoration-1 underline-offset-4',
+              'markdown__inline-code underline decoration-1 underline-offset-4',
               className,
             )}
             data-slot='markdown-inline-file-code'
@@ -122,7 +122,7 @@ const MarkdownLink = memo(function MarkdownLink({
       target='_blank'
       rel='noopener noreferrer'
       className={cn(
-        'text-accent underline decoration-dashed decoration-[1px] underline-offset-2',
+        'text-accent-soft-foreground underline decoration-dashed decoration-[1px] underline-offset-2',
         'transition-opacity hover:opacity-80',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-sm',
         className,

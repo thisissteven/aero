@@ -4,9 +4,10 @@ const commandNames = [
   'undo',
   'redo',
   'timeline',
-  'compact',
   'btw',
+  'steer',
   'summary',
+  'compact',
   'workspace-review',
   'handoff-review',
   'plan-feature',
@@ -26,6 +27,8 @@ const descriptions: Record<AeroCommandName, string> = {
   timeline: 'Open the conversation timeline',
   compact: 'Compress session history using AI to reduce context size',
   btw: 'Ask a side question in a temporary child session without derailing this chat.',
+  steer:
+    'Send a message mid-turn to redirect the assistant while it is still working.',
   summary:
     'Non-destructive session summary. Optional topic hint after the command.',
   'workspace-review':
@@ -50,6 +53,7 @@ const hints: Record<AeroCommandName, Array<string>> = {
   timeline: ['chronology', 'session history', 'what happened'],
   compact: ['compress history', 'reduce tokens', 'summarize context'],
   btw: ['aside', 'side note', 'by the way'],
+  steer: ['mid-turn', 'interject', 'redirect', 'while responding'],
   summary: ['recap', 'status', 'topic hint'],
   'workspace-review': ['review diff', 'severity', 'intent'],
   'handoff-review': ['handoff', 'delegate review', 'review session'],
@@ -62,16 +66,25 @@ const hints: Record<AeroCommandName, Array<string>> = {
   explore: ['architecture', 'codebase tour', 'findings'],
 };
 
-export const customCommands: Array<AeroCommandCompact> = commandNames.map(
-  (name): AeroCommandCompact => ({
-    name,
-    description: descriptions[name],
-    source: 'aero',
-    hints: hints[name],
-  }),
-);
+export const customCommands: Array<AeroCommandCompact> = commandNames
+  .map(
+    (name): AeroCommandCompact => ({
+      name,
+      description: descriptions[name],
+      source: 'aero',
+      hints: hints[name],
+    }),
+  )
+  .filter((command) => command.name !== 'steer');
 
-const templates: Record<AeroCommandName, string> = {
+export const steerCommand = {
+  name: 'steer',
+  description: descriptions.steer,
+  source: 'aero',
+  hints: hints.steer,
+};
+
+const templates: Record<Exclude<AeroCommandName, 'steer'>, string> = {
   undo: 'Undo the last message. Explain what was reverted and confirm the resulting state.',
   redo: 'Redo the previously undone message(s). Explain what was reapplied and confirm the resulting state.',
   timeline:

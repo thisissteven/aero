@@ -793,6 +793,7 @@ const sessions = new Hono()
             }),
           )
           .optional(),
+        delivery: z.literal('steer').optional(),
       }),
     ),
     async (c) => {
@@ -859,6 +860,7 @@ const sessions = new Hono()
         system: z.string().optional(),
         agent: z.string().optional(),
         variant: z.string().optional(),
+        delivery: z.literal('steer').optional(),
       }),
     ),
     async (c) => {

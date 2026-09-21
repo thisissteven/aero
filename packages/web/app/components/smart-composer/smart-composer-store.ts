@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 
 import type { ComposerSegment } from './smart-composer-helpers';
-import {
-  buildText,
-  cloneSegments,
-  segmentsEqual,
-} from './smart-composer-helpers';
+import { cloneSegments, segmentsEqual } from './smart-composer-helpers';
 
 export type ComposerMode = 'normal' | 'shell';
 
@@ -15,9 +11,12 @@ export interface ComposerSnapshot {
   mode: ComposerMode;
 }
 
+export type ShellSegment = { type: 'shell'; text: string };
+export type AnyComposerSegment = ComposerSegment | ShellSegment;
+
 export interface ComposerPayload {
   text: string;
-  segments: ComposerSegment[] | Array<{ type: 'shell'; text: string }>;
+  segments: AnyComposerSegment[];
 }
 
 /** State carried for a single chat session. */

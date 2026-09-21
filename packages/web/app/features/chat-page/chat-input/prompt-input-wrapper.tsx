@@ -96,6 +96,7 @@ export function ActiveSessionPromptInputWrapper({
     inputDisabled,
     isAborting,
     isPending,
+    isSteerMode,
   } = usePromptInput({ isDisabled });
 
   const sessionId = useSessionId();
@@ -109,6 +110,7 @@ export function ActiveSessionPromptInputWrapper({
       isDisabled={inputDisabled}
       status={isAborting ? 'submitted' : undefined}
       isPending={isPending}
+      allowSubmitWhileRunning={isSteerMode}
     >
       {children}
     </PromptInput>

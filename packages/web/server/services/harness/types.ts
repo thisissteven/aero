@@ -409,6 +409,7 @@ export interface SendMessageInput {
   system?: string;
   agent?: string;
   variant?: string;
+  delivery?: 'steer';
 }
 
 export interface CompactSessionInput {
@@ -437,6 +438,7 @@ export interface SendCommandInput {
     url: string;
     source?: FilePartSource;
   }>;
+  delivery?: 'steer';
 }
 
 export interface CreateWorkspaceInput {

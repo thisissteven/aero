@@ -1,8 +1,10 @@
 import {
   commandTemplates,
   customCommands,
+  steerCommand,
 } from '@/app/components/smart-composer/custom-commands';
 import {
+  AnyComposerSegment,
   getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
@@ -201,13 +203,23 @@ export function unifiedSearch(
         (segment.type === 'text' && segment.text.trim().length > 0),
     );
 
-    const canAddCommand =
+    const canAddCommandIfEmpty =
       nonEmptySegments.length === 1 &&
       nonEmptySegments[0].type === 'text' &&
-      nonEmptySegments[0].text.startsWith('/');
+      nonEmptySegments[0].text.trimStart().startsWith('/');
 
-    if (canAddCommand) {
+    const canAddCommandIfSteer =
+      nonEmptySegments.length === 2 &&
+      nonEmptySegments[0].type === 'token' &&
+      nonEmptySegments[0].token.value === 'steer' &&
+      nonEmptySegments[1].type === 'text' &&
+      nonEmptySegments[1].text.trimStart().startsWith('/');
+
+    if (canAddCommandIfEmpty || canAddCommandIfSteer) {
       const commands = [...data.commands, ...customCommands];
+      if (sessionId && !canAddCommandIfSteer) {
+        commands.push(steerCommand);
+      }
       for (const command of commands) {
         if (
           matches(command.name, q) ||
@@ -269,14 +281,7 @@ export function unifiedSearch(
   };
 }
 
-export function extractCommandPayload(
-  segments:
-    | ComposerSegment[]
-    | {
-        type: 'shell';
-        text: string;
-      }[],
-) {
+export function extractCommandPayload(segments: AnyComposerSegment[]) {
   let command: string | undefined;
   let isCustomCommand = false;
   const argumentTexts: string[] = [];
@@ -294,7 +299,7 @@ export function extractCommandPayload(
       if (token.type === 'command') {
         // e.g., token.value = "explain" or "/explain"
         command = token.value.replace(/^\//, '');
-        isCustomCommand = command in commandTemplates;
+        isCustomCommand = command in commandTemplates || command === 'steer';
       } else if (token.type === 'file') {
         const path = token.value; // e.g. "src/index.ts"
         const filename = path.split('/').pop() || path;

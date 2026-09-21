@@ -1090,6 +1090,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             command: input.command,
             arguments: input.arguments,
             parts: input.parts,
+            ...(input.delivery ? { delivery: input.delivery } : {}),
           }),
         ),
       ).catch((err) => {
@@ -1155,6 +1156,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             system: input.system,
             agent: input.agent,
             variant: input.variant,
+            ...(input.delivery ? { delivery: input.delivery } : {}),
           }),
         ),
       ).catch((err) => {

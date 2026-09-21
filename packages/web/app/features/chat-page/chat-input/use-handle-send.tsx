@@ -1,4 +1,5 @@
-import { toast } from '@aero/ui';
+import { ppid } from 'node:process';
+import { logger, toast } from '@aero/ui';
 import { useCallback } from 'react';
 import {
   composerSubmitAfter,
@@ -40,13 +41,13 @@ import {
 import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
-export function useHandleSend(sessionId: string) {
+export function useHandleSend(sessionId: string, isSteerMode: boolean) {
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: sendCommand } = useSendCommand(undefined);
 
   const status = useSessionRuntime(sessionId, (runtime) => runtime.status.type);
-  const isPending = status !== 'idle';
+  const isPending = status !== 'idle' && !isSteerMode;
 
   const handleSend = useCallback(
     async (sessionId: string, fromNewChat?: boolean) => {
@@ -86,24 +87,6 @@ export function useHandleSend(sessionId: string) {
         return;
       }
 
-      const sendTextMessage = (text: string) => {
-        sendMessage({
-          sessionId,
-          parts: [
-            {
-              type: 'text',
-              text,
-            },
-          ],
-          model: {
-            modelId: selectedModel.model.id,
-            providerId: selectedModel.providerId,
-          },
-          agent: selectedAgent?.name,
-          variant: selectedVariant,
-        });
-      };
-
       try {
         await sessionStreamManager.ensure({
           sessionId,
@@ -114,13 +97,37 @@ export function useHandleSend(sessionId: string) {
         return;
       }
 
-      const segments = payload?.segments ?? [];
+      // Compute segments and steer detection up front — sendTextMessage needs isSteer
+      const segments = (payload?.segments ?? []).filter(
+        (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
+      );
+
+      const effectiveSegments = isSteerMode ? segments.slice(1) : segments;
+
       const isShellMode = composerState.mode === 'shell';
       const isCommand =
-        segments[0]?.type === 'token' && segments[0].token.type === 'command';
+        effectiveSegments[0]?.type === 'token' &&
+        effectiveSegments[0].token.type === 'command';
+
+      const sendTextMessage = (texts: string[]) => {
+        sendMessage({
+          sessionId,
+          parts: texts.map((text) => ({
+            type: 'text',
+            text,
+          })),
+          model: {
+            modelId: selectedModel.model.id,
+            providerId: selectedModel.providerId,
+          },
+          agent: selectedAgent?.name,
+          variant: selectedVariant,
+          ...(isSteerMode ? { delivery: 'steer' as const } : {}),
+        });
+      };
 
       try {
-        if (isShellMode) {
+        if (isShellMode && !isSteerMode) {
           sendShellCommand({
             sessionId,
             model: {
@@ -136,7 +143,7 @@ export function useHandleSend(sessionId: string) {
             arguments: args,
             parts,
             isCustomCommand,
-          } = extractCommandPayload(segments);
+          } = extractCommandPayload(effectiveSegments);
 
           if (isCustomCommand) {
             switch (command as AeroCommandName) {
@@ -195,11 +202,11 @@ export function useHandleSend(sessionId: string) {
 
               case 'btw':
                 return;
-              case 'catch-up':
-                sendTextMessage(
-                  'Catch me up on where this project is right now.',
-                );
+              case 'timeline':
                 return;
+              case 'handoff-review':
+                return;
+
               case 'compact': {
                 compactSession({
                   harnessId: undefined,
@@ -209,33 +216,60 @@ export function useHandleSend(sessionId: string) {
                 });
                 return;
               }
-              case 'craft-goal':
-                sendTextMessage(
-                  'Help me turn an idea or task into a clear, verifiable Goal.',
-                );
+
+              case 'catch-up':
+                sendTextMessage([
+                  'Catch me up on where this project is right now.',
+                  ...(args ? [`Focus especially on:\n${args}`] : []),
+                ]);
                 return;
+              case 'craft-goal': {
+                sendTextMessage([
+                  'Help me turn an idea or task into a clear, verifiable Goal.',
+                  ...(args ? [`Here is my initial idea:\n${args}`] : []),
+                ]);
+                return;
+              }
               case 'debug':
-                sendTextMessage('I want to debug an issue.');
+                sendTextMessage([
+                  'I want to debug an issue.',
+                  ...(args ? [`Here is what I encountered:\n${args}`] : []),
+                ]);
                 return;
               case 'explore':
-                sendTextMessage('Give me a high-level tour of this codebase.');
+                sendTextMessage([
+                  'Give me a high-level tour of this codebase.',
+                  ...(args ? [`Focus on:\n${args}`] : []),
+                ]);
                 return;
               case 'plan-feature':
-                sendTextMessage('I want to start planning a feature.');
+                sendTextMessage([
+                  'I want to start planning a feature.',
+                  ...(args ? [`Here is my initial idea:\n${args}`] : []),
+                ]);
                 return;
               case 'schedule-task':
-                sendTextMessage('Help me set up a scheduled task.');
-                return;
-              case 'timeline':
+                sendTextMessage([
+                  'Help me set up a scheduled task.',
+                  ...(args
+                    ? [`Here is what I want to schedule:\n${args}`]
+                    : []),
+                ]);
                 return;
               case 'summary':
-                sendTextMessage('Summarize this session.');
+                sendTextMessage([
+                  'Summarize this session.',
+                  ...(args ? [`Focus the summary on:\n${args}`] : []),
+                ]);
                 return;
               case 'weigh':
-                sendTextMessage('Help me decide how to approach this.');
+                sendTextMessage([
+                  'Help me decide how to approach this.',
+                  ...(args ? [`Here is what I am weighing:\n${args}`] : []),
+                ]);
                 return;
               case 'workspace-review':
-                sendTextMessage('Review the changes made in this workspace.');
+                sendTextMessage(['Review the changes made in this workspace.']);
                 return;
             }
           }
@@ -248,11 +282,12 @@ export function useHandleSend(sessionId: string) {
             command,
             arguments: args,
             parts,
+            ...(isSteerMode ? { delivery: 'steer' as const } : {}),
           });
         } else {
           const parts = await buildMessageParts(
             text,
-            segments as ComposerSegment[],
+            effectiveSegments as ComposerSegment[],
             externalState,
           );
 
@@ -265,6 +300,7 @@ export function useHandleSend(sessionId: string) {
             },
             agent: selectedAgent?.name,
             variant: selectedVariant,
+            ...(isSteerMode ? { delivery: 'steer' as const } : {}),
           });
         }
       } catch {
@@ -274,7 +310,7 @@ export function useHandleSend(sessionId: string) {
         useExternalPartsStore.getState().reset(resolvedSessionId);
       }
     },
-    [isPending, sendMessage, sendShellCommand, sendCommand],
+    [isPending, sendMessage, sendShellCommand, sendCommand, isSteerMode],
   );
 
   return { handleSend, isPending };
