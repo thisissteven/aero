@@ -10,37 +10,33 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
+import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
-  sessionKeys,
   useForkSession,
+  useIsPinned,
   useRevertSession,
+  useTogglePinnedMessage,
 } from '@/app/hooks/api/sessions';
-import {
-  usePinnedSessionMessage,
-  useUpdateSetting,
-} from '@/app/hooks/api/settings';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { revertSessionToast } from '@/app/lib/commands/revert-session';
-import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSpeechStore } from '@/app/stores/speech';
 
 export function MessageActionsPin({ messageId }: { messageId: string }) {
   const sessionId = useSessionId();
-  const { data } = usePinnedSessionMessage(sessionId, messageId);
-  const { mutateAsync: updateSetting } = useUpdateSetting();
-
-  const pinned = data?.value ?? false;
+  const pinned = useIsPinned(sessionId, messageId);
+  const { mutate: toggle } = useTogglePinnedMessage();
 
   return (
     <Tooltip>
       <IconButton
-        onPress={() => {
-          updateSetting({
-            path: ['pinnedSessionMessages', sessionId, messageId],
-            value: !pinned,
-          });
-        }}
+        onPress={() =>
+          toggle({
+            sessionId,
+            messageId,
+            pinned: !pinned,
+          })
+        }
         className={cn(pinned && 'opacity-100 hover:opacity-100')}
       >
         <Icon

@@ -6,6 +6,7 @@ import { memo } from 'react';
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { SubagentPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
+import { SessionIdProvider } from '@/app/providers/SessionIdProvider';
 
 export const SubagentToolView = memo(
   ({
@@ -21,9 +22,8 @@ export const SubagentToolView = memo(
     const subagentType = input?.subagent_type ?? 'subagent';
     const title =
       part.title || input?.description || input?.command || 'Running Subagent';
-    const childSessionId = metadata?.sessionId;
+    const childSessionId = metadata.sessionId;
 
-    const navigate = useNavigate();
     const rawOutput = formatToolOutput(output);
 
     const preview = (
@@ -40,14 +40,7 @@ export const SubagentToolView = memo(
     );
 
     return (
-      <div
-        className='cursor-pointer'
-        onClick={() => {
-          navigate({
-            to: `/sessions/${childSessionId}`,
-          });
-        }}
-      >
+      <SessionIdProvider value={childSessionId}>
         <BaseTool
           blockId={blockId}
           status={status}
@@ -63,7 +56,7 @@ export const SubagentToolView = memo(
           isStreaming={isStreaming}
           useDuration
         />
-      </div>
+      </SessionIdProvider>
     );
   },
 );

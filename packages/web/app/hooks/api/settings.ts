@@ -149,10 +149,6 @@ export function useUpdateSetting() {
   });
 }
 
-export function usePinnedSessionMessage(sessionId: string, messageId: string) {
-  return useSetting(['pinnedSessionMessages', sessionId, messageId]);
-}
-
 export function usePermissionAutoAccept(sessionId: string) {
   return useSetting(['permissionAutoAcceptSessions', sessionId]);
 }

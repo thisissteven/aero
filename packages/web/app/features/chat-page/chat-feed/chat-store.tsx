@@ -961,6 +961,8 @@ function handleMessagePartUpdated(
     queryClient.invalidateQueries({
       queryKey: sessionKeys.children(undefined, sessionId),
     });
+
+    useKeepMountedStoreFeed.getState().setKeep(event.part.id, true);
   }
 
   const previousTurn = current.turns.at(-2);
@@ -976,9 +978,7 @@ function handleMessagePartUpdated(
     event.part.status === 'completed';
 
   if (isPreviousUserToolMessage) {
-    useKeepMountedStoreFeed
-      .getState()
-      .setKeep(`${event.messageId}-part-0`, true);
+    useKeepMountedStoreFeed.getState().setKeep(event.part.id, true);
 
     setTimeout(() => {
       scrollToBottom(event, sessionId);

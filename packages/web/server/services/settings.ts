@@ -8,10 +8,6 @@ export const settingsSchema = z.object({
   goalMode: z.record(z.string(), z.boolean()),
   chatInputExpanded: z.record(z.string(), z.boolean()),
   permissionAutoAcceptSessions: z.record(z.string(), z.boolean()),
-  pinnedSessionMessages: z.record(
-    z.string(),
-    z.record(z.string(), z.boolean()),
-  ),
   recentModelVariants: z.record(z.string(), z.string()),
 
   // Future examples:
@@ -37,7 +33,6 @@ export const DEFAULT_SETTINGS: AeroSettings = {
   goalMode: {},
   chatInputExpanded: {},
   permissionAutoAcceptSessions: {},
-  pinnedSessionMessages: {},
   recentModelVariants: {},
 };
 
@@ -269,10 +264,4 @@ export async function updateSetting<const P extends AeroSettingPath>(
   await enqueueSave(validated);
 
   return getAtPath(validated, path) as AeroSettingValue<P> | undefined;
-}
-
-export async function getPinnedMessages(sessionId: string) {
-  const settings = await getSettings();
-  const sessionPinnedMessages = settings.pinnedSessionMessages[sessionId];
-  return sessionPinnedMessages;
 }

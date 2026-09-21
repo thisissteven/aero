@@ -4,6 +4,7 @@ import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attach
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
 import { WorktreesDropdown } from '@/app/features/new-session-page/worktrees-dropdown';
+import { useChatInputExpanded } from '@/app/hooks/api/settings';
 
 export function WorkspaceWorktreeDropdownWrapper({
   children,
@@ -11,18 +12,25 @@ export function WorkspaceWorktreeDropdownWrapper({
   children: ReactNode;
 }) {
   const state = useNewSessionStore((state) => state.state);
+  const isChatInputExpanded = useChatInputExpanded();
 
   const isChat = state === 'chat';
 
   return (
-    <div className={cn('mx-auto w-full max-w-[720px]', isChat && 'mb-1')}>
+    <div
+      className={cn(
+        'mx-auto w-full max-w-[720px]',
+        isChat && isChatInputExpanded && 'mb-8',
+      )}
+    >
       <FileAttachments />
 
       <div
         className={cn(
-          'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
-          isChat ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
+          'duration-200 ease-out',
+          isChat ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100',
         )}
+        inert={isChat}
       >
         <div className='min-h-0 overflow-hidden mb-1'>
           <div className='flex w-full justify-start gap-2 pb-1 px-2'>

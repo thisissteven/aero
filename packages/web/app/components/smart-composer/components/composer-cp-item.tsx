@@ -87,7 +87,7 @@ export function CommandPaletteItem({
         </span>
       )}
 
-      <div className='min-w-0 flex-1 text-sm'>
+      <div className='min-w-0 flex-1 text-sm overflow-hidden truncate'>
         {item.kind === 'file' ? (
           <MiddleTruncatePath
             path={item.value}
@@ -111,7 +111,7 @@ export function CommandPaletteItem({
           {metadata.map((value) => (
             <span
               key={value}
-              className='bg-default text-foreground rounded px-1.5 py-0.5 text-[10px] leading-none'
+              className='bg-default text-accent-soft-foreground rounded px-1.5 py-0.5 text-[10px] leading-none'
             >
               {value}
             </span>

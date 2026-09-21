@@ -3,11 +3,11 @@ import { Pin, PinFill } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
-import { useSessionPinnedMessages } from '@/app/hooks/api/sessions';
 import {
-  usePinnedSessionMessage,
-  useUpdateSetting,
-} from '@/app/hooks/api/settings';
+  useIsPinned,
+  usePinnedMessages,
+  useTogglePinnedMessage,
+} from '@/app/hooks/api/sessions';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useMainChatScrollStore } from '@/app/stores/chat-scroll-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -29,7 +29,7 @@ export function PinnedMessageStatusContent({
 }: {
   sessionId: string;
 }) {
-  const { data: pinnedSessionMessages } = useSessionPinnedMessages(sessionId);
+  const { data: pinnedMessages } = usePinnedMessages(sessionId);
 
   const turns = useSessionRuntime(sessionId, (runtime) => runtime.turns);
 
@@ -48,17 +48,14 @@ export function PinnedMessageStatusContent({
     }));
   }, [turns]);
 
-  // Map and sort pinned messages by turn index (chronological order)
+  // Map and sort pinned messages by turn index (chronological order).
   const orderedPinnedTurns = useMemo(() => {
-    const pinnedEntries = Object.entries(pinnedSessionMessages ?? {}).filter(
-      ([_, isPinned]) => Boolean(isPinned),
-    );
+    const pinnedIds = new Set(pinnedMessages?.map((m) => m.id) ?? []);
 
-    return pinnedEntries
-      .map(([messageId]) => userTurns.find((t) => t.id === messageId))
-      .filter((turn): turn is NonNullable<typeof turn> => Boolean(turn))
+    return userTurns
+      .filter((turn) => pinnedIds.has(turn.id))
       .sort((a, b) => a.index - b.index);
-  }, [pinnedSessionMessages, userTurns]);
+  }, [pinnedMessages, userTurns]);
 
   if (orderedPinnedTurns.length === 0) {
     return null;
@@ -66,7 +63,6 @@ export function PinnedMessageStatusContent({
 
   return (
     <div className='border-b-separator border-b py-3'>
-      {/* Title Header */}
       <div className='mb-2.5 flex items-center gap-1 px-3'>
         <Icon data={Pin} className='text-muted' size={14} />
         <Typography type='body-sm' className='text-foreground font-medium'>
@@ -74,7 +70,6 @@ export function PinnedMessageStatusContent({
         </Typography>
       </div>
 
-      {/* Pinned Items */}
       <div className='flex flex-col gap-1.5 pr-3 pl-2'>
         {orderedPinnedTurns.map((turn) => (
           <div key={turn.id} className='flex items-center gap-1'>
@@ -97,19 +92,12 @@ export function PinnedMessageStatusContent({
 
 function MessageActionsPin({ messageId }: { messageId: string }) {
   const sessionId = useSessionId();
-  const { data } = usePinnedSessionMessage(sessionId, messageId);
-  const { mutateAsync: updateSetting } = useUpdateSetting();
-
-  const pinned = data?.value ?? false;
+  const pinned = useIsPinned(sessionId, messageId);
+  const { mutate: toggle } = useTogglePinnedMessage();
 
   return (
     <IconButton
-      onPress={() => {
-        updateSetting({
-          path: ['pinnedSessionMessages', sessionId, messageId],
-          value: !pinned,
-        });
-      }}
+      onPress={() => toggle({ sessionId, messageId, pinned: !pinned })}
       size='xs'
       svgSize='xs'
       className='size-6 shrink-0'

@@ -22,7 +22,7 @@ import {
   TextPartInput,
   ToolListItem,
 } from '@opencode-ai/sdk/v2';
-
+import { SessionMetadata } from '@/server/types/opencode-sdk';
 import { SkillScope } from '../../helper';
 
 export type HarnessId = 'opencode' | 'codex' | 'claude' | (string & {});
@@ -67,6 +67,7 @@ export interface AeroSessionSummary {
     providerID: string;
     variant?: string | undefined;
   };
+  metadata?: SessionMetadata;
 }
 
 export type AeroPartUserMessage =
@@ -441,6 +442,17 @@ export interface SendCommandInput {
   delivery?: 'steer';
 }
 
+export interface UpdateSessionMetadataInput {
+  sessionID: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface SendSyntheticMessageInput {
+  parts: AeroPartUserMessage[];
+  model?: { providerId: string; modelId: string };
+  agent?: string;
+}
+
 export interface CreateWorkspaceInput {
   name?: string;
   directory: string;
@@ -567,10 +579,7 @@ export interface HarnessAdapter {
     input: SendCommandInput,
     directory: string,
   ): boolean;
-  sendMessageSync(
-    sessionId: string,
-    input: SendMessageInput,
-  ): Promise<AeroMessage>;
+
   revertSession(
     sessionId: string,
     messageId: string,
@@ -633,6 +642,16 @@ export interface HarnessAdapter {
   abortSession(sessionId: string): Promise<boolean>;
 
   streamEvents(options?: StreamEventsOptions): AsyncIterable<AeroEvent>;
+
+  updateSessionMetadata(
+    input: UpdateSessionMetadataInput,
+  ): Promise<AeroSessionSummary>;
+
+  sendSyntheticMessage(
+    sessionID: string,
+    input: SendSyntheticMessageInput,
+    directory: string,
+  ): Promise<void>;
 
   listAgents(directory?: string): Promise<AeroAgent[]>;
   listAgentsCompact(directory?: string): Promise<AeroAgentCompact[]>;

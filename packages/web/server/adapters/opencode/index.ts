@@ -18,6 +18,7 @@ import {
 } from '@/server/helper';
 import { debugLog } from '@/server/lib/debug-log';
 import { resolveGitDir } from '@/server/routes/git';
+import { contextObligatoryRuntime } from '@/server/services/context-obligatory/runtime';
 import { getAdapter } from '@/server/services/harness/registry';
 import type {
   AddWorktreeInput,
@@ -31,6 +32,7 @@ import type {
   ListSessionsParams,
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
+import { handleOpencodePermissions } from '@/server/services/permissions/runtime';
 import { getSetting } from '@/server/services/settings';
 import {
   getBasename,
@@ -461,6 +463,38 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
 
         return toAeroSessionV2(session);
       });
+    },
+
+    async updateSessionMetadata({ sessionID, metadata }) {
+      const session = await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.update({
+            sessionID,
+            metadata,
+          }),
+        ),
+      );
+
+      return toAeroSessionV2(session);
+    },
+
+    async sendSyntheticMessage(sessionID, input, directory) {
+      await withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.promptAsync({
+            sessionID,
+            directory,
+            parts: input.parts,
+            model: input.model
+              ? {
+                  providerID: input.model.providerId,
+                  modelID: input.model.modelId,
+                }
+              : undefined,
+            agent: input.agent,
+          }),
+        ),
+      );
     },
 
     async deleteSession(sessionID) {
@@ -1166,32 +1200,6 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return true;
     },
 
-    async sendMessageSync(sessionID, input) {
-      const { info, parts } = await withOpencodeClientV2(async (client) =>
-        unwrap(
-          await client.session.prompt({
-            sessionID,
-            parts: input.parts.map((p) =>
-              p.type === 'text'
-                ? {
-                    type: 'text',
-                    text: p.text,
-                  }
-                : (p as never),
-            ),
-            model: input.model
-              ? {
-                  providerID: input.model.providerId,
-                  modelID: input.model.modelId,
-                }
-              : undefined,
-          }),
-        ),
-      );
-
-      return toAeroMessage({ info, parts });
-    },
-
     async listFilesInDirectory(input) {
       const files = await withOpencodeClientV2(async (client) =>
         unwrap(
@@ -1350,17 +1358,8 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
       const { id, sessionID, permission, patterns, metadata, always, tool } =
         event.properties;
 
-      const skipPermissions = await getSetting([
-        'permissionAutoAcceptSessions',
-        sessionID,
-      ]);
-
-      if (skipPermissions) {
-        const harness = await getAdapter('opencode');
-        const session = await harness.getSession(sessionID);
-        await harness.replyToPermission(id, session.workspace, 'once');
-        return null;
-      }
+      const isSkipped = await handleOpencodePermissions(sessionID, id);
+      if (isSkipped) return null;
 
       return {
         type: 'permission.asked',
@@ -1503,6 +1502,18 @@ async function mapOpencodeEvent(event: Event): Promise<AeroEvent | null> {
         diff,
       };
     }
+
+    case 'session.compacted':
+      void contextObligatoryRuntime.processPayload({
+        type: event.type,
+        properties: {
+          sessionID: event.properties.sessionID,
+          // If the SDK event carries a directory, forward it. Otherwise the
+          // runtime falls back to session.workspace.
+          directory: (event.properties as { directory?: string }).directory,
+        },
+      });
+      return null;
 
     case 'session.error': {
       const error = event.properties.error;

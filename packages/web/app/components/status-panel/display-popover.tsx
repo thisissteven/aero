@@ -1,7 +1,6 @@
+import { Popover } from '@aero/ui';
 import { Sliders } from '@gravity-ui/icons';
 import { Checkbox } from '@heroui/react';
-
-import { Popover } from '@aero/ui';
 
 import {
   type StatusItemKey,

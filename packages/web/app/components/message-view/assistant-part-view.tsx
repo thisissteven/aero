@@ -18,14 +18,12 @@ export const AssistantPartView = memo(
     partIndex: number;
     isPartStreaming: boolean;
   }) {
-    const blockId = `${turnId}-part-${partIndex}`;
-
     switch (part.type) {
       case 'text': {
         return (
           <div className='relative py-1.5 px-0.5'>
             <Markdown
-              id={blockId}
+              id={part.id}
               streaming={isPartStreaming}
               streamRevealPreset='instant'
             >
@@ -39,7 +37,7 @@ export const AssistantPartView = memo(
         return (
           <div className='relative min-h-[2.5rem]'>
             <ReasoningBlock
-              blockId={blockId}
+              blockId={part.id}
               text={part.text}
               isStreaming={isPartStreaming}
             />
@@ -52,7 +50,7 @@ export const AssistantPartView = memo(
           <div className='relative min-h-[2.5rem] text-sm'>
             <ToolCallView
               part={part}
-              blockId={blockId}
+              blockId={part.id}
               isStreaming={isPartStreaming}
             />
           </div>

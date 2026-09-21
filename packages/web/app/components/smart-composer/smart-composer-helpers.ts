@@ -1,6 +1,7 @@
 import {
-  commandTemplates,
-  customCommands,
+  customCommandsNonSession,
+  excludedCommands,
+  isCustomCommandName,
   steerCommand,
 } from '@/app/components/smart-composer/custom-commands';
 import {
@@ -216,10 +217,12 @@ export function unifiedSearch(
       nonEmptySegments[1].text.trimStart().startsWith('/');
 
     if (canAddCommandIfEmpty || canAddCommandIfSteer) {
-      const commands = [...data.commands, ...customCommands];
-      if (sessionId && !canAddCommandIfSteer) {
-        commands.push(steerCommand);
-      }
+      const commands = [
+        ...data.commands,
+        ...(sessionId ? excludedCommands : []),
+        ...(sessionId && !canAddCommandIfSteer ? [steerCommand] : []),
+        ...customCommandsNonSession,
+      ];
       for (const command of commands) {
         if (
           matches(command.name, q) ||
@@ -299,7 +302,7 @@ export function extractCommandPayload(segments: AnyComposerSegment[]) {
       if (token.type === 'command') {
         // e.g., token.value = "explain" or "/explain"
         command = token.value.replace(/^\//, '');
-        isCustomCommand = command in commandTemplates || command === 'steer';
+        isCustomCommand = isCustomCommandName(command);
       } else if (token.type === 'file') {
         const path = token.value; // e.g. "src/index.ts"
         const filename = path.split('/').pop() || path;

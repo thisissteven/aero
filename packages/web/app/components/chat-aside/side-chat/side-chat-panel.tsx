@@ -12,10 +12,7 @@ import {
   ChatFeed,
   type ChatFeedRef,
 } from '@/app/features/chat-page/chat-feed/chat-feed';
-import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
-import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
-import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { useSessionPage } from '@/app/features/new-session-page/use-session-page';
 import { OfflineWrapper } from '@/app/providers';
 import {
@@ -49,6 +46,8 @@ export function SideChatPage() {
     (state) => state.registerScrollToBottom,
   );
 
+  const setView = useSideChatStore((state) => state.setView);
+
   // Register once. No dependency on groups.length — the callback dereferences
   // feedRef.current at invocation time and the feed handles clamping.
   useEffect(() => {
@@ -75,23 +74,21 @@ export function SideChatPage() {
     feedRef.current?.scrollToBottom(true);
   }, []);
 
+  useEffect(() => {
+    if (notFound) {
+      setView('list');
+    }
+  }, [notFound, setView]);
+
   return (
     <div
       className={cn(
         'ease relative flex h-[calc(100svh-56px-48px)] flex-col justify-center overflow-hidden',
       )}
     >
-      {notFound ? (
-        <SessionNotFound sessionId={sessionId} />
-      ) : (
-        <>
-          <OpenSubagentsList />
-
-          <ChatTocSection onSelectTocItem={handleSelectTocItem} />
-
-          <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
-        </>
-      )}
+      <OpenSubagentsList />
+      <ChatTocSection onSelectTocItem={handleSelectTocItem} />
+      <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
 
       <div className='shrink-0 px-4 pb-2'>
         <div className='@container relative mx-auto w-full max-w-[720px]'>

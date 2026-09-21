@@ -14,31 +14,33 @@ export function OpenSubagentsList() {
   if (sessionId.length === 0 || !session) return null;
 
   return (
-    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2 flex bg-surface rounded-full border border-separator overflow-hidden'>
-      <button
-        onClick={() => {
-          setView('list');
-        }}
-        className={cn(
-          'py-1 px-2 text-sm shrink-0 active:opacity-50',
-          session?.parentId && 'border-r border-separator',
-        )}
-      >
-        <Icon data={ArrowUturnCcwLeft} />
-      </button>
-      {session?.parentId && (
+    <div className='absolute top-4 left-1/2 z-1 -translate-x-1/2 w-full flex justify-center'>
+      <div className='bg-surface rounded-full border border-separator overflow-hidden flex items-center'>
         <button
           onClick={() => {
-            setView('detail');
-            if (session?.parentId) {
-              setSessionId(session.parentId);
-            }
+            setView('list');
           }}
-          className='text-sm shrink-0 py-1 pl-2 pr-3 rounded-l-none active:opacity-50'
+          className={cn(
+            'py-1 px-2 text-sm shrink-0 active:opacity-50',
+            session?.parentId && 'border-r border-separator',
+          )}
         >
-          Open parent session
+          <Icon data={ArrowUturnCcwLeft} />
         </button>
-      )}
+        {session?.parentId && (
+          <button
+            onClick={() => {
+              setView('detail');
+              if (session?.parentId) {
+                setSessionId(session.parentId);
+              }
+            }}
+            className='text-sm shrink-0 py-1 pl-2 pr-3 rounded-l-none active:opacity-50'
+          >
+            Open parent session
+          </button>
+        )}
+      </div>
     </div>
   );
 }

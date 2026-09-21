@@ -348,7 +348,7 @@ export function buildFlatConversationItems(
         continue;
 
       items.push({
-        id: `${turn.id}-part-${partIndex}`,
+        id: part.id,
         type: 'assistant-part',
         turnId: turn.id,
         part,

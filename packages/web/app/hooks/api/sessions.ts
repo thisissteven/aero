@@ -17,11 +17,13 @@ import { useNewSessionStore } from '@/app/features/new-session-page/new-session-
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { restoreAllMessages } from '@/app/lib/commands/restore-all-messages';
 import { revertSession } from '@/app/lib/commands/revert-session';
+import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
   AeroQuestionAnswer,
   AeroSessionSummary,
+  ConversationRole,
   HarnessId,
 } from '@/server/services/harness/types';
 
@@ -807,17 +809,80 @@ export function useSessionChildren(
   });
 }
 
-export function useSessionPinnedMessages(sessionId: string) {
-  return useQuery({
+export interface PinnedMessage {
+  id: string;
+  createdAt: number;
+  role: ConversationRole;
+}
+
+export function usePinnedMessages(sessionId: string) {
+  return useQuery<PinnedMessage[]>({
     queryKey: sessionKeys.pinned(sessionId),
+    enabled: Boolean(sessionId),
     queryFn: async () => {
       const res = await $individualSession.pinned.$get({
         param: { id: sessionId },
+        query: { harnessId: undefined },
       });
-      if (!res.ok) return [];
-      return res.json();
+      if (!res.ok) throw new Error('Failed to fetch pinned messages');
+      return await res.json();
     },
-    enabled: !!sessionId,
-    placeholderData: keepPreviousData,
+  });
+}
+
+export function useIsPinned(sessionId: string, messageId: string) {
+  const { data } = usePinnedMessages(sessionId);
+  return Boolean(data?.some((m) => m.id === messageId));
+}
+
+export function useTogglePinnedMessage() {
+  return useMutation({
+    mutationFn: async (input: {
+      sessionId: string;
+      messageId: string;
+      pinned: boolean;
+    }) => {
+      const res = await $individualSession.pinned.$post({
+        param: { id: input.sessionId },
+        query: { harnessId: undefined },
+        json: {
+          messageId: input.messageId,
+          pinned: input.pinned,
+        },
+      });
+      if (!res.ok) throw new Error('Failed to update pin');
+      return (await res.json()) as PinnedMessage[];
+    },
+
+    onMutate: async (input) => {
+      const key = sessionKeys.pinned(input.sessionId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<PinnedMessage[]>(key);
+
+      queryClient.setQueryData<PinnedMessage[]>(key, (current = []) =>
+        input.pinned
+          ? current.some((m) => m.id === input.messageId)
+            ? current
+            : [
+                ...current,
+                {
+                  id: input.messageId,
+                  createdAt: Date.now(),
+                  role: 'user' as const,
+                },
+              ]
+          : current.filter((m) => m.id !== input.messageId),
+      );
+
+      return { previous, key };
+    },
+
+    onError: (_err, _input, context) => {
+      if (context) queryClient.setQueryData(context.key, context.previous);
+    },
+
+    onSuccess: (data, input) => {
+      queryClient.setQueryData(sessionKeys.pinned(input.sessionId), data);
+    },
   });
 }

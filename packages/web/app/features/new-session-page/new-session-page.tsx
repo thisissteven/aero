@@ -20,6 +20,7 @@ import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-d
 import { ChatWorkToggle } from '@/app/features/new-session-page/chat-work-toggle';
 import { HeroText } from '@/app/features/new-session-page/hero-text';
 import { PromptInputContent } from '@/app/features/new-session-page/prompt-input-content';
+import { PromptSuggestions } from '@/app/features/new-session-page/prompt-suggestions';
 import { WorkspaceWorktreeDropdownWrapper } from '@/app/features/new-session-page/workspace-worktree-dropdowns';
 import { useIsMounted } from '@/app/hooks/useIsMounted';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -52,7 +53,7 @@ export function NewSessionPage() {
             )}
           >
             <div className='mx-auto flex h-full w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4 @max-md:justify-end'>
-              {/* <HeroText /> */}
+              <HeroText />
 
               <WorkspaceWorktreeDropdownWrapper>
                 <NewSessionPromptInputWrapper>
@@ -98,6 +99,8 @@ export function NewSessionPage() {
                   </PromptInput.Shell>
                 </NewSessionPromptInputWrapper>
               </WorkspaceWorktreeDropdownWrapper>
+
+              <PromptSuggestions />
             </div>
           </div>
         </div>

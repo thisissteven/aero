@@ -1,6 +1,6 @@
 import { AeroCommandCompact } from '@/server/services/harness/types';
 
-const commandNames = [
+export const commandNames = [
   'undo',
   'redo',
   'timeline',
@@ -18,6 +18,10 @@ const commandNames = [
   'weigh',
   'explore',
 ] as const;
+
+export function isCustomCommandName(str: string): str is AeroCommandName {
+  return (commandNames as readonly string[]).includes(str);
+}
 
 export type AeroCommandName = (typeof commandNames)[number];
 
@@ -66,16 +70,34 @@ const hints: Record<AeroCommandName, Array<string>> = {
   explore: ['architecture', 'codebase tour', 'findings'],
 };
 
-export const customCommands: Array<AeroCommandCompact> = commandNames
-  .map(
-    (name): AeroCommandCompact => ({
-      name,
-      description: descriptions[name],
-      source: 'aero',
-      hints: hints[name],
-    }),
-  )
-  .filter((command) => command.name !== 'steer');
+export const customCommands: Array<AeroCommandCompact> = commandNames.map(
+  (name): AeroCommandCompact => ({
+    name,
+    description: descriptions[name],
+    source: 'aero',
+    hints: hints[name],
+  }),
+);
+
+const excludedCommandsList = [
+  'undo',
+  'redo',
+  'btw',
+  'summary',
+  'compact',
+  'timeline',
+  'handoff-review',
+];
+
+export const customCommandsNonSession = customCommands.filter(
+  (command) =>
+    !excludedCommandsList.includes(command.name) && command.name !== 'steer',
+);
+
+export const excludedCommands = customCommands.filter(
+  (command) =>
+    excludedCommandsList.includes(command.name) && command.name !== 'steer',
+);
 
 export const steerCommand = {
   name: 'steer',

@@ -85,6 +85,7 @@ export function toAeroSessionExperimental(
     archived: Boolean(s.time.archived),
     agent: s.agent,
     model: s.model,
+    metadata: s.metadata,
   };
 }
 
@@ -103,6 +104,7 @@ export function toAeroSessionV2(s: ExtendedSessionV2): AeroSessionSummary {
     archived: Boolean(s.time.archived),
     agent: s.agent,
     model: s.model,
+    metadata: s.metadata,
   };
 }
 
@@ -123,6 +125,7 @@ export function toAeroSessionV2Info(
     archived: Boolean(s.time.archived),
     agent: s.agent,
     model: s.model,
+    metadata: s.metadata,
   };
 }
 

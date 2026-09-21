@@ -87,18 +87,16 @@ export const ChatFeed = React.memo(
           className='min-h-0 flex-1 scrollbar-thin overflow-y-auto [overflow-anchor:none] md:scrollbar-gutter-stable'
         >
           <div ref={contentRef} className='pb-12'>
-            {flatItems.length > 0 && (
-              <ChatConversationView
-                virtualizerRef={virtualizerRef}
-                scrollRef={scrollRef}
-                flatItems={flatItems}
-                onScroll={handleScroll}
-              />
-            )}
+            <ChatConversationView
+              virtualizerRef={virtualizerRef}
+              scrollRef={scrollRef}
+              flatItems={flatItems}
+              onScroll={handleScroll}
+            />
             <div
               className={cn(
                 'mx-auto max-w-[720px]',
-                'first:mt-5 not-first:-mt-5',
+                flatItems.length > 0 ? '-mt-5' : 'mt-5',
               )}
             >
               <ReplyToQuestion />

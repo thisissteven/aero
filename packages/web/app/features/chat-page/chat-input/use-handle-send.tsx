@@ -1,5 +1,4 @@
-import { ppid } from 'node:process';
-import { logger, toast } from '@aero/ui';
+import { toast } from '@aero/ui';
 import { useCallback } from 'react';
 import {
   composerSubmitAfter,
@@ -60,7 +59,15 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
       );
 
       const payload = composerState.payload;
-      const text = payload?.text ?? '';
+      // Compute segments and steer detection up front — sendTextMessage needs isSteer
+      const segments = (payload?.segments ?? []).filter(
+        (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
+      );
+      const text =
+        payload?.text
+          .trim()
+          .replace(/^\/steer\b\s*/, '')
+          .trim() ?? '';
       const externalState = getExternalPartsSession(
         useExternalPartsStore.getState(),
         resolvedSessionId,
@@ -69,7 +76,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
 
-      const hasComposerContent = (payload?.segments.length ?? 0) > 0;
+      const hasComposerContent = (segments.length ?? 0) > 0;
 
       const hasExternalContent = !(
         externalState.fileAttachments.length === 0 &&
@@ -96,11 +103,6 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         toast.danger('Failed to connect to session stream');
         return;
       }
-
-      // Compute segments and steer detection up front — sendTextMessage needs isSteer
-      const segments = (payload?.segments ?? []).filter(
-        (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
-      );
 
       const effectiveSegments = isSteerMode ? segments.slice(1) : segments;
 

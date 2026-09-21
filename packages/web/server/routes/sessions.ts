@@ -11,8 +11,8 @@ import {
   listArchivedSessionsAcrossAdapters,
   listSessionsAcrossAdapters,
 } from '@/server/services/sessions/sessions-merger';
-import { getPinnedMessages } from '@/server/services/settings';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
+import { SessionMetadata } from '@/server/types/opencode-sdk';
 import { groupMessages, withPagination } from '../helper';
 import { getActiveAdapter, getAllAdapters } from '../services/harness/registry';
 import type {
@@ -45,6 +45,11 @@ const createSessionInputSchema = z.object({
   title: z.string().optional(),
   directory: z.string().optional(),
   harnessId: z.string().optional(),
+});
+
+const togglePinnedSchema = z.object({
+  messageId: z.string(),
+  pinned: z.boolean(),
 });
 
 const sessions = new Hono()
@@ -588,14 +593,80 @@ const sessions = new Hono()
     },
   )
 
-  // GET /api/sessions/:id/pinned
-  .get('/:id/pinned', zValidator('param', idParamSchema), async (c) => {
-    const { id } = c.req.valid('param');
+  // GET /api/sessions/:id/pinned?harnessId=...
+  .get(
+    '/:id/pinned',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
 
-    const pinnedMessages = await getPinnedMessages(id);
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
 
-    return c.json(pinnedMessages);
-  })
+      const metadata = (session.metadata ?? {}) as SessionMetadata;
+      const aero = metadata.aero ?? {};
+
+      const messages = Array.isArray(aero.context_obligatory_messages)
+        ? aero.context_obligatory_messages
+        : [];
+
+      return c.json(messages);
+    },
+  )
+
+  .post(
+    '/:id/pinned',
+    zValidator('param', idParamSchema),
+    zValidator('query', harnessQuerySchema),
+    zValidator('json', togglePinnedSchema),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const { harnessId } = c.req.valid('query');
+      const { messageId, pinned } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const session = await harness.getSession(id);
+
+      // Look up the message to get authoritative role + timestamp.
+      const message = await harness.getSessionMessage(id, messageId);
+
+      const role =
+        (message as { role?: string }).role === 'assistant'
+          ? 'assistant'
+          : 'user';
+
+      const createdAt =
+        (message as { createdAt?: number }).createdAt ?? Date.now();
+
+      const metadata = (session.metadata ?? {}) as SessionMetadata;
+      const aero = metadata.aero ?? {};
+      const existing = Array.isArray(aero.context_obligatory_messages)
+        ? aero.context_obligatory_messages
+        : [];
+
+      const next = pinned
+        ? [
+            ...existing.filter((m) => m.id !== messageId),
+            { id: messageId, createdAt, role },
+          ].sort((a, b) => a.createdAt - b.createdAt)
+        : existing.filter((m) => m.id !== messageId);
+
+      await harness.updateSessionMetadata({
+        sessionID: id,
+        metadata: {
+          ...metadata,
+          aero: {
+            ...aero,
+            context_obligatory_messages: next,
+          },
+        },
+      });
+
+      return c.json(next);
+    },
+  )
 
   // PATCH /api/sessions/:id/rename?harnessId=...
   .patch(
