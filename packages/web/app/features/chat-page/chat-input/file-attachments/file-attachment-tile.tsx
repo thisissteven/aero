@@ -40,23 +40,15 @@ export function FileAttachmentTile({
     >
       <div className={styles.imageWrapper}>
         {isVideo ? (
-          isSent ? (
-            <div className={styles.image}>
-              <div className='grid place-items-center h-full'>
-                <Video className='size-6 text-muted/50 stroke-[0.5px]' />
-              </div>
-            </div>
-          ) : (
-            <video
-              src={attachment.url}
-              className={styles.image}
-              muted
-              loop
-              playsInline
-              autoPlay
-              preload='auto'
-            />
-          )
+          <video
+            src={attachment.url}
+            className={styles.image}
+            muted
+            loop
+            playsInline
+            autoPlay={!isSent}
+            preload={isSent ? 'metadata' : 'auto'}
+          />
         ) : (
           <img
             src={attachment.url}

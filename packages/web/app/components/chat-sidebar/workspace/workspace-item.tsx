@@ -1,13 +1,8 @@
 import { Sidebar } from '@aero/ui';
-import { Folder } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo } from 'react';
 
 import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/workspace/directory-not-found-indicator';
-import {
-  ACCENT_COLORS_MAP,
-  PROJECT_ICON_MAP,
-} from '@/app/components/chat-sidebar/workspace/edit-workspace-modal/edit-workspace-constants';
+
 import { RootWorktreeItem } from '@/app/components/chat-sidebar/workspace/root-worktree-item';
 import { SubWorktreeItem } from '@/app/components/chat-sidebar/workspace/sub-worktree-item';
 import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';

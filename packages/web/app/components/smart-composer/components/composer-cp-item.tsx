@@ -43,13 +43,13 @@ export function CommandPaletteItem({
       : item.kind === 'command'
         ? [
             item.command.source,
-            ...(item.command.hints.length
-              ? [
-                  `${item.command.hints.length} arg${
-                    item.command.hints.length === 1 ? '' : 's'
-                  }`,
-                ]
-              : []),
+            // ...(item.command.hints.length
+            //   ? [
+            //       `${item.command.hints.length} arg${
+            //         item.command.hints.length === 1 ? '' : 's'
+            //       }`,
+            //     ]
+            //   : []),
           ]
         : item.kind === 'skill'
           ? [item.skill.scope]
@@ -111,7 +111,7 @@ export function CommandPaletteItem({
           {metadata.map((value) => (
             <span
               key={value}
-              className='bg-surface rounded px-1.5 py-0.5 text-[10px] leading-none'
+              className='bg-default text-foreground rounded px-1.5 py-0.5 text-[10px] leading-none'
             >
               {value}
             </span>

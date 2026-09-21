@@ -10,6 +10,7 @@ import {
   readPid,
   removePid,
   startServer,
+  waitForServerDown,
 } from './lib/server.js';
 
 const program = new Command();
@@ -246,7 +247,9 @@ program
   .description('Stop and start the server')
   .action(async () => {
     const port = resolvePort();
+    const host = resolveHost();
     const pid = readPid(port);
+
     if (pid && isProcessAlive(pid)) {
       blank();
       line('T', 'Aero Restart');
@@ -258,6 +261,23 @@ program
       killServer(pid);
       removePid(port);
     }
+
+    // Wait for the port to actually stop answering before we try to
+    // start a new instance. Otherwise checkServer() in runServe() sees
+    // the dying old process and reports "already running".
+    const down = await waitForServerDown(port, host);
+    if (!down) {
+      blank();
+      line('!', 'Restart failed');
+      line('|', `Port ${port} still responding after 5s.`);
+      line(
+        '|',
+        'The old process may be hung. Try `aero stop --port ' + port + '`.',
+      );
+      blank();
+      process.exit(1);
+    }
+
     await runServe();
   });
 

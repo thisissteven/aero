@@ -20,6 +20,7 @@ import {
   useUpdateSetting,
 } from '@/app/hooks/api/settings';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
+import { revertSessionToast } from '@/app/lib/commands/revert-session';
 import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSpeechStore } from '@/app/stores/speech';
@@ -66,18 +67,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
   return (
     <Tooltip>
       <IconButton
-        onPress={async () => {
-          toast.promise(() => mutateAsync(messageId), {
-            loading: 'Reverting message',
-            error: (err) => err.message,
-            success: () => {
-              queryClient.invalidateQueries({
-                queryKey: sessionKeys.toc(undefined, sessionId),
-              });
-              return 'Message reverted successfully';
-            },
-          });
-        }}
+        onPress={() => revertSessionToast(() => mutateAsync(messageId))}
       >
         <Icon data={ArrowUturnCcwLeft} />
       </IconButton>

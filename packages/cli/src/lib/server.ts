@@ -434,3 +434,21 @@ export async function startServer(opts: StartServerOptions): Promise<number> {
   writePid(opts.port, pid);
   return pid;
 }
+
+/**
+ * Poll until the server on (host, port) stops responding, or we give up.
+ * Used after killServer() so `restart` doesn't race the old process's
+ * shutdown sequence.
+ */
+export async function waitForServerDown(
+  port: number,
+  host: string,
+  timeoutMs = 5000,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await checkServer(port, host))) return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return false;
+}

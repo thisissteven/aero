@@ -8,6 +8,7 @@ import {
   MessageActionsPin,
   MessageActionsRevert,
 } from '@/app/components/message-view/message-actions';
+import { StyledText } from '@/app/components/message-view/styled-text';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { FileAttachmentsView } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
 import { formatDateTime } from '@/app/lib/date';
@@ -221,9 +222,9 @@ export const UserChatBubble = memo(function UserChatBubble({
                 {text}
               </Markdown>
             ) : text.length > 0 ? (
-              text
+              <StyledText text={text} />
             ) : (
-              <span className='text-sm text-muted'>No message sent.</span>
+              <span className='text-sm text-muted'>Sent empty message.</span>
             )}
           </div>
 

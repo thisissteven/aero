@@ -1099,6 +1099,23 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return true;
     },
 
+    compactSession(sessionID, input, directory) {
+      withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.session.summarize({
+            sessionID,
+            modelID: input.modelId,
+            providerID: input.providerId,
+            directory,
+          }),
+        ),
+      ).catch((err) => {
+        console.error('[opencode] compactSession failed', err);
+      });
+
+      return true;
+    },
+
     sendShellCommand(sessionID, input, directory) {
       withOpencodeClientV2(async (client) =>
         unwrap(

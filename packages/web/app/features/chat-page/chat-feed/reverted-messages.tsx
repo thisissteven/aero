@@ -11,6 +11,8 @@ import {
   useRevertSession,
 } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { restoreAllMessagesToast } from '@/app/lib/commands/restore-all-messages';
+import { revertSessionToast } from '@/app/lib/commands/revert-session';
 import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
@@ -90,38 +92,14 @@ export function RevertedMessages() {
                       <IconButton
                         onPress={() => {
                           if (index === revertedMessages.length - 1) {
-                            toast.promise(restoreMessages(), {
-                              loading: 'Restoring messages...',
-                              error: (err) => err.message,
-                              success: () => {
-                                queryClient.invalidateQueries({
-                                  queryKey: sessionKeys.toc(
-                                    undefined,
-                                    sessionId,
-                                  ),
-                                });
-                                return 'Messages restored successfully';
-                              },
-                            });
+                            restoreAllMessagesToast(restoreMessages);
                             return;
                           }
-                          toast.promise(
+
+                          revertSessionToast(() =>
                             revertSession(
                               revertedMessages[index + 1].messageId,
                             ),
-                            {
-                              loading: 'Restoring messages...',
-                              error: (err) => err.message,
-                              success: () => {
-                                queryClient.invalidateQueries({
-                                  queryKey: sessionKeys.toc(
-                                    undefined,
-                                    sessionId,
-                                  ),
-                                });
-                                return 'Messages restored successfully';
-                              },
-                            },
                           );
                         }}
                         isIconOnly={false}

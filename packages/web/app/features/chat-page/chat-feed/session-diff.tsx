@@ -1,5 +1,5 @@
 import { cn, Popover } from '@aero/ui';
-import { ChevronDown, PencilToLine } from '@gravity-ui/icons';
+import { ArrowsRotateLeft, PencilToLine } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useState } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
@@ -55,14 +55,7 @@ export const SessionDiff = memo(function SessionDiff() {
           <span className='text-danger text-xs'>-{totalDeletions}</span>
         )}
 
-        <Icon
-          data={ChevronDown}
-          size={12}
-          className={cn(
-            'text-foreground/80 shrink-0 transition',
-            isOpen && 'rotate-180',
-          )}
-        />
+        <RefetchButton />
       </Popover.Trigger>
 
       <Popover.Content
@@ -127,3 +120,34 @@ export const SessionDiff = memo(function SessionDiff() {
     </Popover>
   );
 });
+
+function RefetchButton() {
+  const directory = useSessionDirectory();
+  const { refetch } = useGitDiff(directory);
+
+  const [isPending, setIsPending] = useState(false);
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        if (isPending) return;
+        setIsPending(true);
+        refetch();
+        setTimeout(() => {
+          setIsPending(false);
+        }, 1000);
+      }}
+      className='ml-1'
+    >
+      <Icon
+        data={ArrowsRotateLeft}
+        size={12}
+        className={cn(
+          'text-foreground/80 shrink-0 transition',
+          isPending && 'animate-spin origin-center',
+        )}
+      />
+    </div>
+  );
+}

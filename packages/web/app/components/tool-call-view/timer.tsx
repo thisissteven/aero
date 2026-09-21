@@ -58,7 +58,7 @@ export const Timer = memo(
           'tabular-nums lining-nums inline-block text-center align-baseline',
           className,
         )}
-        style={{ minWidth: '2ch', ...style }}
+        style={{ minWidth: '3ch', ...style }}
       >
         {formatElapsedMs(valueMs)}
       </span>

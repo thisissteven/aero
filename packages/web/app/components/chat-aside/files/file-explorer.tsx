@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 import { DeletePathConfirmationModal } from '@/app/components/chat-aside/files/delete-path-confirmation-modal';
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
+import { CopyPath } from '@/app/components/chat-navbar/open-in-actions/copy-path';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 
 export interface FileExplorerProps extends UseLazyFileTreeResult {
@@ -103,9 +104,6 @@ export function FileExplorer({
             }
 
             deletePath(item.path, isDir);
-          } else if (key === 'copy-path') {
-            void navigator.clipboard.writeText(root + '/' + item.path);
-            toast.success('Path copied to clipboard');
           }
         }, 0);
       };
@@ -160,13 +158,7 @@ export function FileExplorer({
                 >
                   <Label>Rename</Label>
                 </Dropdown.Item>
-                <Dropdown.Item
-                  id='copy-path'
-                  textValue='Copy path'
-                  onClick={() => handleAction('copy-path')}
-                >
-                  <Label>Copy path</Label>
-                </Dropdown.Item>
+                <CopyPath path={root + '/' + item.path} withIcon={false} />
                 <Dropdown.Item
                   id='delete'
                   textValue='Delete'

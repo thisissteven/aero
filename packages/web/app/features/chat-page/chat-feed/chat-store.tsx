@@ -1,3 +1,4 @@
+import { logger } from '@aero/ui';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
@@ -5,6 +6,7 @@ import {
   type FlatConversationVirtualItem,
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
+import { handleSessionUpdated } from '@/app/features/chat-page/chat-feed/event-handlers/session-updated';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
@@ -1524,15 +1526,7 @@ export const useChatStore = create<ChatStore>()(
         handleStreamEvent: (sessionId, event, revertMessageId) => {
           switch (event.type) {
             case 'session.updated': {
-              queryClient.setQueryData(
-                sessionKeys.detail(event.session.harnessId, sessionId),
-                event.session,
-              );
-
-              queryClient.invalidateQueries({
-                queryKey: sessionKeys.context(undefined, sessionId),
-              });
-
+              handleSessionUpdated(event.session);
               return;
             }
 

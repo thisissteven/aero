@@ -9,6 +9,7 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
+import { CopyPath } from '@/app/components/chat-navbar/open-in-actions/copy-path';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
@@ -156,32 +157,4 @@ function AppIcon({
     return <Icon data={Terminal} size={16} className='text-muted' />;
   }
   return <Icon data={Code} size={16} className='text-sky-400' />;
-}
-
-function CopyPath({ path }: { path: string }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const { copied, copy } = useCopyToClipboard({
-    animatedRef: containerRef,
-  });
-
-  return (
-    <Dropdown.Item onPress={() => copy(path)} shouldCloseOnSelect={false}>
-      <style dangerouslySetInnerHTML={{ __html: copyButtonCss }} />
-
-      <div ref={containerRef} className='t-text-swap items-center gap-2.25'>
-        <div className='shrink-0'>
-          {copied ? (
-            <Icon size={16} data={Check} />
-          ) : (
-            <Icon size={16} data={Copy} />
-          )}
-        </div>
-
-        <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Path'}
-        </Label>
-      </div>
-    </Dropdown.Item>
-  );
 }

@@ -20,7 +20,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
   item: Extract<FlatConversationVirtualItem, { type: 'assistant-footer' }>;
 }) {
   const {
-    createdAt,
+    updatedAt,
     assistantTextResponse,
     nextTurnId,
     turnId,
@@ -62,7 +62,7 @@ export const AssistantFooterView = memo(function AssistantFooterView({
         </div>
         <div className='flex w-full flex-wrap items-center justify-start gap-2'>
           <div className='text-muted text-xs select-none'>
-            {formatDateTime(createdAt)}
+            {formatDateTime(updatedAt)}
           </div>
 
           <div>

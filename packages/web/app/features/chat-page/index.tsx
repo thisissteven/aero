@@ -15,6 +15,7 @@ import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
 import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
+import { FileDropZone } from '@/app/features/chat-page/chat-input/file-attachments/file-drop-zone';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
@@ -73,44 +74,46 @@ export function ChatPage({
   }, []);
 
   return (
-    <div
-      className={cn(
-        'ease relative flex h-[calc(100svh-var(--chat-navbar-height,56px))] flex-col justify-center overflow-hidden',
-      )}
-    >
-      {notFound ? (
-        <SessionNotFound sessionId={sessionId} />
-      ) : (
-        <>
-          <OpenParentSession sessionId={sessionId} />
+    <FileDropZone>
+      <div
+        className={cn(
+          'ease relative flex h-[calc(100svh-var(--chat-navbar-height,56px))] flex-col justify-center overflow-hidden',
+        )}
+      >
+        {notFound ? (
+          <SessionNotFound sessionId={sessionId} />
+        ) : (
+          <>
+            <OpenParentSession sessionId={sessionId} />
 
-          <ChatTocSection onSelectTocItem={handleSelectTocItem} />
+            <ChatTocSection onSelectTocItem={handleSelectTocItem} />
 
-          <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
-        </>
-      )}
+            <ChatFeed key={sessionId} groups={groups} ref={feedRef} />
+          </>
+        )}
 
-      <div className='shrink-0 px-4 pb-2'>
-        <div className='@container relative mx-auto w-full max-w-[720px]'>
-          <OfflineWrapper>
-            <div className='absolute left-0 -translate-y-full'>
-              <WithScrollToBottomWrapper
-                type='main'
-                onScrollToBottom={handleScrollToBottom}
-              >
-                <ChatActivityIndicator />
-              </WithScrollToBottomWrapper>
-              <ChatQuotesPanel />
+        <div className='shrink-0 px-4 pb-2'>
+          <div className='@container relative mx-auto w-full max-w-[720px]'>
+            <OfflineWrapper>
+              <div className='absolute left-0 -translate-y-full'>
+                <WithScrollToBottomWrapper
+                  type='main'
+                  onScrollToBottom={handleScrollToBottom}
+                >
+                  <ChatActivityIndicator />
+                </WithScrollToBottomWrapper>
+                <ChatQuotesPanel />
+              </div>
+            </OfflineWrapper>
+            <FileAttachments />
+            <div className='flex flex-wrap gap-2 mx-2'>
+              <SessionDiff />
+              <SessionTodos />
             </div>
-          </OfflineWrapper>
-          <FileAttachments />
-          <div className='flex flex-wrap gap-2 mx-2'>
-            <SessionDiff />
-            <SessionTodos />
+            <ChatInput isDisabled={notFound} sessionId={sessionId} />
           </div>
-          <ChatInput isDisabled={notFound} sessionId={sessionId} />
         </div>
       </div>
-    </div>
+    </FileDropZone>
   );
 }

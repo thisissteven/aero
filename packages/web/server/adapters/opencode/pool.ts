@@ -274,6 +274,7 @@ export const opencodePoolV2 = new OpencodeServerPool<
       ? `${process.env.NO_PROXY},127.0.0.1,localhost`
       : '127.0.0.1,localhost';
 
+    // process.env.OPENCODE_DISABLE_FFF = 'false';
     process.env.OPENCODE_ENABLE_EXA = '1';
     process.env.NO_PROXY = noProxy;
     process.env.no_proxy = noProxy;

@@ -15,6 +15,8 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
+import { restoreAllMessages } from '@/app/lib/commands/restore-all-messages';
+import { revertSession } from '@/app/lib/commands/revert-session';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
@@ -453,19 +455,7 @@ export function useRestoreAllMessages(
 ) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const res = await $individualSession.restore.$post({
-        param: { id: sessionId },
-        query: { harnessId },
-      });
-      if (!res.ok) throw new Error('Failed to restore messages');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-    },
+    mutationFn: () => restoreAllMessages({ queryClient, harnessId, sessionId }),
   });
 }
 
@@ -475,22 +465,8 @@ export function useRevertSession(
 ) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (messageId: string) => {
-      const res = await $individualSession.revert.$post({
-        param: { id: sessionId },
-        query: { harnessId },
-        json: {
-          messageId,
-        },
-      });
-      if (!res.ok) throw new Error('Failed to revert message');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-    },
+    mutationFn: (messageId: string) =>
+      revertSession({ queryClient, harnessId, sessionId, messageId }),
   });
 }
 

@@ -1,4 +1,8 @@
 import {
+  commandTemplates,
+  customCommands,
+} from '@/app/components/smart-composer/custom-commands';
+import {
   getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
@@ -203,8 +207,13 @@ export function unifiedSearch(
       nonEmptySegments[0].text.startsWith('/');
 
     if (canAddCommand) {
-      for (const command of data.commands) {
-        if (matches(command.name, q)) {
+      const commands = [...data.commands, ...customCommands];
+      for (const command of commands) {
+        if (
+          matches(command.name, q) ||
+          matches(command.hints.join(' '), q) ||
+          matches(command.description ?? '', q)
+        ) {
           results.push(
             createItem(
               `command:${command.name}`,
@@ -220,7 +229,7 @@ export function unifiedSearch(
     }
 
     for (const skill of data.skills) {
-      if (matches(skill.name, q)) {
+      if (matches(skill.name, q) || matches(skill.description ?? '', q)) {
         results.push(
           createItem(
             `skill:${skill.name}`,
@@ -269,6 +278,7 @@ export function extractCommandPayload(
       }[],
 ) {
   let command: string | undefined;
+  let isCustomCommand = false;
   const argumentTexts: string[] = [];
   const parts: SendCommandInput['parts'] = [];
 
@@ -284,6 +294,7 @@ export function extractCommandPayload(
       if (token.type === 'command') {
         // e.g., token.value = "explain" or "/explain"
         command = token.value.replace(/^\//, '');
+        isCustomCommand = command in commandTemplates;
       } else if (token.type === 'file') {
         const path = token.value; // e.g. "src/index.ts"
         const filename = path.split('/').pop() || path;
@@ -312,6 +323,7 @@ export function extractCommandPayload(
     command: command || '',
     arguments: argumentTexts.join(' '),
     parts,
+    isCustomCommand,
   };
 }
 

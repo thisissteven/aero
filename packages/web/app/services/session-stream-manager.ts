@@ -12,6 +12,7 @@ interface Connection {
   openPromise: Promise<void>;
   resolveOpen: () => void;
   rejectOpen: (error: Error) => void;
+  settled: boolean;
 }
 
 type DeltaEvent = Extract<AeroEvent, { type: 'message.part.delta' }>;
@@ -119,11 +120,31 @@ class SessionStreamManager {
   ensure({ sessionId, harnessId }: StreamOptions): Promise<void> {
     const existing = this.connections.get(sessionId);
 
-    if (existing && existing.harnessId === harnessId) {
+    // Reuse an existing connection only if the harness matches AND the
+    // underlying EventSource is still alive (CONNECTING or OPEN). A CLOSED
+    // source can never emit again, so returning its promise would keep
+    // rejecting the caller forever.
+    if (
+      existing &&
+      existing.harnessId === harnessId &&
+      existing.source.readyState !== EventSource.CLOSED
+    ) {
       return existing.openPromise;
     }
 
-    existing?.source.close();
+    if (existing) {
+      // Superseded or dead: settle its promise (resolve — not reject — so
+      // we don't surface a spurious error when the session itself is
+      // still being served by the connection we're about to create) and
+      // evict it from the map so the next `ensure()` starts clean.
+      if (!existing.settled) {
+        existing.settled = true;
+        existing.resolveOpen();
+      }
+
+      existing.source.close();
+      this.connections.delete(sessionId);
+    }
 
     let resolveOpen!: () => void;
     let rejectOpen!: (error: Error) => void;
@@ -145,9 +166,33 @@ class SessionStreamManager {
       openPromise,
       resolveOpen,
       rejectOpen,
+      settled: false,
     };
 
     const isCurrent = () => this.connections.get(sessionId)?.source === source;
+
+    const settle = (): boolean => {
+      if (connection.settled) {
+        return false;
+      }
+
+      connection.settled = true;
+      return true;
+    };
+
+    // Remove the connection from the map (only if it's still the current
+    // one) and close the EventSource. Idempotent.
+    const teardown = () => {
+      if (this.connections.get(sessionId)?.source === source) {
+        this.connections.delete(sessionId);
+      }
+
+      try {
+        source.close();
+      } catch {
+        /* ignore */
+      }
+    };
 
     const handle = (event: MessageEvent) => {
       if (!isCurrent()) {
@@ -184,7 +229,9 @@ class SessionStreamManager {
         return;
       }
 
-      resolveOpen();
+      if (settle()) {
+        connection.resolveOpen();
+      }
     };
 
     const handleIdle = (event: MessageEvent) => {
@@ -198,11 +245,12 @@ class SessionStreamManager {
        * handle() flushes deltas synchronously before processing idle.
        * At this point the stream can safely be removed.
        */
-      const current = this.connections.get(sessionId);
+      teardown();
 
-      if (current?.source === source) {
-        source.close();
-        this.connections.delete(sessionId);
+      // If we somehow missed `ready`, still settle so awaiting callers
+      // don't hang.
+      if (settle()) {
+        connection.resolveOpen();
       }
     };
 
@@ -214,6 +262,7 @@ class SessionStreamManager {
     source.addEventListener('message.part.removed', handle);
     source.addEventListener('message.removed', handle);
     source.addEventListener('session.status', handle);
+    source.addEventListener('session.updated', handle);
     source.addEventListener('session.idle', handleIdle);
     source.addEventListener('session.error', handle);
     source.addEventListener('permission.asked', handle);
@@ -227,7 +276,17 @@ class SessionStreamManager {
 
       if (source.readyState === EventSource.CLOSED) {
         this.flushSessionDeltas(sessionId);
-        rejectOpen(new Error(`Session stream closed: ${sessionId}`));
+
+        // Evict BEFORE rejecting so any concurrent/subsequent
+        // `ensure(sessionId)` sees a clean map and creates a fresh
+        // EventSource instead of reusing the dead one.
+        teardown();
+
+        if (settle()) {
+          connection.rejectOpen(
+            new Error(`Session stream closed: ${sessionId}`),
+          );
+        }
       }
     };
 
@@ -245,6 +304,13 @@ class SessionStreamManager {
       return;
     }
 
+    // Settle so callers awaiting `ensure()` don't hang if they're still
+    // pending when we're told to close.
+    if (!connection.settled) {
+      connection.settled = true;
+      connection.resolveOpen();
+    }
+
     connection.source.close();
     this.connections.delete(sessionId);
   }
@@ -252,7 +318,7 @@ class SessionStreamManager {
   closeAll() {
     this.flushAllDeltas();
 
-    for (const sessionId of this.connections.keys()) {
+    for (const sessionId of [...this.connections.keys()]) {
       this.close(sessionId);
     }
   }

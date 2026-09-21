@@ -51,8 +51,8 @@ function AppLayout() {
         <KeyPressProvider />
         <PreloadProvider />
         <PathnameHandler />
-        {/* {import.meta.env.DEV && <FloatingLogger />} */}
-        {/* {import.meta.env.DEV && <DevConsole />} */}
+        {import.meta.env.DEV && <FloatingLogger />}
+        {import.meta.env.DEV && <DevConsole />}
         <RootSessionIdProvider>
           <ChatShell>
             <Outlet />

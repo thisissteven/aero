@@ -128,7 +128,7 @@ export type FlatConversationVirtualItem =
       id: string;
       type: 'assistant-footer';
       turnId: string;
-      createdAt: string | Date;
+      updatedAt: string | Date;
       assistantTextResponse: string;
       nextTurnId: string;
       providerID?: string;
@@ -409,7 +409,7 @@ export function buildFlatConversationItems(
         id: `${turn.id}-footer`,
         type: 'assistant-footer',
         turnId: turn.id,
-        createdAt: formatDateTime(turn.createdAt),
+        updatedAt: formatDateTime(endTimeRaw ?? turn.createdAt),
         assistantTextResponse: assistantTextResponse || errorMessage || '',
         nextTurnId,
         elapsedTime,

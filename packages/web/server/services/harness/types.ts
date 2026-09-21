@@ -411,6 +411,11 @@ export interface SendMessageInput {
   variant?: string;
 }
 
+export interface CompactSessionInput {
+  modelId?: string;
+  providerId?: string;
+}
+
 export interface SendShellCommandInput {
   model?: { providerId: string; modelId: string };
   system?: string;
@@ -478,10 +483,13 @@ export type AeroAgentCompact = Pick<
 >;
 
 export type AeroCommand = Command;
+export type AeroCommandSource = AeroCommand['source'] | (string & {});
 export type AeroCommandCompact = Pick<
   AeroCommand,
-  'name' | 'description' | 'hints' | 'source'
->;
+  'name' | 'description' | 'hints'
+> & {
+  source: AeroCommandSource;
+};
 
 export interface AeroWorktreeItem {
   directory: string;
@@ -537,6 +545,11 @@ export interface HarnessAdapter {
 
   listMessages(sessionId: string): Promise<AeroMessage[]>;
   messagesToMarkdown(sessionId: string): Promise<AeroMarkdownExport>;
+  compactSession(
+    sessionId: string,
+    input: CompactSessionInput,
+    directory: string,
+  ): boolean;
   sendMessage(
     sessionId: string,
     input: SendMessageInput,

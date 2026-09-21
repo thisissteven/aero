@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { ReadPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { getFileExtension } from '@/app/lib/file';
 import {
   formatReadToolOutput,
   getLanguageFromExtension,
@@ -23,7 +24,7 @@ export const ReadToolView = memo(
     const fileName = getBasename(path);
     const output = formatReadToolOutput(part.output);
 
-    const language = getLanguageFromExtension(path);
+    const language = getFileExtension(path);
 
     return (
       <BaseTool

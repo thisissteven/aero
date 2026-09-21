@@ -604,7 +604,7 @@ export function toAeroCommandCompact(entry: Command): AeroCommandCompact {
     name: entry.name,
     description: entry.description,
     hints: entry.hints,
-    source: entry.source,
+    source: ['init', 'review'].includes(entry.name) ? 'built-in' : 'project',
   };
 }
 

@@ -20,6 +20,14 @@ interface Subscriber {
   queue: AeroEvent[];
   resolveNext: (() => void) | null;
   closed: boolean;
+  /**
+   * The harness generation this subscriber believes it's connected to.
+   * `null` means "unknown": the subscriber arrived while the hub was
+   * disconnected, and will be stamped with the generation of the next
+   * successful `handleConnected`. Subscribers stamped with a generation
+   * that no longer matches the live process get force-closed.
+   */
+  generation: number | null;
 }
 
 const MAX_QUEUE_SIZE = 512;
@@ -83,6 +91,14 @@ class SessionEventHub {
   private upstreamController: AbortController | null = null;
   private upstreamTask: Promise<void> | null = null;
 
+  /**
+   * True iff we currently have a *live* upstream connection — i.e. we
+   * have seen `onConnected` for the running attempt and haven't yet
+   * fallen into a reconnect. Distinct from `upstreamController !== null`
+   * because the controller stays alive across reconnect delays.
+   */
+  private upstreamConnected = false;
+
   private readyPromise: Promise<void> | null = null;
   private resolveReady: (() => void) | null = null;
   private rejectReady: ((error: Error) => void) | null = null;
@@ -101,7 +117,8 @@ class SessionEventHub {
   }
 
   async waitUntilReady(): Promise<void> {
-    if (this.upstreamController && this.readyPromise === null) {
+    // Already connected with nothing to wait for → return immediately.
+    if (this.upstreamConnected && this.readyPromise === null) {
       return;
     }
 
@@ -130,6 +147,10 @@ class SessionEventHub {
       queue: [],
       resolveNext: null,
       closed: false,
+      // If the upstream is live, this subscriber joins the current
+      // process. If not, mark it unknown so it's stamped (and preserved)
+      // on the next connect rather than inheriting a stale generation.
+      generation: this.upstreamConnected ? this.lastGeneration : null,
     };
 
     this.subscribers.add(subscriber);
@@ -164,17 +185,25 @@ class SessionEventHub {
   /**
    * Called whenever the upstream connection is (re)established,
    * whether that's the very first connection or a reconnect after a
-   * drop. If the harness reports a generation that differs from the
-   * one we last connected against, the process backing this hub has
-   * been replaced (e.g. a pool `/restart`) — any subscriber created
-   * before this point is listening for a sessionId that can never
-   * exist on the new process, so it must be force-closed rather than
-   * left to hang indefinitely.
+   * drop.
+   *
+   * Subscribers that arrived while we were disconnected carry
+   * `generation === null`; they're connecting fresh against whatever
+   * process we just reached and must not be invalidated. Only
+   * subscribers stamped with an older generation are force-closed.
    */
   private handleConnected(harness: StreamEventsHarness) {
     const generation = harness.getGeneration?.();
 
     if (generation !== undefined) {
+      // Adopt any subscribers that arrived while we were disconnected.
+      // Do this BEFORE invalidation so they're skipped below.
+      for (const subscriber of this.subscribers) {
+        if (subscriber.generation === null) {
+          subscriber.generation = generation;
+        }
+      }
+
       if (this.lastGeneration !== null && generation !== this.lastGeneration) {
         this.invalidateStaleSubscribers(generation);
       }
@@ -182,21 +211,19 @@ class SessionEventHub {
       this.lastGeneration = generation;
     }
 
+    this.upstreamConnected = true;
+
     this.resolveReady?.();
     this.resolveReady = null;
     this.rejectReady = null;
     this.readyPromise = null;
   }
 
-  private invalidateStaleSubscribers(newGeneration: number) {
-    const stale = [...this.subscribers];
-
-    if (stale.length === 0) {
-      return;
-    }
-
-    for (const subscriber of stale) {
-      this.removeSubscriber(subscriber);
+  private invalidateStaleSubscribers(currentGeneration: number) {
+    for (const subscriber of [...this.subscribers]) {
+      if (subscriber.generation !== currentGeneration) {
+        this.removeSubscriber(subscriber);
+      }
     }
   }
 
@@ -209,6 +236,10 @@ class SessionEventHub {
 
     try {
       while (!controller.signal.aborted && this.subscribers.size > 0) {
+        // We're about to (re)connect — until `onConnected` fires we're
+        // not "connected" for the purposes of new subscribers.
+        this.upstreamConnected = false;
+
         try {
           const harness = await this.getHarness();
 
@@ -238,11 +269,14 @@ class SessionEventHub {
             break;
           }
 
-          this.readyPromise = null;
-          this.resolveReady = null;
-          this.rejectReady = null;
+          /**
+           * Deliberately do NOT null out `readyPromise` here. A subscriber
+           * currently awaiting `waitUntilReady()` is waiting for the
+           * upstream to come back — it should be resolved by the next
+           * successful `handleConnected`, not orphaned.
+           */
 
-          this.ensureReadyPromise();
+          this.upstreamConnected = false;
 
           const reconnect = await delay(reconnectDelay, controller.signal);
 
@@ -259,6 +293,8 @@ class SessionEventHub {
       }
 
       controller.abort();
+
+      this.upstreamConnected = false;
 
       if (this.subscribers.size === 0) {
         this.readyPromise = null;
@@ -395,6 +431,7 @@ class SessionEventHub {
   private stopUpstream() {
     this.upstreamController?.abort();
     this.upstreamController = null;
+    this.upstreamConnected = false;
   }
 
   getStats() {
@@ -405,7 +442,7 @@ class SessionEventHub {
         (subscriber) => subscriber.sessionId,
       ),
 
-      upstreamConnected: this.upstreamController !== null,
+      upstreamConnected: this.upstreamConnected,
 
       generation: this.lastGeneration,
     };

@@ -7,6 +7,7 @@ import {
 } from '@/app/components/smart-composer/smart-composer-store';
 import { AgentDropdown } from '@/app/features/chat-page/chat-input/agent-dropdown';
 import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
+import { FileDropZone } from '@/app/features/chat-page/chat-input/file-attachments/file-drop-zone';
 import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown';
 import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
 import { ModelDropdown } from '@/app/features/chat-page/chat-input/model-dropdown';
@@ -35,70 +36,72 @@ export function NewSessionPage() {
   );
 
   return (
-    <div
-      ref={setContainer}
-      className='@container relative h-full overflow-hidden'
-    >
-      {container && <ModelAgentDropdownSheet container={container} />}
-      <div className='relative h-[calc(100svh-var(--chat-navbar-height,56px))] overflow-hidden py-2 @max-md:flex @max-md:flex-col @max-md:justify-between'>
-        <ChatWorkToggle />
-        <div
-          className={cn(
-            'h-full',
-            isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
-            'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
-          )}
-        >
-          <div className='mx-auto flex h-full w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4 @max-md:justify-end'>
-            <HeroText />
+    <FileDropZone>
+      <div
+        ref={setContainer}
+        className='@container relative h-full overflow-hidden'
+      >
+        {container && <ModelAgentDropdownSheet container={container} />}
+        <div className='relative h-[calc(100svh-var(--chat-navbar-height,56px))] overflow-hidden py-2 @max-md:flex @max-md:flex-col @max-md:justify-between'>
+          <ChatWorkToggle />
+          <div
+            className={cn(
+              'h-full',
+              isMounted ? 'blur-0 opacity-100' : 'opacity-0 blur-sm',
+              'motion-safe:transition motion-safe:duration-200 motion-safe:ease-in',
+            )}
+          >
+            <div className='mx-auto flex h-full w-full max-w-[920px] flex-col items-center justify-center gap-6 px-4 @max-md:justify-end'>
+              {/* <HeroText /> */}
 
-            <WorkspaceWorktreeDropdownWrapper>
-              <NewSessionPromptInputWrapper>
-                <PromptInput.Shell
-                  className={cn(
-                    'border-separator @container relative border',
-                    isShellMode && 'border-separator dark:border-separator',
-                  )}
-                >
-                  <div className='absolute top-2 right-2'>
-                    <ChatInputExpandedToggleButton
-                      sessionId={NEW_SESSION_PAGE_SESSION_ID}
-                    />
-                  </div>
-
-                  <PromptInputContent />
-
-                  <PromptInput.Toolbar>
-                    <PromptInput.ToolbarStart className='gap-1'>
-                      <AttachmentsButton />
-                      <AutoAcceptPermissionsToggleButton
+              <WorkspaceWorktreeDropdownWrapper>
+                <NewSessionPromptInputWrapper>
+                  <PromptInput.Shell
+                    className={cn(
+                      'border-separator @container relative border',
+                      isShellMode && 'border-separator dark:border-separator',
+                    )}
+                  >
+                    <div className='absolute top-2 right-2'>
+                      <ChatInputExpandedToggleButton
                         sessionId={NEW_SESSION_PAGE_SESSION_ID}
                       />
-                      <GoalModeToggleButton
-                        sessionId={NEW_SESSION_PAGE_SESSION_ID}
-                      />
-                    </PromptInput.ToolbarStart>
+                    </div>
 
-                    <PromptInput.ToolbarEnd>
-                      <div className='flex'>
-                        <div className='@md:hidden'>
-                          <ModelAgentDropdownTrigger />
+                    <PromptInputContent />
+
+                    <PromptInput.Toolbar>
+                      <PromptInput.ToolbarStart className='gap-1'>
+                        <AttachmentsButton />
+                        <AutoAcceptPermissionsToggleButton
+                          sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                        />
+                        <GoalModeToggleButton
+                          sessionId={NEW_SESSION_PAGE_SESSION_ID}
+                        />
+                      </PromptInput.ToolbarStart>
+
+                      <PromptInput.ToolbarEnd>
+                        <div className='flex'>
+                          <div className='@md:hidden'>
+                            <ModelAgentDropdownTrigger />
+                          </div>
+                          <div className='flex @max-md:hidden'>
+                            <ModelDropdown />
+                            <VariantsDropdown />
+                            <AgentDropdown />
+                          </div>
                         </div>
-                        <div className='flex @max-md:hidden'>
-                          <ModelDropdown />
-                          <VariantsDropdown />
-                          <AgentDropdown />
-                        </div>
-                      </div>
-                      <SendButton />
-                    </PromptInput.ToolbarEnd>
-                  </PromptInput.Toolbar>
-                </PromptInput.Shell>
-              </NewSessionPromptInputWrapper>
-            </WorkspaceWorktreeDropdownWrapper>
+                        <SendButton />
+                      </PromptInput.ToolbarEnd>
+                    </PromptInput.Toolbar>
+                  </PromptInput.Shell>
+                </NewSessionPromptInputWrapper>
+              </WorkspaceWorktreeDropdownWrapper>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </FileDropZone>
   );
 }
