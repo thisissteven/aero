@@ -24,14 +24,12 @@ export interface WorkspaceModelDropdownProps {
   value?: string | null; // raw model.id stored in workspace config
   onChange?: (model: string) => void;
   disabled?: boolean;
-  onAddProviderClick?: () => void;
 }
 
 export function WorkspaceModelDropdown({
   value,
   onChange,
   disabled = false,
-  onAddProviderClick,
 }: WorkspaceModelDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const hideTooltip = useTooltipStore((state) => state.hideTooltip);
@@ -141,14 +139,12 @@ export function WorkspaceModelDropdown({
       </Popover.Trigger>
 
       <Popover.Content
-        className='relative overflow-visible p-0 bg-surface'
+        className='relative overflow-visible p-0 bg-transparent border-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
-          <div className='bg-overlay/60 text-overlay-foreground border-separator flex w-80 flex-col overflow-hidden rounded-xl border backdrop-blur-sm'>
-            {onAddProviderClick && (
-              <AddProviderRow onClick={onAddProviderClick} />
-            )}
+          <div className='bg-surface text-overlay-foreground border border-separator rounded-xl flex w-80 flex-col overflow-hidden'>
+            <AddProviderRow />
 
             <Command>
               <Command.Dialog

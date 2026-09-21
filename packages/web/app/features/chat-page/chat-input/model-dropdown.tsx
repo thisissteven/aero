@@ -104,7 +104,7 @@ export function ModelDropdown() {
       </Button>
 
       <Popover.Content
-        className='relative overflow-visible bg-surface rounded-xl p-0'
+        className='relative overflow-visible bg-transparent border-0 p-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
@@ -116,46 +116,44 @@ export function ModelDropdown() {
             />
           )}
 
-          <Popover.Dialog className='p-0'>
-            <div className='text-overlay-foreground flex w-80 flex-col overflow-hidden'>
-              {/* NOTE: preserved as-is from the original — this button has
+          <div className='text-overlay-foreground border border-separator rounded-xl flex w-80 flex-col overflow-hidden'>
+            {/* NOTE: preserved as-is from the original — this button has
                 never had an onClick wired up. Pass one in if that was
                 meant to open the add-provider flow. */}
-              <AddProviderRow />
+            <AddProviderRow />
 
-              <Command>
-                <Command.Dialog
-                  filter={() => true}
-                  className='border-none bg-transparent shadow-none'
-                  allowEscape
-                >
-                  <ModelSearchInput
-                    value={searchQuery}
-                    onChange={setSearchQuery}
+            <Command>
+              <Command.Dialog
+                filter={() => true}
+                className='border-none bg-transparent shadow-none'
+                allowEscape
+              >
+                <ModelSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
+
+                {totalResults === 0 ? (
+                  <ModelEmptyState />
+                ) : (
+                  <ModelVirtualList
+                    items={items}
+                    selectedModelKey={
+                      selectedModel ? getModelKey(selectedModel) : undefined
+                    }
+                    favoriteModelKeys={favoriteModelIds}
+                    collapsedGroups={collapsedGroups}
+                    onToggleGroup={toggleGroupCollapse}
+                    onSelect={selectModel}
+                    onToggleFavorite={toggleFavorite}
+                    onActivate={activateModel}
                   />
+                )}
+              </Command.Dialog>
+            </Command>
 
-                  {totalResults === 0 ? (
-                    <ModelEmptyState />
-                  ) : (
-                    <ModelVirtualList
-                      items={items}
-                      selectedModelKey={
-                        selectedModel ? getModelKey(selectedModel) : undefined
-                      }
-                      favoriteModelKeys={favoriteModelIds}
-                      collapsedGroups={collapsedGroups}
-                      onToggleGroup={toggleGroupCollapse}
-                      onSelect={selectModel}
-                      onToggleFavorite={toggleFavorite}
-                      onActivate={activateModel}
-                    />
-                  )}
-                </Command.Dialog>
-              </Command>
-
-              <ModelPickerFooter />
-            </div>
-          </Popover.Dialog>
+            <ModelPickerFooter />
+          </div>
         </div>
       </Popover.Content>
     </Popover>

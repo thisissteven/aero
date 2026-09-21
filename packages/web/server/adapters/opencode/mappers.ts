@@ -545,6 +545,11 @@ export function toAeroMessage(entry: {
       entry.info.role === 'assistant'
         ? toPascalCase(entry.info.variant ?? '')
         : undefined,
+    summary:
+      entry.info.summary === true ||
+      entry.info.agent === 'compaction' ||
+      (entry.info.role === 'assistant' && entry.info.mode === 'Compaction'),
+    time: entry.info.time,
   };
 }
 

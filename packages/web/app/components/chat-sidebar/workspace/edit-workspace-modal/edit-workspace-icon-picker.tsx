@@ -1,8 +1,7 @@
+import { Button, cn, Label, toast } from '@aero/ui';
 import { Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
-
-import { Button, cn, Label, toast } from '@aero/ui';
 
 import { useDiscoverFavicon } from '@/app/hooks/api/discovery';
 
@@ -84,6 +83,7 @@ export function EditWorkspaceIconPicker() {
           size='sm'
           variant={selectedIcon === null ? 'primary' : 'outline'}
           onPress={() => setSelectedIcon(null)}
+          className='rounded-lg'
         >
           <Icon data={Xmark} size={16} />
         </Button>
@@ -94,7 +94,7 @@ export function EditWorkspaceIconPicker() {
             type='button'
             onClick={() => setSelectedIcon(id)}
             className={cn(
-              'rounded-full p-2 transition-colors',
+              'rounded-lg p-2 transition-colors',
               selectedIcon === id
                 ? 'bg-accent text-background'
                 : 'text-foreground hover:bg-muted/50 bg-transparent',
@@ -109,7 +109,7 @@ export function EditWorkspaceIconPicker() {
             type='button'
             onClick={() => setSelectedIcon(customIconUri)}
             className={cn(
-              'flex items-center justify-center rounded-full p-2 transition-all',
+              'flex items-center justify-center rounded-lg p-2 transition-all',
               selectedIcon === customIconUri
                 ? 'ring-accent ring-2'
                 : 'hover:bg-muted/50 text-foreground bg-transparent',
@@ -137,6 +137,7 @@ export function EditWorkspaceIconPicker() {
           size='sm'
           variant='secondary'
           onPress={() => fileInputRef.current?.click()}
+          className='rounded-lg'
         >
           Upload icon
         </Button>
@@ -145,6 +146,7 @@ export function EditWorkspaceIconPicker() {
           variant='secondary'
           isPending={isDiscovering}
           onPress={handleDiscoverFavicon}
+          className='rounded-lg'
         >
           Discover favicon
         </Button>

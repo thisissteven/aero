@@ -3,6 +3,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
+import { produce } from 'immer';
 import { z } from 'zod';
 
 import { getSessionEventHub } from '@/server/services/sessions/session-event-hub';
@@ -632,11 +633,6 @@ const sessions = new Hono()
       // Look up the message to get authoritative role + timestamp.
       const message = await harness.getSessionMessage(id, messageId);
 
-      const role =
-        (message as { role?: string }).role === 'assistant'
-          ? 'assistant'
-          : 'user';
-
       const createdAt =
         (message as { createdAt?: number }).createdAt ?? Date.now();
 
@@ -649,19 +645,16 @@ const sessions = new Hono()
       const next = pinned
         ? [
             ...existing.filter((m) => m.id !== messageId),
-            { id: messageId, createdAt, role },
+            { id: messageId, createdAt, role: message.role },
           ].sort((a, b) => a.createdAt - b.createdAt)
         : existing.filter((m) => m.id !== messageId);
 
       await harness.updateSessionMetadata({
         sessionID: id,
-        metadata: {
-          ...metadata,
-          aero: {
-            ...aero,
-            context_obligatory_messages: next,
-          },
-        },
+        metadata: produce(metadata, (draft) => {
+          draft.aero ??= {};
+          draft.aero.context_obligatory_messages = next;
+        }),
       });
 
       return c.json(next);

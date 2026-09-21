@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
 import { getSetting, updateSetting } from '@/app/hooks/api/settings';
 import {
   getModelKey,

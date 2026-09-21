@@ -470,7 +470,9 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
         unwrap(
           await client.session.update({
             sessionID,
-            metadata,
+            metadata: metadata as {
+              [key: string]: unknown;
+            },
           }),
         ),
       );

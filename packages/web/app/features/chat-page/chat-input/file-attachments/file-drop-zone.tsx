@@ -1,6 +1,5 @@
-// file-drop-zone.tsx
-import { cn, logger } from '@aero/ui';
-import { memo, type ReactNode, useCallback, useRef, useState } from 'react';
+import { cn } from '@aero/ui';
+import { memo, type ReactNode, useCallback, useRef } from 'react';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 

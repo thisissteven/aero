@@ -9,6 +9,7 @@ import { FileAttachmentLightbox } from '@/app/features/chat-page/chat-input/file
 import { FileAttachmentRow } from '@/app/features/chat-page/chat-input/file-attachments/file-attachment-row';
 import { FileAttachmentTile } from '@/app/features/chat-page/chat-input/file-attachments/file-attachment-tile';
 import { FileContentsSheet } from '@/app/features/chat-page/chat-input/file-attachments/file-contents-sheet';
+import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
@@ -143,13 +144,19 @@ export function FileAttachments() {
 
   const isChatInputExpanded = useChatInputExpanded();
 
+  const isChat = useNewSessionStore((state) => state.state === 'chat');
+
   if (attachments.length === 0 || isChatInputExpanded) return null;
 
   return (
     <FileAttachmentsView
       attachments={attachments}
       onRemove={handleRemove}
-      className={sessionId ? 'pb-2' : 'pb-1'}
+      className={cn(
+        sessionId ? 'pb-2' : 'pb-1',
+        'duration-200',
+        isChat ? 'translate-y-6.5' : 'translate-y-0',
+      )}
     />
   );
 }

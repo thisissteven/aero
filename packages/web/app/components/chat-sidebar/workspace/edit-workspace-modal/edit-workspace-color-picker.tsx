@@ -1,16 +1,15 @@
-import { Xmark } from '@gravity-ui/icons';
-import { Icon } from '@gravity-ui/uikit';
-
 import {
   Button,
-  cn,
   ColorArea,
   ColorPicker,
   ColorSlider,
   ColorSwatch,
+  cn,
   Label,
   parseColor,
 } from '@aero/ui';
+import { Xmark } from '@gravity-ui/icons';
+import { Icon } from '@gravity-ui/uikit';
 
 import { ACCENT_COLORS } from './edit-workspace-constants';
 import { useEditWorkspaceStore } from './edit-workspace-store';
@@ -51,6 +50,7 @@ export function EditWorkspaceAccentColorPicker() {
           size='sm'
           variant={selectedColor === null ? 'primary' : 'outline'}
           onPress={() => setSelectedColor(null)}
+          className='rounded-lg'
         >
           <Icon data={Xmark} size={16} />
         </Button>
@@ -61,7 +61,7 @@ export function EditWorkspaceAccentColorPicker() {
             isIconOnly
             size='sm'
             className={cn(
-              'rounded-full',
+              'rounded-lg',
               bgClass,
               selectedColor === id &&
                 'ring-accent ring-offset-surface ring ring-2 ring-offset-2',
@@ -76,12 +76,12 @@ export function EditWorkspaceAccentColorPicker() {
         >
           <ColorPicker.Trigger
             className={cn(
-              'inline-flex cursor-pointer items-center justify-center rounded-full transition-all',
+              'inline-flex cursor-pointer items-center justify-center rounded-lg transition-all',
               isCustomColor &&
                 'ring-accent ring-offset-surface ring ring-2 ring-offset-2',
             )}
           >
-            <ColorSwatch className='size-8 rounded-full' />
+            <ColorSwatch className='size-8 rounded-lg' />
           </ColorPicker.Trigger>
           <ColorPicker.Popover className='flex flex-col gap-2 p-3'>
             <ColorArea

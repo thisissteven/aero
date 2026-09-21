@@ -14,7 +14,7 @@ export function EditWorkspaceActions() {
             Custom automated workflows for this workspace
           </InfoTooltip>
         </div>
-        <Button size='sm' variant='secondary'>
+        <Button size='sm' variant='secondary' className='rounded-lg'>
           <Icon data={Plus} size={16} />
           <span>Add action</span>
         </Button>

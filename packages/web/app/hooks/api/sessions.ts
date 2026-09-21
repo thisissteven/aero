@@ -14,6 +14,10 @@ import {
 import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import {
+  staleProps,
+  useOptimisticMutation,
+} from '@/app/hooks/useOptimisticMutation';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { restoreAllMessages } from '@/app/lib/commands/restore-all-messages';
 import { revertSession } from '@/app/lib/commands/revert-session';
@@ -320,10 +324,7 @@ export function useSessionMessages(
       return res.json();
     },
     enabled: !!sessionId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    ...staleProps,
   });
 }
 
@@ -819,6 +820,7 @@ export function usePinnedMessages(sessionId: string) {
   return useQuery<PinnedMessage[]>({
     queryKey: sessionKeys.pinned(sessionId),
     enabled: Boolean(sessionId),
+    ...staleProps,
     queryFn: async () => {
       const res = await $individualSession.pinned.$get({
         param: { id: sessionId },
@@ -836,53 +838,28 @@ export function useIsPinned(sessionId: string, messageId: string) {
 }
 
 export function useTogglePinnedMessage() {
-  return useMutation({
-    mutationFn: async (input: {
-      sessionId: string;
-      messageId: string;
-      pinned: boolean;
-    }) => {
+  return useOptimisticMutation<
+    PinnedMessage[],
+    { sessionId: string; messageId: string; pinned: boolean }
+  >({
+    queryKey: ({ sessionId }) => sessionKeys.pinned(sessionId),
+    mutationFn: async ({ sessionId, messageId, pinned }) => {
       const res = await $individualSession.pinned.$post({
-        param: { id: input.sessionId },
+        param: { id: sessionId },
         query: { harnessId: undefined },
-        json: {
-          messageId: input.messageId,
-          pinned: input.pinned,
-        },
+        json: { messageId, pinned },
       });
       if (!res.ok) throw new Error('Failed to update pin');
       return (await res.json()) as PinnedMessage[];
     },
-
-    onMutate: async (input) => {
-      const key = sessionKeys.pinned(input.sessionId);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<PinnedMessage[]>(key);
-
-      queryClient.setQueryData<PinnedMessage[]>(key, (current = []) =>
-        input.pinned
-          ? current.some((m) => m.id === input.messageId)
-            ? current
-            : [
-                ...current,
-                {
-                  id: input.messageId,
-                  createdAt: Date.now(),
-                  role: 'user' as const,
-                },
-              ]
-          : current.filter((m) => m.id !== input.messageId),
-      );
-
-      return { previous, key };
-    },
-
-    onError: (_err, _input, context) => {
-      if (context) queryClient.setQueryData(context.key, context.previous);
-    },
-
-    onSuccess: (data, input) => {
-      queryClient.setQueryData(sessionKeys.pinned(input.sessionId), data);
-    },
+    optimisticUpdate: (current = [], { messageId, pinned }) =>
+      pinned
+        ? current.some((m) => m.id === messageId)
+          ? current
+          : [
+              ...current,
+              { id: messageId, createdAt: Date.now(), role: 'user' as const },
+            ]
+        : current.filter((m) => m.id !== messageId),
   });
 }

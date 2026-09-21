@@ -13,6 +13,7 @@ export type ContextObligatoryMessage = {
 };
 
 export interface AeroSessionMetadata {
+  selected_model?: string;
   context_obligatory_messages?: ContextObligatoryMessage[];
   context_obligatory_last_compaction_message_id?: string;
 }

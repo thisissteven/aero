@@ -253,6 +253,11 @@ export interface AeroMessage {
   parts: AeroPart[];
   error?: AeroAssistantError;
   createdAt: number;
+  summary?: boolean;
+  time?: {
+    created?: number;
+    completed?: number;
+  };
 }
 
 export interface AeroTocItem {
@@ -444,7 +449,7 @@ export interface SendCommandInput {
 
 export interface UpdateSessionMetadataInput {
   sessionID: string;
-  metadata: Record<string, unknown>;
+  metadata: SessionMetadata;
 }
 
 export interface SendSyntheticMessageInput {

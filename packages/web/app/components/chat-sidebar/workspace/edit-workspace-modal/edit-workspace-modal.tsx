@@ -95,6 +95,7 @@ export function EditWorkspaceModal({
           variant='ghost'
           size='sm'
           onPress={() => useGlobalModalStore.getState().closeModal()}
+          className='rounded-lg'
         >
           Cancel
         </Button>
@@ -103,6 +104,7 @@ export function EditWorkspaceModal({
           size='sm'
           isPending={isPending}
           onPress={handleSave}
+          className='rounded-lg'
         >
           Save Changes
         </Button>

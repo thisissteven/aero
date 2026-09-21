@@ -111,7 +111,7 @@ export const StyledText = memo(function StyledText({
               href={part.value}
               target='_blank'
               rel='noopener noreferrer'
-              className='text-accent-soft-foreground underline decoration-1 decoration-dashed underline-offset-4'
+              className='text-accent-soft-foreground underline decoration-1 transition-opacity hover:opacity-80 decoration-dashed underline-offset-4'
             >
               {part.value}
             </a>

@@ -21,7 +21,6 @@ export const useNewSessionStore = create<NewSessionState>()(
       setState: (state) => set(() => ({ state })),
 
       setSelectedWorkspace: (workspace) => {
-        console.log(workspace);
         if (workspace?.defaultModel) {
           const store = useChatSettingsStore.getState();
           const model = store.searchableModels.find(

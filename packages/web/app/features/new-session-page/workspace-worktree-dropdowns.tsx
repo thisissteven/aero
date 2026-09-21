@@ -27,7 +27,7 @@ export function WorkspaceWorktreeDropdownWrapper({
 
       <div
         className={cn(
-          'duration-200 ease-out',
+          'duration-200',
           isChat ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100',
         )}
         inert={isChat}
