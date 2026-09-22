@@ -1,14 +1,17 @@
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelSelectionSync } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
+import {
+  useSelectedModel,
+  useSetSelectedModel,
+} from '@/app/features/chat-page/chat-input/models/use-selected-model';
 import { SearchableModel } from '@/app/lib/model';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 
 export function useModelPicker() {
-  const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-  const setSelectedModel = useChatSettingsStore(
-    (state) => state.setSelectedModel,
-  );
+  const selectedModel = useSelectedModel();
+  const setSelectedModel = useSetSelectedModel();
+
   const favoriteModelIds = useChatSettingsStore(
     (state) => state.favoriteModelIds,
   );

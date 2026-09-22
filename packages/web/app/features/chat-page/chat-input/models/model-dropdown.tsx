@@ -14,15 +14,18 @@ import {
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { useModelSelectionSync } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
+import {
+  useSelectedModel,
+  useSetSelectedModel,
+} from '@/app/features/chat-page/chat-input/models/use-selected-model';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 
 export function ModelDropdown() {
-  const selectedModel = useChatSettingsStore((state) => state.selectedModel);
-  const setSelectedModel = useChatSettingsStore(
-    (state) => state.setSelectedModel,
-  );
+  const selectedModel = useSelectedModel();
+  const setSelectedModel = useSetSelectedModel();
+
   const favoriteModelIds = useChatSettingsStore(
     (state) => state.favoriteModelIds,
   );

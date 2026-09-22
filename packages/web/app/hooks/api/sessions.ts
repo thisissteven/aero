@@ -23,6 +23,7 @@ import {
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { restoreAllMessages } from '@/app/lib/commands/restore-all-messages';
 import { revertSession } from '@/app/lib/commands/revert-session';
+import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
@@ -802,80 +803,78 @@ export function useSessionMetadataValue<T = unknown>(
       return (await res.json()) as { key: string; value: T };
     },
     enabled: !!sessionId && !!key,
+    placeholderData: keepPreviousData,
   });
 }
 
 /**
- * Shallow-merge a partial metadata object into the session. Optimistically
- * patches the cached session detail, rolls back on error, and re-syncs once
- * the request settles.
+ * Shallow-merge a partial metadata object into the session.
+ *
+ * Backed by `useOptimisticMutation` keyed on the session detail query, so
+ * `useSession` subscribers see the new metadata synchronously and it rolls
+ * back on PATCH failure. Per-key `useSessionMetadataValue` subscribers are
+ * mirrored inside `optimisticUpdate` so they update in the same commit.
+ *
+ * Caveat: the per-key mirrors are not rolled back on error (only the detail
+ * query is) — stale per-key entries refresh on their next mount/refetch.
  */
 export function usePatchSessionMetadata(
   harnessId: string | undefined,
   sessionId: string,
 ) {
-  const qc = useQueryClient();
   const detailKey = sessionKeys.detail(harnessId, sessionId);
+  const baseMetaKey = [
+    'sessions',
+    harnessKey(harnessId),
+    sessionId,
+    'metadata',
+  ];
 
-  return useMutation({
-    mutationFn: async (metadata: Partial<SessionMetadata>) => {
+  return useOptimisticMutation<SessionDetail | null, Partial<SessionMetadata>>({
+    queryKey: () => detailKey,
+    // Disable coalescing: two different-key patches within the debounce
+    // window would otherwise collapse into one network call and drop data.
+    // Dedicated callers that want batching (e.g. model selection) build
+    // their own hook with a tighter queryKey.
+    debounceMs: 0,
+
+    mutationFn: async (metadata) => {
       const res = await $individualSession.metadata.$patch({
         param: { id: sessionId },
         query: { harnessId },
         json: { metadata },
       });
       if (!res.ok) throw new Error('Failed to patch session metadata');
-      return res.json();
+
+      // `getQueryData` is typed `TData | undefined`, but the mutation generic
+      // is `SessionDetail | null` — collapse both to `null`.
+      const current = queryClient.getQueryData<SessionDetail | null>(detailKey);
+      if (!current) return null;
+
+      return {
+        ...current,
+        metadata: {
+          ...((current.metadata ?? {}) as SessionMetadata),
+          ...metadata,
+        },
+      };
     },
-    onMutate: async (metadata) => {
-      await qc.cancelQueries({ queryKey: detailKey });
-      const previous = qc.getQueryData<SessionDetail | null>(detailKey);
 
-      qc.setQueryData<SessionDetail | null>(detailKey, (current) =>
-        current
-          ? {
-              ...current,
-              metadata: {
-                ...((current.metadata ?? {}) as SessionMetadata),
-                ...metadata,
-              },
-            }
-          : current,
-      );
-
-      // Mirror the patch into any cached per-key metadata queries so
-      // `useSessionMetadataValue` reflects the optimistic value immediately.
-      const baseMetaKey = [
-        'sessions',
-        harnessKey(harnessId),
-        sessionId,
-        'metadata',
-      ];
+    optimisticUpdate: (current, metadata) => {
+      // Mirror into per-key metadata queries so `useSessionMetadataValue`
+      // subscribers see the new value in the same commit as the detail query.
       for (const [k, v] of Object.entries(metadata)) {
-        qc.setQueryData([...baseMetaKey, k], { key: k, value: v });
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-          for (const [nk, nv] of Object.entries(v as Record<string, unknown>)) {
-            const fullKey = `${k}.${nk}`;
-            qc.setQueryData([...baseMetaKey, fullKey], {
-              key: fullKey,
-              value: nv,
-            });
-          }
-        }
+        queryClient.setQueryData([...baseMetaKey, k], { key: k, value: v });
       }
 
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous !== undefined) {
-        qc.setQueryData(detailKey, ctx.previous);
-      }
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: detailKey });
-      qc.invalidateQueries({
-        queryKey: ['sessions', harnessKey(harnessId), sessionId, 'metadata'],
-      });
+      if (!current) return current;
+      return {
+        ...current,
+        metadata: {
+          ...((current.metadata ?? {}) as SessionMetadata),
+          ...metadata,
+        },
+      };
     },
   });
 }
@@ -889,17 +888,58 @@ export function usePatchAeroMetadata(
   harnessId: string | undefined,
   sessionId: string,
 ) {
-  const qc = useQueryClient();
   const detailKey = sessionKeys.detail(harnessId, sessionId);
   const { mutate } = usePatchSessionMetadata(harnessId, sessionId);
 
   return useCallback(
     (partial: Partial<AeroSessionMetadata>) => {
-      const current = qc.getQueryData<SessionDetail | null>(detailKey);
+      const current = queryClient.getQueryData<SessionDetail | null>(detailKey);
       const currentAero =
         ((current?.metadata ?? {}) as SessionMetadata).aero ?? {};
       mutate({ aero: { ...currentAero, ...partial } });
     },
-    [qc, detailKey, mutate],
+    [detailKey, mutate],
   );
+}
+
+/** Metadata key (dotted path) that stores the selected model. */
+export const SELECTED_MODEL_METADATA_KEY = 'aero.selected_model';
+
+export function useSelectModelMutation(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useOptimisticMutation<
+    { key: string; value: string | undefined },
+    { selectedModelKey: string }
+  >({
+    queryKey: () =>
+      sessionKeys.metadata(harnessId, sessionId, SELECTED_MODEL_METADATA_KEY),
+
+    mutationFn: async ({ selectedModelKey }) => {
+      const detail = queryClient.getQueryData<SessionDetail | null>(
+        sessionKeys.detail(harnessId, sessionId),
+      );
+      const currentAero =
+        ((detail?.metadata ?? {}) as SessionMetadata).aero ?? {};
+
+      const res = await $individualSession.metadata.$patch({
+        param: { id: sessionId },
+        query: { harnessId },
+        json: {
+          metadata: {
+            aero: { ...currentAero, selected_model: selectedModelKey },
+          },
+        },
+      });
+      if (!res.ok) throw new Error('Failed to update selected model');
+
+      return { key: SELECTED_MODEL_METADATA_KEY, value: selectedModelKey };
+    },
+
+    optimisticUpdate: (_current, { selectedModelKey }) => ({
+      key: SELECTED_MODEL_METADATA_KEY,
+      value: selectedModelKey,
+    }),
+  });
 }
