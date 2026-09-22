@@ -1,4 +1,3 @@
-import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable, Skeleton } from '@aero/ui';
 import {
   ChevronsCollapseUpRight,
@@ -6,7 +5,7 @@ import {
   Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
@@ -26,32 +25,10 @@ export function ChatAsidePanel() {
   const storeToggleExpanded = useSidePanelStore((s) => s.toggleExpanded);
   const closePanel = useSidePanelStore((s) => s.closePanel);
 
-  const panelRef = useRef<PanelImperativeHandle | null>(null);
-  const lastSizeRef = useRef<number | null>(null);
-
   const activeNavData = useMemo(
     () => collapsibleNav.find((item) => item.id === activeNavItem),
     [activeNavItem],
   );
-
-  const handleToggleExpanded = () => {
-    if (!isExpanded && panelRef.current) {
-      // Store current pixel size before expanding
-      lastSizeRef.current = panelRef.current.getSize().inPixels;
-    }
-    storeToggleExpanded();
-  };
-
-  useEffect(() => {
-    if (!isExpanded && panelRef.current && lastSizeRef.current !== null) {
-      const restoredSize = `${lastSizeRef.current}px`;
-
-      // Wait for layout bounds (minSize/maxSize) to commit before resizing
-      requestAnimationFrame(() => {
-        panelRef.current?.resize(restoredSize);
-      });
-    }
-  }, [isExpanded]);
 
   if (!isOpen || !activeNavItem) return null;
 
@@ -59,7 +36,6 @@ export function ChatAsidePanel() {
     <>
       {!isExpanded && <Resizable.Handle type='line' variant='primary' />}
       <Resizable.Panel
-        handleRef={panelRef}
         id='aside-panel'
         defaultSize={isExpanded ? '100%' : '360px'}
         minSize={isExpanded ? '100%' : '320px'}
@@ -75,7 +51,7 @@ export function ChatAsidePanel() {
             <div className='flex items-center gap-1.5'>
               <button
                 type='button'
-                onClick={handleToggleExpanded}
+                onClick={storeToggleExpanded}
                 className='p-1 opacity-80 transition hover:opacity-100'
                 title={isExpanded ? 'Collapse panel' : 'Expand panel'}
                 aria-label='Expand panel'

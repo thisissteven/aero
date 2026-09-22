@@ -1,44 +1,104 @@
 import { cn, Popover } from '@aero/ui';
 import { ArrowsRotateLeft, PencilToLine } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useGitDiff } from '@/app/hooks/api/git';
+import { useGitStatus } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
+interface DiffSummaryEntry {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+interface DiffStat {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+interface GitStatusData {
+  not_added?: string[];
+  diffStats?: {
+    staged?: Record<string, DiffStat>;
+    working?: Record<string, DiffStat>;
+  };
+}
+
+function deriveSummary(
+  status: GitStatusData | null | undefined,
+): DiffSummaryEntry[] {
+  if (!status) return [];
+
+  const map = new Map<string, DiffSummaryEntry>();
+
+  const mergeStat = (stat: DiffStat) => {
+    const existing = map.get(stat.path);
+    if (existing) {
+      existing.additions += stat.additions;
+      existing.deletions += stat.deletions;
+    } else {
+      map.set(stat.path, {
+        path: stat.path,
+        additions: stat.additions,
+        deletions: stat.deletions,
+      });
+    }
+  };
+
+  if (status.diffStats?.staged) {
+    for (const stat of Object.values(status.diffStats.staged)) {
+      mergeStat(stat);
+    }
+  }
+
+  if (status.diffStats?.working) {
+    for (const stat of Object.values(status.diffStats.working)) {
+      mergeStat(stat);
+    }
+  }
+
+  for (const untracked of status.not_added ?? []) {
+    if (!map.has(untracked)) {
+      map.set(untracked, { path: untracked, additions: 0, deletions: 0 });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
 export const SessionDiff = memo(function SessionDiff() {
   const directory = useSessionDirectory();
-  const { data: diffData, isLoading } = useGitDiff(directory);
+  const { data: statusData, isLoading } = useGitStatus(directory);
   const [isOpen, setIsOpen] = useState(false);
 
   const isChatInputExpanded = useChatInputExpanded();
-
   const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
+
+  const summary = useMemo(
+    () => deriveSummary(statusData as GitStatusData | null | undefined),
+    [statusData],
+  );
 
   if (
     isLoading ||
-    !diffData?.summary?.length ||
+    summary.length === 0 ||
     isChatInputExpanded ||
     isStatusPanelOpen
   ) {
     return null;
   }
 
-  const fileCount = diffData.summary.length;
-  const totalAdditions = diffData.summary.reduce(
-    (acc, item) => acc + item.additions,
-    0,
-  );
-  const totalDeletions = diffData.summary.reduce(
-    (acc, item) => acc + item.deletions,
-    0,
-  );
+  const fileCount = summary.length;
+  const totalAdditions = summary.reduce((acc, item) => acc + item.additions, 0);
+  const totalDeletions = summary.reduce((acc, item) => acc + item.deletions, 0);
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
@@ -70,7 +130,7 @@ export const SessionDiff = memo(function SessionDiff() {
 
           <div className='max-h-[240px] scrollbar-thin overflow-y-auto'>
             <ol className='p-1'>
-              {diffData.summary.map((file) => {
+              {summary.map((file) => {
                 const parts = file.path.split('/');
                 const fileName = parts.pop();
                 const dirPath = parts.join('/');
@@ -123,7 +183,7 @@ export const SessionDiff = memo(function SessionDiff() {
 
 function RefetchButton() {
   const directory = useSessionDirectory();
-  const { refetch } = useGitDiff(directory);
+  const { refetch } = useGitStatus(directory);
 
   const [isPending, setIsPending] = useState(false);
 

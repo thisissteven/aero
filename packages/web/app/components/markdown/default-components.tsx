@@ -1,4 +1,4 @@
-import { cn } from '@aero/ui';
+import { cn, logger } from '@aero/ui';
 import {
   ComponentPropsWithoutRef,
   memo,
@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { Components, ExtraProps } from 'react-markdown';
 import { getPierreTheme } from '@/app/components/chat-aside/files/pierre-styles';
+import { getExtensionFromLanguage } from '@/app/components/markdown/get-extension-from-language';
 import { useTheme } from '@/app/providers/theme';
 import { CodeBlock } from '../code-block/code-block';
 import { MarkdownFileContext } from './markdown-file-context';
@@ -71,7 +72,9 @@ const MarkdownCode = memo(function MarkdownCode({
     );
   }
 
-  const language = className?.match(/language-(\w+)/)?.[1] ?? 'plaintext';
+  const language = getExtensionFromLanguage(
+    className?.match(/language-(\w+)/)?.[1] ?? 'text',
+  );
   const code = String(children ?? '').replace(/\n$/, '');
 
   // Fenced ```mermaid — render as a diagram, not a code block.

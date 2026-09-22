@@ -81,7 +81,6 @@ export const useSidePanelStore = create<SidePanelState>()(
     }),
     {
       name: 'aero-side-panel',
-
       partialize: (state) => ({
         isOpen: state.isOpen,
         isExpanded: state.isExpanded,

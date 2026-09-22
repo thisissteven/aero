@@ -17,9 +17,8 @@ import {
   removeGitWorktree,
 } from '@/server/helper';
 import { debugLog } from '@/server/lib/debug-log';
-import { resolveGitDir } from '@/server/routes/git';
+import { resolveGitDir } from '@/server/routes/git/service';
 import { contextObligatoryRuntime } from '@/server/services/context-obligatory/runtime';
-import { getAdapter } from '@/server/services/harness/registry';
 import type {
   AddWorktreeInput,
   AeroEvent,
@@ -33,7 +32,6 @@ import type {
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
 import { handleOpencodePermissions } from '@/server/services/permissions/runtime';
-import { getSetting } from '@/server/services/settings';
 import {
   getBasename,
   normalizePath,
