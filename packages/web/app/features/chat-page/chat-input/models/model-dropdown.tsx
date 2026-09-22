@@ -16,7 +16,7 @@ import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/us
 import { useModelSelectionSync } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
 
-import { useChatSettingsStore } from './chat-settings-store';
+import { useChatSettingsStore } from '../chat-settings-store';
 
 export function ModelDropdown() {
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);

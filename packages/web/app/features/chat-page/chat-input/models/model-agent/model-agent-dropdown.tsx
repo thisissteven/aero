@@ -2,9 +2,9 @@ import { Button, Sheet } from '@aero/ui';
 
 import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';
 
-import { AgentPicker } from '../agents/agent-picker';
-import { useChatSettingsStore } from '../chat-settings-store';
-import { ModelPicker } from '../models/model-picker';
+import { AgentPicker } from '../../agents/agent-picker';
+import { useChatSettingsStore } from '../../chat-settings-store';
+import { ModelPicker } from '../model-picker';
 
 export function ModelAgentDropdownSheet({
   container,

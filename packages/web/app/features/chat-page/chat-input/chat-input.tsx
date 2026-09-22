@@ -6,14 +6,14 @@ import {
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
 import { AttachmentsButton } from '@/app/features/chat-page/chat-input/attachments-button';
-import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/model-agent/model-agent-dropdown-trigger';
+import { ModelAgentDropdownTrigger } from '@/app/features/chat-page/chat-input/models/model-agent/model-agent-dropdown-trigger';
 import { ActiveSessionPromptInputWrapper } from '@/app/features/chat-page/chat-input/prompt-input-wrapper';
 import { AutoAcceptPermissionsToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/auto-accept-permissions';
 import { ChatInputExpandedToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/chat-input-expanded';
 import { GoalModeToggleButton } from '@/app/features/chat-page/chat-input/toggle-buttons/goal-mode';
 import { VariantsDropdown } from '@/app/features/chat-page/chat-input/variants-dropdown';
 import { AgentDropdown } from './agent-dropdown';
-import { ModelDropdown } from './model-dropdown';
+import { ModelDropdown } from './models/model-dropdown';
 import { SendButton } from './send-button';
 
 export function ChatInput({

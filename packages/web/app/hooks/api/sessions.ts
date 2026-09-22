@@ -6,12 +6,14 @@
 
 import {
   keepPreviousData,
+  type QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
+import { useCallback } from 'react';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
@@ -21,7 +23,6 @@ import {
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { restoreAllMessages } from '@/app/lib/commands/restore-all-messages';
 import { revertSession } from '@/app/lib/commands/revert-session';
-import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
@@ -30,35 +31,51 @@ import {
   ConversationRole,
   HarnessId,
 } from '@/server/services/harness/types';
+import type {
+  AeroSessionMetadata,
+  SessionMetadata,
+} from '@/server/types/opencode-sdk';
 
 export const $sessions = honoClient.api.sessions;
 export const $individualSession = honoClient.api.sessions[':id'];
+
+// ---------------------------------------------------------------------------
+// Query keys
+// ---------------------------------------------------------------------------
+
+const harnessKey = (harnessId?: string) => harnessId ?? 'default';
 
 export const sessionKeys = {
   merged: () => ['sessions', 'default'] as const,
   subagentSessions: () => ['subagentSessions', 'default'] as const,
   allArchived: (harnessId?: string) =>
-    ['sessions', harnessId ?? 'default', 'all-archived'] as const,
+    ['sessions', harnessKey(harnessId), 'all-archived'] as const,
   detail: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'detail'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'detail'] as const,
   status: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'status'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'status'] as const,
   messages: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'messages'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'messages'] as const,
   toc: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'toc'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'toc'] as const,
   context: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'context'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'context'] as const,
   todos: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'todos'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'todos'] as const,
   questions: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'questions'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'questions'] as const,
   permissions: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'permissions'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'permissions'] as const,
   children: (harnessId: string | undefined, sessionId: string) =>
-    ['sessions', harnessId ?? 'default', sessionId, 'children'] as const,
+    ['sessions', harnessKey(harnessId), sessionId, 'children'] as const,
   pinned: (sessionId: string) => ['sessions', sessionId, 'pinned'] as const,
+  metadata: (harnessId: string | undefined, sessionId: string, key: string) =>
+    ['sessions', harnessKey(harnessId), sessionId, 'metadata', key] as const,
 };
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type CreateSessionInput = InferRequestType<typeof $sessions.$post>['json'];
 type SendMessageInput = InferRequestType<
@@ -75,6 +92,51 @@ export type SessionsPageResponse = InferResponseType<
   typeof $sessions.merged.$get,
   200
 >;
+
+type SessionDetail = InferResponseType<typeof $individualSession.$get, 200>;
+
+export interface PinnedMessage {
+  id: string;
+  createdAt: number;
+  role: ConversationRole;
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+const minDelay = (ms = 100) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Await an API call while guaranteeing a minimum elapsed time. */
+async function withMinDelay<T>(promise: Promise<T>, ms = 100): Promise<T> {
+  const [result] = await Promise.all([promise, minDelay(ms)]);
+  return result;
+}
+
+function invalidateSessionDetail(
+  qc: QueryClient,
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return qc.invalidateQueries({
+    queryKey: sessionKeys.detail(harnessId, sessionId),
+  });
+}
+
+function invalidateMergedSessions(qc: QueryClient) {
+  return qc.invalidateQueries({ queryKey: sessionKeys.merged() });
+}
+
+function invalidateMergedAndClearSelection(qc: QueryClient) {
+  return invalidateMergedSessions(qc).then(() => {
+    useRecentsSidebarStore.getState().clearSelectedSessionIds();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Session list queries
+// ---------------------------------------------------------------------------
 
 interface UseSessionsOptions {
   directory?: string;
@@ -118,20 +180,17 @@ export function useSessions({
         },
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch sessions');
-      }
-
+      if (!res.ok) throw new Error('Failed to fetch sessions');
       return res.json();
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    // Hydrate the first page using initial 5 sessions from server
+    // Hydrate the first page using the initial 5 sessions from the server.
     initialData: initialSessions?.length
       ? {
           pages: [
             {
               items: initialSessions,
-              nextCursor: undefined, // Will fetch actual next cursor on fetchNextPage
+              nextCursor: undefined, // Real cursor is fetched on fetchNextPage
             },
           ],
           pageParams: [undefined],
@@ -144,16 +203,16 @@ export function useSessionsArchived(harnessId?: string) {
   return useQuery({
     queryKey: sessionKeys.allArchived(harnessId),
     queryFn: async () => {
-      const res = await $sessions.archived.$get({
-        query: {
-          harnessId,
-        },
-      });
+      const res = await $sessions.archived.$get({ query: { harnessId } });
       if (!res.ok) throw new Error('Failed to fetch archived sessions');
       return res.json();
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Session detail queries (read-only)
+// ---------------------------------------------------------------------------
 
 export function useSessionTodos(
   harnessId: string | undefined,
@@ -183,39 +242,13 @@ export function useSessionStatus(
     queryFn: async () => {
       const res = await $individualSession.status.$get({
         param: { id: sessionId },
-        query: {
-          harnessId,
-        },
+        query: { harnessId },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to load session status');
-      }
-
+      if (!res.ok) throw new Error('Failed to load session status');
       return res.json();
     },
     enabled: !!sessionId,
   });
-}
-
-export function useSessionDirectory() {
-  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
-  const selectedDirectory = useNewSessionStore(
-    (state) => state.selectedWorkspace?.directory,
-  );
-
-  const sessionId = useSessionId();
-
-  const { data: session } = useSession(undefined, sessionId);
-
-  const sessionDirectory =
-    !sessionId || !session ? undefined : session.workspace;
-
-  if (!isWorkMode && !sessionId) return undefined;
-
-  const directory = !sessionId ? selectedDirectory : sessionDirectory;
-
-  return directory;
 }
 
 export function useSession(harnessId: string | undefined, sessionId: string) {
@@ -234,79 +267,17 @@ export function useSession(harnessId: string | undefined, sessionId: string) {
   });
 }
 
-export function useCreateSession(defaultharnessId?: HarnessId) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateSessionInput) => {
-      const targetharnessId = input.harnessId || defaultharnessId;
+export function useSessionDirectory() {
+  const isWorkMode = useNewSessionStore((state) => state.state === 'work');
+  const selectedDirectory = useNewSessionStore(
+    (state) => state.selectedWorkspace?.directory,
+  );
+  const sessionId = useSessionId();
+  const { data: session } = useSession(undefined, sessionId);
 
-      const [res] = await Promise.all([
-        $sessions.$post({
-          json: {
-            ...input,
-            harnessId: targetharnessId,
-          },
-          query: { harnessId: targetharnessId },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
-      if (!res.ok) throw new Error('Failed to create session');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.merged(),
-      });
-    },
-  });
-}
-
-export function useDeleteBulkSessions(harnessId?: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (sessionIds: string[]) => {
-      const [res] = await Promise.all([
-        $sessions.delete.bulk.$delete({
-          query: { harnessId, ids: sessionIds.join(',') },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
-      if (!res.ok) throw new Error('Failed to delete sessions');
-      return res.json();
-    },
-    onSuccess: (_data) => {
-      queryClient
-        .invalidateQueries({ queryKey: sessionKeys.merged() })
-        .then(() => {
-          useRecentsSidebarStore.getState().clearSelectedSessionIds();
-        });
-    },
-  });
-}
-
-export function useDeleteSession(harnessId?: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (sessionId: string) => {
-      const [res] = await Promise.all([
-        $individualSession.$delete({
-          param: { id: sessionId },
-          query: { harnessId },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
-      if (!res.ok) throw new Error('Failed to delete session');
-      return res.json();
-    },
-    onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
-      queryClient.removeQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-    },
-  });
+  if (!isWorkMode && !sessionId) return undefined;
+  if (!sessionId) return selectedDirectory;
+  return session?.workspace;
 }
 
 export function useSessionMessages(
@@ -401,8 +372,85 @@ export function useSessionToc(
   });
 }
 
+export function useSessionChildren(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  return useQuery({
+    queryKey: sessionKeys.children(harnessId, sessionId),
+    queryFn: async () => {
+      const res = await $individualSession.children.$get({
+        param: { id: sessionId },
+        query: { harnessId },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!sessionId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Session mutations
+// ---------------------------------------------------------------------------
+
+export function useCreateSession(defaultharnessId?: HarnessId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateSessionInput) => {
+      const targetharnessId = input.harnessId || defaultharnessId;
+      const res = await withMinDelay(
+        $sessions.$post({
+          json: { ...input, harnessId: targetharnessId },
+          query: { harnessId: targetharnessId },
+        }),
+      );
+      if (!res.ok) throw new Error('Failed to create session');
+      return res.json();
+    },
+    onSuccess: () => invalidateMergedSessions(qc),
+  });
+}
+
+export function useDeleteBulkSessions(harnessId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const res = await withMinDelay(
+        $sessions.delete.bulk.$delete({
+          query: { harnessId, ids: sessionIds.join(',') },
+        }),
+      );
+      if (!res.ok) throw new Error('Failed to delete sessions');
+      return res.json();
+    },
+    onSuccess: () => invalidateMergedAndClearSelection(qc),
+  });
+}
+
+export function useDeleteSession(harnessId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await withMinDelay(
+        $individualSession.$delete({
+          param: { id: sessionId },
+          query: { harnessId },
+        }),
+      );
+      if (!res.ok) throw new Error('Failed to delete session');
+      return res.json();
+    },
+    onSuccess: (_data, sessionId) => {
+      invalidateMergedSessions(qc);
+      qc.removeQueries({ queryKey: sessionKeys.detail(harnessId, sessionId) });
+    },
+  });
+}
+
 export function useShareSession(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $individualSession.share.$get({
@@ -412,16 +460,13 @@ export function useShareSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to share session');
       return res.json();
     },
-    onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-    },
+    onSuccess: (_data, sessionId) =>
+      invalidateSessionDetail(qc, harnessId, sessionId),
   });
 }
 
 export function useUnshareSession(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await $individualSession.unshare.$get({
@@ -431,11 +476,8 @@ export function useUnshareSession(harnessId?: string) {
       if (!res.ok) throw new Error('Failed to unshare session');
       return res.json();
     },
-    onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-    },
+    onSuccess: (_data, sessionId) =>
+      invalidateSessionDetail(qc, harnessId, sessionId),
   });
 }
 
@@ -456,9 +498,10 @@ export function useRestoreAllMessages(
   harnessId: string | undefined,
   sessionId: string,
 ) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => restoreAllMessages({ queryClient, harnessId, sessionId }),
+    mutationFn: () =>
+      restoreAllMessages({ queryClient: qc, harnessId, sessionId }),
   });
 }
 
@@ -466,10 +509,10 @@ export function useRevertSession(
   harnessId: string | undefined,
   sessionId: string,
 ) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (messageId: string) =>
-      revertSession({ queryClient, harnessId, sessionId, messageId }),
+      revertSession({ queryClient: qc, harnessId, sessionId, messageId }),
   });
 }
 
@@ -477,48 +520,35 @@ export function useForkSession(
   harnessId: string | undefined,
   sessionId: string,
 ) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (messageId: string) => {
       const res = await $individualSession.fork.$post({
         param: { id: sessionId },
         query: { harnessId },
-        json: {
-          messageId,
-        },
+        json: { messageId },
       });
       if (!res.ok) throw new Error('Failed to fork session');
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.merged(),
-      });
-    },
+    onSuccess: () => invalidateMergedSessions(qc),
   });
 }
 
+/** Shared `(param, query)` shape for the per-session actions below. */
+const sessionAction = (sessionId: string, harnessId: string | undefined) => ({
+  param: { id: sessionId },
+  query: { harnessId },
+});
+
 export function useSendCommand(harnessId: string | undefined) {
   return useMutation({
-    mutationFn: async (
-      input: SendCommandInput & {
-        sessionId: string;
-      },
-    ) => {
+    mutationFn: async (input: SendCommandInput & { sessionId: string }) => {
       const res = await $individualSession.command.$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
+        ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to send command');
-      }
-
+      if (!res.ok) throw new Error('Failed to send command');
       return res.json();
     },
   });
@@ -527,24 +557,13 @@ export function useSendCommand(harnessId: string | undefined) {
 export function useSendShellCommand(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (
-      input: SendShellCommandInput & {
-        sessionId: string;
-      },
+      input: SendShellCommandInput & { sessionId: string },
     ) => {
       const res = await $individualSession.shell.$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
+        ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to send shell command');
-      }
-
+      if (!res.ok) throw new Error('Failed to send shell command');
       return res.json();
     },
   });
@@ -552,25 +571,12 @@ export function useSendShellCommand(harnessId: string | undefined) {
 
 export function useSendMessage(harnessId: string | undefined) {
   return useMutation({
-    mutationFn: async (
-      input: SendMessageInput & {
-        sessionId: string;
-      },
-    ) => {
+    mutationFn: async (input: SendMessageInput & { sessionId: string }) => {
       const res = await $individualSession.message.$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
+        ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to send message');
-      }
-
+      if (!res.ok) throw new Error('Failed to send message');
       return res.json();
     },
   });
@@ -579,19 +585,10 @@ export function useSendMessage(harnessId: string | undefined) {
 export function useAbortSession(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const res = await $individualSession.abort.$post({
-        param: {
-          id: sessionId,
-        },
-        query: {
-          harnessId,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to abort session');
-      }
-
+      const res = await $individualSession.abort.$post(
+        sessionAction(sessionId, harnessId),
+      );
+      if (!res.ok) throw new Error('Failed to abort session');
       return res.json();
     },
   });
@@ -605,22 +602,10 @@ export function useReplyToPermission(harnessId: string | undefined) {
       reply: AeroPermissionReply;
     }) => {
       const res = await $individualSession['reply-to-permission'].$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
-        json: {
-          requestId: input.requestId,
-          reply: input.reply,
-        },
+        ...sessionAction(input.sessionId, harnessId),
+        json: { requestId: input.requestId, reply: input.reply },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to reply to permission request');
-      }
-
+      if (!res.ok) throw new Error('Failed to reply to permission request');
       return res.json();
     },
   });
@@ -634,22 +619,10 @@ export function useReplyToQuestion(harnessId: string | undefined) {
       answers: AeroQuestionAnswer;
     }) => {
       const res = await $individualSession['reply-to-question'].$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
-        json: {
-          requestId: input.requestId,
-          answers: input.answers,
-        },
+        ...sessionAction(input.sessionId, harnessId),
+        json: { requestId: input.requestId, answers: input.answers },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to reply to question');
-      }
-
+      if (!res.ok) throw new Error('Failed to reply to question');
       return res.json();
     },
   });
@@ -659,131 +632,89 @@ export function useRejectQuestion(harnessId: string | undefined) {
   return useMutation({
     mutationFn: async (input: { sessionId: string; requestId: string }) => {
       const res = await $individualSession['reject-question'].$post({
-        param: {
-          id: input.sessionId,
-        },
-        query: {
-          harnessId,
-        },
-        json: {
-          requestId: input.requestId,
-        },
+        ...sessionAction(input.sessionId, harnessId),
+        json: { requestId: input.requestId },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to reply to question');
-      }
-
+      if (!res.ok) throw new Error('Failed to reject question');
       return res.json();
     },
   });
 }
 
 export function useArchiveSession(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const [res] = await Promise.all([
-        $individualSession.archive.$patch({
-          param: { id: sessionId },
-          query: { harnessId },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      const res = await withMinDelay(
+        $individualSession.archive.$patch(sessionAction(sessionId, harnessId)),
+      );
       if (!res.ok) throw new Error('Failed to archive session');
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
+      invalidateSessionDetail(qc, harnessId, sessionId);
+      invalidateMergedSessions(qc);
     },
   });
 }
 
 export function useArchiveBulkSessions(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionIds: string[]) => {
-      const [res] = await Promise.all([
+      const res = await withMinDelay(
         $sessions.archive.bulk.$patch({
           query: { harnessId, ids: sessionIds.join(',') },
         }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      );
       if (!res.ok) throw new Error('Failed to archive sessions');
       return res.json();
     },
-    onSuccess: (_data) => {
-      queryClient
-        .invalidateQueries({ queryKey: sessionKeys.merged() })
-        .then(() => {
-          useRecentsSidebarStore.getState().clearSelectedSessionIds();
-        });
-    },
+    onSuccess: () => invalidateMergedAndClearSelection(qc),
   });
 }
 
 export function useUnarchiveSession(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const [res] = await Promise.all([
-        $individualSession.unarchive.$patch({
-          param: { id: sessionId },
-          query: { harnessId },
-        }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      const res = await withMinDelay(
+        $individualSession.unarchive.$patch(
+          sessionAction(sessionId, harnessId),
+        ),
+      );
       if (!res.ok) throw new Error('Failed to unarchive session');
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
-      queryClient.invalidateQueries({
-        queryKey: sessionKeys.detail(harnessId, sessionId),
-      });
-      queryClient.invalidateQueries({ queryKey: sessionKeys.merged() });
+      invalidateSessionDetail(qc, harnessId, sessionId);
+      invalidateMergedSessions(qc);
     },
   });
 }
 
 export function useUnarchiveBulkSessions(harnessId?: string) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (sessionIds: string[]) => {
-      const [res] = await Promise.all([
+      const res = await withMinDelay(
         $sessions.unarchive.bulk.$patch({
           query: { harnessId, ids: sessionIds.join(',') },
         }),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      );
       if (!res.ok) throw new Error('Failed to unarchive sessions');
       return res.json();
     },
-    onSuccess: (_data) => {
-      queryClient
-        .invalidateQueries({ queryKey: sessionKeys.merged() })
-        .then(() => {
-          useRecentsSidebarStore.getState().clearSelectedSessionIds();
-        });
-    },
+    onSuccess: () => invalidateMergedAndClearSelection(qc),
   });
 }
 
 export function useRenameSession(harnessId?: string) {
   return useMutation({
-    mutationFn: async ({
-      sessionId,
-      title,
-    }: {
-      sessionId: string;
-      title: string;
-    }) => {
+    mutationFn: async (input: { sessionId: string; title: string }) => {
       const res = await $individualSession.rename.$patch({
-        param: { id: sessionId },
-        query: { harnessId },
-        json: { title },
+        ...sessionAction(input.sessionId, harnessId),
+        json: { title: input.title },
       });
       if (!res.ok) throw new Error('Failed to rename session');
       return res.json();
@@ -791,30 +722,9 @@ export function useRenameSession(harnessId?: string) {
   });
 }
 
-export function useSessionChildren(
-  harnessId: string | undefined,
-  sessionId: string,
-) {
-  return useQuery({
-    queryKey: sessionKeys.children(harnessId, sessionId),
-    queryFn: async () => {
-      const res = await $individualSession.children.$get({
-        param: { id: sessionId },
-        query: { harnessId },
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!sessionId,
-    placeholderData: keepPreviousData,
-  });
-}
-
-export interface PinnedMessage {
-  id: string;
-  createdAt: number;
-  role: ConversationRole;
-}
+// ---------------------------------------------------------------------------
+// Pinned messages
+// ---------------------------------------------------------------------------
 
 export function usePinnedMessages(sessionId: string) {
   return useQuery<PinnedMessage[]>({
@@ -862,4 +772,134 @@ export function useTogglePinnedMessage() {
             ]
         : current.filter((m) => m.id !== messageId),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Session metadata
+// ---------------------------------------------------------------------------
+
+/**
+ * Read a single metadata value by key. Supports dot-paths (e.g.
+ * `aero.context_obligatory_messages`) since the server walks nested objects.
+ * Returns `{ key, value }`; `value` is typed by the caller via the generic.
+ */
+export function useSessionMetadataValue<T = unknown>(
+  harnessId: string | undefined,
+  sessionId: string,
+  key: string,
+) {
+  return useQuery<{ key: string; value: T | undefined }>({
+    queryKey: sessionKeys.metadata(harnessId, sessionId, key),
+    queryFn: async () => {
+      const res = await $individualSession.metadata[':key'].$get({
+        param: { id: sessionId, key },
+        query: { harnessId },
+      });
+      if (res.status === 404) {
+        return { key, value: undefined };
+      }
+      if (!res.ok) throw new Error('Failed to fetch session metadata');
+      return (await res.json()) as { key: string; value: T };
+    },
+    enabled: !!sessionId && !!key,
+  });
+}
+
+/**
+ * Shallow-merge a partial metadata object into the session. Optimistically
+ * patches the cached session detail, rolls back on error, and re-syncs once
+ * the request settles.
+ */
+export function usePatchSessionMetadata(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  const qc = useQueryClient();
+  const detailKey = sessionKeys.detail(harnessId, sessionId);
+
+  return useMutation({
+    mutationFn: async (metadata: Partial<SessionMetadata>) => {
+      const res = await $individualSession.metadata.$patch({
+        param: { id: sessionId },
+        query: { harnessId },
+        json: { metadata },
+      });
+      if (!res.ok) throw new Error('Failed to patch session metadata');
+      return res.json();
+    },
+    onMutate: async (metadata) => {
+      await qc.cancelQueries({ queryKey: detailKey });
+      const previous = qc.getQueryData<SessionDetail | null>(detailKey);
+
+      qc.setQueryData<SessionDetail | null>(detailKey, (current) =>
+        current
+          ? {
+              ...current,
+              metadata: {
+                ...((current.metadata ?? {}) as SessionMetadata),
+                ...metadata,
+              },
+            }
+          : current,
+      );
+
+      // Mirror the patch into any cached per-key metadata queries so
+      // `useSessionMetadataValue` reflects the optimistic value immediately.
+      const baseMetaKey = [
+        'sessions',
+        harnessKey(harnessId),
+        sessionId,
+        'metadata',
+      ];
+      for (const [k, v] of Object.entries(metadata)) {
+        qc.setQueryData([...baseMetaKey, k], { key: k, value: v });
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          for (const [nk, nv] of Object.entries(v as Record<string, unknown>)) {
+            const fullKey = `${k}.${nk}`;
+            qc.setQueryData([...baseMetaKey, fullKey], {
+              key: fullKey,
+              value: nv,
+            });
+          }
+        }
+      }
+
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous !== undefined) {
+        qc.setQueryData(detailKey, ctx.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: detailKey });
+      qc.invalidateQueries({
+        queryKey: ['sessions', harnessKey(harnessId), sessionId, 'metadata'],
+      });
+    },
+  });
+}
+
+/**
+ * Patch fields inside `metadata.aero` without clobbering the sibling aero
+ * fields. Reads the current aero from the cached session detail, merges in
+ * the partial, and PATCHes the merged result.
+ */
+export function usePatchAeroMetadata(
+  harnessId: string | undefined,
+  sessionId: string,
+) {
+  const qc = useQueryClient();
+  const detailKey = sessionKeys.detail(harnessId, sessionId);
+  const { mutate } = usePatchSessionMetadata(harnessId, sessionId);
+
+  return useCallback(
+    (partial: Partial<AeroSessionMetadata>) => {
+      const current = qc.getQueryData<SessionDetail | null>(detailKey);
+      const currentAero =
+        ((current?.metadata ?? {}) as SessionMetadata).aero ?? {};
+      mutate({ aero: { ...currentAero, ...partial } });
+    },
+    [qc, detailKey, mutate],
+  );
 }
