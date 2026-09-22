@@ -32,7 +32,6 @@ export const collapsibleNav = [
     label: 'Context',
     description: 'Session context and token usage',
   },
-
   {
     id: 'pr',
     icon: <Icon data={LogoGithub} size={18} />,
