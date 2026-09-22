@@ -1,6 +1,6 @@
 import { Button } from '@aero/ui';
 import { Kbd } from '@heroui/react';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   useChatStore,
   useSessionRuntime,
@@ -10,6 +10,7 @@ import {
   useSessionPermissions,
 } from '@/app/hooks/api/sessions';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
+import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { normalizePath } from '@/server/shared';
 
@@ -138,28 +139,38 @@ export const ReplyToPermission = React.memo(() => {
     });
   };
 
-  // Keyboard shortcut handler
-  useEffect(() => {
-    if (!permissionRequest || isPendingReply || isExiting) {
-      return;
-    }
+  useKeyPress(
+    'Escape',
+    () => {
+      if (!permissionRequest || isPendingReply || isExiting) return;
+      handleReply('reject');
+    },
+    { stopPropagation: false },
+  );
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        handleReply('reject');
-      } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        handleReply('always');
-      } else if (event.key === 'Enter') {
-        event.preventDefault();
-        handleReply('once');
-      }
-    };
+  useKeyPress(
+    'Enter',
+    () => {
+      if (!permissionRequest || isPendingReply || isExiting) return;
+      handleReply('always');
+    },
+    {
+      modifiers: { mod: true },
+      stopPropagation: false,
+    },
+  );
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [permissionRequest, isPendingReply, isExiting]);
+  useKeyPress(
+    'Enter',
+    () => {
+      if (!permissionRequest || isPendingReply || isExiting) return;
+      handleReply('once');
+    },
+    {
+      modifiers: { mod: false, ctrl: false, meta: false },
+      stopPropagation: false,
+    },
+  );
 
   const shouldRender =
     Boolean(permissionRequest) &&

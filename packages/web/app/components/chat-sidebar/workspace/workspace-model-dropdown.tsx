@@ -139,7 +139,7 @@ export function WorkspaceModelDropdown({
       </Popover.Trigger>
 
       <Popover.Content
-        className='relative overflow-visible p-0 bg-transparent border-0'
+        className='relative overflow-visible p-0 border-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
@@ -149,7 +149,7 @@ export function WorkspaceModelDropdown({
             <Command>
               <Command.Dialog
                 filter={() => true}
-                className='border-none bg-transparent shadow-none'
+                className='border-none rounded-none shadow-none'
                 allowEscape
               >
                 <ModelSearchInput

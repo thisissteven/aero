@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Query, useMutation, useQuery } from '@tanstack/react-query';
 
 import { honoClient } from '@/app/lib';
 
@@ -22,10 +22,22 @@ export function useReloadOpencode() {
       if (!res.ok) return null;
       return res.json();
     },
+    onSuccess: () => {
+      queryClient.removeQueries({
+        predicate: (q: Query) => {
+          if (!Array.isArray(q.queryKey)) return false;
+          const head = q.queryKey[0];
+          if (head === 'system') return q.queryKey.includes('files');
+          if (head === 'capabilities') return true;
+          return false;
+        },
+      });
+    },
   });
 }
 
 import { useEffect, useState } from 'react';
+import { queryClient } from '@/app/providers';
 
 type PoolStatus = {
   v2: {

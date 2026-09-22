@@ -450,7 +450,7 @@ export function FolderPicker({
             variant='ghost'
             size='sm'
             onClick={handleClose}
-            className='flex-1 sm:flex-none'
+            className='flex-1 sm:flex-none rounded-lg'
           >
             Cancel
           </Button>
@@ -460,7 +460,7 @@ export function FolderPicker({
             size='sm'
             isDisabled={!currentPath && !selectedPath}
             onClick={handleSelectConfirm}
-            className='flex-1 sm:flex-none'
+            className='flex-1 sm:flex-none rounded-lg'
           >
             Select Folder
           </Button>

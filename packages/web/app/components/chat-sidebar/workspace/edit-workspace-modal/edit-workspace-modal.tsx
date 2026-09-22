@@ -59,7 +59,7 @@ export function EditWorkspaceModal({
   };
 
   return (
-    <Modal.Dialog className='px-0 sm:max-w-[480px] lg:max-w-[560px]'>
+    <Modal.Dialog className='px-0 rounded-xl sm:max-w-[480px] lg:max-w-[560px]'>
       <Modal.CloseTrigger />
       <Modal.Header className='px-4 sm:px-5'>
         <Modal.Heading>Edit Workspace</Modal.Heading>

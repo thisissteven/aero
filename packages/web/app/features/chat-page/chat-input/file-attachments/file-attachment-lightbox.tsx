@@ -180,7 +180,7 @@ export function FileAttachmentLightbox({
               key={attachment.id}
               src={attachment.url}
               alt={attachment.filename}
-              className='pointer-events-none block max-h-[78vh] max-w-[85vw] object-contain'
+              className='block max-h-[78vh] max-w-[85vw] object-contain'
               draggable={false}
             />
           )}

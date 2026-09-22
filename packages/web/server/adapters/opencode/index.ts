@@ -1179,7 +1179,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     sendMessage(sessionID, input, directory) {
       withOpencodeClientV2(async (client) =>
         unwrap(
-          await client.session.prompt({
+          await client.session.promptAsync({
             sessionID,
             directory,
             parts: input.parts,

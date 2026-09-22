@@ -104,7 +104,7 @@ export function ModelDropdown() {
       </Button>
 
       <Popover.Content
-        className='relative overflow-visible bg-transparent border-0 p-0'
+        className='relative overflow-visible border-0 p-0'
         placement='top right'
       >
         <div ref={panelRef} className='relative flex items-start'>
@@ -116,16 +116,13 @@ export function ModelDropdown() {
             />
           )}
 
-          <div className='text-overlay-foreground border border-separator rounded-xl flex w-80 flex-col overflow-hidden'>
-            {/* NOTE: preserved as-is from the original — this button has
-                never had an onClick wired up. Pass one in if that was
-                meant to open the add-provider flow. */}
+          <div className='bg-surface text-overlay-foreground border border-separator rounded-xl flex w-80 flex-col overflow-hidden'>
             <AddProviderRow />
 
             <Command>
               <Command.Dialog
                 filter={() => true}
-                className='border-none bg-transparent shadow-none'
+                className='border-none shadow-none rounded-none'
                 allowEscape
               >
                 <ModelSearchInput

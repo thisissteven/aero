@@ -5,6 +5,7 @@ import { useNewSessionStore } from '@/app/features/new-session-page/new-session-
 import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
 import { WorktreesDropdown } from '@/app/features/new-session-page/worktrees-dropdown';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function WorkspaceWorktreeDropdownWrapper({
   children,
@@ -13,6 +14,7 @@ export function WorkspaceWorktreeDropdownWrapper({
 }) {
   const state = useNewSessionStore((state) => state.state);
   const isChatInputExpanded = useChatInputExpanded();
+  const sessionId = useSessionId();
 
   const isChat = state === 'chat';
 
@@ -28,7 +30,9 @@ export function WorkspaceWorktreeDropdownWrapper({
       <div
         className={cn(
           'duration-200',
-          isChat ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100',
+          isChat && !sessionId
+            ? 'translate-y-full opacity-0'
+            : 'translate-y-0 opacity-100',
         )}
         inert={isChat}
       >
