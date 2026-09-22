@@ -1,6 +1,5 @@
 import { Chip } from '@aero/ui';
 import { FaceRobot } from '@gravity-ui/icons';
-import { useNavigate } from '@tanstack/react-router';
 import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
@@ -22,7 +21,7 @@ export const SubagentToolView = memo(
     const subagentType = input?.subagent_type ?? 'subagent';
     const title =
       part.title || input?.description || input?.command || 'Running Subagent';
-    const childSessionId = metadata.sessionId;
+    const childSessionId = metadata?.sessionId;
 
     const rawOutput = formatToolOutput(output);
 

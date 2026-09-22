@@ -207,7 +207,7 @@ export function useGitHubActivateAccount() {
 }
 
 export function useGitHubDisconnect() {
-  return useGitHubMutation(
+  return useGitHubMutation<void, unknown>(
     () => unwrap($github['auth']['disconnect'].$post({}), 'disconnect'),
     [githubKeys.all()],
   );

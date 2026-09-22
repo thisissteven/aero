@@ -9,8 +9,11 @@ import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
+import { ChangesPanel } from '@/app/components/chat-aside/changes/changes-panel';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
+import { GitPanel } from '@/app/components/chat-aside/git/git-panel';
+import { PullRequestPanel } from '@/app/components/chat-aside/pr/pull-request-panel';
 import { SideChatPanel } from '@/app/components/chat-aside/side-chat/side-chat-panel';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
@@ -117,6 +120,12 @@ export function ChatAsidePanel() {
               <ContextPanel />
             ) : activeNavItem === 'files' ? (
               <FileExplorerPanel />
+            ) : activeNavItem === 'git' ? (
+              <GitPanel />
+            ) : activeNavItem === 'pr' ? (
+              <PullRequestPanel />
+            ) : activeNavItem === 'changes' ? (
+              <ChangesPanel />
             ) : activeNavItem === 'side-chat' ? (
               <SideChatPanel />
             ) : (
