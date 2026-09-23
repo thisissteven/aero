@@ -1,6 +1,6 @@
 import { FloatingLogger, ToastProvider } from '@aero/ui';
 import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { ChatShell } from '@/app/components/chat-shell';
 import { usePoolReady } from '@/app/hooks/api/pool';
 import { I18nProvider } from '@/app/hooks/i18n';
@@ -8,7 +8,6 @@ import { translations } from '@/app/hooks/i18n/locales/translations';
 import {
   GlobalModal,
   GlobalModalOuter,
-  QueryProvider,
   SettingsModal,
   useTheme,
 } from '@/app/providers';
@@ -46,25 +45,23 @@ function AppLayout() {
   }
 
   return (
-    <QueryProvider>
-      <I18nProvider translations={translations} defaultLanguage='en'>
-        <KeyPressProvider />
-        <PreloadProvider />
-        <PathnameHandler />
-        {import.meta.env.DEV && <FloatingLogger />}
-        {import.meta.env.DEV && <DevConsole />}
-        <RootSessionIdProvider>
-          <ChatShell>
-            <Outlet />
-          </ChatShell>
-          <ToastProvider placement='bottom end' width={280} />
-          <GlobalTooltip />
-          <GlobalModal />
-          <GlobalModalOuter />
-          <SettingsModal />
-        </RootSessionIdProvider>
-      </I18nProvider>
-    </QueryProvider>
+    <I18nProvider translations={translations} defaultLanguage='en'>
+      <KeyPressProvider />
+      <PreloadProvider />
+      <PathnameHandler />
+      {import.meta.env.DEV && <FloatingLogger />}
+      {import.meta.env.DEV && <DevConsole />}
+      <RootSessionIdProvider>
+        <ChatShell>
+          <Outlet />
+        </ChatShell>
+        <ToastProvider placement='bottom end' width={280} />
+        <GlobalTooltip />
+        <GlobalModal />
+        <GlobalModalOuter />
+        <SettingsModal />
+      </RootSessionIdProvider>
+    </I18nProvider>
   );
 }
 

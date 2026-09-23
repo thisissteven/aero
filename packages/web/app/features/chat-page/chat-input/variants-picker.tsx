@@ -1,8 +1,7 @@
+import { Command } from '@aero/ui';
 import { Check } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
-
-import { Command } from '@aero/ui';
 
 import { capitalizeFirstLetter } from '@/server/shared';
 

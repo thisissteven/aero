@@ -15,6 +15,7 @@ import {
   FilePartSource,
   PermissionRequest,
   Provider,
+  ProviderV2Info,
   QuestionAnswer,
   QuestionRequest,
   SessionStatus,
@@ -494,6 +495,7 @@ export interface PaginatedResponse<T> {
 
 export type AeroConfig = Config;
 export type AeroProvider = Provider;
+export type AeroProviderCompact = ProviderV2Info;
 export type AeroAgent = Agent;
 
 export type AeroAgentCompact = Pick<
@@ -682,6 +684,7 @@ export interface HarnessAdapter {
   ): Promise<boolean>;
 
   listProviders(directory?: string): Promise<AeroProvider[]>;
+  listProvidersCompact(directory?: string): Promise<AeroProviderCompact[]>;
   listConfiguredProviders(directory?: string): Promise<AeroProvider[]>;
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
 

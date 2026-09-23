@@ -58,7 +58,7 @@ export const logger = {
 };
 
 export function FloatingLogger() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<LogEntry[]>(entries);
   const [filter, setFilter] = useState('');
   const [copied, setCopied] = useState(false);

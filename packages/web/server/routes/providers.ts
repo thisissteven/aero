@@ -26,6 +26,15 @@ const providers = new Hono()
     return c.json(result);
   })
 
+  // GET /api/providers/compact?harnessId=...&directory=...
+  .get('/compact', zValidator('query', commonQuerySchema), async (c) => {
+    const { harnessId, directory } = c.req.valid('query');
+    const harness = await getActiveAdapter(harnessId);
+
+    const result = await harness.listProvidersCompact(directory);
+    return c.json(result);
+  })
+
   // GET /api/providers/configured?harnessId=...&directory=...
   .get('/configured', zValidator('query', commonQuerySchema), async (c) => {
     const { harnessId, directory } = c.req.valid('query');

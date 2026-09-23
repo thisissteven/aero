@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import type { InferRequestType } from 'hono/client';
-
+import { staleProps } from '@/app/hooks/useOptimisticMutation';
 import { honoClient } from '@/app/lib';
 
 const $providers = honoClient.api.providers;
@@ -15,6 +15,13 @@ const $providers = honoClient.api.providers;
 export const providerKeys = {
   all: (harnessId?: string, directory?: string) =>
     ['providers', harnessId ?? 'default', directory ?? 'root'] as const,
+  compact: (harnessId?: string, directory?: string) =>
+    [
+      'providers',
+      'compact',
+      harnessId ?? 'default',
+      directory ?? 'root',
+    ] as const,
   configured: (harnessId?: string, directory?: string) =>
     [
       'providers',
@@ -44,6 +51,24 @@ export function useProviders({
       if (!res.ok) throw new Error('Failed to fetch providers');
       return res.json();
     },
+    ...staleProps,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProvidersCompact({
+  harnessId,
+  directory,
+}: UseProvidersOptions = {}) {
+  return useQuery({
+    queryKey: providerKeys.compact(harnessId, directory),
+    queryFn: async () => {
+      const res = await $providers.compact.$get({
+        query: { harnessId, directory },
+      });
+      if (!res.ok) throw new Error('Failed to fetch providers');
+      return res.json();
+    },
     placeholderData: keepPreviousData,
   });
 }
@@ -61,6 +86,7 @@ export function useConfiguredProviders({
       if (!res.ok) throw new Error('Failed to fetch configured providers');
       return res.json();
     },
+    ...staleProps,
     placeholderData: keepPreviousData,
   });
 }

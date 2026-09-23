@@ -56,6 +56,7 @@ import {
   toAeroMessage,
   toAeroPart,
   toAeroProvider,
+  toAeroProviderCompact,
   toAeroSessionContextDetails,
   toAeroSessionExperimental,
   toAeroSessionV2,
@@ -773,6 +774,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       return entries.all.map(toAeroProvider);
+    },
+
+    async listProvidersCompact(directory) {
+      const entries = await withOpencodeClientV2(async (client) =>
+        unwrap(await client.v2.provider.list({ location: { directory } })),
+      );
+
+      return entries.data.map(toAeroProviderCompact);
     },
 
     async listMessages(sessionID) {

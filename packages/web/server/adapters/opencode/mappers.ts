@@ -17,6 +17,7 @@ import type {
   Message,
   Part,
   Provider,
+  ProviderV2Info,
   TextPart,
   ToolListItem,
   Worktree,
@@ -44,6 +45,7 @@ import type {
   AeroMessage,
   AeroPart,
   AeroProvider,
+  AeroProviderCompact,
   AeroSessionContextDetails,
   AeroSessionSummary,
   AeroSkill,
@@ -631,6 +633,12 @@ export function toAeroTool(entry: ToolListItem): AeroTool {
  * Maps raw Provider entries to AeroProvider.
  */
 export function toAeroProvider(entry: Provider): AeroProvider {
+  return { ...entry };
+}
+
+export function toAeroProviderCompact(
+  entry: ProviderV2Info,
+): AeroProviderCompact {
   return { ...entry };
 }
 

@@ -30,8 +30,8 @@ import { SVGProps, useEffect, useRef, useState } from 'react';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
 import { GeneralView } from '@/app/providers/settings/general/general-view';
+import { ProvidersView } from '@/app/providers/settings/providers/providers-view';
 import { ReloadOpencode } from '@/app/providers/settings/reload-opencode';
-
 import { SettingsTab, useSettingsModalStore } from './settings-store';
 
 interface NavItem {
@@ -229,6 +229,7 @@ export function SettingsModal() {
   const renderContent = () => {
     if (activeTab === 'general') return <GeneralView />;
     if (activeTab === 'appearance') return <AppearanceView />;
+    if (activeTab === 'providers') return <ProvidersView />;
     return (
       <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
         Content for

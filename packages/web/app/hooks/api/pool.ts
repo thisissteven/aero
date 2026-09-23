@@ -1,6 +1,8 @@
 import { Query, useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import { honoClient } from '@/app/lib';
+import { queryClient } from '@/app/providers';
 
 const $pool = honoClient.api.pool;
 
@@ -29,15 +31,14 @@ export function useReloadOpencode() {
           const head = q.queryKey[0];
           if (head === 'system') return q.queryKey.includes('files');
           if (head === 'capabilities') return true;
+          if (head === 'providers') return true;
+          if (head === 'pool') return true;
           return false;
         },
       });
     },
   });
 }
-
-import { useEffect, useState } from 'react';
-import { queryClient } from '@/app/providers';
 
 type PoolStatus = {
   v2: {
@@ -51,87 +52,64 @@ type PoolStatus = {
 
 const POLL_INTERVAL = 500;
 
+const poolStatusQueryKey = ['pool', 'status'] as const;
+
+async function fetchPoolStatus(): Promise<PoolStatus> {
+  const response = await fetch('/api/pool');
+  if (!response.ok) {
+    throw new Error(`Pool endpoint returned ${response.status}`);
+  }
+  return response.json();
+}
+
+export function usePoolStatus() {
+  return useQuery({
+    queryKey: poolStatusQueryKey,
+    queryFn: fetchPoolStatus,
+    // Poll every 500ms until the pool has healthy nodes, then stop.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data && data.v2.healthyNodesCount > 0) return false;
+      return POLL_INTERVAL;
+    },
+    // Keep polling even while the endpoint is erroring/unreachable.
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function usePoolReady() {
-  const [isPoolReady, setIsPoolReady] = useState(false);
+  const { data } = usePoolStatus();
+  const restartRequestedRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    let restartRequested = false;
+    if (!data) return;
 
-    const scheduleCheck = () => {
-      if (cancelled) return;
+    // Healthy again — reset the guard so a future failure can restart again.
+    if (data.v2.healthyNodesCount > 0) {
+      restartRequestedRef.current = false;
+      return;
+    }
 
-      timeout = setTimeout(() => {
-        void checkPool();
-      }, POLL_INTERVAL);
-    };
+    const hasNoActivePools =
+      data.v2.poolSize === 0 &&
+      data.v2.healthyNodesCount === 0 &&
+      data.v2.nodes.length === 0 &&
+      data.combinedNodesCount === 0;
 
-    const checkPool = async () => {
+    if (!hasNoActivePools || restartRequestedRef.current) return;
+
+    restartRequestedRef.current = true;
+
+    void (async () => {
       try {
-        const response = await fetch('/api/pool');
-
-        // The pool endpoint itself must be reachable before
-        // we consider restarting anything.
-        if (!response.ok) {
-          scheduleCheck();
-          return;
-        }
-
-        const pool: PoolStatus = await response.json();
-
-        const v2Healthy = pool.v2.healthyNodesCount > 0;
-
-        if (v2Healthy) {
-          if (!cancelled) {
-            setIsPoolReady(true);
-          }
-          return;
-        }
-
-        // Only restart when the endpoint is reachable and
-        // there are clearly no active pool nodes at all.
-        const hasNoActivePools =
-          pool.v2.poolSize === 0 &&
-          pool.v2.healthyNodesCount === 0 &&
-          pool.v2.nodes.length === 0 &&
-          pool.combinedNodesCount === 0;
-
-        if (hasNoActivePools && !restartRequested) {
-          restartRequested = true;
-
-          try {
-            const restartResponse = await fetch('/api/pool/restart', {
-              method: 'POST',
-            });
-
-            // If restart itself failed, allow another attempt only
-            // if the pool still clearly remains completely empty.
-            if (!restartResponse.ok) {
-              restartRequested = false;
-            }
-          } catch {
-            restartRequested = false;
-          }
-        }
+        const res = await fetch('/api/pool/restart', { method: 'POST' });
+        if (!res.ok) restartRequestedRef.current = false;
       } catch {
-        // Pool endpoint is unreachable.
-        // Do NOT restart. Just keep polling.
+        restartRequestedRef.current = false;
       }
+    })();
+  }, [data]);
 
-      scheduleCheck();
-    };
-
-    void checkPool();
-
-    return () => {
-      cancelled = true;
-
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, []);
-
-  return isPoolReady;
+  return (data?.v2.healthyNodesCount ?? 0) > 0;
 }
