@@ -1,4 +1,3 @@
-import { logger } from '@aero/ui';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
@@ -374,12 +373,6 @@ function removeQuestionFromRuntime(runtime: SessionRuntime, requestId: string) {
   const questions = runtime.questions.filter((q) => q.id !== requestId);
   if (questions.length === runtime.questions.length) return runtime;
   return { ...runtime, questions };
-}
-
-function getQuestionCallId(part: AeroPart): string | null {
-  if (part.type !== 'tool') return null;
-  if (part.toolName !== 'question') return null;
-  return part.callID ?? null;
 }
 
 function extractQuestionRequest(

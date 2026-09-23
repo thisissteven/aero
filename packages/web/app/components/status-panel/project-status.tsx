@@ -1,11 +1,76 @@
 import { Typography } from '@aero/ui';
 import { CircleTree, File } from '@gravity-ui/icons';
-import { useGitCurrentBranch, useGitDiff } from '@/app/hooks/api/git';
+import { useMemo } from 'react';
+import { useGitStatus } from '@/app/hooks/api/git';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { getLastPathName } from '@/app/lib/file';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+
+// ---------------------------------------------------------------------------
+// Shared shape for deriving a diff summary from the status endpoint
+// ---------------------------------------------------------------------------
+
+interface DiffStat {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+interface DiffSummaryEntry {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+interface GitStatusShape {
+  currentBranch?: string | null;
+  not_added?: string[];
+  diffStats?: {
+    staged?: Record<string, DiffStat>;
+    working?: Record<string, DiffStat>;
+  };
+}
+
+function deriveSummary(
+  status: GitStatusShape | null | undefined,
+): DiffSummaryEntry[] {
+  if (!status) return [];
+
+  const map = new Map<string, DiffSummaryEntry>();
+
+  const merge = (stat: DiffStat) => {
+    const existing = map.get(stat.path);
+    if (existing) {
+      existing.additions += stat.additions;
+      existing.deletions += stat.deletions;
+    } else {
+      map.set(stat.path, {
+        path: stat.path,
+        additions: stat.additions,
+        deletions: stat.deletions,
+      });
+    }
+  };
+
+  for (const bucket of [status.diffStats?.staged, status.diffStats?.working]) {
+    if (!bucket) continue;
+    for (const stat of Object.values(bucket)) merge(stat);
+  }
+
+  for (const untracked of status.not_added ?? []) {
+    if (!map.has(untracked)) {
+      map.set(untracked, { path: untracked, additions: 0, deletions: 0 });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function ProjectStatus() {
   const isVisible = useStatusPanelStore((state) => state.visibleItems.mcp);
@@ -18,28 +83,26 @@ export function ProjectStatus() {
 export function ProjectStatusContent() {
   const sessionId = useSessionId();
   const { data: session } = useSession(undefined, sessionId);
-  const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
 
-  if (!currentBranch) return null;
+  if (!session) return null;
 
   return (
     <div className='border-separator border-b p-3'>
-      <ProjectStatusHeader />
-      <CurrentBranch />
-      <FilesChanged />
+      <ProjectStatusHeader workspace={session.workspace} />
+      <CurrentBranch workspace={session.workspace} />
+      <FilesChanged workspace={session.workspace} />
     </div>
   );
 }
 
-function ProjectStatusHeader() {
-  const sessionId = useSessionId();
-  const { data: session } = useSession(undefined, sessionId);
+// ---------------------------------------------------------------------------
+// Sub-views
+// ---------------------------------------------------------------------------
+
+function ProjectStatusHeader({ workspace }: { workspace: string }) {
   const { data: keys } = useWorkspacesKeys();
 
-  if (!session) return null;
-
-  const workspaceTitle =
-    keys?.[session.workspace]?.name ?? getLastPathName(session.workspace);
+  const workspaceTitle = keys?.[workspace]?.name ?? getLastPathName(workspace);
 
   return (
     <div className='mb-2 flex items-center justify-between gap-2'>
@@ -53,39 +116,37 @@ function ProjectStatusHeader() {
   );
 }
 
-function CurrentBranch() {
-  const sessionId = useSessionId();
-  const { data: session } = useSession(undefined, sessionId);
-  const { data: currentBranch } = useGitCurrentBranch(session?.workspace);
+function CurrentBranch({ workspace }: { workspace: string }) {
+  const { data: statusData } = useGitStatus(workspace);
 
-  if (!session || !currentBranch) return null;
+  const branch =
+    (statusData as GitStatusShape | null | undefined)?.currentBranch ?? null;
+
+  if (!branch) return null;
 
   return (
     <div className='text-muted mb-2 flex items-center gap-2'>
       <CircleTree className='h-3.5 w-3.5' />
       <Typography type='body-xs' className='font-mono'>
-        {currentBranch.currentBranch}
+        {branch}
       </Typography>
     </div>
   );
 }
 
-function FilesChanged() {
-  const sessionId = useSessionId();
-  const { data: session } = useSession(undefined, sessionId);
-  const { data: diffData } = useGitDiff(session?.workspace);
+function FilesChanged({ workspace }: { workspace: string }) {
+  const { data: statusData } = useGitStatus(workspace);
 
-  if (!session || !diffData) return null;
+  const summary = useMemo(
+    () => deriveSummary(statusData as GitStatusShape | null | undefined),
+    [statusData],
+  );
 
-  const fileCount = diffData.summary.length;
-  const totalAdditions = diffData.summary.reduce(
-    (acc, item) => acc + item.additions,
-    0,
-  );
-  const totalDeletions = diffData.summary.reduce(
-    (acc, item) => acc + item.deletions,
-    0,
-  );
+  if (!statusData) return null;
+
+  const fileCount = summary.length;
+  const totalAdditions = summary.reduce((acc, item) => acc + item.additions, 0);
+  const totalDeletions = summary.reduce((acc, item) => acc + item.deletions, 0);
 
   return (
     <div className='flex items-center justify-between text-xs'>

@@ -70,10 +70,6 @@ export function SideChatPage() {
     useSideChatScrollStore.getState().scrollToIndex(groupIndex);
   }, []);
 
-  const handleScrollToBottom = useCallback(() => {
-    feedRef.current?.scrollToBottom(true);
-  }, []);
-
   useEffect(() => {
     if (notFound) {
       setView('list');
@@ -94,12 +90,7 @@ export function SideChatPage() {
         <div className='@container relative mx-auto w-full max-w-[720px]'>
           <OfflineWrapper>
             <div className='absolute left-0 -translate-y-full -mx-1'>
-              <WithScrollToBottomWrapper
-                type='side'
-                onScrollToBottom={handleScrollToBottom}
-              >
-                <ChatActivityIndicator />
-              </WithScrollToBottomWrapper>
+              <ChatActivityIndicator />
             </div>
           </OfflineWrapper>
 

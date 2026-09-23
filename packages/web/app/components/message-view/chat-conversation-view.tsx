@@ -62,7 +62,7 @@ const VirtualRow = memo(function VirtualRow({
   }
 
   return (
-    <div className='mx-auto w-full px-3 md:max-w-[720px]'>
+    <div className='mx-auto px-3 max-w-[720px]'>
       {item.type === 'user' && (
         <UserChatBubble turn={item.turn} forkMessageId={item.forkMessageId} />
       )}

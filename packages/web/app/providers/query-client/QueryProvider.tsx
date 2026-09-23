@@ -41,7 +41,7 @@ export function OfflineWrapper({ children }: { children: ReactNode }) {
   if (!isOnline) {
     return (
       <div className='absolute left-0 -translate-y-full'>
-        <div className='border-separator text-warning mx-2 mb-1 flex shrink-0 animate-pulse items-center gap-1 rounded-full border bg-transparent px-2 py-1 text-sm backdrop-blur-sm'>
+        <div className='border-separator text-warning mx-2 mb-2 flex shrink-0 animate-pulse items-center gap-1 rounded-xl border bg-transparent px-2 py-1 text-sm backdrop-blur-sm'>
           Disconnected. Reconnecting...
         </div>
       </div>
