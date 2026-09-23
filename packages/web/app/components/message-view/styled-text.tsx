@@ -22,7 +22,9 @@ const DEFAULT_TRIGGER_TYPE: Record<Trigger, TokenType> = {
 };
 
 const URL_RE = /^https?:\/\/\S+$/i;
-const TRIGGERS = new Set<Trigger>(['@', '/', '#']);
+
+// `#` and `/` tokens may only contain letters, digits, and hyphens.
+const RESTRICTED_TRIGGER_RE = /^[#/][A-Za-z0-9-]+/;
 
 function trimUrl(url: string): string {
   let end = url.length;
@@ -35,20 +37,34 @@ type Part =
   | { kind: 'link'; value: string }
   | { kind: 'token'; value: string; trigger: Trigger };
 
+const isWhitespace = (ch: string) => /\s/.test(ch);
+
 function tokenize(text: string): Part[] {
   const parts: Part[] = [];
   let i = 0;
 
   while (i < text.length) {
     const ch = text[i];
-    const atBoundary = i === 0 || text[i - 1] === ' ';
+
+    if (isWhitespace(ch)) {
+      const last = parts[parts.length - 1];
+      if (last && last.kind === 'text') {
+        last.value += ch;
+      } else {
+        parts.push({ kind: 'text', value: ch });
+      }
+      i++;
+      continue;
+    }
+
+    const atBoundary = i === 0 || isWhitespace(text[i - 1]);
 
     if (atBoundary) {
-      // Whole word = from here up to the next space (or end of string).
-      const spaceIdx = text.indexOf(' ', i);
-      const word = spaceIdx === -1 ? text.slice(i) : text.slice(i, spaceIdx);
+      let end = i;
+      while (end < text.length && !isWhitespace(text[end])) end++;
 
-      // URL
+      const word = text.slice(i, end);
+
       if (URL_RE.test(word)) {
         const trimmed = trimUrl(word);
         if (trimmed) {
@@ -56,21 +72,27 @@ function tokenize(text: string): Part[] {
           if (trimmed.length < word.length) {
             parts.push({ kind: 'text', value: word.slice(trimmed.length) });
           }
-          i += word.length;
+          i = end;
           continue;
         }
       }
 
-      // Token: trigger char + at least one more char, up to next space.
-      if (TRIGGERS.has(ch as Trigger) && word.length > 1) {
-        parts.push({ kind: 'token', value: word, trigger: ch as Trigger });
-        i += word.length;
+      if (ch === '@' && word.length > 1) {
+        parts.push({ kind: 'token', value: word, trigger: '@' });
+        i = end;
         continue;
+      }
+
+      if (ch === '#' || ch === '/') {
+        const match = RESTRICTED_TRIGGER_RE.exec(word);
+        if (match) {
+          parts.push({ kind: 'token', value: match[0], trigger: ch });
+          i += match[0].length;
+          continue;
+        }
       }
     }
 
-    // Non-match: append a single char to the running text.
-    // (We append char-by-char because a boundary may appear mid-run.)
     const last = parts[parts.length - 1];
     if (last && last.kind === 'text') {
       last.value += ch;

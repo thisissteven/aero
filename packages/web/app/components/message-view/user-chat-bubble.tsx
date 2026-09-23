@@ -1,5 +1,5 @@
 import { ChatMessage, cn } from '@aero/ui';
-import { memo, useMemo } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Markdown } from '@/app/components/markdown/markdown';
 import { ChatQuote } from '@/app/components/message-view/chat-quote';
 import {
@@ -12,11 +12,20 @@ import { StyledText } from '@/app/components/message-view/styled-text';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { FileAttachmentsView } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
 import { formatDateTime } from '@/app/lib/date';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { AeroConversationTurn } from '@/server/services/harness/types';
 
 /**
  * A chat-quote part bundles the quoted excerpt and the user's reply into a
  * single text field, separated by a blank line:
+ *
+ *     > quoted line 1
+ *     > quoted line 2
+ *
+ *     user's reply
+ *
+ * Split them back out so the excerpt renders above the bubble and the
+ * reply renders inside it as a normal user message.
  */
 function parseChatQuotePart(text: string): { quote: string; comment: string } {
   const lines = text.split('\n');
@@ -41,10 +50,6 @@ function parseChatQuotePart(text: string): { quote: string; comment: string } {
   };
 }
 
-type Block =
-  | { type: 'chat-quote'; quote: string; comment: string }
-  | { type: 'text'; text: string };
-
 interface UserChatBubbleProps {
   turn: AeroConversationTurn;
   forkMessageId: string;
@@ -61,6 +66,9 @@ function areUserChatBubblePropsEqual(
   );
 }
 
+/** Must match the `max-h-24` below. 24 * 4px = 96px. */
+const CLAMP_PX = 96;
+
 export const UserChatBubble = memo(function UserChatBubble({
   turn,
   forkMessageId,
@@ -68,29 +76,37 @@ export const UserChatBubble = memo(function UserChatBubble({
   turn: AeroConversationTurn;
   forkMessageId: string;
 }) {
-  const { blocks, attachments } = useMemo(() => {
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+
+  const { text, quoteText, attachments, plainText } = useMemo(() => {
+    const textParts: string[] = [];
+    const quoteParts: string[] = [];
     const attachments: ExternalFileAttachment[] = [];
-    const quoteBlocks: Block[] = [];
-    const textBlocks: Block[] = [];
-    const compactionBlocks: Block[] = [];
-    const subtaskBlocks: Block[] = [];
+    let plainText = true;
 
     for (const part of turn.parts) {
       switch (part.type) {
         case 'text': {
           if (part.metadata?.kind === 'chat-quote') {
             const { quote, comment } = parseChatQuotePart(part.text);
-            quoteBlocks.push({ type: 'chat-quote', quote, comment });
+            if (quote) quoteParts.push(quote);
+            if (comment) textParts.push(comment);
           } else {
-            textBlocks.push({ type: 'text', text: part.text });
+            textParts.push(part.text);
+            plainText = false;
           }
           break;
         }
         case 'compaction':
-          compactionBlocks.push({ type: 'text', text: '/compact' });
+          textParts.push('/compact');
+          plainText = false;
           break;
         case 'subtask':
-          subtaskBlocks.push({ type: 'text', text: part.prompt });
+          textParts.push(part.prompt);
+          plainText = false;
           break;
         case 'file':
           attachments.push({
@@ -103,105 +119,138 @@ export const UserChatBubble = memo(function UserChatBubble({
       }
     }
 
-    // Arrange in the requested order: quotes -> user text -> compaction -> subtask
-    const blocks = [
-      ...quoteBlocks,
-      ...textBlocks,
-      ...compactionBlocks,
-      ...subtaskBlocks,
-    ];
-
-    return { blocks, attachments };
+    return {
+      text: textParts.join('\n\n'),
+      quoteText: quoteParts.join('\n\n'),
+      attachments,
+      plainText,
+    };
   }, [turn.parts]);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const overflow = el.scrollHeight > CLAMP_PX;
+      setIsOverflowing((prev) => (prev !== overflow ? overflow : prev));
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+
+  const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[turn.id]));
+  const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
+
+  const handleToggle = () => {
+    const bubbleEl = bubbleRef.current;
+    if (isExpanded && bubbleEl) {
+      const scrollContainer = bubbleEl.closest<HTMLElement>('.overflow-y-auto');
+
+      if (scrollContainer) {
+        const topOffset = 32;
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const bubbleRect = bubbleEl.getBoundingClientRect();
+        const targetScrollTop =
+          scrollContainer.scrollTop +
+          (bubbleRect.top - containerRect.top) -
+          topOffset;
+
+        scrollContainer.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'instant',
+        });
+      } else {
+        bubbleEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
+    }
+    setKeep(turn.id, !isExpanded);
+  };
+
+  const hasAbove = attachments.length > 0 || quoteText.length > 0;
 
   const isExpandedSkill =
     turn.parts.length === 1 &&
     turn.parts[0].type === 'text' &&
     turn.parts[0].metadata?.kind === 'skill';
 
-  if (isExpandedSkill) {
-    return (
-      <ChatMessage.User className='relative'>
-        <ChatMessage.Bubble className='max-w-4/5 px-3 rounded-xl'>
-          <div className='p-1'>
-            <Markdown id={turn.id} streaming={false} streamRevealPreset='off'>
-              {blocks
-                .map((b) =>
-                  b.type === 'chat-quote'
-                    ? `${b.quote}\n\n${b.comment}`
-                    : b.text,
-                )
-                .join('\n\n')}
-            </Markdown>
-          </div>
-        </ChatMessage.Bubble>
-        <div className='mt-3 flex w-full items-center justify-end gap-2 pb-3'>
-          <div className='text-muted text-xs select-none'>
-            {formatDateTime(turn.createdAt)}
-          </div>
-          <div>
-            <MessageActionsRevert messageId={forkMessageId} />
-            <MessageActionsFork messageId={forkMessageId} />
-            <MessageActionsPin messageId={turn.id} />
-            <MessageActionsCopy
-              copyText={blocks
-                .map((b) =>
-                  b.type === 'chat-quote'
-                    ? `${b.quote}\n\n${b.comment}`
-                    : b.text,
-                )
-                .join('\n\n')}
-            />
-          </div>
-        </div>
-      </ChatMessage.User>
-    );
-  }
+  const clamped = !isExpanded && isOverflowing;
 
   return (
-    <ChatMessage.User className='relative'>
-      {attachments.length > 0 && (
+    <ChatMessage.User ref={bubbleRef} className='relative'>
+      {hasAbove && (
         <div className='mb-2 flex w-full flex-col items-end gap-1.5'>
-          <div className='max-w-4/5'>
-            <FileAttachmentsView
-              attachments={attachments}
-              variant='sent'
-              className='px-0'
-            />
-          </div>
+          {attachments.length > 0 && (
+            <div className='max-w-4/5'>
+              <FileAttachmentsView
+                attachments={attachments}
+                variant='sent'
+                className='px-0'
+              />
+            </div>
+          )}
+
+          {quoteText.length > 0 && <ChatQuote text={quoteText} />}
         </div>
       )}
 
-      <div className='flex w-full flex-col items-end gap-2'>
-        {blocks.map((block, i) => {
-          if (block.type === 'chat-quote') {
-            const hasComment = block.comment.trim().length > 0;
+      <ChatMessage.Bubble
+        className={cn(
+          'max-w-4/5 px-3 rounded-xl',
+          isOverflowing && !isExpanded && 'cursor-pointer',
+        )}
+        onClick={() => {
+          if (isExpanded) return;
+          handleToggle();
+        }}
+      >
+        <div className='relative'>
+          <div
+            ref={textRef}
+            className={cn(
+              'overflow-hidden',
+              isExpandedSkill
+                ? 'p-1'
+                : 'whitespace-pre-wrap text-sm break-words',
+              clamped && 'line-clamp-3',
+            )}
+          >
+            {isExpandedSkill ? (
+              <Markdown id={turn.id} streaming={false} streamRevealPreset='off'>
+                {text}
+              </Markdown>
+            ) : text.length > 0 ? (
+              plainText ? (
+                text
+              ) : (
+                <StyledText text={text} />
+              )
+            ) : (
+              <span className='text-sm text-muted'>Sent empty message.</span>
+            )}
+          </div>
 
-            return (
-              <div key={i} className='w-full flex flex-col items-end gap-1.5'>
-                <ChatQuote text={block.quote} />
-
-                {/* Comment: Rendered inside a bubble ONLY if there is a comment */}
-                {hasComment && (
-                  <ChatMessage.Bubble className='max-w-4/5 px-3 rounded-xl text-sm'>
-                    <StyledText text={block.comment} />
-                  </ChatMessage.Bubble>
-                )}
-              </div>
-            );
-          }
-
-          // Regular reply: Rendered inside a bubble
-          return (
-            <ChatMessage.Bubble
-              key={i}
-              className='max-w-4/5 px-3 rounded-xl text-sm'
+          {isOverflowing && (
+            <button
+              type='button'
+              className={cn(
+                'text-muted mt-1 text-xs opacity-80 transition hover:opacity-100',
+                isExpandedSkill && 'ml-1',
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggle();
+              }}
             >
-              <StyledText text={block.text} />
-            </ChatMessage.Bubble>
-          );
-        })}
-      </div>
+              {isExpanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      </ChatMessage.Bubble>
 
       <div className='mt-3 flex w-full items-center justify-end gap-2 pb-3'>
         <div className='text-muted text-xs select-none'>
@@ -211,13 +260,7 @@ export const UserChatBubble = memo(function UserChatBubble({
           <MessageActionsRevert messageId={forkMessageId} />
           <MessageActionsFork messageId={forkMessageId} />
           <MessageActionsPin messageId={turn.id} />
-          <MessageActionsCopy
-            copyText={blocks
-              .map((b) =>
-                b.type === 'chat-quote' ? `${b.quote}\n\n${b.comment}` : b.text,
-              )
-              .join('\n\n')}
-          />
+          <MessageActionsCopy copyText={text} />
         </div>
       </div>
     </ChatMessage.User>

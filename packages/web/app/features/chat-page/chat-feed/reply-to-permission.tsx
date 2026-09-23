@@ -156,6 +156,7 @@ export const ReplyToPermission = React.memo(() => {
     },
     {
       modifiers: { mod: true },
+      preventDefault: false,
       stopPropagation: false,
     },
   );
@@ -168,6 +169,7 @@ export const ReplyToPermission = React.memo(() => {
     },
     {
       modifiers: { mod: false, ctrl: false, meta: false },
+      preventDefault: false,
       stopPropagation: false,
     },
   );
