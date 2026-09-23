@@ -1,7 +1,7 @@
 // components/connect-provider-view.tsx
 import { Button, Input, Label, Separator, Typography, toast } from '@aero/ui';
 import { useState } from 'react';
-
+import { RELOAD_OPENCODE_TOAST } from '@/app/hooks/api/pool';
 import { useSetApiKey } from '@/app/hooks/api/providers';
 import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 import { ProviderDropdown } from '../providers-dropdown';
@@ -31,9 +31,7 @@ export function ConnectProviderView() {
       setSelectedProviderId(null);
 
       // Notify the user
-      toast(
-        'Opencode needs to be reloaded to apply the new provider configuration.',
-      );
+      toast(RELOAD_OPENCODE_TOAST);
     } catch (error) {
       console.error('Failed to save API key', error);
       // Optional: Add an error toast here if desired

@@ -17,6 +17,9 @@ export function useOpencodeVersion() {
   });
 }
 
+export const RELOAD_OPENCODE_TOAST =
+  'Opencode needs to be reloaded to apply the new provider configuration.';
+
 export function useReloadOpencode() {
   return useMutation({
     mutationFn: async () => {
@@ -32,10 +35,13 @@ export function useReloadOpencode() {
           if (head === 'system') return q.queryKey.includes('files');
           if (head === 'capabilities') return true;
           if (head === 'providers') return true;
-          if (head === 'pool') return true;
           return false;
         },
       });
+      // Reset (not invalidate) the pool query so active observers actually
+      // see `data: undefined` and the splash re-renders until the pool
+      // reports healthy again.
+      queryClient.resetQueries({ queryKey: ['pool', 'status'] });
     },
   });
 }

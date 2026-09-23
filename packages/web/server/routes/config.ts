@@ -47,7 +47,7 @@ const getSettingQuerySchema = z.object({
 const updateSettingSchema = z
   .object({
     path: z.array(z.string().min(1)).min(1),
-    value: z.unknown(),
+    value: z.unknown().optional(),
   })
   .transform((value): AeroSettingUpdate => value as AeroSettingUpdate);
 

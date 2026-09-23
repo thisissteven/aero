@@ -13,6 +13,7 @@ export function ProvidersSidebar() {
     (s) => s.setSelectedProviderId,
   );
   const setViewMode = useProvidersStore((s) => s.setViewMode);
+  const setMobilePanel = useProvidersStore((s) => s.setMobilePanel);
 
   const { data: providers = [], isLoading } = useConfiguredProviders();
 
@@ -26,17 +27,22 @@ export function ProvidersSidebar() {
   const viewMode = useProvidersStore((s) => s.viewMode);
 
   return (
-    <aside className='border-separator flex w-64 shrink-0 flex-col border-r'>
-      <div className='flex items-center justify-between pl-4 pr-2 py-4'>
+    <aside className='border-separator flex w-full shrink-0 flex-col border-r md:w-64'>
+      <div className='flex items-center justify-between py-4 pl-4 pr-2'>
         <span className='text-muted text-xs font-medium'>
           Total {providers.length}
         </span>
-        <IconButton onClick={() => setViewMode('connect')}>
+        <IconButton
+          onClick={() => {
+            setViewMode('connect');
+            setMobilePanel('detail');
+          }}
+        >
           <Icon data={Plus} />
         </IconButton>
       </div>
 
-      <div className='flex-1 overflow-y-auto px-2 pb-4'>
+      <div className='flex-1 scrollbar-thin overflow-y-auto px-2 pb-4'>
         <div className='text-muted px-2 py-2 text-[10px] font-semibold tracking-wider uppercase'>
           Configured Providers
         </div>
@@ -59,6 +65,7 @@ export function ProvidersSidebar() {
                   onClick={() => {
                     setSelectedProviderId(provider.id);
                     setViewMode('details');
+                    setMobilePanel('detail');
                   }}
                   className={`flex items-center justify-between rounded-md px-2.5 py-2 text-sm transition-colors ${
                     isActive

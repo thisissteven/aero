@@ -44,6 +44,26 @@ const providers = new Hono()
     return c.json(result);
   })
 
+  // POST /api/providers/disconnect?harnessId=... body: { provider, apiKey }
+  .post(
+    '/disconnect',
+    zValidator('query', commonQuerySchema.pick({ harnessId: true })),
+    zValidator(
+      'json',
+      z.object({
+        provider: z.string().min(1),
+      }),
+    ),
+    async (c) => {
+      const { harnessId } = c.req.valid('query');
+      const { provider } = c.req.valid('json');
+
+      const harness = await getActiveAdapter(harnessId);
+      const ok = await harness.disconnectProvider(provider);
+      return c.json({ ok });
+    },
+  )
+
   // POST /api/providers/auth?harnessId=... body: { provider, apiKey }
   .post(
     '/auth',

@@ -9,6 +9,7 @@ export const settingsSchema = z.object({
   chatInputExpanded: z.record(z.string(), z.boolean()),
   permissionAutoAcceptSessions: z.record(z.string(), z.boolean()),
   recentModelVariants: z.record(z.string(), z.string()),
+  hiddenModels: z.record(z.string(), z.array(z.string())),
 
   // Future examples:
   // theme: z.enum(['light', 'dark', 'system']),
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: AeroSettings = {
   chatInputExpanded: {},
   permissionAutoAcceptSessions: {},
   recentModelVariants: {},
+  hiddenModels: {},
 };
 
 type SettingsObject = Record<string, unknown>;

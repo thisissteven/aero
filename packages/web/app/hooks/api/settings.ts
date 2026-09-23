@@ -1,5 +1,4 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { sessionKeys } from '@/app/hooks/api/sessions';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -147,4 +146,13 @@ export function useChatInputExpanded() {
   const resolvedSessionId = sessionId ?? NEW_SESSION_PAGE_SESSION_ID;
   const { data } = useSetting(['chatInputExpanded', resolvedSessionId]);
   return data?.value ?? false;
+}
+
+/**
+ * Returns the list of hidden model IDs for the given provider.
+ * Falls back to an empty array when the provider has no hidden models.
+ */
+export function useHiddenModels(providerId: string | null | undefined) {
+  const { data } = useSetting(['hiddenModels', providerId ?? '']);
+  return data?.value ?? [];
 }

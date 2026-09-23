@@ -760,6 +760,16 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
     },
 
+    async disconnectProvider(provider) {
+      return withOpencodeClientV2(async (client) =>
+        unwrap(
+          await client.auth.remove({
+            providerID: provider,
+          }),
+        ),
+      );
+    },
+
     async listTools(provider, model, directory) {
       const entries = await withOpencodeClientV2(async (client) =>
         unwrap(await client.tool.list({ directory, model, provider })),

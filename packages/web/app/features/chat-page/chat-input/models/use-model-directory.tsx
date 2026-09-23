@@ -1,11 +1,11 @@
 // useModelDirectory.ts
 import { useEffect, useMemo } from 'react';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
-import { useConfiguredProviders } from '@/app/hooks/api/providers';
+import { usePreparedConfiguredProviders } from '@/app/hooks/api/providers';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 export function useModelDirectory() {
-  const { data: providersData } = useConfiguredProviders();
+  const { data: providersData } = usePreparedConfiguredProviders();
   const setProvidersData = useChatSettingsStore((s) => s.setProvidersData);
 
   useEffect(() => {

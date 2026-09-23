@@ -687,6 +687,7 @@ export interface HarnessAdapter {
   listProvidersCompact(directory?: string): Promise<AeroProviderCompact[]>;
   listConfiguredProviders(directory?: string): Promise<AeroProvider[]>;
   setApiKey(provider: string, apiKey: string): Promise<boolean>;
+  disconnectProvider(provider: string): Promise<boolean>;
 
   getConfig(directory?: string): Promise<AeroConfig>;
   listFilesInDirectory(input: {
