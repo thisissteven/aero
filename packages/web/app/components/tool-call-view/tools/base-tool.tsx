@@ -214,124 +214,126 @@ export function BaseTool({
         </Disclosure.Heading>
 
         <Disclosure.Content className='mt-2 pl-0'>
-          <div
-            className={cn(
-              'border-default ml-2 space-y-2 border-l pl-3',
-              // hasCodeContent && 'pl-3',
-            )}
-          >
-            {error && (
-              <div>
-                {typeof preview === 'string' && (
-                  <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
-                )}
-
-                <Alert
-                  status='danger'
-                  className={cn(
-                    'bg-transparent p-0 pt-4 shadow-none',
-                    !hasCodeContent && 'pb-2',
+          {!isDisabled && (
+            <div
+              className={cn(
+                'border-default ml-2 space-y-2 border-l pl-3',
+                // hasCodeContent && 'pl-3',
+              )}
+            >
+              {error && (
+                <div>
+                  {typeof preview === 'string' && (
+                    <div className='text-muted/70 pt-2 text-xs'>{preview}</div>
                   )}
-                >
-                  <Alert.Content>
-                    <Alert.Description className='text-danger'>
-                      {error}
-                    </Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              </div>
-            )}
 
-            {children}
-
-            {hasCodeContent && !children && !isStreaming && (
-              <CodeBlock className='bg-transparent'>
-                <CodeBlock.Header className='bg-surface'>
-                  <div
+                  <Alert
+                    status='danger'
                     className={cn(
-                      'text-muted min-w-0 font-mono text-xs break-all',
-                      isItalicHeader && 'italic',
+                      'bg-transparent p-0 pt-4 shadow-none',
+                      !hasCodeContent && 'pb-2',
                     )}
                   >
-                    {previewType === 'path' && codeTitle ? (
-                      <MiddleTruncatePath path={codeTitle} />
-                    ) : (
-                      <div className='truncate'>{codeTitle}</div>
-                    )}
-                  </div>
+                    <Alert.Content>
+                      <Alert.Description className='text-danger'>
+                        {error}
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                </div>
+              )}
 
-                  <div className='flex items-center'>
-                    {!!patch && <CodeBlock.ViewModeButton />}
+              {children}
 
-                    <CodeBlock.WrapButton />
-
-                    {isUrl ? (
-                      <CodeBlock.OpenButton
-                        aria-label='Open in new tab'
-                        onClick={() =>
-                          window.open(
-                            codeTitle,
-                            '_blank',
-                            'noopener,noreferrer',
-                          )
-                        }
-                      />
-                    ) : isFile ? (
-                      dir?.endsWith('.html') ? (
-                        <>
-                          <CodeBlock.OpenInBrowserButton
-                            aria-label='Open in browser'
-                            onClick={() => {
-                              useSidePanelStore
-                                .getState()
-                                .setActiveNavItem('browser');
-                              openUrl(dir);
-                            }}
-                          />
-                          <OpenFileInEditor path={dir} />
-                        </>
+              {hasCodeContent && !children && !isStreaming && (
+                <CodeBlock className='bg-transparent'>
+                  <CodeBlock.Header className='bg-surface'>
+                    <div
+                      className={cn(
+                        'text-muted min-w-0 font-mono text-xs break-all',
+                        isItalicHeader && 'italic',
+                      )}
+                    >
+                      {previewType === 'path' && codeTitle ? (
+                        <MiddleTruncatePath path={codeTitle} />
                       ) : (
-                        <OpenFileInEditor path={dir} />
-                      )
-                    ) : null}
+                        <div className='truncate'>{codeTitle}</div>
+                      )}
+                    </div>
 
-                    {copyText && (
-                      <CodeBlock.CopyButton
-                        code={copyText}
-                        className='shrink-0'
-                      />
-                    )}
-                  </div>
-                </CodeBlock.Header>
+                    <div className='flex items-center'>
+                      {!!patch && <CodeBlock.ViewModeButton />}
 
-                {isExpanded && (
-                  <CodeBlockContent
-                    className={cn(
-                      patch ? '' : showLineNumbers ? 'py-1.5' : 'p-1.5 pr-0',
-                    )}
-                    code={code ?? ''}
-                    language={language || 'text'}
-                    scrollOverflow={code?.includes('\n') ?? false}
-                    showLineNumbers={showLineNumbers}
-                    // A patch routes through PatchDiff; otherwise the
-                    // plain File renderer takes over.
-                    variant={patch ? 'diff' : 'file'}
-                    patch={patch}
-                  />
-                )}
+                      <CodeBlock.WrapButton />
 
-                {patch && diff && (
-                  <CodeBlock.Footer>
-                    <span>Changes</span>
-                    <CodeBlock.ChangeSummary
-                      additions={diff.additions}
-                      deletions={diff.deletions}
+                      {isUrl ? (
+                        <CodeBlock.OpenButton
+                          aria-label='Open in new tab'
+                          onClick={() =>
+                            window.open(
+                              codeTitle,
+                              '_blank',
+                              'noopener,noreferrer',
+                            )
+                          }
+                        />
+                      ) : isFile ? (
+                        dir?.endsWith('.html') ? (
+                          <>
+                            <CodeBlock.OpenInBrowserButton
+                              aria-label='Open in browser'
+                              onClick={() => {
+                                useSidePanelStore
+                                  .getState()
+                                  .setActiveNavItem('browser');
+                                openUrl(dir);
+                              }}
+                            />
+                            <OpenFileInEditor path={dir} />
+                          </>
+                        ) : (
+                          <OpenFileInEditor path={dir} />
+                        )
+                      ) : null}
+
+                      {copyText && (
+                        <CodeBlock.CopyButton
+                          code={copyText}
+                          className='shrink-0'
+                        />
+                      )}
+                    </div>
+                  </CodeBlock.Header>
+
+                  {isExpanded && (
+                    <CodeBlockContent
+                      className={cn(
+                        patch ? '' : showLineNumbers ? 'py-1.5' : 'p-1.5 pr-0',
+                      )}
+                      code={code ?? ''}
+                      language={language || 'text'}
+                      scrollOverflow={code?.includes('\n') ?? false}
+                      showLineNumbers={showLineNumbers}
+                      // A patch routes through PatchDiff; otherwise the
+                      // plain File renderer takes over.
+                      variant={patch ? 'diff' : 'file'}
+                      patch={patch}
                     />
-                  </CodeBlock.Footer>
-                )}
-              </CodeBlock>
-            )}
-          </div>
+                  )}
+
+                  {patch && diff && (
+                    <CodeBlock.Footer>
+                      <span>Changes</span>
+                      <CodeBlock.ChangeSummary
+                        additions={diff.additions}
+                        deletions={diff.deletions}
+                      />
+                    </CodeBlock.Footer>
+                  )}
+                </CodeBlock>
+              )}
+            </div>
+          )}
         </Disclosure.Content>
       </Disclosure>
     </div>

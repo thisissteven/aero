@@ -108,6 +108,9 @@ const LANGUAGE_TO_EXTENSION: Record<string, string> = {
   prisma: 'prisma',
   protobuf: 'proto',
   thrift: 'thrift',
+  mermaid: 'mmd',
+  mmd: 'mmd',
+  svg: 'svg',
 };
 
 export function getExtensionFromLanguage(language: string) {

@@ -169,32 +169,26 @@ export const ChatActivityIndicator = React.memo(
         `}
         </style>
 
-        <button
-          role='status'
-          aria-live='polite'
-          className='border-separator text-muted mx-3 mb-2 flex shrink-0 items-center gap-1 rounded-xl border bg-transparent px-2 py-1 backdrop-blur-sm'
+        <PixelLoader />
+
+        <span
+          className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
+          style={{
+            backgroundImage:
+              'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
+            backgroundSize: '200% 100%',
+            animation: 'chat-activity-shimmer 1.4s linear infinite',
+            color: 'var(--foreground)',
+          }}
         >
-          <PixelLoader />
+          {label}
+        </span>
 
-          <span
-            className='chat-activity-motion bg-clip-text text-[13px] font-medium text-transparent'
-            style={{
-              backgroundImage:
-                'linear-gradient(90deg, var(--foreground-muted) 35%, var(--foreground) 50%, var(--foreground-muted) 65%)',
-              backgroundSize: '200% 100%',
-              animation: 'chat-activity-shimmer 1.4s linear infinite',
-              color: 'var(--foreground)',
-            }}
-          >
-            {label}
+        {startedAt !== null && (
+          <span className='text-muted-foreground mt-0.5 text-xs tabular-nums'>
+            {formatElapsed(elapsed)}
           </span>
-
-          {startedAt !== null && (
-            <span className='text-muted-foreground mt-0.5 text-xs tabular-nums'>
-              {formatElapsed(elapsed)}
-            </span>
-          )}
-        </button>
+        )}
       </>
     );
   },
@@ -269,7 +263,7 @@ export const WithScrollToBottomWrapper = React.memo(
         <button
           role='status'
           aria-live='polite'
-          className='border-separator text-muted mx-3 mb-2 flex shrink-0 items-center gap-1 rounded-xl border bg-transparent px-2 py-1 backdrop-blur-sm'
+          className='border-separator text-muted mx-3 mb-2 flex shrink-0 items-center gap-1 rounded-lg border bg-transparent px-2 py-1 backdrop-blur-sm'
           disabled={!showButton}
           onClick={showButton ? onScrollToBottom : undefined}
         >

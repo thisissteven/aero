@@ -8,10 +8,8 @@ interface SidePanelState {
   isOpen: boolean;
   activeNavItem: NavItemId | null;
   isExpanded: boolean;
-  panelSize: number;
   setIsOpen: (isOpen: boolean) => void;
   setActiveNavItem: (item: NavItemId | null) => void;
-  setPanelSize: (px: number) => void;
   toggleNavItem: (id: NavItemId) => void;
   toggleExpanded: () => void;
   openClosePanelWithShortcut: (navItem?: NavItemId) => void;
@@ -26,7 +24,6 @@ export const useSidePanelStore = create<SidePanelState>()(
       isOpen: false,
       activeNavItem: null,
       isExpanded: false,
-      panelSize: 360,
 
       setIsOpen: (isOpen) => set({ isOpen }),
 
@@ -35,8 +32,6 @@ export const useSidePanelStore = create<SidePanelState>()(
           activeNavItem: item,
           isOpen: item !== null ? true : state.isOpen,
         })),
-
-      setPanelSize: (panelSize) => set({ panelSize }),
 
       toggleNavItem: (id) =>
         set((state) => {
@@ -90,7 +85,6 @@ export const useSidePanelStore = create<SidePanelState>()(
         isOpen: state.isOpen,
         isExpanded: state.isExpanded,
         activeNavItem: state.activeNavItem,
-        panelSize: state.panelSize,
       }),
     },
   ),

@@ -6,6 +6,8 @@ import rehypeParse from 'rehype-parse';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
+import { getPierreTheme } from '@/app/components/chat-aside/files/pierre-styles';
+import { useTheme } from '@/app/providers';
 import { CodeBlock } from '../code-block/code-block';
 import { DiagramFrame } from './diagram-frame';
 import { svgSanitizeSchema } from './svg-sanitize-schema';
@@ -34,9 +36,19 @@ export const SvgBlock = memo(function SvgBlock({
     }
   }, [code, isStreamingBlock]);
 
+  const { resolvedTheme, colorTheme } = useTheme();
+
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
+
   const codeView = (
     <CodeBlock className='rounded-none border-0 bg-transparent'>
-      <CodeBlock.Code code={code} language='xml' />
+      <CodeBlock.Code
+        code={code}
+        language='xml'
+        theme={pierreTheme.light}
+        darkTheme={pierreTheme.dark}
+        themeType={resolvedTheme}
+      />
     </CodeBlock>
   );
 

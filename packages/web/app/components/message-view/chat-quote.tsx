@@ -12,7 +12,7 @@ export function ChatQuote({ text, className }: ChatQuoteProps) {
   return (
     <div
       className={cn(
-        'group/quote relative max-w-4/5',
+        'group/quote relative max-w-4/5 line-clamp-3',
         'py-1 pr-3.5 text-right text-sm leading-relaxed text-muted',
         'whitespace-pre-wrap break-words',
         className,

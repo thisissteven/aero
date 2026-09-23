@@ -2,7 +2,9 @@
 
 import mermaid from 'mermaid';
 import type { ReactElement } from 'react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { getPierreTheme } from '@/app/components/chat-aside/files/pierre-styles';
+import { useTheme } from '@/app/providers';
 import { CodeBlock } from '../code-block/code-block';
 import { DiagramFrame } from './diagram-frame';
 
@@ -43,6 +45,10 @@ export const MermaidDiagram = memo(function MermaidDiagram({
   const lastGoodCodeRef = useRef<string | null>(null);
   const renderIdRef = useRef(0);
 
+  const { resolvedTheme, colorTheme } = useTheme();
+
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
+
   useEffect(() => {
     if (isStreamingBlock) return;
 
@@ -76,7 +82,13 @@ export const MermaidDiagram = memo(function MermaidDiagram({
   // DiagramFrame already provides them for the whole card.
   const codeView = (
     <CodeBlock className='rounded-none border-0 bg-transparent'>
-      <CodeBlock.Code code={code} language='mermaid' />
+      <CodeBlock.Code
+        code={code}
+        language='mmd'
+        theme={pierreTheme.light}
+        darkTheme={pierreTheme.dark}
+        themeType={resolvedTheme}
+      />
     </CodeBlock>
   );
 

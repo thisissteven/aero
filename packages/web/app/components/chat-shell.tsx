@@ -46,7 +46,7 @@ export function ChatShell({ children }: ChatShellProps) {
           sidebarMaxSize='480px'
           sidebarResizeBehavior='preserve-pixel-size'
         >
-          <Resizable orientation='horizontal'>
+          <Resizable orientation='horizontal' autoSaveId='chat:side-panel'>
             <ChatMainContentPanel>{children}</ChatMainContentPanel>
             <StatusAsidePanel />
             <ChatAsidePanel />

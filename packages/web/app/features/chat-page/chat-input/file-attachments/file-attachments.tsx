@@ -155,7 +155,7 @@ export function FileAttachments() {
       className={cn(
         sessionId ? 'pb-2' : 'pb-1',
         'duration-200',
-        isChat ? 'translate-y-6.5' : 'translate-y-0',
+        isChat && !sessionId ? 'translate-y-6.5' : 'translate-y-0',
       )}
     />
   );

@@ -1128,7 +1128,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           }),
         ),
       ).catch((err) => {
-        console.error('[opencode] sendMessage failed', err);
+        console.error('[opencode] sendCommand failed', err);
       });
 
       return true;
@@ -1168,7 +1168,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           }),
         ),
       ).catch((err) => {
-        console.error('[opencode] sendMessage failed', err);
+        console.error('[opencode] sendShellCommand failed', err);
       });
 
       return true;

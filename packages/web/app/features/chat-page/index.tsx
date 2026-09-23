@@ -3,12 +3,14 @@
 import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef } from 'react';
 import { ChatQuotesPanel } from '@/app/components/chat-quotes-panel';
-import { ChatActivityIndicator } from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
+import {
+  ChatActivityIndicator,
+  WithScrollToBottomWrapper,
+} from '@/app/features/chat-page/chat-feed/chat-activity-indicator';
 import {
   ChatFeed,
   type ChatFeedRef,
 } from '@/app/features/chat-page/chat-feed/chat-feed';
-import { ScrollToBottomButton } from '@/app/features/chat-page/chat-feed/scroll-to-bottom-button';
 import { SessionDiff } from '@/app/features/chat-page/chat-feed/session-diff';
 import { SessionTodos } from '@/app/features/chat-page/chat-feed/session-todos';
 import { ChatInput } from '@/app/features/chat-page/chat-input/chat-input';
@@ -94,17 +96,19 @@ export function ChatPage({
           <div className='@container relative mx-auto w-full max-w-[720px]'>
             <OfflineWrapper>
               <div className='absolute left-0 -translate-y-full'>
-                <ChatActivityIndicator />
+                <WithScrollToBottomWrapper
+                  onScrollToBottom={handleScrollToBottom}
+                  type='main'
+                >
+                  <ChatActivityIndicator />
+                </WithScrollToBottomWrapper>
                 <ChatQuotesPanel />
               </div>
             </OfflineWrapper>
             <FileAttachments />
-            <div className='flex justify-between items-end gap-2 mx-2 has-[>*]:mb-2'>
-              <div className='flex flex-wrap gap-2'>
-                <SessionDiff />
-                <SessionTodos />
-              </div>
-              <ScrollToBottomButton onScrollToBottom={handleScrollToBottom} />
+            <div className='flex flex-wrap gap-2 has-[>*]:mb-2 mx-2'>
+              <SessionDiff />
+              <SessionTodos />
             </div>
             <ChatInput isDisabled={notFound} sessionId={sessionId} />
           </div>

@@ -1,4 +1,3 @@
-import type { PanelImperativeHandle } from '@aero/ui';
 import { Resizable, Skeleton } from '@aero/ui';
 import {
   ChevronsCollapseUpRight,
@@ -6,7 +5,7 @@ import {
   Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { ChangesPanel } from '@/app/components/chat-aside/changes/changes-panel';
@@ -26,31 +25,13 @@ export function ChatAsidePanel() {
   const isOpen = useSidePanelStore((s) => s.isOpen);
   const activeNavItem = useSidePanelStore((s) => s.activeNavItem);
   const isExpanded = useSidePanelStore((s) => s.isExpanded);
-  const panelSize = useSidePanelStore((s) => s.panelSize);
-  const setPanelSize = useSidePanelStore((s) => s.setPanelSize);
   const storeToggleExpanded = useSidePanelStore((s) => s.toggleExpanded);
   const closePanel = useSidePanelStore((s) => s.closePanel);
-
-  const panelRef = useRef<PanelImperativeHandle | null>(null);
 
   const activeNavData = useMemo(
     () => collapsibleNav.find((item) => item.id === activeNavItem),
     [activeNavItem],
   );
-
-  // Restore stored size whenever the panel enters the collapsed state —
-  // either on first mount (refresh / open) or on expand → collapse.
-  // defaultSize only applies at mount, so this effect covers both.
-  useEffect(() => {
-    if (!isOpen || !activeNavItem || isExpanded) return;
-    const saved = useSidePanelStore.getState().panelSize;
-    // Two rAFs: let the group measure, then the panel commit min/max.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        panelRef.current?.resize(`${saved}px`);
-      });
-    });
-  }, [isOpen, activeNavItem, isExpanded]);
 
   if (!isOpen || !activeNavItem) return null;
 
@@ -58,24 +39,11 @@ export function ChatAsidePanel() {
     <>
       {!isExpanded && <Resizable.Handle type='line' variant='primary' />}
       <Resizable.Panel
-        handleRef={panelRef}
         id='aside-panel'
-        defaultSize={isExpanded ? '100%' : `${panelSize}px`}
+        defaultSize={isExpanded ? '100%' : '360px'}
         minSize={isExpanded ? '100%' : '320px'}
         maxSize={isExpanded ? '100%' : '70%'}
         groupResizeBehavior='preserve-pixel-size'
-        // The wrapper drops onResize when handleRef is set unless
-        // `collapsible && (onCollapse || onExpand)`. Pass collapsible with
-        // collapsedSize === minSize so this doesn't cause real collapsing.
-        collapsible
-        collapsedSize={isExpanded ? '100%' : '320px'}
-        onCollapse={() => {}}
-        onExpand={() => {}}
-        onResize={() => {
-          if (isExpanded || !panelRef.current) return;
-          const px = panelRef.current.getSize().inPixels;
-          if (px > 0) setPanelSize(px);
-        }}
       >
         <aside className='flex h-full flex-col bg-surface/30 overflow-x-hidden'>
           <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
@@ -116,16 +84,16 @@ export function ChatAsidePanel() {
               <TerminalPanel />
             ) : activeNavItem === 'browser' ? (
               <BrowserPanel />
+            ) : activeNavItem === 'git' ? (
+              <GitPanel />
+            ) : activeNavItem === 'changes' ? (
+              <ChangesPanel />
+            ) : activeNavItem === 'pr' ? (
+              <PullRequestPanel />
             ) : activeNavItem === 'context' ? (
               <ContextPanel />
             ) : activeNavItem === 'files' ? (
               <FileExplorerPanel />
-            ) : activeNavItem === 'git' ? (
-              <GitPanel />
-            ) : activeNavItem === 'pr' ? (
-              <PullRequestPanel />
-            ) : activeNavItem === 'changes' ? (
-              <ChangesPanel />
             ) : activeNavItem === 'side-chat' ? (
               <SideChatPanel />
             ) : (

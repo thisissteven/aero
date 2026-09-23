@@ -78,7 +78,7 @@ const MarkdownCode = memo(function MarkdownCode({
   const code = String(children ?? '').replace(/\n$/, '');
 
   // Fenced ```mermaid — render as a diagram, not a code block.
-  if (language === 'mermaid') {
+  if (language === 'mmd') {
     return <MermaidDiagram code={code} />;
   }
 

@@ -72,10 +72,7 @@ export const MemoizedBlock = memo(
     const rendered = shouldReveal ? (
       <ReactMarkdown
         components={components}
-        remarkPlugins={[
-          remarkGfm,
-          [remarkMath, { singleDollarTextMath: false }],
-        ]}
+        remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={rehypePlugins as never}
       >
         {content}
@@ -84,10 +81,7 @@ export const MemoizedBlock = memo(
       getCachedBlock(content, () => (
         <ReactMarkdown
           components={components}
-          remarkPlugins={[
-            remarkGfm,
-            [remarkMath, { singleDollarTextMath: false }],
-          ]}
+          remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={rehypePlugins as never}
         >
           {content}
