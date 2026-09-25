@@ -19,6 +19,7 @@ import {
   DeleteSession,
   ExportMarkdown,
   OpenIsolatedWorkspace,
+  PinSession,
   RenameSession,
   ShareUnshareSession,
   UnarchiveSession,
@@ -190,6 +191,7 @@ function SessionsNavbarContent() {
               aria-label={t.chatNavbar.sessionActions(session.title)}
             >
               <RenameSession sessionId={session.id} from='navbar' />
+              <PinSession sessionId={session.id} />
               {!isStandaloneSession && !session.readOnly && (
                 <OpenIsolatedWorkspace directory={session.workspace} />
               )}

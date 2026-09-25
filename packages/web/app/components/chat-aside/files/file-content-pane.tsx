@@ -52,6 +52,17 @@ function isMarkdownFile(filePath: string): boolean {
   return MARKDOWN_RE.test(filePath);
 }
 
+// The editor's scrollable surface. `data-file-scroll-root` marks surfaces the
+// viewer owns directly (wrap mode, markdown); `data-file-scroll-region > *`
+// catches the Pierre virtualizer, which does not forward arbitrary props to
+// its scroll container.
+const SCROLL_ROOT_SELECTOR =
+  '[data-file-scroll-root], [data-file-scroll-region] > *';
+
+function resolveScrollRoot(container: HTMLElement): HTMLElement | null {
+  return container.querySelector<HTMLElement>(SCROLL_ROOT_SELECTOR);
+}
+
 export const FileContentPane = memo(function FileContentPane({
   socket,
   path: pathProp,
@@ -107,26 +118,38 @@ export const FileContentPane = memo(function FileContentPane({
   const fontSize = useFileViewerStore((s) => s.fontSize);
 
   const outerRef = useRef<HTMLDivElement | null>(null);
-  const savedScrollTop = useRef(0);
-  const lastPathRef = useRef(path);
+  // Last known scroll offset per path, so switching tabs and coming back
+  // restores where the user was instead of jumping to the top. Lives in a ref
+  // (not the persisted viewer store) because it's session-scoped.
+  const scrollTopByPath = useRef(new Map<string, number>());
 
-  useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
+  // The scrolling element only exists in the loaded/rendered branch, and the
+  // pane first mounts with no active path (or while loading), so a plain
+  // mount-time effect would attach to a null ref and never re-run. A callback
+  // ref attaches whenever the container actually enters the tree.
+  const scrollCleanupRef = useRef<(() => void) | null>(null);
+  const attachOuter = useCallback((node: HTMLDivElement | null) => {
+    scrollCleanupRef.current?.();
+    scrollCleanupRef.current = null;
+    outerRef.current = node;
+    if (!node) return;
+
     const onScroll = (e: Event) => {
-      const t = e.target;
-      if (t instanceof HTMLElement) {
-        savedScrollTop.current = t.scrollTop;
-      }
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.matches(SCROLL_ROOT_SELECTOR)) return;
+      const current = activePathRef.current;
+      if (!current) return;
+      scrollTopByPath.current.set(current, target.scrollTop);
     };
-    el.addEventListener('scroll', onScroll, {
-      passive: true,
-      capture: true,
-    });
-    return () => {
-      el.removeEventListener('scroll', onScroll, { capture: true });
+
+    node.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    scrollCleanupRef.current = () => {
+      node.removeEventListener('scroll', onScroll, { capture: true });
     };
   }, []);
+
+  useEffect(() => () => scrollCleanupRef.current?.(), []);
 
   useEffect(() => {
     setSaveError(null);
@@ -350,21 +373,33 @@ export const FileContentPane = memo(function FileContentPane({
 
   useLayoutEffect(() => {
     const el = outerRef.current;
-    if (!el) return;
+    if (!el || !path) return;
 
-    const pathChanged = lastPathRef.current !== path;
-    lastPathRef.current = path;
-    if (pathChanged) savedScrollTop.current = 0;
+    const saved = scrollTopByPath.current.get(path);
+    if (saved == null || saved <= 0) return;
 
-    if (savedScrollTop.current <= 0) return;
+    let raf = 0;
+    let attempts = 0;
 
-    const nodes = el.querySelectorAll<HTMLElement>('*');
-    for (const node of nodes) {
-      if (node.scrollHeight > node.clientHeight + 1) {
-        node.scrollTop = savedScrollTop.current;
-        return;
+    // Content can mount before it is tall enough to reach `saved`, in which
+    // case the browser clamps `scrollTop` to the current max. Retry across a
+    // few frames and stop as soon as the offset sticks.
+    const restore = () => {
+      const root = resolveScrollRoot(el);
+      if (root) {
+        root.scrollTop = saved;
+        if (root.scrollTop === saved) return;
       }
-    }
+      if (attempts < 10) {
+        attempts += 1;
+        raf = requestAnimationFrame(restore);
+      }
+    };
+
+    restore();
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [path, renderKey]);
 
   if (!path) {
@@ -421,7 +456,7 @@ export const FileContentPane = memo(function FileContentPane({
       )}
 
       <div
-        ref={outerRef}
+        ref={attachOuter}
         className='min-h-0 min-w-0 flex-1 basis-0 overflow-hidden'
       >
         <FileViewer

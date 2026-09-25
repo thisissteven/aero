@@ -10,6 +10,11 @@ interface FileEditState {
   setDiskContent: (path: string, contents: string) => void;
   clearBuffer: (path: string) => void;
   clearAll: () => void;
+
+  /** Remap buffered edits and last-known disk contents when a file or folder
+   *  is renamed or moved. Maps descendants when `from` is a directory so an
+   *  unsaved buffer under a moved folder follows it. */
+  renamePath: (from: string, to: string) => void;
 }
 
 export const useFileEditStore = create<FileEditState>((set) => ({
@@ -43,6 +48,39 @@ export const useFileEditStore = create<FileEditState>((set) => ({
 
   clearAll() {
     set({ buffers: new Map() });
+  },
+
+  renamePath(from, to) {
+    const fromClean = from.endsWith('/') ? from.slice(0, -1) : from;
+    const toClean = to.endsWith('/') ? to.slice(0, -1) : to;
+    if (fromClean === toClean) return;
+
+    const prefix = `${fromClean}/`;
+    const mapPath = (p: string): string => {
+      if (p === fromClean) return toClean;
+      if (p.startsWith(prefix)) return toClean + p.slice(fromClean.length);
+      return p;
+    };
+
+    set((state) => {
+      const remap = (map: Map<string, string>): Map<string, string> => {
+        let changed = false;
+        const next = new Map<string, string>();
+        for (const [p, value] of map) {
+          const nextPath = mapPath(p);
+          if (nextPath !== p) changed = true;
+          next.set(nextPath, value);
+        }
+        return changed ? next : map;
+      };
+
+      const buffers = remap(state.buffers);
+      const diskContents = remap(state.diskContents);
+      if (buffers === state.buffers && diskContents === state.diskContents) {
+        return state;
+      }
+      return { buffers, diskContents };
+    });
   },
 }));
 

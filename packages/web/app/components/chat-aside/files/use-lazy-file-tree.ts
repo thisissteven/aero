@@ -1,9 +1,13 @@
 'use client';
 
-import type { FileTree as FileTreeModel } from '@pierre/trees';
+import type {
+  FileTreeDropContext,
+  FileTree as FileTreeModel,
+} from '@pierre/trees';
 import { FILE_TREE_DENSITY_PRESETS } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFileEditStore } from '@/app/components/chat-aside/files/file-edit-store';
 import {
   beginFileWrite,
   completeFileWrite,
@@ -80,6 +84,17 @@ function normalizePath(path: string, isDirectory: boolean): string {
 
 function cleanPath(p: string): string {
   return p.replace(/\/$/, '');
+}
+
+/** Migrate every piece of per-path UI state — open tabs plus unsaved edit
+ *  buffers and last-known disk contents — when a file or folder is renamed or
+ *  moved. Keeps dirty editors attached to the path the tree now reports. */
+function migratePath(from: string, to: string): void {
+  const cleanFrom = cleanPath(from);
+  const cleanTo = cleanPath(to);
+  if (cleanFrom === cleanTo) return;
+  useFileViewerStore.getState().renamePath(cleanFrom, cleanTo);
+  useFileEditStore.getState().renamePath(cleanFrom, cleanTo);
 }
 
 function ancestorPaths(filePath: string): string[] {
@@ -292,12 +307,23 @@ export function useLazyFileTree({
       initialExpansion: 'closed' as const,
       flattenEmptyDirectories: false,
       density,
-      renaming: true as const,
+      renaming: {
+        onError: (message: string) => reportError(new Error(message)),
+      },
+      // Drag-and-drop moves files and folders by dropping them on a directory
+      // or empty space (the root). Drops onto the same path are ignored by the
+      // tree; name collisions use the default 'error' strategy, which cancels
+      // the drop instead of clobbering the existing entry.
+      dragAndDrop: {
+        canDrop: (event: FileTreeDropContext) =>
+          event.target.kind === 'directory' || event.target.kind === 'root',
+        onDropError: (message: string) => reportError(new Error(message)),
+      },
       composition: COMPOSITION,
       initialVisibleRowCount: viewportRowCount,
       unsafeCSS: LAZY_TREE_UNSAFE_CSS,
     }),
-    [density, viewportRowCount],
+    [density, viewportRowCount, reportError],
   );
 
   const { model } = useFileTree(treeOptions);
@@ -439,7 +465,7 @@ export function useLazyFileTree({
     };
   }, [model, socket, reportError, t]);
 
-  // ── Mutation → FS bridge (creates and renames only) ────────────────
+  // ── Mutation → FS bridge (creates, renames, and moves) ─────────────
   //
   // Deletes no longer flow through here. `deletePath` fires the server
   // delete directly, so the tree's `remove` events (which fire for internal
@@ -482,27 +508,33 @@ export function useLazyFileTree({
             const cleanTo = normPending(e.to);
             const isDir = e.to.endsWith('/');
 
-            // Release the placeholder's pending counter and arm the target.
+            // Carry over anything typed into the placeholder before it was
+            // named, instead of materializing the file as empty.
+            const buffered = useFileEditStore.getState().buffers.get(fromNorm);
+            const contents = buffered ?? '';
+
+            // Release the placeholder's write counter and arm the target.
             completeFileWrite(fromNorm);
             beginFileWrite(cleanTo);
 
-            // Rename the placeholder tab in place, so the 'untitled' tab
-            // becomes 'foo.txt' rather than leaving a leftover.
-            useFileViewerStore.getState().renamePath(fromNorm, cleanTo);
+            // Move the tab and any buffered edit onto the final path. The
+            // placeholder is materialized now, so drop it from pending: keeping
+            // it would make a later rename of this same file take this branch
+            // and overwrite it with an empty string.
+            migratePath(fromNorm, cleanTo);
 
             enqueue(async () => {
               try {
                 if (isDir) {
                   await socket.mkdir(cleanTo);
                 } else {
-                  await socket.writeFile(cleanTo, '');
+                  await socket.writeFile(cleanTo, contents);
+                  useFileEditStore.getState().setDiskContent(cleanTo, contents);
                 }
               } finally {
                 completeFileWrite(cleanTo);
               }
             });
-
-            pendingCreates.current.add(cleanTo);
           } else {
             moves.push({ from: e.from, to: e.to });
           }
@@ -511,13 +543,14 @@ export function useLazyFileTree({
         }
       }
 
-      // Pass 2: real renames. Rename the tab in place too.
+      // Pass 2: real renames and drag-and-drop moves. Migrate tabs + edit
+      // buffers in place, then persist with a server-side move.
       if (moves.length > 0) {
         for (const m of coalesceMoves(moves)) {
           const cleanFrom = cleanPath(m.from);
           const cleanTo = cleanPath(m.to);
 
-          useFileViewerStore.getState().renamePath(cleanFrom, cleanTo);
+          migratePath(cleanFrom, cleanTo);
 
           beginFileWrite(cleanTo);
           enqueue(async () => {

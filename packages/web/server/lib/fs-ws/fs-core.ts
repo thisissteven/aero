@@ -467,8 +467,31 @@ export async function handleRename(
   const fromAbs = await resolveSafe(session, msg.from);
   const toAbs = resolveSafeForWrite(session, msg.to);
   await fs.mkdir(path.dirname(toAbs), { recursive: true });
-  await fs.rename(fromAbs, toAbs);
+
+  try {
+    await fs.rename(fromAbs, toAbs);
+  } catch (err) {
+    // Cross-device moves (drag-and-drop across mounts, bind mounts, some
+    // overlay/network filesystems) fail with EXDEV. Fall back to a copy +
+    // remove so the move still succeeds, preserving the source kind.
+    if (!isExdevError(err)) throw err;
+    const stat = await fs.lstat(fromAbs);
+    await fs.cp(fromAbs, toAbs, {
+      recursive: stat.isDirectory(),
+      force: true,
+    });
+    await fs.rm(fromAbs, { recursive: stat.isDirectory(), force: true });
+  }
+
   return msg.to;
+}
+
+function isExdevError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as NodeJS.ErrnoException).code === 'EXDEV'
+  );
 }
 
 export async function handleDelete(

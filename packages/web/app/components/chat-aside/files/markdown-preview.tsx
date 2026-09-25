@@ -64,7 +64,10 @@ export const MarkdownPreview = memo(function MarkdownPreview({
   );
 
   return (
-    <div className='scrollbar-thin h-full overflow-auto px-4 py-3'>
+    <div
+      data-file-scroll-root='true'
+      className='scrollbar-thin h-full overflow-auto px-4 py-3'
+    >
       <Markdown
         id={`md-preview:${path}`}
         components={components}

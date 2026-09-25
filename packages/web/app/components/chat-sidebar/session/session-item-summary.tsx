@@ -11,6 +11,7 @@ import {
   DeleteSession,
   ExportMarkdown,
   OpenIsolatedWorkspace,
+  PinSession,
   RenameSession,
   UnarchiveSession,
 } from '@/app/components/chat-sidebar/session/session-actions';
@@ -158,6 +159,7 @@ export function SessionItemSummary({
                 aria-label={t.chatNavbar.sessionActions(session.title)}
               >
                 <RenameSession sessionId={session.id} from={from} />
+                <PinSession sessionId={session.id} />
                 {!isStandaloneSession && !session.readOnly && (
                   <OpenIsolatedWorkspace directory={session.workspace} />
                 )}

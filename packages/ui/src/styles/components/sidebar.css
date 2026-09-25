@@ -288,11 +288,10 @@
     overflow-y: auto;
   }
 
-  /* ScrollShadow fades the scroll container with a mask, which a sticky
-     descendant cannot render above. For the virtualized session list, drop the
-     container's top fade and paint an equivalent fade just below each sticky
-     header instead (see .sidebar__menu-header::after), so the fade never
-     overlays the header itself. The bottom fade stays on the container. */
+  /* ScrollShadow masks the whole scroll container (headers included), so its
+     top fade would fade the sticky headers. Suppress the top fade and paint our
+     own fade on the stuck header instead (see .sidebar__menu-header::after and
+     the data-stuck attribute). Bottom fade stays on the container. */
   .sidebar__content:has(.sidebar__menu--virtualized)[data-top-scroll="true"] {
     --scroll-linear-gradient: #000;
   }
@@ -459,12 +458,14 @@
     transition: opacity 0.15s var(--ease-out, ease);
   }
 
+  /* Only the header pinned to the top (marked by an IntersectionObserver) shows
+     the fade, and only once the list is scrolled. */
   .sidebar__content[data-top-scroll="true"]
     .sidebar__menu--virtualized
-    .sidebar__menu-header::after,
+    .sidebar__menu-header[data-stuck]::after,
   .sidebar__content[data-top-bottom-scroll="true"]
     .sidebar__menu--virtualized
-    .sidebar__menu-header::after {
+    .sidebar__menu-header[data-stuck]::after {
     opacity: 1;
   }
 

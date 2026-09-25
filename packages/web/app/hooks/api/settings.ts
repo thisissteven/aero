@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
@@ -158,4 +159,40 @@ export function useChatInputExpanded() {
 export function useHiddenModels(providerId: string | null | undefined) {
   const { data } = useSetting(['hiddenModels', providerId ?? '']);
   return data?.value ?? [];
+}
+
+/**
+ * Set of pinned session IDs. Falls back to an empty set while the setting is
+ * loading so consumers can treat every session as unpinned.
+ */
+export function usePinnedSessions() {
+  const { data } = useSetting(['pinnedSessions']);
+  const ids = data?.value;
+  return useMemo(() => new Set(ids ?? []), [ids]);
+}
+
+export function useIsSessionPinned(sessionId: string) {
+  return usePinnedSessions().has(sessionId);
+}
+
+/**
+ * Toggles a session's pinned state. The whole `pinnedSessions` list is written
+ * so the sidebar regroups optimistically in the same commit, then reconciles
+ * with the server response.
+ */
+export function useTogglePinnedSession() {
+  const { mutate } = useUpdateSetting();
+  const pinnedSessions = usePinnedSessions();
+
+  return useCallback(
+    (sessionId: string) => {
+      const next = new Set(pinnedSessions);
+
+      if (next.has(sessionId)) next.delete(sessionId);
+      else next.add(sessionId);
+
+      mutate({ path: ['pinnedSessions'], value: [...next] });
+    },
+    [mutate, pinnedSessions],
+  );
 }

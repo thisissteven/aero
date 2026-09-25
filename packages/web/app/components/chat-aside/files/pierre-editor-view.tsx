@@ -84,25 +84,31 @@ export const PierreEditorView = memo(function PierreEditorView({
 
   if (wrapText) {
     return (
-      <div key={renderKey} className='scrollbar-thin h-full overflow-auto'>
+      <div
+        key={renderKey}
+        data-file-scroll-root='true'
+        className='scrollbar-thin h-full overflow-auto'
+      >
         {pierreFile}
       </div>
     );
   }
 
   return (
-    <Virtualizer
-      key={renderKey}
-      className='relative h-full min-h-0 min-w-0 scrollbar-thin'
-      style={{ overflow: 'auto' }}
-      contentStyle={{
-        display: 'flex',
-        minHeight: '100%',
-        width: '100%',
-        alignItems: 'stretch',
-      }}
-    >
-      {pierreFile}
-    </Virtualizer>
+    <div data-file-scroll-region='true' className='h-full min-h-0'>
+      <Virtualizer
+        key={renderKey}
+        className='relative h-full min-h-0 min-w-0 scrollbar-thin'
+        style={{ overflow: 'auto' }}
+        contentStyle={{
+          display: 'flex',
+          minHeight: '100%',
+          width: '100%',
+          alignItems: 'stretch',
+        }}
+      >
+        {pierreFile}
+      </Virtualizer>
+    </div>
   );
 });

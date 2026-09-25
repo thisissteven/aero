@@ -16,6 +16,8 @@ import {
   Copy,
   LogoMarkdown,
   Pencil,
+  Pin,
+  PinFill,
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
@@ -36,6 +38,10 @@ import {
   useUnarchiveSession,
   useUnshareSession,
 } from '@/app/hooks/api/sessions';
+import {
+  useIsSessionPinned,
+  useTogglePinnedSession,
+} from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
 import {
   useArchiveBulkSessionsAction,
@@ -499,6 +505,23 @@ export function ArchiveSession({ sessionId }: { sessionId: string }) {
     <Dropdown.Item className='gap-1' onPress={() => archiveSession(sessionId)}>
       <Icon size={14} data={Archive} />
       <Label>{t.common.archive}</Label>
+    </Dropdown.Item>
+  );
+}
+
+export function PinSession({ sessionId }: { sessionId: string }) {
+  const isPinned = useIsSessionPinned(sessionId);
+  const togglePinnedSession = useTogglePinnedSession();
+
+  const { t } = useI18n();
+
+  return (
+    <Dropdown.Item
+      className='gap-1'
+      onPress={() => togglePinnedSession(sessionId)}
+    >
+      <Icon size={14} data={isPinned ? PinFill : Pin} />
+      <Label>{isPinned ? t.session.unpinSession : t.session.pinSession}</Label>
     </Dropdown.Item>
   );
 }

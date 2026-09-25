@@ -7,11 +7,12 @@ import {
   StickySectionListLayout,
   Virtualizer,
 } from '@aero/ui';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
+import { usePinnedSessions } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { groupSessionsByDay, SessionGroup } from '@/app/lib/session-groups';
@@ -60,9 +61,63 @@ export const RecentChats = memo(function Recents({
     isLoading,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
-  const groups = useMemo(() => groupSessionsByDay(sessions), [sessions]);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Mark the header currently pinned to the top of the scroll container so only
+  // it renders the top fade. Headers are mounted/unmounted by the virtualizer
+  // as you scroll, so new ones are attached via a MutationObserver.
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          entry.target.toggleAttribute('data-stuck', entry.isIntersecting);
+        }
+      },
+      { root: container, rootMargin: '0px 0px -99% 0px', threshold: 0 },
+    );
+
+    const observeHeaders = (node: Element) => {
+      if (node.classList.contains('sidebar__menu-header')) {
+        observer.observe(node);
+      }
+
+      for (const header of node.querySelectorAll('.sidebar__menu-header')) {
+        observer.observe(header);
+      }
+    };
+
+    for (const header of container.querySelectorAll('.sidebar__menu-header')) {
+      observer.observe(header);
+    }
+
+    const mutation = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) observeHeaders(node);
+        }
+      }
+    });
+
+    mutation.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      mutation.disconnect();
+    };
+  }, []);
+
+  const pinnedSessions = usePinnedSessions();
+
+  const groups = useMemo(
+    () => groupSessionsByDay(sessions, { pinnedSessions }),
+    [pinnedSessions, sessions],
+  );
 
   const groupLabels: Record<SessionGroup['key'], string> = {
+    pinned: t.session.pinned,
     today: t.session.today,
     yesterday: t.session.yesterday,
     older: t.session.older,
@@ -86,7 +141,7 @@ export const RecentChats = memo(function Recents({
         </Sidebar.GroupLabel>
       </div>
 
-      <Sidebar.Content offset={2} className='py-2'>
+      <Sidebar.Content offset={2} className='py-2' ref={contentRef}>
         <Sidebar.Group>
           <RecentChatsLoader enabled={isLoading} />
 
