@@ -955,6 +955,7 @@ export const en = {
   },
 
   browser: {
+    newTab: 'New Tab',
     annotationContextCopied: 'Annotation context copied to clipboard',
     failedToCopyAnnotationContext: 'Failed to copy annotation context',
     annotationsUnavailable:

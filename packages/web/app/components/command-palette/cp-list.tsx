@@ -59,9 +59,11 @@ export function CommandPaletteList() {
 
   const view = useMemo(
     () => ({
-      sessionsHeading: debouncedSearch ? 'Search results' : 'Recent Sessions',
+      sessionsHeading: debouncedSearch
+        ? t.commandPalette.searchResults
+        : t.session.recentSessions,
     }),
-    [debouncedSearch],
+    [debouncedSearch, t],
   );
 
   const committedViewRef = useRef(view);
@@ -112,25 +114,25 @@ export function CommandPaletteList() {
         {
           kind: 'action',
           id: 'action-new-chat',
-          textValue: 'New Chat',
+          textValue: t.commandPalette.newChat,
           icon: Comment,
-          label: 'New Chat',
+          label: t.commandPalette.newChat,
           onAction: () => onSelect(() => navigate({ to: '/new' })),
         },
         {
           kind: 'action',
           id: 'action-settings',
-          textValue: 'Settings',
+          textValue: t.common.settings,
           icon: Gear,
-          label: 'Settings',
+          label: t.common.settings,
           onAction: () => onSelect(openSettingsModal),
         },
         {
           kind: 'action',
           id: 'action-shortcuts',
-          textValue: 'Shortcuts',
+          textValue: t.common.shortcuts,
           icon: Keyboard,
-          label: 'Shortcuts',
+          label: t.common.shortcuts,
           onAction: () =>
             onSelect(() =>
               toggleOpenShortcutsModal({ children: <ShortcutsModal /> }),
@@ -146,7 +148,7 @@ export function CommandPaletteList() {
         items.push({
           kind: 'header',
           id: 'header-actions',
-          title: 'Actions',
+          title: t.common.actions,
           isFirst: !hasHeader(),
         });
         items.push(...filteredActions);
@@ -157,7 +159,7 @@ export function CommandPaletteList() {
       items.push({
         kind: 'header',
         id: 'header-files',
-        title: 'Files',
+        title: t.common.files,
         isFirst: !hasHeader(),
       });
 
@@ -199,6 +201,7 @@ export function CommandPaletteList() {
     selectedFilters,
     hasNextPage,
     committedViewRef.current.sessionsHeading,
+    t,
   ]);
 
   const layout = useMemo(
@@ -305,7 +308,9 @@ export function CommandPaletteList() {
                 <Command.Item
                   key={typedItem.id}
                   id={typedItem.id}
-                  textValue={`${typedItem.session.title} Recent session`}
+                  textValue={t.commandPalette.recentSession(
+                    typedItem.session.title,
+                  )}
                   onAction={() =>
                     onSelect(() =>
                       navigate({ to: `/sessions/${typedItem.session.id}` }),

@@ -25,6 +25,7 @@ export interface AeroWorkspace {
   selectedColor?: string | null;
   selectedIcon?: string | null;
   defaultModel?: string | null;
+  order?: number;
 }
 
 async function readAll(): Promise<AeroWorkspace[]> {
@@ -32,23 +33,40 @@ async function readAll(): Promise<AeroWorkspace[]> {
     const raw = await readFile(WORKSPACES_PATH, 'utf-8');
     const data: AeroWorkspace[] = JSON.parse(raw);
 
-    return (
-      data
-        .map((ws) => ({
-          ...ws,
-          directory: normalizePath(ws.directory),
-          worktrees: (ws.worktrees || []).map((wt) => ({
-            ...wt,
-            directory: normalizePath(wt.directory),
-          })),
-        }))
-        // exclude standalone sessions
-        .filter(
-          (item) =>
-            !item.directory.includes('.aero/workspaces') &&
-            !item.directory.includes('.config/openchamber'),
-        )
-    );
+    const workspaces = data
+      .map((ws) => ({
+        ...ws,
+        directory: normalizePath(ws.directory),
+        worktrees: (ws.worktrees || []).map((wt) => ({
+          ...wt,
+          directory: normalizePath(wt.directory),
+        })),
+      }))
+      // exclude standalone sessions
+      .filter(
+        (item) =>
+          !item.directory.includes('.aero/workspaces') &&
+          !item.directory.includes('.config/openchamber'),
+      );
+
+    // Backfill ordering for records persisted before the `order` field existed.
+    // Preserve the previous recency ordering so nothing visibly moves.
+    if (workspaces.some((ws) => typeof ws.order !== 'number')) {
+      const byRecency = [...workspaces].sort(
+        (a, b) => b.updatedAt - a.updatedAt,
+      );
+      const recencyIndex = new Map(
+        byRecency.map((ws, index) => [ws.id, index]),
+      );
+
+      for (const workspace of workspaces) {
+        if (typeof workspace.order !== 'number') {
+          workspace.order = recencyIndex.get(workspace.id) ?? workspaces.length;
+        }
+      }
+    }
+
+    return workspaces;
   } catch {
     return [];
   }
@@ -64,7 +82,8 @@ async function writeAll(workspaces: AeroWorkspace[]): Promise<void> {
 }
 
 export async function listWorkspaces(): Promise<AeroWorkspace[]> {
-  return readAll();
+  const all = await readAll();
+  return all.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 export async function getWorkspace(id: string): Promise<AeroWorkspace | null> {
@@ -159,6 +178,11 @@ export async function createWorkspace(input: {
     };
   });
 
+  const minOrder = all.reduce<number | null>((min, item) => {
+    if (typeof item.order !== 'number') return min;
+    return min === null ? item.order : Math.min(min, item.order);
+  }, null);
+
   const workspace: AeroWorkspace = {
     id: randomUUID(),
     name: input.name || getBasename(normalizedDir),
@@ -166,6 +190,7 @@ export async function createWorkspace(input: {
     worktrees,
     createdAt: now,
     updatedAt: now,
+    order: (minOrder ?? 0) - 1,
   };
 
   all.push(workspace);
@@ -180,7 +205,12 @@ export async function updateWorkspace(
   input: Partial<
     Pick<
       AeroWorkspace,
-      'name' | 'directory' | 'selectedColor' | 'selectedIcon' | 'defaultModel'
+      | 'name'
+      | 'directory'
+      | 'selectedColor'
+      | 'selectedIcon'
+      | 'defaultModel'
+      | 'order'
     >
   >,
 ): Promise<AeroWorkspace | null> {
@@ -264,6 +294,34 @@ export async function removeWorktreeFromWorkspace(
   workspace.updatedAt = Date.now();
   await writeAll(all);
   return workspace;
+}
+
+/**
+ * Persists the user-defined workspace order. The provided ids are assigned
+ * sequential `order` values by their position in the array. Any workspaces not
+ * present in `ids` keep their relative order and are appended after.
+ */
+export async function reorderWorkspaces(
+  ids: string[],
+): Promise<AeroWorkspace[]> {
+  const all = await readAll();
+
+  const positionById = new Map(ids.map((id, index) => [id, index]));
+
+  const next = [...all]
+    .sort((a, b) => {
+      const aIndex = positionById.get(a.id);
+      const bIndex = positionById.get(b.id);
+
+      if (aIndex === undefined && bIndex === undefined) return 0;
+      if (aIndex === undefined) return 1;
+      if (bIndex === undefined) return -1;
+      return aIndex - bIndex;
+    })
+    .map((workspace, index) => ({ ...workspace, order: index }));
+
+  await writeAll(next);
+  return next;
 }
 
 /**

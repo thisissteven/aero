@@ -1,23 +1,70 @@
-import {
-  cn,
-  ListLayout,
-  Sidebar,
-  Skeleton,
-  Spinner,
-  Virtualizer,
-} from '@aero/ui';
-import { memo } from 'react';
+import { cn, Sidebar, Skeleton, Spinner } from '@aero/ui';
+import { memo, useCallback, useState } from 'react';
+import type { Key } from 'react-aria-components';
+import { useDragAndDrop } from 'react-aria-components';
 
 import { WorkspacesToggleEditModeButton } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace/workspace-item';
-import { useWorkspaces } from '@/app/hooks/api/workspaces';
+import {
+  useReorderWorkspaces,
+  useWorkspaces,
+} from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
-interface WorkspacesProps {
-  idPrefix?: string;
-  rowHeight?: number;
+const WORKSPACE_ITEM_PREFIX = 'workspaces';
+
+function getWorkspaceIdFromKey(
+  key: Key | undefined,
+  workspaceIds: Set<string>,
+): string | null {
+  if (key === undefined) return null;
+
+  const prefix = `${WORKSPACE_ITEM_PREFIX}-`;
+  const value = String(key);
+
+  if (!value.startsWith(prefix)) return null;
+
+  const id = value.slice(prefix.length);
+  return workspaceIds.has(id) ? id : null;
+}
+
+function reorderWorkspaceIds(
+  workspaces: AeroWorkspaceSummary[],
+  keys: Set<Key>,
+  targetKey: Key,
+  dropPosition: string,
+): string[] | null {
+  if (dropPosition !== 'before' && dropPosition !== 'after') return null;
+
+  const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
+
+  const movingIds = new Set<string>();
+  for (const key of keys) {
+    const id = getWorkspaceIdFromKey(key, workspaceIds);
+    if (id) movingIds.add(id);
+  }
+
+  const targetId = getWorkspaceIdFromKey(targetKey, workspaceIds);
+  if (movingIds.size === 0 || !targetId || movingIds.has(targetId)) return null;
+
+  const moving = workspaces.filter((workspace) => movingIds.has(workspace.id));
+  const remaining = workspaces.filter(
+    (workspace) => !movingIds.has(workspace.id),
+  );
+  const targetIndex = remaining.findIndex(
+    (workspace) => workspace.id === targetId,
+  );
+  if (targetIndex === -1) return null;
+
+  remaining.splice(
+    dropPosition === 'before' ? targetIndex : targetIndex + 1,
+    0,
+    ...moving,
+  );
+
+  return remaining.map((workspace) => workspace.id);
 }
 
 function WorkspacesLoader({ enabled }: { enabled: boolean }) {
@@ -48,9 +95,7 @@ const getInitialKeys = () => {
   }
 };
 
-export const Workspaces = memo(function Workspaces({
-  rowHeight = 38,
-}: WorkspacesProps) {
+export const Workspaces = memo(function Workspaces() {
   const { t } = useI18n();
 
   const workspacesQuery = useWorkspaces();
@@ -61,6 +106,56 @@ export const Workspaces = memo(function Workspaces({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteScroll<AeroWorkspaceSummary>(workspacesQuery);
+
+  const reorderWorkspaces = useReorderWorkspaces();
+
+  const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(
+    () => new Set<Key>(getInitialKeys()),
+  );
+
+  const toggleWorkspaceExpanded = useCallback((workspaceId: string) => {
+    setExpandedKeys((current) => {
+      const next = new Set(current);
+      const key = `${WORKSPACE_ITEM_PREFIX}-${workspaceId}`;
+
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
+  const canReorder = !isLoading && workspaces.length > 1;
+
+  const { dragAndDropHooks } = useDragAndDrop<AeroWorkspaceSummary>({
+    isDisabled: !canReorder,
+    getItems: (keys) => {
+      if (!canReorder) return [];
+
+      const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
+
+      const items: Array<Record<string, string>> = [];
+      for (const key of keys) {
+        const id = getWorkspaceIdFromKey(key, workspaceIds);
+        if (id) items.push({ 'text/plain': id });
+      }
+
+      return items;
+    },
+    onReorder: (event) => {
+      if (!canReorder) return;
+
+      const ids = reorderWorkspaceIds(
+        workspaces,
+        event.keys,
+        event.target.key,
+        event.target.dropPosition,
+      );
+
+      if (ids) reorderWorkspaces.mutate({ ids });
+    },
+  });
 
   return (
     <>
@@ -76,31 +171,31 @@ export const Workspaces = memo(function Workspaces({
           <WorkspacesLoader enabled={isLoading} />
 
           {workspaces && (
-            <Virtualizer
-              layout={ListLayout}
-              layoutOptions={{ rowSize: rowHeight }}
+            <Sidebar.Menu<AeroWorkspaceSummary>
+              aria-label={t.workspace.recentWorkspacesAria}
+              items={workspaces}
+              selectionMode='single'
+              expandedKeys={expandedKeys}
+              onExpandedChange={(keys) => {
+                const next = new Set<Key>(keys);
+
+                setExpandedKeys(next);
+                localStorage.setItem(
+                  STORAGE_KEY,
+                  JSON.stringify(Array.from(next)),
+                );
+              }}
+              dragAndDropHooks={dragAndDropHooks}
             >
-              <Sidebar.Menu<AeroWorkspaceSummary>
-                aria-label={t.workspace.recentWorkspacesAria}
-                items={workspaces}
-                selectionMode='single'
-                defaultExpandedKeys={getInitialKeys()}
-                onExpandedChange={(keys) => {
-                  localStorage.setItem(
-                    STORAGE_KEY,
-                    JSON.stringify(Array.from(keys)),
-                  );
-                }}
-              >
-                {(workspace) => (
-                  <ChatSidebarWorkspaceItem
-                    key={workspace.id}
-                    idPrefix='workspaces'
-                    workspace={workspace}
-                  />
-                )}
-              </Sidebar.Menu>
-            </Virtualizer>
+              {(workspace) => (
+                <ChatSidebarWorkspaceItem
+                  key={workspace.id}
+                  idPrefix='workspaces'
+                  workspace={workspace}
+                  onToggleExpand={() => toggleWorkspaceExpanded(workspace.id)}
+                />
+              )}
+            </Sidebar.Menu>
           )}
 
           {/* Sentinel element for infinite scroll */}

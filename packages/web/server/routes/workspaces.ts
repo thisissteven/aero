@@ -42,6 +42,10 @@ const addWorktreeSchema = z.object({
   directory: z.string().min(1),
 });
 
+const reorderWorkspacesSchema = z.object({
+  ids: z.array(z.string().min(1)),
+});
+
 const workspaces = new Hono()
   // GET /api/workspaces/compact -> Returns unified workspaces with sessions merged from ALL adapters
   .get(
@@ -79,6 +83,7 @@ const workspaces = new Hono()
           defaultModel: item.defaultModel,
           selectedColor: item.selectedColor,
           selectedIcon: item.selectedIcon,
+          order: item.order,
         })),
         nextCursor: result.nextCursor,
       };
@@ -249,6 +254,17 @@ const workspaces = new Hono()
 
     const result = await mergeAllWorkspacesAcrossAdapters(adapters, {});
     return c.json(result.items);
+  })
+
+  // PATCH /api/workspaces/order -> Persists the user-defined workspace order.
+  // Must be registered before /:id so "order" is not captured as an id.
+  .patch('/order', zValidator('json', reorderWorkspacesSchema), async (c) => {
+    const { ids } = c.req.valid('json');
+
+    const harness = await getActiveAdapter();
+    const reordered = await harness.reorderWorkspaces(ids);
+
+    return c.json(reordered);
   })
 
   // GET /api/workspaces/:id -> Merges sessions for a single workspace

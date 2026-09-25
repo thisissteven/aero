@@ -917,6 +917,7 @@ export const zhTW: BaseTranslation = {
   },
 
   browser: {
+    newTab: '新分頁',
     annotationContextCopied: '標註上下文已複製到剪貼簿',
     failedToCopyAnnotationContext: '無法複製標註上下文',
     annotationsUnavailable:

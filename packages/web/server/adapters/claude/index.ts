@@ -1,8 +1,8 @@
 // server/adapters/claude/index.ts
 
-import type Anthropic from '@anthropic-ai/sdk';
 import { randomUUID } from 'node:crypto';
 import EventEmitter from 'node:events';
+import type Anthropic from '@anthropic-ai/sdk';
 
 import { getClaudeClient } from '@/server/adapters/claude/client';
 import { PAGINATION_LIMIT } from '@/server/helper';
@@ -38,12 +38,13 @@ import {
 } from '@/server/storage/claude';
 import {
   addWorktreeToWorkspace,
-  type AeroWorkspace as StoredWorkspace,
   createWorkspace,
   deleteWorkspace,
   getWorkspace,
   listWorkspaces as listStoredWorkspaces,
   removeWorktreeFromWorkspace,
+  reorderWorkspaces as reorderStoredWorkspaces,
+  type AeroWorkspace as StoredWorkspace,
   updateWorkspace,
 } from '@/server/storage/workspaces';
 
@@ -268,6 +269,11 @@ export async function createClaudeAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace or worktree not found: ${workspaceId}`);
       }
       return hydrateWorkspace(updated);
+    },
+
+    async reorderWorkspaces(ids: string[]) {
+      const reordered = await reorderStoredWorkspaces(ids);
+      return Promise.all(reordered.map(hydrateWorkspace));
     },
 
     async initWorkspaces() {

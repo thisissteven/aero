@@ -955,6 +955,7 @@ export const id: BaseTranslation = {
   },
 
   browser: {
+    newTab: 'Tab Baru',
     annotationContextCopied: 'Konteks anotasi disalin ke clipboard',
     failedToCopyAnnotationContext: 'Gagal menyalin konteks anotasi',
     annotationsUnavailable:

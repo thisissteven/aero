@@ -2,6 +2,8 @@ import { IconButton } from '@aero/ui';
 import { Globe, Plus, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import {
   useActiveBrowserTabId,
   useBrowserActions,
@@ -12,6 +14,7 @@ export function BrowserTabs() {
   const tabs = useBrowserTabs();
   const activeTabId = useActiveBrowserTabId();
   const { addTab, removeTab, setActiveTab } = useBrowserActions();
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-1 p-1'>
@@ -30,7 +33,9 @@ export function BrowserTabs() {
               }
             >
               <Icon data={Globe} size={14} className='shrink-0 opacity-70' />
-              <span className='max-w-[10rem] truncate'>{tab.title}</span>
+              <span className='max-w-[10rem] truncate'>
+                {tab.title || t.browser.newTab}
+              </span>
               <span
                 role='button'
                 tabIndex={-1}

@@ -13,11 +13,13 @@ import { dedupeWorktreesByDirectory } from '@/server/shared';
 
 interface ChatSidebarWorkspaceItemProps {
   idPrefix: string;
+  onToggleExpand?: () => void;
   workspace: AeroWorkspaceSummary;
 }
 
 export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
   idPrefix,
+  onToggleExpand,
   workspace,
   ...props
 }: ChatSidebarWorkspaceItemProps) {
@@ -48,14 +50,23 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
       textValue={root.name}
       className='group'
     >
-      <Sidebar.MenuItemContent className='relative flex-1 gap-2 bg-transparent pl-0 group-hover:bg-transparent'>
+      <Sidebar.MenuItemContent
+        className='relative flex-1 gap-2 bg-transparent pl-0 group-hover:bg-transparent'
+        onClick={(event) => {
+          if (
+            event.target instanceof HTMLElement &&
+            event.target.closest("[data-slot='sidebar-menu-actions']")
+          ) {
+            return;
+          }
+          onToggleExpand?.();
+        }}
+      >
         <Sidebar.MenuIcon className='relative shrink-0 transition group-hover:opacity-0'>
           <WorkspaceIcon workspace={workspace} />
         </Sidebar.MenuIcon>
 
-        <Sidebar.MenuTrigger className='absolute inset-0 flex h-full w-full items-center justify-start pl-1 opacity-0 transition group-hover:opacity-100'>
-          <Sidebar.MenuIndicator />
-        </Sidebar.MenuTrigger>
+        <Sidebar.MenuIndicator className='pointer-events-none absolute top-1/2 left-1 -translate-y-1/2 opacity-0 transition group-hover:opacity-100' />
 
         <Sidebar.MenuLabel>{workspace.name}</Sidebar.MenuLabel>
 

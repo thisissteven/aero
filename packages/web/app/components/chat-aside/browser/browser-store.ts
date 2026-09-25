@@ -144,7 +144,7 @@ type BrowserStore = {
 function createTab(url = ''): BrowserTab {
   return {
     id: crypto.randomUUID(),
-    title: url || 'New Tab',
+    title: url,
 
     url,
     draftUrl: url,

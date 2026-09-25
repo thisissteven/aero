@@ -986,6 +986,7 @@ export const fr: BaseTranslation = {
   },
 
   browser: {
+    newTab: 'Nouvel onglet',
     annotationContextCopied:
       'Contexte des annotations copié dans le presse-papiers',
     failedToCopyAnnotationContext:

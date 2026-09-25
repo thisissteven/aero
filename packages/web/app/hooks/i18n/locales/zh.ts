@@ -918,6 +918,7 @@ export const zh: BaseTranslation = {
   },
 
   browser: {
+    newTab: '新标签页',
     annotationContextCopied: '标注上下文已复制到剪贴板',
     failedToCopyAnnotationContext: '复制标注上下文失败',
     annotationsUnavailable:

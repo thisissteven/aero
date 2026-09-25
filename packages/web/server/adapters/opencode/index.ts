@@ -46,6 +46,7 @@ import {
   getWorkspaceByDirectory,
   listWorkspaces as listStoredWorkspaces,
   removeWorktreeFromWorkspace,
+  reorderWorkspaces as reorderStoredWorkspaces,
   updateWorkspace,
 } from '@/server/storage/workspaces';
 import {
@@ -179,14 +180,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     }: BasePaginationParams) {
       const all = await listStoredWorkspaces();
 
-      const sorted = all.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
-
-      const startIndex = cursor
-        ? sorted.findIndex((w) => w.id === cursor) + 1
-        : 0;
+      const startIndex = cursor ? all.findIndex((w) => w.id === cursor) + 1 : 0;
 
       const pageItems = all.slice(startIndex, startIndex + limit);
       const hasMore = startIndex + limit < all.length;
@@ -285,6 +279,10 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       }
 
       return updated;
+    },
+
+    async reorderWorkspaces(ids: string[]) {
+      return reorderStoredWorkspaces(ids);
     },
 
     async initWorkspaces() {

@@ -14,6 +14,14 @@ export function CommandPaletteHeader() {
   const toggleSelectedFilters = useCommandPaletteStore(
     (state) => state.toggleSelectedFilters,
   );
+
+  const filterLabels: Record<(typeof defaultSelectedFilters)[number], string> =
+    {
+      Actions: t.common.actions,
+      Files: t.common.files,
+      Sessions: t.commandPalette.sessions,
+    };
+
   return (
     <Command.Header>
       <div className='flex flex-wrap items-center gap-1.5 pb-2 pl-2.5'>
@@ -28,7 +36,7 @@ export function CommandPaletteHeader() {
             size='sm'
             className='h-6 px-3 text-xs'
           >
-            {filter}
+            {filterLabels[filter]}
           </ToggleButton>
         ))}
       </div>

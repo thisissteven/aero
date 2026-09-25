@@ -36,12 +36,13 @@ import {
 } from '@/server/storage/codex';
 import {
   addWorktreeToWorkspace,
-  type AeroWorkspace as StoredWorkspace,
   createWorkspace,
   deleteWorkspace,
   getWorkspace,
   listWorkspaces as listStoredWorkspaces,
   removeWorktreeFromWorkspace,
+  reorderWorkspaces as reorderStoredWorkspaces,
+  type AeroWorkspace as StoredWorkspace,
   updateWorkspace,
 } from '@/server/storage/workspaces';
 
@@ -264,6 +265,11 @@ export async function createCodexAdapter(): Promise<HarnessAdapter> {
         throw new Error(`Workspace or worktree not found: ${workspaceId}`);
       }
       return hydrateWorkspace(updated);
+    },
+
+    async reorderWorkspaces(ids: string[]) {
+      const reordered = await reorderStoredWorkspaces(ids);
+      return Promise.all(reordered.map(hydrateWorkspace));
     },
 
     async initWorkspaces() {

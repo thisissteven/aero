@@ -979,6 +979,7 @@ export const es: BaseTranslation = {
   },
 
   browser: {
+    newTab: 'Pestana nueva',
     annotationContextCopied: 'Contexto de la anotación copiado al portapapeles',
     failedToCopyAnnotationContext:
       'No se pudo copiar el contexto de la anotación',

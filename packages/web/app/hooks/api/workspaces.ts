@@ -1,3 +1,4 @@
+import type { InfiniteData } from '@tanstack/react-query';
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -28,10 +29,18 @@ type CreateWorkspaceInput = InferRequestType<typeof $workspaces.$post>['json'];
 type UpdateWorkspaceInput = InferRequestType<
   typeof $individualWorkspace.$patch
 >['json'];
+type ReorderWorkspacesInput = InferRequestType<
+  typeof $workspaces.order.$patch
+>['json'];
 
 export type WorkspacesPageResponse = InferResponseType<
   typeof $workspaces.merged.$get,
   200
+>;
+
+type WorkspacesInfiniteData = InfiniteData<
+  WorkspacesPageResponse,
+  string | undefined
 >;
 
 export function useWorkspaces(search?: string) {
@@ -195,6 +204,72 @@ export function useUpdateWorkspace(id: string) {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
       queryClient.invalidateQueries({ queryKey: workspaceKeys.keys() });
+    },
+  });
+}
+
+export function useReorderWorkspaces() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ReorderWorkspacesInput) => {
+      const [res] = await Promise.all([
+        $workspaces.order.$patch({
+          json: input,
+        }),
+        new Promise((resolve) => setTimeout(resolve, 100)),
+      ]);
+      if (!res.ok) throw new Error(apiError('failedToUpdateWorkspace'));
+      return res.json();
+    },
+    onMutate: async ({ ids }) => {
+      await queryClient.cancelQueries({ queryKey: workspaceKeys.merged() });
+
+      const previous = queryClient.getQueriesData<WorkspacesInfiniteData>({
+        queryKey: workspaceKeys.merged(),
+      });
+
+      const positionById = new Map(ids.map((id, index) => [id, index]));
+
+      queryClient.setQueriesData<WorkspacesInfiniteData>(
+        { queryKey: workspaceKeys.merged() },
+        (current) => {
+          if (!current) return current;
+
+          const items = current.pages.flatMap((page) => page.items);
+
+          const sorted = [...items].sort((a, b) => {
+            const aIndex = positionById.get(a.id);
+            const bIndex = positionById.get(b.id);
+
+            if (aIndex === undefined && bIndex === undefined) return 0;
+            if (aIndex === undefined) return 1;
+            if (bIndex === undefined) return -1;
+            return aIndex - bIndex;
+          });
+
+          let offset = 0;
+          const pages = current.pages.map((page) => {
+            const pageItems = sorted.slice(offset, offset + page.items.length);
+            offset += page.items.length;
+            return { ...page, items: pageItems };
+          });
+
+          return { ...current, pages };
+        },
+      );
+
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (!context) return;
+      for (const [queryKey, data] of context.previous) {
+        queryClient.setQueryData(queryKey, data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.merged() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.compact() });
     },
   });
 }

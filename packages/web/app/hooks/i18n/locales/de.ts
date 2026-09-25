@@ -972,6 +972,7 @@ export const de: BaseTranslation = {
   },
 
   browser: {
+    newTab: 'Neuer Tab',
     annotationContextCopied:
       'Annotierungskontext in die Zwischenablage kopiert',
     failedToCopyAnnotationContext:

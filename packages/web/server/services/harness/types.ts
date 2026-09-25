@@ -46,6 +46,7 @@ export interface AeroWorkspaceSummary {
   selectedColor?: string | null;
   selectedIcon?: string | null;
   defaultModel?: string | null;
+  order?: number;
 }
 
 export interface AeroSessionSummary {
@@ -468,6 +469,10 @@ export interface CreateWorkspaceInput {
 export interface UpdateWorkspaceInput {
   name?: string;
   directory?: string;
+  selectedColor?: string | null;
+  selectedIcon?: string | null;
+  defaultModel?: string | null;
+  order?: number;
 }
 
 export interface AddWorktreeInput {
@@ -560,6 +565,8 @@ export interface HarnessAdapter {
     workspaceId: string,
     worktreeIdOrDir: string,
   ): Promise<AeroWorkspaceSummary>;
+
+  reorderWorkspaces(ids: string[]): Promise<AeroWorkspaceSummary[]>;
 
   initWorkspaces(): Promise<AeroWorkspaceSummary[]>;
   syncWorkspaces(): Promise<AeroWorkspaceSummary[]>;

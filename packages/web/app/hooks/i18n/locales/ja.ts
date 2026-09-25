@@ -961,6 +961,7 @@ export const ja: BaseTranslation = {
   },
 
   browser: {
+    newTab: '新しいタブ',
     annotationContextCopied: '注釈コンテキストをクリップボードにコピーしました',
     failedToCopyAnnotationContext: '注釈コンテキストのコピーに失敗しました',
     annotationsUnavailable:
