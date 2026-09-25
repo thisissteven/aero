@@ -8,6 +8,8 @@ import {
   useUpdateSetting,
 } from '@/app/hooks/api/settings';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import { BooleanSettingToggleButton } from './boolean-setting';
 
 export function ChatInputExpandedToggleButton({
@@ -15,13 +17,14 @@ export function ChatInputExpandedToggleButton({
 }: {
   sessionId: string;
 }) {
+  const { t } = useI18n();
   const enabled = useChatInputExpanded();
   const { mutate: updateSetting } = useUpdateSetting();
 
   return (
     <BooleanSettingToggleButton
       enabled={enabled}
-      label='Expanded chat input'
+      label={t.chatInput.expandedChatInput}
       icon={enabled ? <ChevronsCollapseUpRight /> : <ChevronsExpandUpRight />}
       onPress={() =>
         updateSetting({

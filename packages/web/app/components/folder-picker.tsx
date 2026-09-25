@@ -17,7 +17,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
+import { useI18n } from '@/app/hooks/i18n';
 import { useGlobalModalStore } from '@/app/providers/global-modal/global-modal-store';
 import { useFolderPickerStore } from '@/app/stores/folder-picker-store';
 
@@ -48,6 +48,7 @@ export function FolderPicker({
   onClose = () => useGlobalModalStore.getState().closeModal(),
 }: FolderNavigatorProps) {
   const queryClient = useQueryClient();
+  const { t } = useI18n();
 
   const [currentPath, setCurrentPath] = useState('');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export function FolderPicker({
     queryFn: async () => {
       const response = await fetch(`${endpoint}/roots`);
       if (!response.ok) {
-        throw new Error('Failed to load filesystem roots');
+        throw new Error(t.folderPicker.failedToLoadRoots);
       }
       return (await response.json()) as RootResponse;
     },
@@ -114,7 +115,7 @@ export function FolderPicker({
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.error ?? 'Failed to load directory');
+        throw new Error(data?.error ?? t.folderPicker.failedToLoadDirectory);
       }
 
       return data as DirectoryResponse;
@@ -138,7 +139,7 @@ export function FolderPicker({
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.error ?? 'Failed to create folder');
+        throw new Error(data?.error ?? t.folderPicker.failedToCreateFolder);
       }
 
       return data;
@@ -273,7 +274,7 @@ export function FolderPicker({
           <div className='flex shrink-0 items-center gap-1'>
             <button
               type='button'
-              title='Back'
+              title={t.common.back}
               disabled={historyIndex <= 0}
               onClick={handleBack}
               className='text-muted hover:text-foreground hover:bg-surface-secondary flex size-7 items-center justify-center rounded transition-colors disabled:opacity-30'
@@ -283,7 +284,7 @@ export function FolderPicker({
 
             <button
               type='button'
-              title='Forward'
+              title={t.common.forward}
               disabled={historyIndex >= history.length - 1}
               onClick={handleForward}
               className='text-muted hover:text-foreground hover:bg-surface-secondary flex size-7 items-center justify-center rounded transition-colors disabled:opacity-30'
@@ -293,7 +294,7 @@ export function FolderPicker({
 
             <button
               type='button'
-              title='Up to parent directory'
+              title={t.folderPicker.upToParent}
               disabled={!listQuery.data?.parent}
               onClick={handleUp}
               className='text-muted hover:text-foreground hover:bg-surface-secondary flex size-7 items-center justify-center rounded font-bold transition-colors disabled:opacity-30'
@@ -344,11 +345,15 @@ export function FolderPicker({
               <SearchField.Group className='border-separator rounded border'>
                 <Icon data={Magnifier} size={14} className='text-muted ml-3' />
                 <SearchField.Input
-                  placeholder={`Search ${
+                  placeholder={
                     breadcrumbs.length > 0
-                      ? breadcrumbs[breadcrumbs.length - 1].name
-                      : 'folder'
-                  }`}
+                      ? t.folderPicker.searchFolder(
+                          breadcrumbs[breadcrumbs.length - 1].name,
+                        )
+                      : t.folderPicker.searchFolder(
+                          t.folderPicker.searchFolderFallback,
+                        )
+                  }
                   className='w-full pl-2 text-xs'
                 />
                 <SearchField.ClearButton />
@@ -374,7 +379,7 @@ export function FolderPicker({
               </Checkbox.Control>
             </Checkbox.Content>
           </Checkbox>
-          <span>Show hidden items</span>
+          <span>{t.folderPicker.showHiddenItems}</span>
         </Label>
 
         {/* Create Folder Button */}
@@ -385,7 +390,7 @@ export function FolderPicker({
           className='text-muted hover:text-foreground hover:bg-surface-secondary flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors disabled:opacity-30'
         >
           <Icon data={FolderPlus} size={14} />
-          <span>New folder</span>
+          <span>{t.folderPicker.newFolder}</span>
         </button>
       </div>
 
@@ -394,7 +399,7 @@ export function FolderPicker({
         {/* Navigation Pane */}
         <div className='border-separator bg-surface-secondary/30 flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b p-1.5 sm:w-48 sm:flex-col sm:gap-0.5 sm:overflow-y-auto sm:border-r sm:border-b-0 sm:p-2'>
           <div className='text-muted mb-1 hidden px-2 text-[10px] font-bold tracking-wider uppercase select-none sm:block'>
-            This PC
+            {t.folderPicker.thisPc}
           </div>
           {roots.map((rootPath) => (
             <button
@@ -441,8 +446,11 @@ export function FolderPicker({
       <div className='border-separator bg-surface-secondary/30 flex shrink-0 flex-col items-stretch justify-between gap-2 border-t px-3 py-2 sm:flex-row sm:items-center sm:px-4 sm:py-2.5'>
         <div className='text-muted truncate text-center font-mono text-xs sm:text-left'>
           {selectedPath
-            ? `Selected: ${selectedPath}`
-            : `${filteredDirectories.length} folder(s) | ${currentPath}`}
+            ? t.folderPicker.selected(selectedPath)
+            : t.folderPicker.folderStatus(
+                filteredDirectories.length,
+                currentPath,
+              )}
         </div>
 
         <div className='flex shrink-0 items-center justify-end gap-2'>
@@ -452,7 +460,7 @@ export function FolderPicker({
             onClick={handleClose}
             className='flex-1 sm:flex-none rounded-lg'
           >
-            Cancel
+            {t.common.cancel}
           </Button>
 
           <Button
@@ -462,7 +470,7 @@ export function FolderPicker({
             onClick={handleSelectConfirm}
             className='flex-1 sm:flex-none rounded-lg'
           >
-            Select Folder
+            {t.folderPicker.selectFolder}
           </Button>
         </div>
       </div>
@@ -498,6 +506,7 @@ function DirectoryList({
   onOpen,
 }: DirectoryListProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (isCreatingFolder) {
@@ -508,7 +517,9 @@ function DirectoryList({
   if (directories.length === 0 && !isCreatingFolder) {
     return (
       <div className='text-muted flex min-h-40 items-center justify-center text-xs'>
-        {searchQuery ? 'No matching folders found.' : 'This folder is empty.'}
+        {searchQuery
+          ? t.folderPicker.noMatchingFolders
+          : t.folderPicker.thisFolderIsEmpty}
       </div>
     );
   }
@@ -516,8 +527,8 @@ function DirectoryList({
   return (
     <div className='p-2 select-none'>
       <div className='text-muted border-separator mb-1 grid grid-cols-1 border-b px-3 py-1 text-[11px] font-semibold sm:grid-cols-[1fr_120px]'>
-        <span>Name</span>
-        <span className='hidden sm:block'>Type</span>
+        <span>{t.folderPicker.name}</span>
+        <span className='hidden sm:block'>{t.folderPicker.type}</span>
       </div>
 
       <div className='space-y-0.5'>
@@ -531,7 +542,7 @@ function DirectoryList({
                 type='text'
                 value={newFolderName}
                 disabled={isCreatingLoading}
-                placeholder='New folder name...'
+                placeholder={t.folderPicker.newFolderName}
                 onChange={(e) => onNewFolderNameChange(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') onConfirmCreateFolder();
@@ -545,7 +556,7 @@ function DirectoryList({
                   onClick={onConfirmCreateFolder}
                   disabled={isCreatingLoading || !newFolderName.trim()}
                   className='text-muted hover:text-foreground hover:bg-surface-secondary rounded p-1 transition-colors disabled:opacity-30'
-                  title='Create'
+                  title={t.common.create}
                 >
                   <Icon data={Check} size={14} />
                 </button>
@@ -554,14 +565,14 @@ function DirectoryList({
                   onClick={onCancelCreateFolder}
                   disabled={isCreatingLoading}
                   className='text-muted hover:text-foreground hover:bg-surface-secondary rounded p-1 transition-colors'
-                  title='Cancel'
+                  title={t.common.cancel}
                 >
                   <Icon data={Xmark} size={14} />
                 </button>
               </div>
             </div>
             <span className='text-muted hidden truncate text-[11px] select-none sm:block'>
-              File folder
+              {t.folderPicker.fileFolder}
             </span>
           </div>
         )}
@@ -591,6 +602,8 @@ function FolderRow({
   onSelect: () => void;
   onDoubleClick: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div
       onClick={onSelect}
@@ -607,7 +620,7 @@ function FolderRow({
       </div>
 
       <span className='text-muted hidden truncate text-[11px] select-none sm:block'>
-        File folder
+        {t.folderPicker.fileFolder}
       </span>
     </div>
   );

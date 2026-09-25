@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
 import React from 'react';
 import { ChatShell } from '@/app/components/chat-shell';
 import { usePoolReady } from '@/app/hooks/api/pool';
-import { I18nProvider } from '@/app/hooks/i18n';
+import { I18nProvider, useI18n } from '@/app/hooks/i18n';
 import { translations } from '@/app/hooks/i18n/locales/translations';
 import {
   GlobalModal,
@@ -24,44 +24,52 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   const isPoolReady = usePoolReady();
-  const { resolvedTheme } = useTheme();
-
-  if (!isPoolReady) {
-    return (
-      <div className='bg-background grid h-screen place-items-center'>
-        <div className='bg-surface-secondary border-separator flex size-28 animate-pulse items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
-          <img
-            src={
-              resolvedTheme === 'dark'
-                ? '/favicon-dark.svg'
-                : '/favicon-light.svg'
-            }
-            alt='Aero Logo'
-            className='size-20 object-contain'
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <I18nProvider translations={translations} defaultLanguage='en'>
-      <KeyPressProvider />
-      <PreloadProvider />
-      <PathnameHandler />
-      {import.meta.env.DEV && <FloatingLogger />}
-      {import.meta.env.DEV && <DevConsole />}
-      <RootSessionIdProvider>
-        <ChatShell>
-          <Outlet />
-        </ChatShell>
-        <ToastProvider placement='bottom end' width={280} />
-        <GlobalTooltip />
-        <GlobalModal />
-        <GlobalModalOuter />
-        <SettingsModal />
-      </RootSessionIdProvider>
+      {isPoolReady ? (
+        <>
+          <KeyPressProvider />
+          <PreloadProvider />
+          <PathnameHandler />
+          {import.meta.env.DEV && <FloatingLogger />}
+          {import.meta.env.DEV && <DevConsole />}
+          <RootSessionIdProvider>
+            <ChatShell>
+              <Outlet />
+            </ChatShell>
+            <ToastProvider placement='bottom end' width={280} />
+            <GlobalTooltip />
+            <GlobalModal />
+            <GlobalModalOuter />
+            <SettingsModal />
+          </RootSessionIdProvider>
+        </>
+      ) : (
+        <AppLoading />
+      )}
     </I18nProvider>
+  );
+}
+
+function AppLoading() {
+  const { resolvedTheme } = useTheme();
+  const { t } = useI18n();
+
+  return (
+    <div className='bg-background grid h-screen place-items-center'>
+      <div className='bg-surface-secondary border-separator flex size-28 animate-pulse items-center justify-center rounded-2xl border p-2 inset-shadow-sm'>
+        <img
+          src={
+            resolvedTheme === 'dark'
+              ? '/favicon-dark.svg'
+              : '/favicon-light.svg'
+          }
+          alt={t.app.aeroLogo}
+          className='size-20 object-contain'
+        />
+      </div>
+    </div>
   );
 }
 

@@ -3,8 +3,10 @@ import { Button } from '@aero/ui';
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import { useSelectedModel } from '@/app/features/chat-page/chat-input/models/use-selected-model';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function ModelAgentDropdownTrigger() {
+  const { t } = useI18n();
   const selectedModel = useSelectedModel();
 
   const setIsOpen = useChatSettingsStore(
@@ -27,7 +29,7 @@ export function ModelAgentDropdownTrigger() {
       )}
 
       {selectedModel?.model.name ?? (
-        <span className='text-muted'>Select model</span>
+        <span className='text-muted'>{t.modelPicker.selectModel}</span>
       )}
     </Button>
   );

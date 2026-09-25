@@ -17,6 +17,7 @@ import {
 import { SessionItemMarquee } from '@/app/components/chat-sidebar/session/session-item-marquee';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatCompactRelativeTime } from '@/app/lib';
 import {
   useRecentsSessionRenameStore,
@@ -44,6 +45,8 @@ export function SessionItemSummary({
   from: 'recents' | 'navbar' | 'workspaces';
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const { t } = useI18n();
 
   const recentsState = useRecentsSessionRenameStore((state) => state.state);
   const workspacesState = useWorkspacesSessionRenameStore(
@@ -113,7 +116,11 @@ export function SessionItemSummary({
             <Spinner size='sm' />
           ) : (
             <span className='text-muted text-[10px] leading-none'>
-              {formatCompactRelativeTime(session.updatedAt)}
+              {formatCompactRelativeTime(
+                session.updatedAt,
+                undefined,
+                t.dateTime,
+              )}
             </span>
           )}
         </Sidebar.MenuChip>
@@ -129,7 +136,7 @@ export function SessionItemSummary({
             onOpenChange={setDropdownOpen}
           >
             <Dropdown.Trigger
-              aria-label={`More actions for ${session.title}`}
+              aria-label={t.chatNavbar.moreSessionActions(session.title)}
               className='sidebar__menu-action group'
               data-slot='sidebar-menu-action'
             >
@@ -147,7 +154,9 @@ export function SessionItemSummary({
               crossOffset={6}
               placement='bottom end'
             >
-              <Dropdown.Menu aria-label={`${session.title} actions`}>
+              <Dropdown.Menu
+                aria-label={t.chatNavbar.sessionActions(session.title)}
+              >
                 <RenameSession sessionId={session.id} from={from} />
                 {!isStandaloneSession && !session.readOnly && (
                   <OpenIsolatedWorkspace directory={session.workspace} />

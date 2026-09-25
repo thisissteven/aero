@@ -1,5 +1,6 @@
 import { cn, IconButton, Tooltip } from '@aero/ui';
 import { DisplayPulse } from '@gravity-ui/icons';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
@@ -8,6 +9,8 @@ export function StatusPanelToggle() {
   const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 
   const sessionId = useSessionId();
+
+  const { t } = useI18n();
 
   if (!sessionId) {
     return null;
@@ -28,7 +31,7 @@ export function StatusPanelToggle() {
         <DisplayPulse className='size-4' />
       </IconButton>
       <Tooltip.Content offset={4}>
-        {isOpen ? 'Hide work status' : 'Show work status'}
+        {isOpen ? t.chatNavbar.hideWorkStatus : t.chatNavbar.showWorkStatus}
       </Tooltip.Content>
     </Tooltip>
   );

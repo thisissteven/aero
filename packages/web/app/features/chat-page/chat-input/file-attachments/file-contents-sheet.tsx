@@ -6,8 +6,9 @@ import { CodeBlock } from '@/app/components/code-block/code-block';
 import { CodeBlockContent } from '@/app/components/code-block/code-block-content';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
+import type { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { getFileExtension } from '@/app/lib/file';
-import { getLanguageFromExtension } from '@/app/lib/file-icons/tool-helpers';
 
 /** Must match the panel's `duration-200` below. */
 const TRANSITION_MS = 200;
@@ -54,9 +55,10 @@ async function readTextUpTo(
   src: string,
   maxBytes: number,
   signal: AbortSignal,
+  t: BaseTranslation,
 ): Promise<{ text: string; truncated: boolean }> {
   const response = await fetch(src, { signal });
-  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  if (!response.ok) throw new Error(t.fileSheet.requestFailed(response.status));
 
   // No streaming body (older browsers, tests) — fall back to a plain read.
   if (!response.body) {
@@ -145,6 +147,7 @@ export function FileContentsSheet({
   attachment,
   onClose,
 }: FileContentsSheetProps) {
+  const { t } = useI18n();
   const isOpen = attachment !== null;
   const { isMounted, isEntered } = useMountTransition(isOpen, TRANSITION_MS);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -252,7 +255,7 @@ export function FileContentsSheet({
           <button
             type='button'
             onClick={onClose}
-            aria-label='Close file preview'
+            aria-label={t.fileSheet.closeFilePreviewAria}
             className={cn(
               'shrink-0 grid size-7 place-items-center rounded-md',
               'text-muted transition-colors hover:bg-surface-secondary hover:text-foreground',
@@ -273,6 +276,7 @@ export function FileContentsSheet({
 }
 
 function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
+  const { t } = useI18n();
   const src = getAttachmentUrl(attachment);
   const kind = getPreviewKind(attachment.mime, attachment.filename);
 
@@ -294,6 +298,7 @@ function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
           src,
           MAX_PREVIEW_BYTES,
           controller.signal,
+          t,
         );
         const capped = capLines(raw.text, MAX_PREVIEW_LINES);
 
@@ -311,19 +316,19 @@ function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
           message:
             error instanceof Error
               ? error.message
-              : 'Could not load this file.',
+              : t.fileSheet.couldNotLoadFile,
         });
       }
     })();
 
     return () => controller.abort();
-  }, [kind, src]);
+  }, [kind, src, t]);
 
   if (!src) {
     return (
       <SheetMessage
-        title='Preview unavailable'
-        description='This attachment doesn’t have a file to load.'
+        title={t.fileSheet.previewUnavailableTitle}
+        description={t.fileSheet.previewUnavailableDescription}
       />
     );
   }
@@ -365,13 +370,13 @@ function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
 
     case 'text':
       if (textState.status === 'loading') {
-        return <SheetMessage title='Loading…' />;
+        return <SheetMessage title={t.common.loadingEllipsis} />;
       }
 
       if (textState.status === 'error') {
         return (
           <SheetMessage
-            title='Could not load this file'
+            title={t.fileSheet.couldNotLoadFile}
             description={textState.message}
           />
         );
@@ -393,14 +398,16 @@ function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
           {textState.truncated && (
             <div className='flex shrink-0 items-center justify-between gap-3 border-t border-border bg-surface-secondary px-4 py-2 text-xs text-muted'>
               <span>
-                Preview truncated at {MAX_PREVIEW_LINES.toLocaleString()} lines.
+                {t.fileSheet.previewTruncated(
+                  MAX_PREVIEW_LINES.toLocaleString(),
+                )}
               </span>
               <a
                 href={src}
                 download={attachment.filename}
                 className='shrink-0 rounded text-foreground underline underline-offset-2 hover:no-underline'
               >
-                Download
+                {t.common.download}
               </a>
             </div>
           )}
@@ -410,8 +417,10 @@ function SheetBody({ attachment }: { attachment: ExternalFileAttachment }) {
     default:
       return (
         <SheetMessage
-          title='No preview available'
-          description={`${attachment.mime || 'This file type'} can’t be previewed here.`}
+          title={t.fileSheet.noPreviewAvailableTitle}
+          description={t.fileSheet.noPreviewAvailableDescription(
+            attachment.mime || 'This file type',
+          )}
         />
       );
   }

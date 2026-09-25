@@ -1,6 +1,7 @@
 import { cn, IconButton, Tooltip } from '@aero/ui';
 import { LayoutSplitSideContentRight, SquareBars } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
@@ -9,6 +10,8 @@ export function PanelActions() {
 }
 
 export function PanelActionsContent() {
+  const { t } = useI18n();
+
   const isOpen = useStatusPanelStore((state) => state.isOpen);
   const toggleIsOpen = useStatusPanelStore((state) => state.toggleIsOpen);
 
@@ -21,7 +24,9 @@ export function PanelActionsContent() {
     <div className='border-separator bg-surface/60 dark:bg-surface inline-flex items-center rounded-lg border p-0.5'>
       <Tooltip>
         <IconButton
-          aria-label={isOpen ? 'Hide work status' : 'Show work status'}
+          aria-label={
+            isOpen ? t.chatNavbar.hideWorkStatus : t.chatNavbar.showWorkStatus
+          }
           onPress={toggleIsOpen}
           className={cn(
             'h-6 w-7 [&_svg]:!size-4',
@@ -33,13 +38,13 @@ export function PanelActionsContent() {
           <Icon data={SquareBars} />
         </IconButton>
         <Tooltip.Content offset={6}>
-          {isOpen ? 'Hide work status' : 'Show work status'}
+          {isOpen ? t.chatNavbar.hideWorkStatus : t.chatNavbar.showWorkStatus}
         </Tooltip.Content>
       </Tooltip>
 
       <Tooltip>
         <IconButton
-          aria-label='Open side panel'
+          aria-label={t.chatNavbar.openSidePanel}
           onPress={() => toggleSidePanelIsOpen()}
           className={cn(
             'h-6 w-7 [&_svg]:!size-4',
@@ -51,7 +56,9 @@ export function PanelActionsContent() {
           <Icon data={LayoutSplitSideContentRight} />
         </IconButton>
         <Tooltip.Content offset={6}>
-          {isSidePanelOpen ? 'Hide side panel' : 'Show side panel'}
+          {isSidePanelOpen
+            ? t.chatNavbar.hideSidePanel
+            : t.chatNavbar.showSidePanel}
         </Tooltip.Content>
       </Tooltip>
     </div>

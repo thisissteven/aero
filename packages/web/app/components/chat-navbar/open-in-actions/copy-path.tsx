@@ -2,6 +2,7 @@ import { Dropdown, Label } from '@aero/ui';
 import { Check, Copy } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
+import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { copyButtonCss } from '@/app/lib/file';
 
@@ -13,6 +14,8 @@ export function CopyPath({
   withIcon?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { t } = useI18n();
 
   const { copied, copy } = useCopyToClipboard({
     animatedRef: containerRef,
@@ -34,7 +37,7 @@ export function CopyPath({
         )}
 
         <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Path'}
+          {copied ? t.common.copied : t.chatNavbar.copyPath}
         </Label>
       </div>
     </Dropdown.Item>

@@ -2,7 +2,7 @@ import { Command } from '@aero/ui';
 import { Check } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
-
+import { useI18n } from '@/app/hooks/i18n';
 import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from './chat-settings-store';
@@ -12,6 +12,7 @@ export function VariantsPicker({
 }: {
   onVariantSelect?: () => void;
 }) {
+  const { t } = useI18n();
   const selectedModel = useChatSettingsStore((state) => state.selectedModel);
   const selectedVariant = useChatSettingsStore(
     (state) => state.selectedVariant,
@@ -33,11 +34,11 @@ export function VariantsPicker({
       >
         {variants.length === 0 ? (
           <div className='text-muted flex h-24 items-center justify-center text-sm'>
-            No variants found.
+            {t.chatInput.noVariantsFound}
           </div>
         ) : (
           <Command.List className='max-h-60 scroll-py-1 overflow-y-auto'>
-            <Command.Group heading='Thinking Variants'>
+            <Command.Group heading={t.chatInput.thinkingVariants}>
               {variants.map((variant) => (
                 <Command.Item
                   key={variant}

@@ -10,6 +10,7 @@ import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { Timer } from '@/app/components/tool-call-view/timer';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -82,6 +83,8 @@ export function BaseTool({
   // Either a code string or a patch counts as code content.
   const hasCodeContent = Boolean((copyText && code) || patch);
   const hasContent = hasCodeContent || Boolean(children);
+
+  const { t } = useI18n();
 
   const isExpanded = useKeepMountedStoreFeed((s) => Boolean(s.ids[blockId]));
   const setKeep = useKeepMountedStoreFeed((s) => s.setKeep);
@@ -268,7 +271,7 @@ export function BaseTool({
 
                       {isUrl ? (
                         <CodeBlock.OpenButton
-                          aria-label='Open in new tab'
+                          aria-label={t.toolCall.openInNewTab}
                           onClick={() =>
                             window.open(
                               codeTitle,
@@ -281,7 +284,7 @@ export function BaseTool({
                         dir?.endsWith('.html') ? (
                           <>
                             <CodeBlock.OpenInBrowserButton
-                              aria-label='Open in browser'
+                              aria-label={t.toolCall.openInBrowser}
                               onClick={() => {
                                 useSidePanelStore
                                   .getState()
@@ -323,7 +326,7 @@ export function BaseTool({
 
                   {patch && diff && (
                     <CodeBlock.Footer>
-                      <span>Changes</span>
+                      <span>{t.nav.changes}</span>
                       <CodeBlock.ChangeSummary
                         additions={diff.additions}
                         deletions={diff.deletions}
@@ -342,6 +345,7 @@ export function BaseTool({
 
 function OpenFileInEditor({ path }: { path?: string }) {
   const directory = useSessionDirectory();
+  const { t } = useI18n();
 
   if (!directory || !path) return null;
 
@@ -349,7 +353,7 @@ function OpenFileInEditor({ path }: { path?: string }) {
 
   return (
     <CodeBlock.OpenButton
-      aria-label='Open in editor'
+      aria-label={t.toolCall.openInEditor}
       onClick={() => {
         useSidePanelStore.getState().setActiveNavItem('files');
         openFileWhenReady(relativePath);

@@ -1,17 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChatPage } from '@/app/features/chat-page';
-import {
-  useChatStore,
-  useSessionRuntime,
-} from '@/app/features/chat-page/chat-feed/chat-store';
 import { ModelAgentDropdownSheet } from '@/app/features/chat-page/chat-input/models/model-agent/model-agent-dropdown';
 import { useSessionPage } from '@/app/features/new-session-page/use-session-page';
-import {
-  useSession,
-  useSessionMessages,
-  useSessionStatus,
-} from '@/app/hooks/api/sessions';
-import { useSessionStream } from '@/app/hooks/api/stream-event';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function SessionPage() {

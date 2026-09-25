@@ -1,20 +1,11 @@
 import { Dropdown, IconButton, Label, Separator, Tooltip } from '@aero/ui';
-import {
-  Check,
-  ChevronDown,
-  Code,
-  Copy,
-  Folder,
-  Terminal,
-} from '@gravity-ui/icons';
+import { Check, ChevronDown, Code, Folder, Terminal } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useRef } from 'react';
 import { CopyPath } from '@/app/components/chat-navbar/open-in-actions/copy-path';
 import { useOpenInStore } from '@/app/components/chat-navbar/open-in-actions/open-in-store';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useSystemApps } from '@/app/hooks/api/system';
-import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
-import { copyButtonCss } from '@/app/lib/file';
+import { useI18n } from '@/app/hooks/i18n';
 
 interface DetectedApp {
   id: string;
@@ -42,6 +33,8 @@ export function OpenInActions() {
 }
 
 function OpenInActionsContent({ projectPath }: { projectPath: string }) {
+  const { t } = useI18n();
+
   const { selectedAppId, setSelectedAppId } = useOpenInStore();
 
   const handleSelect = async (appId: string) => {
@@ -63,7 +56,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
 
       <Tooltip>
         <IconButton
-          aria-label='Open project'
+          aria-label={t.chatNavbar.openProject}
           onPress={async () => await openApp(projectPath, selectedAppId)}
           className='h-6 w-7 opacity-100 hover:opacity-100'
         >
@@ -71,14 +64,14 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
         </IconButton>
         <Tooltip.Content offset={6}>
           {selectedApp
-            ? `Open project in ${selectedApp.label}`
-            : 'Open project'}
+            ? t.chatNavbar.openProjectIn(selectedApp.label)
+            : t.chatNavbar.openProject}
         </Tooltip.Content>
       </Tooltip>
 
       {/* Dropdown Menu */}
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options' className='h-6 w-7'>
+        <IconButton aria-label={t.chatNavbar.openInOptions} className='h-6 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 
@@ -117,7 +110,7 @@ function OpenInActionsContent({ projectPath }: { projectPath: string }) {
               >
                 <div className='flex items-center gap-2.5'>
                   <AppIcon fallbackId='finder' />
-                  <Label>Finder</Label>
+                  <Label>{t.chatNavbar.finder}</Label>
                 </div>
                 {selectedAppId === 'finder' && (
                   <Icon data={Check} className='text-accent' size={16} />

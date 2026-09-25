@@ -1,16 +1,17 @@
+import { Button, Command, Popover } from '@aero/ui';
 import { Check, Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Button, Command, Popover } from '@aero/ui';
-
 import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { useAgentsCompact } from '@/app/hooks/api/capabilities';
+import { useI18n } from '@/app/hooks/i18n';
 import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from './chat-settings-store';
 
 export function AgentDropdown() {
+  const { t } = useI18n();
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
   const setSelectedAgent = useChatSettingsStore(
     (state) => state.setSelectedAgent,
@@ -64,7 +65,7 @@ export function AgentDropdown() {
 
         {selectedAgent?.name
           ? capitalizeFirstLetter(selectedAgent.name)
-          : 'Select Agent'}
+          : t.chatInput.selectAgent}
       </Button>
 
       <Popover.Content
@@ -86,7 +87,7 @@ export function AgentDropdown() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className='py-2.5 pr-0 text-sm'
-                placeholder='Search agent modes...'
+                placeholder={t.chatInput.searchAgentModes}
               />
 
               <Command.InputGroup.ClearButton
@@ -96,11 +97,11 @@ export function AgentDropdown() {
 
             {visibleAgents.length === 0 ? (
               <div className='text-muted flex h-24 items-center justify-center text-sm'>
-                No agents found.
+                {t.chatInput.noAgentsFound}
               </div>
             ) : (
               <Command.List className='max-h-60 scroll-py-1 overflow-y-auto'>
-                <Command.Group heading='Native Agents'>
+                <Command.Group heading={t.chatInput.nativeAgents}>
                   {visibleAgents.map((agent) => (
                     <Command.Item
                       key={agent.name}

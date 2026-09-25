@@ -36,6 +36,7 @@ import {
   type FileEditorChangeEvent,
   type FileEditorOptions,
 } from '@/app/components/chat-aside/files/pierre-editor-view';
+import { useI18n } from '@/app/hooks/i18n';
 import { useTheme } from '@/app/providers';
 
 export interface FileContentPaneProps {
@@ -58,6 +59,7 @@ export const FileContentPane = memo(function FileContentPane({
   onOpenFile: onOpenFileProp,
 }: FileContentPaneProps) {
   const { resolvedTheme } = useTheme();
+  const { t } = useI18n();
 
   const storePath = useActivePath();
   const storeOpenFile = useFileViewerStore((s) => s.openFile);
@@ -183,7 +185,7 @@ export const FileContentPane = memo(function FileContentPane({
         if (cancelled) return;
         cache.errors.set(
           path,
-          err instanceof Error ? err.message : 'Failed to read file',
+          err instanceof Error ? err.message : t.fileExplorer.failedToReadFile,
         );
         lastVersionRef.current.set(path, fileVersion);
         forceUpdate();
@@ -192,7 +194,7 @@ export const FileContentPane = memo(function FileContentPane({
     return () => {
       cancelled = true;
     };
-  }, [path, socket, refreshKey, setDiskContent, fileVersion, pendingWrites]);
+  }, [path, socket, refreshKey, setDiskContent, fileVersion, pendingWrites, t]);
 
   useEffect(() => {
     return () => {
@@ -321,11 +323,13 @@ export const FileContentPane = memo(function FileContentPane({
       clearBuffer(p);
       forceUpdate();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Save failed');
+      setSaveError(
+        err instanceof Error ? err.message : t.fileExplorer.saveFailed,
+      );
     } finally {
       setSaving(false);
     }
-  }, [path, socket, setDiskContent, clearBuffer]);
+  }, [path, socket, setDiskContent, clearBuffer, t]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -366,7 +370,7 @@ export const FileContentPane = memo(function FileContentPane({
   if (!path) {
     return (
       <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-center text-sm @max-sm:break-all'>
-        Select a file to view its contents.
+        {t.fileExplorer.selectFileToView}
       </div>
     );
   }
@@ -374,7 +378,7 @@ export const FileContentPane = memo(function FileContentPane({
   if (isLoading) {
     return (
       <div className='text-muted flex h-full min-h-0 min-w-0 flex-1 items-center justify-center p-4 text-center text-sm @max-sm:break-all'>
-        Loading…
+        {t.common.loadingEllipsis}
       </div>
     );
   }

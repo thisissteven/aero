@@ -1,11 +1,12 @@
 import { cn } from '@aero/ui';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function ComposerFooter({ handleSubmit }: { handleSubmit: () => void }) {
+  const { t } = useI18n();
+
   return (
     <div className='mt-6 flex items-center justify-between gap-3'>
-      <div className='text-muted text-[13px]'>
-        Enter = submit · Shift+Enter = newline · ↑/↓ = palette
-      </div>
+      <div className='text-muted text-[13px]'>{t.composer.footerHint}</div>
 
       <button
         type='button'
@@ -21,7 +22,7 @@ export function ComposerFooter({ handleSubmit }: { handleSubmit: () => void }) {
         )}
         onClick={handleSubmit}
       >
-        Send
+        {t.composer.send}
       </button>
     </div>
   );

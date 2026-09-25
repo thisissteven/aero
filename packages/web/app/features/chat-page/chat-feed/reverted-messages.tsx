@@ -5,19 +5,19 @@ import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
-  sessionKeys,
   useForkSession,
   useRestoreAllMessages,
   useRevertSession,
 } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 import { restoreAllMessagesToast } from '@/app/lib/commands/restore-all-messages';
 import { revertSessionToast } from '@/app/lib/commands/revert-session';
-import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function RevertedMessages() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const revertedMessages = useSessionRuntime(
     sessionId,
     (runtime) => runtime.revertedMessages,
@@ -49,7 +49,7 @@ export function RevertedMessages() {
           <Disclosure.Heading>
             <Disclosure.Trigger className='group w-full px-3 py-2 text-sm transition-colors'>
               <div className='flex items-center justify-between gap-2'>
-                Reverted messages: {revertedMessages.length}
+                {t.chatFeed.revertedMessages(revertedMessages.length)}
                 <Icon
                   data={ChevronDown}
                   className={cn(
@@ -73,11 +73,11 @@ export function RevertedMessages() {
                       <IconButton
                         onPress={() => {
                           toast.promise(forkSession(message.messageId), {
-                            loading: 'Forking session...',
+                            loading: t.chatFeed.forkingSession,
                             error: (err) => err.message,
                             success(session) {
                               navigate({ to: `/sessions/${session.id}` });
-                              return 'Session forked successfully';
+                              return t.chatFeed.sessionForked;
                             },
                           });
                         }}
@@ -87,19 +87,21 @@ export function RevertedMessages() {
                         className='h-6.5'
                       >
                         <Icon data={CodeFork} />
-                        Fork
+                        {t.chatFeed.fork}
                       </IconButton>
                       <IconButton
                         onPress={() => {
                           if (index === revertedMessages.length - 1) {
-                            restoreAllMessagesToast(restoreMessages);
+                            restoreAllMessagesToast(restoreMessages, t);
                             return;
                           }
 
-                          revertSessionToast(() =>
-                            revertSession(
-                              revertedMessages[index + 1].messageId,
-                            ),
+                          revertSessionToast(
+                            () =>
+                              revertSession(
+                                revertedMessages[index + 1].messageId,
+                              ),
+                            t,
                           );
                         }}
                         isIconOnly={false}
@@ -111,7 +113,7 @@ export function RevertedMessages() {
                           data={ArrowUturnCcwRight}
                           className='scale-x-[-1] rotate-180'
                         />
-                        Restore
+                        {t.common.restore}
                       </IconButton>
                     </div>
                   </div>

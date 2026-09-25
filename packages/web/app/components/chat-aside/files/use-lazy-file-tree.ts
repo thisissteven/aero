@@ -11,6 +11,7 @@ import {
 } from '@/app/components/chat-aside/files/file-invalidation-store';
 import { useFileViewerStore } from '@/app/components/chat-aside/files/file-viewer-store';
 import { FsSocket } from '@/app/components/chat-aside/files/fs-socket';
+import { useI18n } from '@/app/hooks/i18n';
 
 export interface UseLazyFileTreeOptions {
   root: string;
@@ -227,6 +228,7 @@ export function useLazyFileTree({
   viewportHeight = DEFAULT_VIEWPORT_HEIGHT,
   density = DEFAULT_DENSITY,
 }: UseLazyFileTreeOptions): UseLazyFileTreeResult {
+  const { t } = useI18n();
   const socketRef = useRef<FsSocket | null>(null);
   if (!socketRef.current) {
     socketRef.current = new FsSocket({ root, url: wsUrl });
@@ -238,12 +240,16 @@ export function useLazyFileTree({
   const loadedDirs = useRef(new Set<string>());
 
   const lastErrorRef = useRef<string | null>(null);
-  const reportError = useCallback((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Filesystem error';
-    if (lastErrorRef.current === message) return;
-    lastErrorRef.current = message;
-    setError(message);
-  }, []);
+  const reportError = useCallback(
+    (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : t.fileExplorer.filesystemError;
+      if (lastErrorRef.current === message) return;
+      lastErrorRef.current = message;
+      setError(message);
+    },
+    [t],
+  );
   const clearError = useCallback(() => {
     lastErrorRef.current = null;
     setError(null);
@@ -342,11 +348,11 @@ export function useLazyFileTree({
           reportError(
             err instanceof Error
               ? err
-              : new Error(`Failed to load ${cleanDir || '/'}`),
+              : new Error(t.fileExplorer.failedToLoadDirectory(cleanDir)),
           );
         });
     },
-    [model, socket, reportError],
+    [model, socket, reportError, t],
   );
 
   const knownExpanded = useRef(new Set<string>());
@@ -371,11 +377,13 @@ export function useLazyFileTree({
       })
       .catch((err) => {
         reportError(
-          err instanceof Error ? err : new Error('Failed to refresh'),
+          err instanceof Error
+            ? err
+            : new Error(t.fileExplorer.failedToRefresh),
         );
       });
     refreshGitStatus();
-  }, [model, socket, reportError, refreshGitStatus, pokeExpansionScan]);
+  }, [model, socket, reportError, refreshGitStatus, pokeExpansionScan, t]);
 
   const gitRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMutationAtRef = useRef(0);
@@ -420,14 +428,16 @@ export function useLazyFileTree({
       .catch((err) => {
         if (cancelled) return;
         reportError(
-          err instanceof Error ? err : new Error('Failed to list root'),
+          err instanceof Error
+            ? err
+            : new Error(t.fileExplorer.failedToListRoot),
         );
         setIsTreeLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [model, socket, reportError]);
+  }, [model, socket, reportError, t]);
 
   // ── Mutation → FS bridge (creates and renames only) ────────────────
   //

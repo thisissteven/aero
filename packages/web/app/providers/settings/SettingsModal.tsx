@@ -26,7 +26,8 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { SVGProps, useEffect, useRef, useState } from 'react';
-
+import { useI18n } from '@/app/hooks/i18n';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
 import { GeneralView } from '@/app/providers/settings/general/general-view';
@@ -36,72 +37,88 @@ import { SettingsTab, useSettingsModalStore } from './settings-store';
 
 interface NavItem {
   id: SettingsTab;
-  label: string;
+  label: (t: BaseTranslation) => string;
   icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
-  badge?: string;
+  badge?: (t: BaseTranslation) => string;
 }
 
 interface NavSection {
-  title?: string;
+  title: (t: BaseTranslation) => string;
   items: NavItem[];
 }
 
 const NAV_SECTIONS: NavSection[] = [
   {
-    title: 'AERO',
+    title: (t) => t.settings.sectionAero,
     items: [
-      { id: 'general', label: 'General', icon: Gear },
-      { id: 'appearance', label: 'Appearance', icon: Display },
-      { id: 'chat', label: 'Chat', icon: Comment },
-      { id: 'notifications', label: 'Notifications', icon: Bell },
-      { id: 'sessions', label: 'Sessions', icon: Clock },
-      { id: 'shortcuts', label: 'Shortcuts', icon: Sliders },
-      { id: 'voice', label: 'Voice', icon: Microphone },
-      { id: 'usage', label: 'Usage', icon: ChartBar },
+      { id: 'general', label: (t) => t.settings.general, icon: Gear },
+      { id: 'appearance', label: (t) => t.settings.appearance, icon: Display },
+      { id: 'chat', label: (t) => t.settings.chat, icon: Comment },
+      {
+        id: 'notifications',
+        label: (t) => t.settings.notifications,
+        icon: Bell,
+      },
+      { id: 'sessions', label: (t) => t.settings.sessions, icon: Clock },
+      { id: 'shortcuts', label: (t) => t.common.shortcuts, icon: Sliders },
+      { id: 'voice', label: (t) => t.settings.voice, icon: Microphone },
+      { id: 'usage', label: (t) => t.settings.usage, icon: ChartBar },
     ],
   },
   {
-    title: 'WORKSPACE',
+    title: (t) => t.settings.sectionWorkspace,
     items: [
-      { id: 'projects', label: 'Projects', icon: Folder },
-      { id: 'remote-instances', label: 'Remote Instances', icon: Server },
+      { id: 'projects', label: (t) => t.settings.projects, icon: Folder },
+      {
+        id: 'remote-instances',
+        label: (t) => t.settings.remoteInstances,
+        icon: Server,
+      },
       {
         id: 'external-tunnel',
-        label: 'External Tunnel',
+        label: (t) => t.settings.externalTunnel,
         icon: Globe,
-        badge: 'beta',
+        badge: (t) => t.settings.beta,
       },
-      { id: 'git', label: 'Git', icon: BranchesDown },
+      { id: 'git', label: (t) => t.settings.git, icon: BranchesDown },
     ],
   },
   {
-    title: 'OPENCODE',
+    title: (t) => t.settings.sectionOpencode,
     items: [
-      { id: 'providers', label: 'Providers', icon: Cpu },
-      { id: 'agents', label: 'Agents', icon: Persons },
-      { id: 'behavior', label: 'Behavior', icon: PersonWorker },
-      { id: 'commands', label: 'Commands', icon: Terminal },
-      { id: 'mcp', label: 'MCP', icon: LogoMcp },
-      { id: 'plugins', label: 'Plugins', icon: Box },
+      { id: 'providers', label: (t) => t.settings.providers, icon: Cpu },
+      { id: 'agents', label: (t) => t.settings.agents, icon: Persons },
+      { id: 'behavior', label: (t) => t.settings.behavior, icon: PersonWorker },
+      { id: 'commands', label: (t) => t.settings.commands, icon: Terminal },
+      { id: 'mcp', label: (t) => t.settings.mcp, icon: LogoMcp },
+      { id: 'plugins', label: (t) => t.settings.plugins, icon: Box },
     ],
   },
   {
-    title: 'LIBRARY',
+    title: (t) => t.settings.sectionLibrary,
     items: [
-      { id: 'magic-prompts', label: 'Magic Prompts', icon: Sparkles },
-      { id: 'snippets', label: 'Snippets', icon: Code },
-      { id: 'skills', label: 'Skills', icon: BookOpen },
-      { id: 'skills-catalog', label: 'Skills Catalog', icon: Book },
+      {
+        id: 'magic-prompts',
+        label: (t) => t.settings.magicPrompts,
+        icon: Sparkles,
+      },
+      { id: 'snippets', label: (t) => t.settings.snippets, icon: Code },
+      { id: 'skills', label: (t) => t.settings.skills, icon: BookOpen },
+      {
+        id: 'skills-catalog',
+        label: (t) => t.settings.skillsCatalog,
+        icon: Book,
+      },
     ],
   },
 ];
 
-function getTabLabel(tab: SettingsTab): string {
+function getTabLabel(tab: SettingsTab, t: BaseTranslation): string {
   for (const section of NAV_SECTIONS) {
     const item = section.items.find((i) => i.id === tab);
-    if (item) return item.label;
+    if (item) return item.label(t);
   }
-  return 'Settings';
+  return t.common.settings;
 }
 
 type MobilePanel = 'list' | 'detail';
@@ -117,6 +134,8 @@ export function SettingsModal() {
     sidebarScrollTop,
     setSidebarScrollTop,
   } = useSettingsModalStore();
+
+  const { t } = useI18n();
 
   const sidebarNavRef = useRef<HTMLDivElement | null>(null);
 
@@ -175,19 +194,20 @@ export function SettingsModal() {
   ) => (
     <nav className='flex flex-col gap-4 px-3 pb-3'>
       {NAV_SECTIONS.map((section, idx) => {
-        const filteredItems = section.items.filter((item) =>
-          item.label.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
+        const sectionTitle = section.title(t);
+
+        const filteredItems = section.items.filter((item) => {
+          const label = item.label(t).toLowerCase();
+          return label.includes(searchQuery.toLowerCase());
+        });
 
         if (filteredItems.length === 0) return null;
 
         return (
           <div key={idx} className='flex flex-col gap-1'>
-            {section.title && (
-              <span className='max-md:text-foreground/80 text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
-                {section.title}
-              </span>
-            )}
+            <span className='max-md:text-foreground/80 text-muted px-2 text-[10px] font-semibold tracking-wider uppercase'>
+              {sectionTitle}
+            </span>
             {filteredItems.map((item) => {
               const isActive = highlightActive && activeTab === item.id;
               return (
@@ -209,12 +229,12 @@ export function SettingsModal() {
                           : 'max-md:text-foreground/80 text-muted'
                       }`}
                     >
-                      {item.label}
+                      {item.label(t)}
                     </span>
                   </div>
                   {item.badge && (
                     <span className='bg-accent-soft-foreground text-accent-foreground rounded px-1.5 py-0.5 text-[10px] font-normal'>
-                      {item.badge}
+                      {item.badge(t)}
                     </span>
                   )}
                 </button>
@@ -232,11 +252,8 @@ export function SettingsModal() {
     if (activeTab === 'providers') return <ProvidersView />;
     return (
       <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
-        Content for
-        <div className='text-foreground mx-1 capitalize'>
-          {activeTab.replace('-', ' ')}
-        </div>
-        is under development.
+        {t.settings.contentFor(activeTab.replace('-', ' '))}{' '}
+        {t.settings.isUnderDevelopment}
       </div>
     );
   };
@@ -264,7 +281,7 @@ export function SettingsModal() {
           <SearchField.Group>
             <SearchField.SearchIcon />
             <SearchField.Input
-              placeholder='Search settings'
+              placeholder={t.settings.searchSettings}
               className='w-full text-sm'
             />
             <SearchField.ClearButton />
@@ -284,10 +301,10 @@ export function SettingsModal() {
           className='text-muted hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors'
         >
           <Icon data={ChevronLeft} size={18} />
-          Back
+          {t.common.back}
         </button>
         <span className='text-foreground text-sm font-medium'>
-          {getTabLabel(activeTab)}
+          {getTabLabel(activeTab, t)}
         </span>
       </div>
       <div
@@ -377,7 +394,7 @@ export function SettingsModal() {
                           <SearchField.Group>
                             <SearchField.SearchIcon />
                             <SearchField.Input
-                              placeholder='Search settings'
+                              placeholder={t.settings.searchSettings}
                               className='w-full text-sm'
                             />
                             <SearchField.ClearButton />

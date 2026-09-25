@@ -17,6 +17,7 @@ import {
 import { useModelDirectory } from '@/app/features/chat-page/chat-input/models/use-model-directory';
 import { useModelInfoPanel } from '@/app/features/chat-page/chat-input/models/use-model-info-panel';
 import { useModelSelectionSyncFavorites } from '@/app/features/chat-page/chat-input/models/use-model-selection-sync';
+import { useI18n } from '@/app/hooks/i18n';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
 import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 
@@ -33,6 +34,8 @@ export function WorkspaceModelDropdown({
 }: WorkspaceModelDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const hideTooltip = useTooltipStore((state) => state.hideTooltip);
+
+  const { t } = useI18n();
 
   const favoriteModelIds = useChatSettingsStore(
     (state) => state.favoriteModelIds,
@@ -124,7 +127,9 @@ export function WorkspaceModelDropdown({
             )}
 
             {selectedModelEntry?.model.name ?? (
-              <span className='text-muted'>No default model selected</span>
+              <span className='text-muted'>
+                {t.workspace.noDefaultModelSelected}
+              </span>
             )}
           </div>
 

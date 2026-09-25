@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, Modal } from '@aero/ui';
+import { useI18n } from '@/app/hooks/i18n';
 
 export interface DeletePathConfirmationModalProps {
   path: string;
@@ -20,29 +21,28 @@ export function DeletePathConfirmationModal({
   onConfirm,
 }: DeletePathConfirmationModalProps) {
   const name = getDisplayName(path);
+  const { t } = useI18n();
 
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Delete {isDir ? 'folder' : 'file'}?</Modal.Heading>
+        <Modal.Heading>
+          {isDir
+            ? t.fileExplorer.deleteFolderTitle
+            : t.fileExplorer.deleteFileTitle}
+        </Modal.Heading>
       </Modal.Header>
       <Modal.Body>
         {isDir ? (
-          <p>
-            <span className='text-foreground font-medium'>{name}</span> and
-            everything inside it will be permanently deleted.
-          </p>
+          <p>{t.fileExplorer.deleteFolderDescription(name)}</p>
         ) : (
-          <p>
-            <span className='text-foreground font-medium'>{name}</span> will be
-            permanently deleted.
-          </p>
+          <p>{t.fileExplorer.deleteFileDescription(name)}</p>
         )}
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
@@ -51,7 +51,7 @@ export function DeletePathConfirmationModal({
             onConfirm();
           }}
         >
-          Delete
+          {t.common.delete}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>

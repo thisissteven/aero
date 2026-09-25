@@ -26,6 +26,7 @@ import {
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { SessionTitleEditable } from '@/app/components/session-title-editable';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { OfflineAlert } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useNavbarSessionRenameStore } from '@/app/stores/session-rename';
@@ -86,10 +87,12 @@ function NavbarContentPlaceholder({ h1, span }: { h1: string; span: string }) {
 }
 
 function NewNavbarContent() {
+  const { t } = useI18n();
+
   return (
     <NavbarContentPlaceholder
-      h1='New Session'
-      span='Start a brand new conversation'
+      h1={t.chatNavbar.newSession}
+      span={t.chatNavbar.newSessionDescription}
     />
   );
 }
@@ -138,6 +141,8 @@ function SessionTitle({
 function SessionsNavbarContent() {
   const sessionId = useSessionId();
 
+  const { t } = useI18n();
+
   const { data: session, isPending } = useSession(undefined, sessionId);
 
   if (isPending) {
@@ -147,8 +152,8 @@ function SessionsNavbarContent() {
   if (!session) {
     return (
       <NavbarContentPlaceholder
-        h1='Session not found'
-        span='Head to new session page to create a new session'
+        h1={t.chatNavbar.sessionNotFound}
+        span={t.chatNavbar.sessionNotFoundHint}
       />
     );
   }
@@ -164,7 +169,7 @@ function SessionsNavbarContent() {
       <div>
         <Dropdown size='sm'>
           <Dropdown.Trigger
-            aria-label={`More actions for ${session.title}`}
+            aria-label={t.chatNavbar.moreSessionActions(session.title)}
             className='mt-1.5 ml-2'
           >
             <Icon
@@ -181,7 +186,9 @@ function SessionsNavbarContent() {
             crossOffset={12}
             placement='bottom end'
           >
-            <Dropdown.Menu aria-label={`${session.title} actions`}>
+            <Dropdown.Menu
+              aria-label={t.chatNavbar.sessionActions(session.title)}
+            >
               <RenameSession sessionId={session.id} from='navbar' />
               {!isStandaloneSession && !session.readOnly && (
                 <OpenIsolatedWorkspace directory={session.workspace} />

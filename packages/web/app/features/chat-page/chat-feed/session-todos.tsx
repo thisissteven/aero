@@ -5,11 +5,13 @@ import { memo, useState } from 'react';
 
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 export const SessionTodos = memo(function SessionTodos() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const { data: todos } = useSessionTodos(undefined, sessionId);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +34,7 @@ export const SessionTodos = memo(function SessionTodos() {
     return (
       <div className='px-2 py-1 w-fit flex items-center gap-1 text-sm rounded-lg border border-separator bg-surface'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
-          All tasks completed
+          {t.chatFeed.allTasksCompleted}
         </span>
         <Icon data={CircleCheck} size={12} className='text-success shrink-0' />
       </div>
@@ -71,7 +73,7 @@ export const SessionTodos = memo(function SessionTodos() {
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='p-3'>
-            Tasks {todos.length - remaining}/{todos.length}
+            {t.chatFeed.tasksProgress(todos.length - remaining, todos.length)}
           </Popover.Heading>
 
           <div className='pl-1'>

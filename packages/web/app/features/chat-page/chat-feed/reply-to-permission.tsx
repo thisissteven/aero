@@ -9,6 +9,7 @@ import {
   useReplyToPermission,
   useSessionPermissions,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -25,6 +26,7 @@ export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
 
 export const ReplyToPermission = React.memo(() => {
   const activeSessionId = useSessionId();
+  const { t } = useI18n();
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
@@ -133,8 +135,12 @@ export const ReplyToPermission = React.memo(() => {
       },
       refetch: refetchPermissions,
       messages: {
-        loading: isReject ? 'Rejecting request...' : 'Authorizing request...',
-        success: isReject ? 'Permission denied' : 'Permission granted',
+        loading: isReject
+          ? t.permission.rejectingRequest
+          : t.permission.authorizingRequest,
+        success: isReject
+          ? t.permission.permissionDenied
+          : t.permission.permissionGranted,
       },
     });
   };
@@ -195,7 +201,7 @@ export const ReplyToPermission = React.memo(() => {
     ['bash', 'shell', 'cmd', 'terminal'].includes(toolName as BashToolNames)
   ) {
     const command = typeof input.command === 'string' ? input.command : '';
-    actionTitle = command ? `Run ${command}` : 'Run command';
+    actionTitle = command ? `Run ${command}` : t.permission.runCommand;
     codeSnippet = command || null;
   } else if (
     ['read', 'view', 'file_read', 'cat'].includes(toolName as ReadToolNames)
@@ -203,7 +209,7 @@ export const ReplyToPermission = React.memo(() => {
     const filePath = normalizePath(
       typeof input.filePath === 'string' ? input.filePath : '',
     );
-    actionTitle = filePath ? `Read ${filePath}` : 'Read file';
+    actionTitle = filePath ? `Read ${filePath}` : t.permission.readFile;
     codeSnippet = filePath || null;
   } else if (
     [
@@ -216,7 +222,7 @@ export const ReplyToPermission = React.memo(() => {
     const filePath = normalizePath(
       typeof input.filePath === 'string' ? input.filePath : '',
     );
-    actionTitle = filePath ? `Edit ${filePath}` : 'Edit file';
+    actionTitle = filePath ? `Edit ${filePath}` : t.permission.editFile;
     codeSnippet =
       typeof input.newString === 'string' ? input.newString : filePath || null;
   } else if (
@@ -225,7 +231,7 @@ export const ReplyToPermission = React.memo(() => {
     const filePath = normalizePath(
       typeof input.filePath === 'string' ? input.filePath : '',
     );
-    actionTitle = filePath ? `Write ${filePath}` : 'Write file';
+    actionTitle = filePath ? `Write ${filePath}` : t.permission.writeFile;
     codeSnippet =
       typeof input.content === 'string' ? input.content : filePath || null;
   } else {
@@ -251,7 +257,7 @@ export const ReplyToPermission = React.memo(() => {
         <div className='bg-surface text-surface-foreground border-separator flex flex-col gap-3 rounded-xl border p-4'>
           {/* Permission Header */}
           <div className='text-foreground text-sm leading-5 font-medium line-clamp-3'>
-            Allow Agent to <span className='font-semibold'>{actionTitle}</span>?
+            {t.permission.allowAgentTo(actionTitle)}
           </div>
 
           {/* Code Snippet Box */}
@@ -271,7 +277,7 @@ export const ReplyToPermission = React.memo(() => {
               onPress={() => handleReply('reject')}
               className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
-              Deny
+              {t.permission.deny}
               <Kbd variant='light' className='rounded-md text-xs'>
                 <Kbd.Content>Esc</Kbd.Content>
               </Kbd>
@@ -285,7 +291,7 @@ export const ReplyToPermission = React.memo(() => {
               onPress={() => handleReply('always')}
               className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
-              Always allow for session
+              {t.permission.alwaysAllowForSession}
               <Kbd variant='light' className='rounded-md text-xs'>
                 <Kbd.Abbr keyValue='command' />
                 <Kbd.Abbr keyValue='enter' className='text-sm' />
@@ -300,7 +306,7 @@ export const ReplyToPermission = React.memo(() => {
               onPress={() => handleReply('once')}
               className='flex items-center gap-1 rounded-lg pr-0.75 pl-2'
             >
-              Allow once
+              {t.permission.allowOnce}
               <Kbd variant='light' className='rounded-md text-xs'>
                 <Kbd.Abbr keyValue='enter' className='text-sm' />
               </Kbd>

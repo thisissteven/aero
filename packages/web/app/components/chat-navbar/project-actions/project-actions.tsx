@@ -9,6 +9,7 @@ import {
 import { useTerminalStore } from '@/app/components/chat-aside/terminal/terminal-store';
 import { useDiscoverScript } from '@/app/hooks/api/discovery';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 export function ProjectActions() {
@@ -24,6 +25,8 @@ export function ProjectActionsContent({
 }: {
   projectPath: string;
 }) {
+  const { t } = useI18n();
+
   const { mutateAsync: discoverScript, isPending: isDiscovering } =
     useDiscoverScript();
 
@@ -56,7 +59,7 @@ export function ProjectActionsContent({
       const result = await discoverScript(projectPath);
 
       if (!result.command) {
-        toast.warning('No dev script discovered');
+        toast.warning(t.chatNavbar.noDevScriptDiscovered);
         return;
       }
 
@@ -78,7 +81,7 @@ export function ProjectActionsContent({
       }
 
       addSession({
-        title: 'Dev Server',
+        title: t.chatNavbar.devServer,
         cwd: projectPath,
         command: result.command,
       });
@@ -86,19 +89,19 @@ export function ProjectActionsContent({
       openTerminal();
     } catch (error) {
       console.error('[ProjectActions] Failed to discover script', error);
-      toast.warning('Failed to discover dev script');
+      toast.warning(t.chatNavbar.failedToDiscoverDevScript);
     }
   };
 
   let primaryIcon = <Play />;
-  let tooltipText = 'Auto discover dev script';
+  let tooltipText = t.chatNavbar.autoDiscoverDevScript;
 
   if (isDiscovering) {
     primaryIcon = <CircleDashed className='animate-spin' />;
-    tooltipText = 'Discovering dev script...';
+    tooltipText = t.chatNavbar.discoveringDevScript;
   } else if (isRunning) {
     primaryIcon = <Stop className='text-accent' />;
-    tooltipText = 'Stop running script';
+    tooltipText = t.chatNavbar.stopRunningScript;
   }
 
   return (
@@ -117,7 +120,7 @@ export function ProjectActionsContent({
       </Tooltip>
 
       <Dropdown size='sm'>
-        <IconButton aria-label='Open in options' className='h-6 w-7'>
+        <IconButton aria-label={t.chatNavbar.openInOptions} className='h-6 w-7'>
           <Icon data={ChevronDown} />
         </IconButton>
 
@@ -127,7 +130,7 @@ export function ProjectActionsContent({
           crossOffset={4}
         >
           <Dropdown.Menu className='flex flex-col gap-0.5'>
-            <Dropdown.Item>left empty for now</Dropdown.Item>
+            <Dropdown.Item>{t.chatNavbar.leftEmptyForNow}</Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown.Popover>
       </Dropdown>

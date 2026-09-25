@@ -2,6 +2,7 @@ import { cn, Typography } from '@aero/ui';
 import { CircleCheck, CircleStop, ListCheck } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useSessionTodos } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
@@ -17,6 +18,7 @@ export function TaskStatus() {
 
 export function TaskStatusContent({ sessionId }: { sessionId: string }) {
   const { data: todos } = useSessionTodos(undefined, sessionId);
+  const { t } = useI18n();
 
   if (!todos || todos.length === 0) {
     return null;
@@ -33,7 +35,7 @@ export function TaskStatusContent({ sessionId }: { sessionId: string }) {
         <div className='flex items-center gap-1'>
           <Icon data={ListCheck} className='text-muted' size={14} />
           <Typography type='body-sm' className='text-foreground font-medium'>
-            Tasks
+            {t.statusPanel.tasks}
           </Typography>
         </div>
         <Typography type='body-xs' className='text-muted'>

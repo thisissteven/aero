@@ -18,11 +18,13 @@ import {
   useSelectedModel,
   useSetSelectedModel,
 } from '@/app/features/chat-page/chat-input/models/use-selected-model';
+import { useI18n } from '@/app/hooks/i18n';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 
 export function ModelDropdown() {
+  const { t } = useI18n();
   const selectedModel = useSelectedModel();
   const setSelectedModel = useSetSelectedModel();
 
@@ -80,11 +82,14 @@ export function ModelDropdown() {
     toggleFavoriteModel(modelKey);
   };
 
-  const items = buildModelVirtualItems({
-    favoriteModels,
-    groupedProviders,
-    collapsedGroups,
-  });
+  const items = buildModelVirtualItems(
+    {
+      favoriteModels,
+      groupedProviders,
+      collapsedGroups,
+    },
+    t.modelPicker.favorites,
+  );
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
@@ -102,7 +107,7 @@ export function ModelDropdown() {
         )}
 
         {selectedModel?.model.name ?? (
-          <span className='text-muted'>Select model</span>
+          <span className='text-muted'>{t.modelPicker.selectModel}</span>
         )}
       </Button>
 

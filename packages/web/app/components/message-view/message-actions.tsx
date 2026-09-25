@@ -10,13 +10,13 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
-import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useForkSession,
   useIsPinned,
   useRevertSession,
   useTogglePinnedMessage,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { revertSessionToast } from '@/app/lib/commands/revert-session';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -24,6 +24,7 @@ import { useSpeechStore } from '@/app/stores/speech';
 
 export function MessageActionsPin({ messageId }: { messageId: string }) {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const pinned = useIsPinned(sessionId, messageId);
   const { mutate: toggle } = useTogglePinnedMessage();
 
@@ -47,9 +48,7 @@ export function MessageActionsPin({ messageId }: { messageId: string }) {
 
       <Tooltip.Content placement='bottom' offset={8}>
         <span>
-          {pinned
-            ? 'Remove from context'
-            : 'Pin into context (survives compaction)'}
+          {pinned ? t.composer.removeFromContext : t.composer.pinIntoContext}
         </span>
       </Tooltip.Content>
     </Tooltip>
@@ -58,18 +57,19 @@ export function MessageActionsPin({ messageId }: { messageId: string }) {
 
 export function MessageActionsRevert({ messageId }: { messageId: string }) {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const { mutateAsync } = useRevertSession(undefined, sessionId);
 
   return (
     <Tooltip>
       <IconButton
-        onPress={() => revertSessionToast(() => mutateAsync(messageId))}
+        onPress={() => revertSessionToast(() => mutateAsync(messageId), t)}
       >
         <Icon data={ArrowUturnCcwLeft} />
       </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
-        <span>Revert from here</span>
+        <span>{t.composer.revertFromHere}</span>
       </Tooltip.Content>
     </Tooltip>
   );
@@ -77,6 +77,7 @@ export function MessageActionsRevert({ messageId }: { messageId: string }) {
 
 export function MessageActionsFork({ messageId }: { messageId: string }) {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const { mutateAsync: forkSession } = useForkSession(undefined, sessionId);
 
   const navigate = useNavigate();
@@ -86,11 +87,11 @@ export function MessageActionsFork({ messageId }: { messageId: string }) {
       <IconButton
         onPress={async () => {
           toast.promise(() => forkSession(messageId), {
-            loading: 'Forking session',
+            loading: t.composer.forkingSession,
             error: (err) => err.message,
             success(session) {
               navigate({ to: `/sessions/${session.id}` });
-              return 'Session forked successfully';
+              return t.composer.sessionForked;
             },
           });
         }}
@@ -99,7 +100,7 @@ export function MessageActionsFork({ messageId }: { messageId: string }) {
       </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
-        <span>Fork from here</span>
+        <span>{t.composer.forkFromHere}</span>
       </Tooltip.Content>
     </Tooltip>
   );
@@ -107,6 +108,7 @@ export function MessageActionsFork({ messageId }: { messageId: string }) {
 
 export function MessageActionsCopy({ copyText }: { copyText: string }) {
   const { copied, copy } = useCopyToClipboard();
+  const { t } = useI18n();
 
   return (
     <Tooltip>
@@ -138,7 +140,7 @@ export function MessageActionsCopy({ copyText }: { copyText: string }) {
       </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
-        <span>Copy message</span>
+        <span>{t.composer.copyMessage}</span>
       </Tooltip.Content>
     </Tooltip>
   );
@@ -155,6 +157,7 @@ export function MessageActionsReadAloud({
   const isSpeaking = useSpeechStore((state) => state.isSpeaking);
   const isSupported = useSpeechStore((state) => state.isSupported);
   const toggle = useSpeechStore((state) => state.toggle);
+  const { t } = useI18n();
 
   const isThisPlaying = activeId === id && isSpeaking;
 
@@ -169,7 +172,9 @@ export function MessageActionsReadAloud({
       </IconButton>
 
       <Tooltip.Content placement='bottom' offset={8}>
-        <span>{isThisPlaying ? 'Stop reading' : 'Read aloud'}</span>
+        <span>
+          {isThisPlaying ? t.composer.stopReading : t.composer.readAloud}
+        </span>
       </Tooltip.Content>
     </Tooltip>
   );

@@ -2,9 +2,12 @@ import { Target } from '@gravity-ui/icons';
 
 import { useGoalMode, useUpdateSetting } from '@/app/hooks/api/settings';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import { BooleanSettingToggleButton } from './boolean-setting';
 
 export function GoalModeToggleButton({ sessionId }: { sessionId: string }) {
+  const { t } = useI18n();
   const { data } = useGoalMode(sessionId);
   const { mutate: updateSetting } = useUpdateSetting();
 
@@ -13,7 +16,7 @@ export function GoalModeToggleButton({ sessionId }: { sessionId: string }) {
   return (
     <BooleanSettingToggleButton
       enabled={enabled}
-      label='Goal mode'
+      label={t.chatInput.goalMode}
       icon={<Target />}
       onPress={() =>
         updateSetting({

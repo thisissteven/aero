@@ -6,6 +6,7 @@ import {
   useSessionScroll,
 } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ export const ScrollToBottomButton = React.memo(function ScrollToBottomButton({
   onScrollToBottom,
   className,
   buttonClassName,
-  label = 'Scroll to bottom',
+  label,
 }: {
   /** Invoked when the hanging button is clicked. */
   onScrollToBottom: () => void;
@@ -78,6 +79,7 @@ export const ScrollToBottomButton = React.memo(function ScrollToBottomButton({
   /** Accessible label for the button. */
   label?: string;
 }) {
+  const { t } = useI18n();
   const showButton = useHangingScrollButton();
 
   if (!showButton) return null;
@@ -86,7 +88,7 @@ export const ScrollToBottomButton = React.memo(function ScrollToBottomButton({
     <button
       type='button'
       onClick={onScrollToBottom}
-      aria-label={label}
+      aria-label={label ?? t.chatFeed.scrollToBottom}
       className={cn(
         'pointer-events-auto flex shrink-0 items-center gap-1',
         'border-separator bg-surface text-muted hover:text-foreground rounded-lg border px-3 py-1.75 shadow-sm backdrop-blur-sm',

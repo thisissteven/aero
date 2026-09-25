@@ -1,10 +1,10 @@
+import { Sidebar } from '@aero/ui';
 import { Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 
-import { Sidebar } from '@aero/ui';
-
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { useI18n } from '@/app/hooks/i18n';
 import {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
@@ -29,9 +29,11 @@ export function WorkspaceNewSessionButton({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Sidebar.MenuAction
-      aria-label='Actions'
+      aria-label={t.common.actions}
       className='group'
       onClick={(e) => {
         e.stopPropagation();

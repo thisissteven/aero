@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { GlobPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const GlobToolView = memo(
@@ -15,6 +16,7 @@ export const GlobToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const pattern = part.input.pattern || '';
     const rawOutput = formatToolOutput(part.output);
 
@@ -24,8 +26,8 @@ export const GlobToolView = memo(
         status={part.status}
         error={part.error}
         icon={FileMagnifier}
-        title='Find Files'
-        codeTitle={`Pattern: ${pattern}`}
+        title={t.toolCall.findFiles}
+        codeTitle={t.toolCall.pattern(pattern)}
         code={rawOutput}
         language='text'
         preview={pattern}

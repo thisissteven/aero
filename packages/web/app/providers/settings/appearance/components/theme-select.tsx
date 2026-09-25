@@ -1,6 +1,7 @@
 // components/theme-select.tsx
 import { Label, ListBox, Select } from '@aero/ui';
 
+import { useI18n } from '@/app/hooks/i18n';
 import { COLOR_THEMES, ColorTheme } from '@/app/providers/theme';
 
 import { THEME_LABELS } from './theme-labels';
@@ -16,13 +17,15 @@ export function ThemeSelect({
   label,
   value,
   onChange,
-  placeholder = 'Select theme',
+  placeholder,
 }: ThemeSelectProps) {
+  const { t } = useI18n();
+
   return (
     <Select
       value={value}
       onChange={(key) => onChange(key as ColorTheme)}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t.settingsAppearance.selectTheme}
       className='flex w-[220px] flex-col gap-2'
     >
       <Label>{label}</Label>

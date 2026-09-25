@@ -26,6 +26,7 @@ import {
 } from '@/app/components/chat-aside/browser/browser-helpers';
 import { IconBtn } from '@/app/components/chat-aside/browser/icon-btn';
 import { LocalhostPorts } from '@/app/components/chat-aside/browser/localhost-ports';
+import { useI18n } from '@/app/hooks/i18n';
 import { honoClient } from '@/app/lib';
 
 import { useBrowserActions, useBrowserTab } from './browser-store';
@@ -47,6 +48,7 @@ export function BrowserPane({
   const inspectAttemptRef = useRef(0);
 
   const tab = useBrowserTab(tabId);
+  const { t } = useI18n();
 
   const {
     setDraftUrl,
@@ -319,11 +321,11 @@ export function BrowserPane({
     void navigator.clipboard
       .writeText(text)
       .then(() => {
-        toast.success('Annotation context copied to clipboard');
+        toast.success(t.browser.annotationContextCopied);
       })
       .catch((error) => {
         console.error('[Agentation] Clipboard write failed', error);
-        toast.danger('Failed to copy annotation context');
+        toast.danger(t.browser.failedToCopyAnnotationContext);
       });
 
     // const iframe = iframeRef.current;
@@ -351,6 +353,7 @@ export function BrowserPane({
     setInspecting,
     tab,
     tabId,
+    t,
   ]);
 
   const handleInspect = useCallback(() => {
@@ -378,9 +381,7 @@ export function BrowserPane({
         if (attempt !== inspectAttemptRef.current || bridgeReadyRef.current) {
           return;
         }
-        toast.danger(
-          'Annotations are unavailable for this preview. The page may be preventing injected scripts from running.',
-        );
+        toast.danger(t.browser.annotationsUnavailable);
       }, 1800);
     }
   }, [
@@ -392,6 +393,7 @@ export function BrowserPane({
     setInspecting,
     tab,
     tabId,
+    t,
   ]);
 
   // Keybindings
@@ -670,20 +672,24 @@ export function BrowserPane({
     >
       {/* Navigation & Address Bar */}
       <div className='border-separator flex items-center gap-1 border-b px-2 py-1'>
-        <IconBtn disabled={!tab.canGoBack} onClick={goBackInFrame} title='Back'>
+        <IconBtn
+          disabled={!tab.canGoBack}
+          onClick={goBackInFrame}
+          title={t.common.back}
+        >
           <Icon data={ArrowLeft} size={14} />
         </IconBtn>
         <IconBtn
           disabled={!tab.canGoForward}
           onClick={goForwardInFrame}
-          title='Forward'
+          title={t.common.forward}
         >
           <Icon data={ArrowRight} size={14} />
         </IconBtn>
         <IconBtn
           disabled={!tab.currentUrl}
           onClick={handleReload}
-          title='Reload'
+          title={t.browser.reload}
         >
           <Icon data={ArrowsRotateRight} size={14} />
         </IconBtn>
@@ -699,7 +705,7 @@ export function BrowserPane({
                 handleSubmit();
               }
             }}
-            placeholder='Search or enter address'
+            placeholder={t.browser.searchOrEnterAddress}
             className='border-separator bg-default h-7 w-full rounded-md border px-2 text-sm outline-none'
           />
         </form>
@@ -709,7 +715,9 @@ export function BrowserPane({
           disabled={!tab.currentUrl || !isProxied}
           onClick={handleInspect}
           title={
-            isProxied ? 'Annotate preview' : 'Unavailable for un-proxied pages'
+            isProxied
+              ? t.browser.annotatePreview
+              : t.browser.unavailableForUnproxiedPages
           }
         >
           <Icon data={LayoutHeaderCursor} size={14} />
@@ -723,7 +731,7 @@ export function BrowserPane({
               window.open(url, '_blank', 'noopener,noreferrer');
             }
           }}
-          title='Open externally'
+          title={t.browser.openExternally}
         >
           <Icon data={ArrowUpRightFromSquare} size={14} />
         </IconBtn>
@@ -742,7 +750,7 @@ export function BrowserPane({
               key={`${iframeSrc}:${tab.reloadNonce}`}
               ref={iframeRef}
               src={iframeSrc}
-              title='Browser preview'
+              title={t.browser.browserPreview}
               className='absolute inset-0 h-full w-full border-0'
               allow='clipboard-read; clipboard-write; fullscreen'
               onLoad={() => setLoading(tabId, false)}
@@ -830,14 +838,14 @@ export function BrowserPane({
                       clearSelection();
                     }
                   }}
-                  placeholder='Add a note'
+                  placeholder={t.browser.addNote}
                   className='placeholder:text-muted min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm outline-none'
                 />
 
                 <Button
                   isIconOnly
                   type='button'
-                  aria-label='Submit comment'
+                  aria-label={t.selectionPopover.submitComment}
                   size='sm'
                   onPress={createAnnotation}
                 >
@@ -849,7 +857,7 @@ export function BrowserPane({
             {/* Connecting Toast Indicator */}
             {!bridgeReady && tab.isInspecting && (
               <div className='border-separator bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
-                Connecting to preview…
+                {t.browser.connectingToPreview}
               </div>
             )}
           </div>
@@ -866,7 +874,7 @@ export function BrowserPane({
         {/* Global Loading Overlay */}
         {tab.isLoading && (
           <div className='bg-overlay/60 text-muted absolute inset-0 flex items-center justify-center text-sm'>
-            Loading...
+            {t.common.loading}
           </div>
         )}
       </div>

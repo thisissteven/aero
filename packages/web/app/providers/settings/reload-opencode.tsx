@@ -2,17 +2,19 @@ import { cn, IconButton, toast } from '@aero/ui';
 import { ArrowsRotateRight } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useReloadOpencode } from '@/app/hooks/api/pool';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function ReloadOpencode() {
   const { mutateAsync: reloadOpencode, isPending } = useReloadOpencode();
+  const { t } = useI18n();
 
   return (
     <IconButton
       onPress={() =>
         toast.promise(reloadOpencode(), {
-          error: 'Opencode failed to reload',
-          loading: 'Reloading opencode...',
-          success: 'Opencode reloaded successfully',
+          error: t.settings.opencodeReloadFailed,
+          loading: t.settings.reloadingOpencode,
+          success: t.settings.opencodeReloaded,
         })
       }
       isIconOnly={false}
@@ -23,7 +25,7 @@ export function ReloadOpencode() {
         data={ArrowsRotateRight}
         className={cn('size-4', isPending && 'animate-spin')}
       />
-      <span>Reload OpenCode</span>
+      <span>{t.settings.reloadOpencode}</span>
     </IconButton>
   );
 }

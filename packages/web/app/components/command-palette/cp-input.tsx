@@ -1,10 +1,11 @@
+import { Command, Kbd } from '@aero/ui';
 import { Magnifier } from '@gravity-ui/icons';
 
-import { Command, Kbd } from '@aero/ui';
-
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function CommandPaletteInput() {
+  const { t } = useI18n();
   const searchValue = useCommandPaletteStore((state) => state.searchValue);
   const setSearchValue = useCommandPaletteStore(
     (state) => state.setSearchValue,
@@ -17,7 +18,7 @@ export function CommandPaletteInput() {
       </Command.InputGroup.Prefix>
 
       <Command.InputGroup.Input
-        placeholder='Search for files, sessions, and actions'
+        placeholder={t.commandPalette.searchPlaceholder}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         autoFocus

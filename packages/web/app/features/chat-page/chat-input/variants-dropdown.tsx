@@ -5,10 +5,12 @@ import {
   buildVirtualDropdownEntries,
   VirtualizedDropdown,
 } from '@/app/components/virtualized-dropdown';
+import { useI18n } from '@/app/hooks/i18n';
 import { capitalizeFirstLetter } from '@/server/shared';
 import { useChatSettingsStore } from './chat-settings-store';
 
 export function VariantsDropdown() {
+  const { t } = useI18n();
   const selectedModel = useChatSettingsStore((s) => s.selectedModel);
   const selectedVariant = useChatSettingsStore((s) => s.selectedVariant);
   const setSelectedVariant = useChatSettingsStore((s) => s.setSelectedVariant);
@@ -32,13 +34,13 @@ export function VariantsDropdown() {
         groups: [
           {
             id: 'variants',
-            label: 'Thinking Variants',
+            label: t.chatInput.thinkingVariants,
             items: filteredVariants,
           },
         ],
         getKey: (variant) => variant,
       }),
-    [filteredVariants],
+    [filteredVariants, t],
   );
 
   if (variants.length === 0) return null;
@@ -57,13 +59,15 @@ export function VariantsDropdown() {
       trigger={
         <>
           <Icon data={Sparkles} className='size-3.5' />
-          {selectedVariant ? capitalizeFirstLetter(selectedVariant) : 'Default'}
+          {selectedVariant
+            ? capitalizeFirstLetter(selectedVariant)
+            : t.chatInput.defaultVariant}
         </>
       }
       searchValue={searchQuery}
       onSearchValueChange={setSearchQuery}
-      searchPlaceholder='Search variants...'
-      emptyState='No variants found.'
+      searchPlaceholder={t.chatInput.searchVariants}
+      emptyState={t.chatInput.noVariantsFound}
       renderRow={(variant) => (
         <div className='flex min-w-0 flex-1 flex-col'>
           <span className='truncate'>{capitalizeFirstLetter(variant)}</span>

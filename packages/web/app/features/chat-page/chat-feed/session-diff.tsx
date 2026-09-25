@@ -8,6 +8,7 @@ import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-trunc
 import { useGitStatus } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -75,6 +76,7 @@ function deriveSummary(
 }
 
 export const SessionDiff = memo(function SessionDiff() {
+  const { t } = useI18n();
   const directory = useSessionDirectory();
   const { data: statusData, isLoading } = useGitStatus(directory);
   const [isOpen, setIsOpen] = useState(false);
@@ -105,7 +107,7 @@ export const SessionDiff = memo(function SessionDiff() {
       <Popover.Trigger className='focus-visible:ring-accent flex items-center justify-start gap-1 rounded-lg px-2 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none border border-separator w-fit bg-surface'>
         <Icon data={PencilToLine} size={12} className='text-warning shrink-0' />
         <span className='line-clamp-1'>
-          {fileCount} {fileCount === 1 ? 'file' : 'files'} changed
+          {t.chatFeed.fileCountChanged(fileCount)}
         </span>
 
         {totalAdditions > 0 && (
@@ -125,7 +127,7 @@ export const SessionDiff = memo(function SessionDiff() {
       >
         <Popover.Dialog className='p-0'>
           <Popover.Heading className='px-2 pb-1 pt-2'>
-            Changed files {fileCount}
+            {t.chatFeed.changedFiles(fileCount)}
           </Popover.Heading>
 
           <div className='max-h-[240px] scrollbar-thin overflow-y-auto'>

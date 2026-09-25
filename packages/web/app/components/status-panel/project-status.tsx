@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useGitStatus } from '@/app/hooks/api/git';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
+import { useI18n } from '@/app/hooks/i18n';
 import { getLastPathName } from '@/app/lib/file';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -101,13 +102,14 @@ export function ProjectStatusContent() {
 
 function ProjectStatusHeader({ workspace }: { workspace: string }) {
   const { data: keys } = useWorkspacesKeys();
+  const { t } = useI18n();
 
   const workspaceTitle = keys?.[workspace]?.name ?? getLastPathName(workspace);
 
   return (
     <div className='mb-2 flex items-center justify-between gap-2'>
       <Typography type='body-sm' className='text-foreground font-medium'>
-        Project
+        {t.statusPanel.project}
       </Typography>
       <Typography type='body-xs' className='text-muted truncate'>
         {workspaceTitle}
@@ -136,6 +138,7 @@ function CurrentBranch({ workspace }: { workspace: string }) {
 
 function FilesChanged({ workspace }: { workspace: string }) {
   const { data: statusData } = useGitStatus(workspace);
+  const { t } = useI18n();
 
   const summary = useMemo(
     () => deriveSummary(statusData as GitStatusShape | null | undefined),
@@ -152,7 +155,7 @@ function FilesChanged({ workspace }: { workspace: string }) {
     <div className='flex items-center justify-between text-xs'>
       <div className='text-muted flex items-center gap-1.5'>
         <File className='h-3.5 w-3.5' />
-        <span>{fileCount} files changed</span>
+        <span>{t.chatFeed.fileCountChanged(fileCount)}</span>
       </div>
       {totalAdditions || totalDeletions ? (
         <div className='flex gap-1.5'>

@@ -9,6 +9,8 @@ import {
 } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
+import type { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { formatElapsed, useElapsedTime } from '@/app/hooks/useElapsedTime';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import type {
@@ -24,13 +26,14 @@ function getActivityLabel(
   role: string,
   turns: AeroConversationTurn[],
   status: AeroSessionStatus,
+  t: BaseTranslation,
 ) {
   if (status.type === 'idle') {
     return null;
   }
 
   if (status.type === 'retry') {
-    return `Retrying (attempt ${status.attempt})…`;
+    return t.chatFeed.retryAttempt(status.attempt);
   }
 
   const lastAssistant = [...turns]
@@ -38,7 +41,7 @@ function getActivityLabel(
     .find((turn) => turn.role === 'assistant');
 
   if (!lastAssistant) {
-    return `${role} is thinking…`;
+    return t.chatFeed.isThinking(role);
   }
 
   const activeTool = [...lastAssistant.parts]
@@ -51,14 +54,14 @@ function getActivityLabel(
 
   if (activeTool) {
     if (activeTool.type === 'tool' && activeTool.toolName === 'question') {
-      return `${role} is waiting for an answer…`;
+      return t.chatFeed.isWaiting(role);
     }
 
     if (activeTool.type === 'tool' && activeTool.toolName === 'task') {
-      return 'Subagent is working…';
+      return t.chatFeed.subagentIsWorking;
     }
 
-    return `${role} is calling a tool…`;
+    return t.chatFeed.isCallingTool(role);
   }
 
   const hasReasoning = lastAssistant.parts.some(
@@ -66,7 +69,7 @@ function getActivityLabel(
   );
 
   if (hasReasoning) {
-    return `${role} is thinking…`;
+    return t.chatFeed.isThinking(role);
   }
 
   const hasText = lastAssistant.parts.some(
@@ -74,10 +77,10 @@ function getActivityLabel(
   );
 
   if (hasText) {
-    return `${role} is responding…`;
+    return t.chatFeed.isResponding(role);
   }
 
-  return `${role} is thinking…`;
+  return t.chatFeed.isThinking(role);
 }
 
 const chevronDelays = Array.from({ length: 9 }, (_, i) => {
@@ -110,6 +113,7 @@ function PixelLoader() {
 export const ChatActivityIndicator = React.memo(
   function ChatActivityIndicator() {
     const sessionId = useSessionId();
+    const { t } = useI18n();
 
     const turns = useSessionRuntime(sessionId, (runtime) => runtime.turns);
     const status = useSessionRuntime(sessionId, (runtime) => runtime.status);
@@ -123,11 +127,13 @@ export const ChatActivityIndicator = React.memo(
     const { data: session } = useSession(undefined, sessionId);
 
     const isSubagent = Boolean(session?.parentId);
-    const role = isSubagent ? 'Subagent' : 'Assistant';
+    const role = isSubagent
+      ? t.chatFeed.roleSubagent
+      : t.chatFeed.roleAssistant;
 
     const label = useMemo(
-      () => getActivityLabel(role, turns, status),
-      [role, turns, status],
+      () => getActivityLabel(role, turns, status, t),
+      [role, turns, status, t],
     );
 
     if (!label) {

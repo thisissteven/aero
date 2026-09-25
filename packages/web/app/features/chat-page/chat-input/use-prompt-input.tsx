@@ -11,12 +11,14 @@ import {
 } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useHandleSend } from '@/app/features/chat-page/chat-input/use-handle-send';
 import { useAbortSession, useSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useDoubleKeyPress } from '@/app/hooks/useDoubleKeyPress';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const segments = useComposerStore(
     (state) => getComposerSession(state, sessionId).segments,
   );
@@ -63,10 +65,10 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
       onSuccess: () => setIsAborting(false),
       onError: () => {
         setIsAborting(false);
-        toast.danger('Failed to stop session');
+        toast.danger(t.chatInput.failedToStopSession);
       },
     });
-  }, [sessionId, isPending, isAborting, abortSession]);
+  }, [sessionId, isPending, isAborting, abortSession, t]);
 
   useDoubleKeyPress('Escape', handleAbort, {
     threshold: 350,

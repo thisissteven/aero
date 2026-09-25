@@ -3,6 +3,7 @@ import { Comment, Gear, Keyboard } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
+
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
@@ -12,6 +13,7 @@ import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useSessionDirectory, useSessions } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
+import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { toWorkspaceRelative } from '@/app/lib/file';
@@ -35,6 +37,7 @@ export type VirtualPaletteItem =
   | { kind: 'loader'; id: string };
 
 export function CommandPaletteList() {
+  const { t } = useI18n();
   const listRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -221,7 +224,7 @@ export function CommandPaletteList() {
         autoFocus='first'
         renderEmptyState={() => (
           <div className='text-muted flex h-16 items-center justify-center text-sm'>
-            No files, sessions, and commands match that search.
+            {t.commandPalette.noMatch}
           </div>
         )}
         className='max-h-[380px] w-full scroll-py-8 overflow-x-hidden overflow-y-auto px-0'
@@ -294,6 +297,8 @@ export function CommandPaletteList() {
             case 'session': {
               const updatedAtStr = formatCompactRelativeTime(
                 typedItem.session.updatedAt,
+                undefined,
+                t.dateTime,
               );
 
               return (

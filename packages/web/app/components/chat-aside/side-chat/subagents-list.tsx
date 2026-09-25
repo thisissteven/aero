@@ -3,10 +3,12 @@ import { VList } from 'virtua';
 import { SubagentStatusItem } from '@/app/components/status-panel/subagent-status-item';
 import { useChatStore } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessions } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
 export function SubagentsList() {
+  const { t } = useI18n();
   const sessionsQuery = useSessions({
     childSessionsOnly: true,
   });
@@ -37,11 +39,9 @@ export function SubagentsList() {
       <div className='overflow-hidden relative h-[calc(100svh-56px-48px)]'>
         <div className='flex h-full flex-col items-center justify-center gap-1 px-4 text-center'>
           <p className='text-sm font-medium text-foreground'>
-            No subagents yet
+            {t.sideChat.noSubagents}
           </p>
-          <p className='text-xs text-muted'>
-            Spawned subagents will appear here.
-          </p>
+          <p className='text-xs text-muted'>{t.sideChat.spawnedSubagents}</p>
         </div>
       </div>
     );

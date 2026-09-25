@@ -4,6 +4,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { SubagentStatusItem } from '@/app/components/status-panel/subagent-status-item';
 import { useSessionChildren, useSessionStatus } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
@@ -16,6 +17,7 @@ export function SubagentStatus() {
 
 function SubagentStatusContent() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const { data: children = [] } = useSessionChildren(undefined, sessionId);
   const _navigate = useNavigate();
 
@@ -28,7 +30,7 @@ function SubagentStatusContent() {
         <div className='flex items-center gap-1'>
           <Icon data={CircleTree} className='text-muted' size={14} />
           <Typography type='body-sm' className='text-foreground font-medium'>
-            Subagents
+            {t.statusPanel.subagents}
           </Typography>
         </div>
         <Typography type='body-xs' className='text-muted'>

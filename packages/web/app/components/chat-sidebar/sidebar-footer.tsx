@@ -43,6 +43,8 @@ import {
 import { Icon } from '@gravity-ui/uikit';
 import React from 'react';
 import { useOpencodeVersion } from '@/app/hooks/api/pool';
+import { useI18n } from '@/app/hooks/i18n';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
@@ -51,6 +53,9 @@ export function SidebarFooter() {
   const openAboutModal = useGlobalModalStore((state) => state.openModal);
   const openShortcutsModal = useGlobalModalStore((state) => state.openModal);
   const { setMobileOpen } = useSidebar();
+
+  const { t } = useI18n();
+
   return (
     <Sidebar.Footer className='sticky bottom-0 z-10 px-0 pt-1 pb-3'>
       <div className='mt-1.5 space-x-1 px-4'>
@@ -67,7 +72,7 @@ export function SidebarFooter() {
           </IconButton>
 
           <Tooltip.Content>
-            <p>Settings</p>
+            <p>{t.common.settings}</p>
           </Tooltip.Content>
         </Tooltip>
 
@@ -85,7 +90,7 @@ export function SidebarFooter() {
           </IconButton>
 
           <Tooltip.Content>
-            <p>Shortcuts</p>
+            <p>{t.common.shortcuts}</p>
           </Tooltip.Content>
         </Tooltip>
 
@@ -102,7 +107,7 @@ export function SidebarFooter() {
             <Icon data={CircleInfo} />
           </IconButton>
           <Tooltip.Content>
-            <p>About Aero</p>
+            <p>{t.app.aboutAero}</p>
           </Tooltip.Content>
         </Tooltip>
       </div>
@@ -114,6 +119,8 @@ export function AboutModal() {
   const { resolvedTheme } = useTheme();
 
   const { data } = useOpencodeVersion();
+
+  const { t } = useI18n();
 
   return (
     <Modal.Dialog className='text-foreground rounded-2xl p-6 sm:max-w-[360px]'>
@@ -128,7 +135,7 @@ export function AboutModal() {
                 ? '/favicon-dark.svg'
                 : '/favicon-light.svg'
             }
-            alt='Aero Logo'
+            alt={t.app.aeroLogo}
             className='h-10 w-10 object-contain'
           />
         </div>
@@ -137,14 +144,14 @@ export function AboutModal() {
         <div className='flex items-center gap-3'>
           <div className='flex items-end gap-1'>
             <div className='relative px-4'>
-              <Typography.Heading level={4}>Aero</Typography.Heading>
+              <Typography.Heading level={4}>{t.app.aero}</Typography.Heading>
               <Badge
                 color='accent'
                 size='sm'
                 placement='top-right'
                 className='-translate-y-1 px-0.5'
               >
-                v1.0.0
+                {t.app.version}
               </Badge>
             </div>
           </div>
@@ -152,7 +159,9 @@ export function AboutModal() {
           {data?.version && (
             <div className='flex items-end gap-1'>
               <div className='relative px-4'>
-                <Typography.Heading level={4}>Opencode</Typography.Heading>
+                <Typography.Heading level={4}>
+                  {t.app.opencode}
+                </Typography.Heading>
                 <Badge
                   color='default'
                   size='sm'
@@ -170,17 +179,17 @@ export function AboutModal() {
       <Modal.Body className='space-y-5 pt-4 text-center'>
         {/* Description */}
         <Typography.Paragraph size='sm' className='text-muted text-center'>
-          An open-source AI workspace. <br />
-          Inspired by{' '}
+          {t.app.openedSource} <br />
+          {t.app.inspiredBy}{' '}
           <Link
             href='https://github.com/openchamber/openchamber'
             rel='noreferrer'
             target='_blank'
           >
-            Openchamber
+            {t.app.openchamber}
             <Link.Icon />
           </Link>
-          .
+          {t.app.period}
         </Typography.Paragraph>
 
         {/* GitHub Link Button */}
@@ -191,7 +200,7 @@ export function AboutModal() {
           className='space-x-2'
         >
           <Icon data={LogoGithub} />
-          Star on GitHub
+          {t.app.starOnGithub}
           <Link.Icon />
         </Link>
       </Modal.Body>
@@ -210,153 +219,155 @@ interface ShortcutSection {
   items: ShortcutItem[];
 }
 
-const SHORTCUT_SECTIONS: ShortcutSection[] = [
-  {
-    category: 'NAVIGATION & COMMANDS',
-    items: [
-      {
-        label: 'Open Command Palette',
-        keys: ['Ctrl', 'K'],
-        icon: <Icon data={Magnifier} size={14} />,
-      },
-      {
-        label: 'Show Keyboard Shortcuts (this dialog)',
-        keys: ['Ctrl', '.'],
-        icon: <Icon data={Keyboard} size={14} />,
-      },
-      {
-        label: 'Toggle Session Sidebar',
-        keys: ['Ctrl', 'L'],
-        icon: <Icon data={LayoutSideContentLeft} size={14} />,
-      },
-      {
-        label: 'Cycle Agent (chat input)',
-        keys: ['Tab'],
-        icon: <Icon data={Person} size={14} />,
-      },
-      {
-        label: 'Open Model Selector',
-        keys: ['Ctrl', 'Shift', 'M'],
-        icon: <Icon data={Cpu} size={14} />,
-      },
-      {
-        label: 'Navigate Models (in picker)',
-        keys: ['↑', '↓'],
-        icon: <Icon data={ChevronsExpandVertical} size={14} />,
-      },
-      {
-        label: 'Adjust Thinking Mode (in picker, when supported)',
-        keys: ['←', '→'],
-        icon: <Icon data={ChevronsExpandHorizontal} size={14} />,
-      },
-      {
-        label: 'Cycle Thinking Variant (global shortcut)',
-        keys: ['Ctrl', 'Shift', 'T'],
-        icon: <Icon data={Sparkles} size={14} />,
-      },
-      {
-        label: 'New Window (desktop only)',
-        keys: ['Ctrl', 'Alt', 'Shift', 'N'],
-        icon: <Icon data={Display} size={14} />,
-      },
-    ],
-  },
-  {
-    category: 'SESSION MANAGEMENT',
-    items: [
-      {
-        label: 'Create New Session',
-        keys: ['N'],
-        icon: <Icon data={Plus} size={14} />,
-      },
-      {
-        label: 'Create New Worktree Draft',
-        keys: ['Ctrl', 'Shift', 'Q'],
-        icon: <Icon data={CircleTree} size={14} />,
-      },
-      {
-        label: 'Focus Chat Input',
-        keys: ['Ctrl', 'I'],
-        icon: <Icon data={Comment} size={14} />,
-      },
-      {
-        label: 'Toggle Prompt Navigator',
-        keys: ['Ctrl', 'Alt', 'P'],
-        icon: <Icon data={Bars} size={14} />,
-      },
-      {
-        label: 'Abort active run (double press)',
-        keys: ['Esc'],
-        icon: <Icon data={Xmark} size={14} />,
-      },
-    ],
-  },
-  {
-    category: 'PANELS',
-    items: [
-      {
-        label: 'Toggle Right Panel',
-        keys: ['Ctrl', 'B'],
-        icon: <Icon data={LayoutSideContentRight} size={14} />,
-      },
-      {
-        label: 'Open Git surface',
-        keys: ['Ctrl', 'Shift', 'G'],
-        icon: <Icon data={CodeFork} size={14} />,
-      },
-      {
-        label: 'Open Files surface',
-        keys: ['Ctrl', 'Shift', 'F'],
-        icon: <Icon data={Folder} size={14} />,
-      },
-      {
-        label: 'Toggle Terminal Dock',
-        keys: ['Ctrl', 'J'],
-        icon: <Icon data={Terminal} size={14} />,
-      },
-      {
-        label: 'Toggle Terminal Expanded',
-        keys: ['Ctrl', 'Shift', 'J'],
-        icon: <Icon data={ArrowsExpandVertical} size={14} />,
-      },
-      {
-        label: 'Toggle Plan Context Panel',
-        keys: ['Ctrl', 'Shift', 'P'],
-        icon: <Icon data={Clock} size={14} />,
-      },
-    ],
-  },
-  {
-    category: 'INTERFACE',
-    items: [
-      {
-        label: 'Cycle Theme (Light → Dark → System)',
-        keys: ['Ctrl', '/'],
-        icon: <Icon data={Palette} size={14} />,
-      },
-      {
-        label: 'Switch Project',
-        keys: ['Ctrl', '1 ... 9'],
-        icon: <Icon data={Boxes3} size={14} />,
-      },
-      {
-        label: 'Toggle Services Menu',
-        keys: ['Ctrl', 'Shift', 'S'],
-        icon: <Icon data={Server} size={14} />,
-      },
-      {
-        label: 'Cycle Services Tab',
-        keys: ['Ctrl', 'Shift', '['],
-        icon: <Icon data={LayoutTabs} size={14} />,
-      },
-      {
-        label: 'Open Settings',
-        keys: ['Ctrl', ','],
-        icon: <Icon data={Gear} size={14} />,
-      },
-    ],
-  },
-];
+function getShortcutSections(t: BaseTranslation): ShortcutSection[] {
+  return [
+    {
+      category: t.shortcuts.groupNavigation,
+      items: [
+        {
+          label: t.shortcuts.openCommandPalette,
+          keys: ['Ctrl', 'K'],
+          icon: <Icon data={Magnifier} size={14} />,
+        },
+        {
+          label: t.shortcuts.showKeyboardShortcuts,
+          keys: ['Ctrl', '.'],
+          icon: <Icon data={Keyboard} size={14} />,
+        },
+        {
+          label: t.shortcuts.toggleSessionSidebar,
+          keys: ['Ctrl', 'L'],
+          icon: <Icon data={LayoutSideContentLeft} size={14} />,
+        },
+        {
+          label: t.shortcuts.cycleAgent,
+          keys: ['Tab'],
+          icon: <Icon data={Person} size={14} />,
+        },
+        {
+          label: t.shortcuts.openModelSelector,
+          keys: ['Ctrl', 'Shift', 'M'],
+          icon: <Icon data={Cpu} size={14} />,
+        },
+        {
+          label: t.shortcuts.navigateModels,
+          keys: ['↑', '↓'],
+          icon: <Icon data={ChevronsExpandVertical} size={14} />,
+        },
+        {
+          label: t.shortcuts.adjustThinkingMode,
+          keys: ['←', '→'],
+          icon: <Icon data={ChevronsExpandHorizontal} size={14} />,
+        },
+        {
+          label: t.shortcuts.cycleThinkingVariant,
+          keys: ['Ctrl', 'Shift', 'T'],
+          icon: <Icon data={Sparkles} size={14} />,
+        },
+        {
+          label: t.shortcuts.newWindow,
+          keys: ['Ctrl', 'Alt', 'Shift', 'N'],
+          icon: <Icon data={Display} size={14} />,
+        },
+      ],
+    },
+    {
+      category: t.shortcuts.groupSession,
+      items: [
+        {
+          label: t.shortcuts.createNewSession,
+          keys: ['N'],
+          icon: <Icon data={Plus} size={14} />,
+        },
+        {
+          label: t.shortcuts.createNewWorktreeDraft,
+          keys: ['Ctrl', 'Shift', 'Q'],
+          icon: <Icon data={CircleTree} size={14} />,
+        },
+        {
+          label: t.shortcuts.focusChatInput,
+          keys: ['Ctrl', 'I'],
+          icon: <Icon data={Comment} size={14} />,
+        },
+        {
+          label: t.shortcuts.togglePromptNavigator,
+          keys: ['Ctrl', 'Alt', 'P'],
+          icon: <Icon data={Bars} size={14} />,
+        },
+        {
+          label: t.shortcuts.abortActiveRun,
+          keys: ['Esc'],
+          icon: <Icon data={Xmark} size={14} />,
+        },
+      ],
+    },
+    {
+      category: t.shortcuts.groupPanels,
+      items: [
+        {
+          label: t.shortcuts.toggleRightPanel,
+          keys: ['Ctrl', 'B'],
+          icon: <Icon data={LayoutSideContentRight} size={14} />,
+        },
+        {
+          label: t.shortcuts.openGitSurface,
+          keys: ['Ctrl', 'Shift', 'G'],
+          icon: <Icon data={CodeFork} size={14} />,
+        },
+        {
+          label: t.shortcuts.openFilesSurface,
+          keys: ['Ctrl', 'Shift', 'F'],
+          icon: <Icon data={Folder} size={14} />,
+        },
+        {
+          label: t.shortcuts.toggleTerminalDock,
+          keys: ['Ctrl', 'J'],
+          icon: <Icon data={Terminal} size={14} />,
+        },
+        {
+          label: t.shortcuts.toggleTerminalExpanded,
+          keys: ['Ctrl', 'Shift', 'J'],
+          icon: <Icon data={ArrowsExpandVertical} size={14} />,
+        },
+        {
+          label: t.shortcuts.togglePlanContextPanel,
+          keys: ['Ctrl', 'Shift', 'P'],
+          icon: <Icon data={Clock} size={14} />,
+        },
+      ],
+    },
+    {
+      category: t.shortcuts.groupInterface,
+      items: [
+        {
+          label: t.shortcuts.cycleTheme,
+          keys: ['Ctrl', '/'],
+          icon: <Icon data={Palette} size={14} />,
+        },
+        {
+          label: t.shortcuts.switchProject,
+          keys: ['Ctrl', '1 ... 9'],
+          icon: <Icon data={Boxes3} size={14} />,
+        },
+        {
+          label: t.shortcuts.toggleServicesMenu,
+          keys: ['Ctrl', 'Shift', 'S'],
+          icon: <Icon data={Server} size={14} />,
+        },
+        {
+          label: t.shortcuts.cycleServicesTab,
+          keys: ['Ctrl', 'Shift', '['],
+          icon: <Icon data={LayoutTabs} size={14} />,
+        },
+        {
+          label: t.shortcuts.openSettings,
+          keys: ['Ctrl', ','],
+          icon: <Icon data={Gear} size={14} />,
+        },
+      ],
+    },
+  ];
+}
 
 const KEY_ABBR_MAP: Record<string, KbdKey> = {
   ctrl: 'ctrl',
@@ -398,6 +409,8 @@ function KeyItem({ keyName, isFirst }: { keyName: KbdKey; isFirst: boolean }) {
 }
 
 export function ShortcutsModal() {
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='text-foreground w-full max-w-xl gap-0 rounded-2xl px-0 py-0 pr-2'>
       <Modal.CloseTrigger />
@@ -407,11 +420,11 @@ export function ShortcutsModal() {
         <div className='flex items-center gap-2'>
           <Icon data={Keyboard} />
           <Modal.Heading className='typography typography--h5 typography--weight-semibold text-foreground'>
-            Keyboard Shortcuts
+            {t.shortcuts.dialogTitle}
           </Modal.Heading>
         </div>
         <Typography type='body-sm' color='muted'>
-          Use these keyboard shortcuts to navigate Aero efficiently
+          {t.shortcuts.dialogDescription}
         </Typography>
       </Modal.Header>
 
@@ -419,7 +432,7 @@ export function ShortcutsModal() {
       <Modal.Body className='mt-0 overflow-hidden p-0'>
         <ScrollShadow offset={4} className='max-h-[65vh] px-6 py-4'>
           <div className='space-y-6'>
-            {SHORTCUT_SECTIONS.map((section) => (
+            {getShortcutSections(t).map((section) => (
               <div key={section.category} className='space-y-2'>
                 <Typography
                   type='body-xs'
@@ -478,18 +491,14 @@ export function ShortcutsModal() {
                   weight='semibold'
                   className='text-foreground'
                 >
-                  Pro Tips:
+                  {t.shortcuts.proTips}
                 </Typography>
               </div>
 
               <ul className='text-muted list-disc space-y-1 pl-6 text-sm'>
-                <li>
-                  Use Command Palette (Ctrl + K) to quickly access all actions
-                </li>
-                <li>
-                  The 10 most recent sessions appear in the Command Palette
-                </li>
-                <li>Theme cycling remembers your preference across sessions</li>
+                <li>{t.shortcuts.tipCommandPalette}</li>
+                <li>{t.shortcuts.tipRecentSessions}</li>
+                <li>{t.shortcuts.tipThemeCycling}</li>
               </ul>
             </div>
           </div>

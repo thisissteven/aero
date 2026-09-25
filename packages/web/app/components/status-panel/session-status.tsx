@@ -1,11 +1,13 @@
 import { ProgressBar, Typography } from '@aero/ui';
 import { DisplayPopover } from '@/app/components/status-panel/display-popover';
 import { useSessionContext } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 function ContextUsage() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
 
   const { data } = useSessionContext(undefined, sessionId);
 
@@ -15,7 +17,7 @@ function ContextUsage() {
     <div className='mt-2'>
       <div className='mb-1.5 flex items-center justify-between'>
         <Typography type='body-xs' color='muted'>
-          Context
+          {t.statusPanel.context}
         </Typography>
         <Typography type='body-xs' className='text-muted'>
           {percentage}%
@@ -23,7 +25,7 @@ function ContextUsage() {
       </div>
 
       <ProgressBar
-        aria-label='Context usage'
+        aria-label={t.statusPanel.contextUsageAria}
         className='w-full'
         minValue={0}
         maxValue={100}
@@ -38,6 +40,7 @@ function ContextUsage() {
 }
 
 export function SessionStatus() {
+  const { t } = useI18n();
   const isVisible = useStatusPanelStore((state) => state.visibleItems.session);
 
   return (
@@ -45,7 +48,7 @@ export function SessionStatus() {
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <Typography type='body-sm' className='text-foreground font-medium'>
-            Session
+            {t.statusPanel.sessionStatus}
           </Typography>
         </div>
         <DisplayPopover />

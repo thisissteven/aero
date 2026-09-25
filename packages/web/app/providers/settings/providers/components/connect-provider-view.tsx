@@ -3,6 +3,7 @@ import { Button, Input, Label, Separator, Typography, toast } from '@aero/ui';
 import { useState } from 'react';
 import { RELOAD_OPENCODE_TOAST } from '@/app/hooks/api/pool';
 import { useSetApiKey } from '@/app/hooks/api/providers';
+import { useI18n } from '@/app/hooks/i18n';
 import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 import { ProviderDropdown } from '../providers-dropdown';
 import { useProvidersStore } from '../providers-store';
@@ -12,6 +13,7 @@ export function ConnectProviderView() {
   const setSelectedProviderId = useProvidersStore(
     (s) => s.setSelectedProviderId,
   );
+  const { t } = useI18n();
   const [apiKey, setApiKey] = useState('');
 
   // Use the provided hook for setting the API key
@@ -43,31 +45,33 @@ export function ConnectProviderView() {
     <div className='space-y-8'>
       <div>
         <Typography type='h4' weight='semibold' className='mb-1'>
-          Connect Provider
+          {t.settingsProviders.connectProvider}
         </Typography>
       </div>
 
       <Separator />
 
       <section className='space-y-6'>
-        <Typography type='h6'>Select Provider</Typography>
+        <Typography type='h6'>
+          {t.settingsProviders.selectProviderHeading}
+        </Typography>
         <ProviderDropdown />
       </section>
 
       <Separator />
 
       <section className='space-y-6'>
-        <Typography type='h6'>Authentication</Typography>
+        <Typography type='h6'>{t.settingsProviders.authentication}</Typography>
 
         <div className='flex items-center gap-4'>
           <div className='flex w-20 shrink-0 items-center gap-1.5'>
-            <Label>API Key</Label>
-            <InfoTooltip>Provide your API key for this provider.</InfoTooltip>
+            <Label>{t.settingsProviders.apiKey}</Label>
+            <InfoTooltip>{t.settingsProviders.apiKeyTooltip}</InfoTooltip>
           </div>
           <div className='flex flex-1 items-center gap-2'>
             <Input
               type='password'
-              placeholder='sk-...'
+              placeholder={t.settingsProviders.apiKeyPlaceholder}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className='flex-1 font-mono text-sm'
@@ -79,7 +83,7 @@ export function ConnectProviderView() {
               isPending={isPending}
               isDisabled={!selectedProviderId || !apiKey}
             >
-              save key
+              {t.settingsProviders.saveKey}
             </Button>
           </div>
         </div>

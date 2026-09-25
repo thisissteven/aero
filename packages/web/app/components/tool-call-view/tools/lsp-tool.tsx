@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { LspPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const LspToolView = memo(
@@ -15,6 +16,7 @@ export const LspToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const operation = part.input.operation || '';
     const path = part.input.path || '';
     const rawOutput = formatToolOutput(part.output);
@@ -25,11 +27,11 @@ export const LspToolView = memo(
         status={part.status}
         error={part.error}
         icon={AbbrSql}
-        title='LSP Operation'
-        codeTitle='LSP Operation'
+        title={t.toolCall.lspOperation}
+        codeTitle={t.toolCall.lspOperation}
         code={rawOutput}
         language='json'
-        preview={path ? `${operation} ${path}` : operation}
+        preview={path ? t.toolCall.patternInPath(operation, path) : operation}
         copyText={rawOutput}
         isStreaming={isStreaming}
       />

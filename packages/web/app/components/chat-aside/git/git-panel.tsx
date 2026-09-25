@@ -42,8 +42,10 @@ import {
   useGitWorktrees,
 } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function GitPanel() {
+  const { t } = useI18n();
   const directory = useSessionDirectory();
 
   return (
@@ -56,22 +58,22 @@ export function GitPanel() {
         className='flex flex-1 min-h-0 flex-col'
       >
         <Tabs.ListContainer className='shrink-0'>
-          <Tabs.List aria-label='Git sections' className='px-2'>
+          <Tabs.List aria-label={t.gitPanel.sectionsAria} className='px-2'>
             <Tabs.Tab id='branches'>
               <Tabs.Indicator />
-              Branches
+              {t.gitPanel.branches}
             </Tabs.Tab>
             <Tabs.Tab id='stashes'>
               <Tabs.Indicator />
-              Stashes
+              {t.gitPanel.stashes}
             </Tabs.Tab>
             <Tabs.Tab id='worktrees'>
               <Tabs.Indicator />
-              Worktrees
+              {t.gitPanel.worktrees}
             </Tabs.Tab>
             <Tabs.Tab id='remotes'>
               <Tabs.Indicator />
-              Remotes
+              {t.gitPanel.remotes}
             </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
@@ -100,6 +102,7 @@ export function GitPanel() {
 }
 
 function BranchHeader({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data: statusData } = useGitStatus(directory);
   const { data: branchData } = useGitCurrentBranch(directory);
 
@@ -130,9 +133,13 @@ function BranchHeader({ directory }: { directory?: string }) {
     if (!directory) return;
     try {
       await mutation.mutateAsync({ directory });
-      toast.success(`${label} complete`);
+      toast.success(t.gitPanel.operationComplete(label));
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : `${label} failed`);
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.operationFailed(label),
+      );
     }
   };
 
@@ -170,34 +177,34 @@ function BranchHeader({ directory }: { directory?: string }) {
           variant='ghost'
           className='flex-1'
           isDisabled={!directory || busy}
-          onPress={() => run(pull, 'Pull')}
+          onPress={() => run(pull, t.gitPanel.pull)}
         >
           <Icon data={ArrowDown} size={12} />
-          Pull
+          {t.gitPanel.pull}
         </Button>
         <Button
           size='sm'
           variant='ghost'
           className='flex-1'
           isDisabled={!directory || busy}
-          onPress={() => run(push, 'Push')}
+          onPress={() => run(push, t.gitPanel.push)}
         >
           <Icon data={ArrowUp} size={12} />
-          Push
+          {t.gitPanel.push}
         </Button>
         <Button
           size='sm'
           variant='ghost'
           className='flex-1'
           isDisabled={!directory || busy}
-          onPress={() => run(fetch, 'Fetch')}
+          onPress={() => run(fetch, t.gitPanel.fetch)}
         >
           <Icon
             data={ArrowsRotateRight}
             size={12}
             className={cn(fetch.isPending && 'animate-spin')}
           />
-          Fetch
+          {t.gitPanel.fetch}
         </Button>
       </div>
     </div>
@@ -205,13 +212,14 @@ function BranchHeader({ directory }: { directory?: string }) {
 }
 
 function BranchesTab({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data, isLoading } = useGitBranches(directory);
   const checkout = useGitCheckout();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
   if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label='No branches' />;
+  if (!data) return <EmptyState label={t.gitPanel.noBranches} />;
 
   const branches =
     (
@@ -229,9 +237,11 @@ function BranchesTab({ directory }: { directory?: string }) {
     if (!directory || checkout.isPending) return;
     try {
       await checkout.mutateAsync({ directory, target: name });
-      toast.success(`Switched to ${name}`);
+      toast.success(t.gitPanel.switchedToBranch(name));
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : 'Checkout failed');
+      toast.danger(
+        error instanceof Error ? error.message : t.gitPanel.checkoutFailed,
+      );
     }
   };
 
@@ -244,12 +254,14 @@ function BranchesTab({ directory }: { directory?: string }) {
         target,
         createBranch: true,
       });
-      toast.success(`Created ${target}`);
+      toast.success(t.gitPanel.createdBranch(target));
       setNewName('');
       setCreateOpen(false);
     } catch (error) {
       toast.danger(
-        error instanceof Error ? error.message : 'Branch creation failed',
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.branchCreationFailed,
       );
     }
   };
@@ -259,7 +271,7 @@ function BranchesTab({ directory }: { directory?: string }) {
       <div className='flex justify-end px-1 py-1'>
         <Button size='sm' variant='ghost' onPress={() => setCreateOpen(true)}>
           <Icon data={Plus} size={12} />
-          New branch
+          {t.gitPanel.newBranch}
         </Button>
       </div>
 
@@ -298,7 +310,7 @@ function BranchesTab({ directory }: { directory?: string }) {
             )}
             {branch.current && (
               <Chip size='sm' variant='soft' color='success'>
-                Current
+                {t.gitPanel.currentBranch}
               </Chip>
             )}
           </li>
@@ -311,10 +323,10 @@ function BranchesTab({ directory }: { directory?: string }) {
             <Modal.Dialog>
               {({ close }) => (
                 <>
-                  <Modal.Header>Create branch</Modal.Header>
+                  <Modal.Header>{t.gitPanel.createBranch}</Modal.Header>
                   <Modal.Body>
                     <TextField>
-                      <Label>Branch name</Label>
+                      <Label>{t.gitPanel.branchName}</Label>
                       <Input
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
@@ -324,7 +336,7 @@ function BranchesTab({ directory }: { directory?: string }) {
                   </Modal.Body>
                   <Modal.Footer>
                     <Button size='sm' variant='ghost' onPress={close}>
-                      Cancel
+                      {t.common.cancel}
                     </Button>
                     <Button
                       size='sm'
@@ -333,7 +345,7 @@ function BranchesTab({ directory }: { directory?: string }) {
                       isPending={checkout.isPending}
                       isDisabled={!newName.trim()}
                     >
-                      Create
+                      {t.common.create}
                     </Button>
                   </Modal.Footer>
                 </>
@@ -347,6 +359,7 @@ function BranchesTab({ directory }: { directory?: string }) {
 }
 
 function StashesTab({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data, isLoading } = useGitStashes(directory);
   const push = useGitStashPush();
   const apply = useGitStashApply();
@@ -379,9 +392,13 @@ function StashesTab({ directory }: { directory?: string }) {
     if (!directory) return;
     try {
       await mutation.mutateAsync({ directory, ...input });
-      toast.success(`${label} complete`);
+      toast.success(t.gitPanel.operationComplete(label));
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : `${label} failed`);
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.operationFailed(label),
+      );
     }
   };
 
@@ -391,23 +408,27 @@ function StashesTab({ directory }: { directory?: string }) {
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder='Stash message (optional)'
+          placeholder={t.gitPanel.stashMessagePlaceholder}
         />
         <Button
           size='sm'
           variant='primary'
           onPress={() => {
-            void run(push, { message: message.trim() || undefined }, 'Stash');
+            void run(
+              push,
+              { message: message.trim() || undefined },
+              t.gitPanel.stash,
+            );
             setMessage('');
           }}
           isPending={push.isPending}
         >
-          Stash
+          {t.gitPanel.stash}
         </Button>
       </div>
 
       {stashes.length === 0 ? (
-        <EmptyState label='No stashes' />
+        <EmptyState label={t.gitPanel.noStashes} />
       ) : (
         <ul className='space-y-1'>
           {stashes.map((stash) => (
@@ -429,13 +450,13 @@ function StashesTab({ directory }: { directory?: string }) {
                     variant='ghost'
                     isIconOnly
                     onPress={() =>
-                      run(apply, { ref: stash.ref }, 'Apply stash')
+                      run(apply, { ref: stash.ref }, t.gitPanel.applyStash)
                     }
                   >
                     <Icon data={Check} size={12} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content>Apply</Tooltip.Content>
+                <Tooltip.Content>{t.gitPanel.apply}</Tooltip.Content>
               </Tooltip>
               <Tooltip>
                 <Tooltip.Trigger>
@@ -443,12 +464,14 @@ function StashesTab({ directory }: { directory?: string }) {
                     size='sm'
                     variant='ghost'
                     isIconOnly
-                    onPress={() => run(pop, { ref: stash.ref }, 'Pop stash')}
+                    onPress={() =>
+                      run(pop, { ref: stash.ref }, t.gitPanel.popStash)
+                    }
                   >
                     <Icon data={ArrowUp} size={12} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content>Pop</Tooltip.Content>
+                <Tooltip.Content>{t.gitPanel.pop}</Tooltip.Content>
               </Tooltip>
               <Tooltip>
                 <Tooltip.Trigger>
@@ -456,12 +479,14 @@ function StashesTab({ directory }: { directory?: string }) {
                     size='sm'
                     variant='danger'
                     isIconOnly
-                    onPress={() => run(drop, { ref: stash.ref }, 'Drop stash')}
+                    onPress={() =>
+                      run(drop, { ref: stash.ref }, t.gitPanel.dropStash)
+                    }
                   >
                     <Icon data={TrashBin} size={12} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content>Drop</Tooltip.Content>
+                <Tooltip.Content>{t.gitPanel.drop}</Tooltip.Content>
               </Tooltip>
             </li>
           ))}
@@ -472,16 +497,17 @@ function StashesTab({ directory }: { directory?: string }) {
 }
 
 function WorktreesTab({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data, isLoading } = useGitWorktrees(directory);
 
   if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label='No worktrees' />;
+  if (!data) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
   const worktrees = Array.isArray(data)
     ? data
     : ((data as { worktrees?: unknown[] }).worktrees ?? []);
 
-  if (!worktrees.length) return <EmptyState label='No worktrees' />;
+  if (!worktrees.length) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
   return (
     <ul className='space-y-1 p-2'>
@@ -516,14 +542,15 @@ function WorktreesTab({ directory }: { directory?: string }) {
 }
 
 function RemotesTab({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data, isLoading } = useGitRemotes(directory);
   const removeRemote = useGitRemoveRemote();
 
   if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label='No remotes' />;
+  if (!data) return <EmptyState label={t.gitPanel.noRemotes} />;
 
   const remotes = Array.isArray(data) ? data : [];
-  if (!remotes.length) return <EmptyState label='No remotes' />;
+  if (!remotes.length) return <EmptyState label={t.gitPanel.noRemotes} />;
 
   return (
     <ul className='space-y-1 p-2'>
@@ -558,12 +585,12 @@ function RemotesTab({ directory }: { directory?: string }) {
                       directory,
                       remote: remote.name,
                     });
-                    toast.success(`Removed ${remote.name}`);
+                    toast.success(t.gitPanel.removedRemote(remote.name));
                   } catch (error) {
                     toast.danger(
                       error instanceof Error
                         ? error.message
-                        : 'Remove remote failed',
+                        : t.gitPanel.removeRemoteFailed,
                     );
                   }
                 }}
@@ -571,7 +598,7 @@ function RemotesTab({ directory }: { directory?: string }) {
                 <Icon data={TrashBin} size={12} />
               </Button>
             </Tooltip.Trigger>
-            <Tooltip.Content>Remove remote</Tooltip.Content>
+            <Tooltip.Content>{t.gitPanel.removeRemote}</Tooltip.Content>
           </Tooltip>
         </li>
       ))}

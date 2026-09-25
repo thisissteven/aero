@@ -6,6 +6,7 @@ import {
   VirtualizedDropdown,
 } from '@/app/components/virtualized-dropdown';
 import { useProviders } from '@/app/hooks/api/providers';
+import { useI18n } from '@/app/hooks/i18n';
 import { useProvidersStore } from './providers-store';
 
 export function ProviderDropdown() {
@@ -13,6 +14,7 @@ export function ProviderDropdown() {
   const setSelectedProviderId = useProvidersStore(
     (s) => s.setSelectedProviderId,
   );
+  const { t } = useI18n();
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,13 +37,13 @@ export function ProviderDropdown() {
         groups: [
           {
             id: 'providers',
-            label: 'Available Providers',
+            label: t.settingsProviders.availableProviders,
             items: filteredProviders,
           },
         ],
         getKey: (provider) => provider.id,
       }),
-    [filteredProviders],
+    [filteredProviders, t],
   );
 
   const selectedProvider = providers.find((p) => p.id === selectedProviderId);
@@ -68,7 +70,9 @@ export function ProviderDropdown() {
               <span className='truncate'>{selectedProvider.name}</span>
             </div>
           ) : (
-            <span className='text-muted'>Select provider</span>
+            <span className='text-muted'>
+              {t.settingsProviders.selectProvider}
+            </span>
           )}
         </>
       }
@@ -76,8 +80,12 @@ export function ProviderDropdown() {
       triggerClassName='w-full justify-between px-3 max-w-[320px] h-9 font-normal bg-surface-secondary border border-separator rounded-md text-sm hover:bg-surface-secondary/80'
       searchValue={searchQuery}
       onSearchValueChange={setSearchQuery}
-      searchPlaceholder='Search provider...'
-      emptyState={isLoading ? 'Loading providers...' : 'No providers found.'}
+      searchPlaceholder={t.settingsProviders.searchProvider}
+      emptyState={
+        isLoading
+          ? t.settingsProviders.loadingProviders
+          : t.settingsProviders.noProvidersFound
+      }
       renderRow={(provider) => (
         <div className='flex min-w-0 flex-1 items-center gap-2'>
           <ProviderLogo providerId={provider.id} className='size-4' />

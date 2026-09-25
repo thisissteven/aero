@@ -3,6 +3,7 @@ import { useNewSessionStore } from '@/app/features/new-session-page/new-session-
 import { useCapabilities } from '@/app/hooks/api/capabilities';
 import { useSession } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
+import { useI18n } from '@/app/hooks/i18n';
 import { useDebounce } from '@/app/hooks/useDebounce';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
@@ -240,6 +241,8 @@ function getCaretRect(editor: HTMLElement): CaretRect | null {
 export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   const sessionId = useSessionId();
 
+  const { t } = useI18n();
+
   const mode = useComposerStore(
     (state) => getComposerSession(state, sessionId).mode,
   );
@@ -380,9 +383,10 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
             skills,
           },
           sessionId,
+          t,
         )
       : { groups: {}, flat: [] };
-  }, [activeTrigger, sessionId, capabilities, visibleFiles]);
+  }, [activeTrigger, sessionId, capabilities, visibleFiles, t]);
 
   const results = search.flat;
 

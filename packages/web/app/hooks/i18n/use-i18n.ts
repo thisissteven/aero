@@ -1,11 +1,14 @@
 import { createContext, useContext } from 'react';
 
-import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
+import {
+  BaseTranslation,
+  SupportedLanguage,
+} from '@/app/hooks/i18n/locales/translations';
 
 interface I18nContextType {
   t: BaseTranslation;
-  language: string;
-  setLanguage: (lang: string) => void;
+  language: SupportedLanguage;
+  setLanguage: (lang: SupportedLanguage) => void;
 }
 
 export const I18nContext = createContext<I18nContextType | undefined>(

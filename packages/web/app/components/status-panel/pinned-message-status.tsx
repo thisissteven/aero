@@ -8,6 +8,7 @@ import {
   usePinnedMessages,
   useTogglePinnedMessage,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useMainChatScrollStore } from '@/app/stores/chat-scroll-store';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -30,6 +31,7 @@ export function PinnedMessageStatusContent({
   sessionId: string;
 }) {
   const { data: pinnedMessages } = usePinnedMessages(sessionId);
+  const { t } = useI18n();
 
   const turns = useSessionRuntime(sessionId, (runtime) => runtime.turns);
 
@@ -43,10 +45,12 @@ export function PinnedMessageStatusContent({
           .filter(Boolean)
           .join(' ')
           .trim() ||
-        (turn.role === 'assistant' ? 'Assistant text' : 'Empty user text'),
+        (turn.role === 'assistant'
+          ? t.statusPanel.assistantText
+          : t.statusPanel.emptyUserText),
       createdAt: turn.createdAt,
     }));
-  }, [turns]);
+  }, [turns, t]);
 
   // Map and sort pinned messages by turn index (chronological order).
   const orderedPinnedTurns = useMemo(() => {
@@ -66,7 +70,7 @@ export function PinnedMessageStatusContent({
       <div className='mb-2.5 flex items-center gap-1 px-3'>
         <Icon data={Pin} className='text-muted' size={14} />
         <Typography type='body-sm' className='text-foreground font-medium'>
-          Pinned messages
+          {t.statusPanel.pinnedMessages}
         </Typography>
       </div>
 

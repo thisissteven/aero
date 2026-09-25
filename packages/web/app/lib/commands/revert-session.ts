@@ -1,6 +1,7 @@
 import { toast } from '@aero/ui';
 import { QueryClient } from '@tanstack/react-query';
 import { $individualSession, sessionKeys } from '@/app/hooks/api/sessions';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 
 export async function revertSession({
   queryClient,
@@ -29,10 +30,13 @@ export async function revertSession({
   return data;
 }
 
-export function revertSessionToast(fn: () => Promise<unknown>) {
+export function revertSessionToast(
+  fn: () => Promise<unknown>,
+  t: BaseTranslation,
+) {
   toast.promise(fn, {
-    loading: 'Reverting message',
+    loading: t.toolCommand.revertingMessage,
     error: (err) => err.message,
-    success: 'Message reverted successfully',
+    success: t.toolCommand.messageReverted,
   });
 }

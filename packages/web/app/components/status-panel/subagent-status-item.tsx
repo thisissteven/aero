@@ -1,6 +1,7 @@
 import { Chip, Typography } from '@aero/ui';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { ProviderLogo } from '@/app/components/provider-logo';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionTooltip } from '@/app/hooks/useSessionTooltip';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -18,6 +19,7 @@ export function SubagentStatusItem({
   status: AeroSessionStatus['type'] | undefined;
 }) {
   const tooltipProps = useSessionTooltip<HTMLButtonElement>(session);
+  const { t } = useI18n();
 
   return (
     <button
@@ -37,7 +39,7 @@ export function SubagentStatusItem({
           type='body-xs'
           className='text-foreground truncate font-medium'
         >
-          {session.title || 'Untitled'}
+          {session.title || t.statusPanel.untitled}
         </Typography>
         <div className='flex items-center justify-between gap-1'>
           <Typography
@@ -64,13 +66,13 @@ export function SubagentStatusItem({
               size='sm'
               className='translate-x-1'
             >
-              Working
+              {t.statusPanel.working}
             </Chip>
           )}
 
           {!status && (
             <span className='text-muted text-xs shrink-0'>
-              {formatCompactRelativeTime(session.updatedAt, true)}
+              {formatCompactRelativeTime(session.updatedAt, true, t.dateTime)}
             </span>
           )}
         </div>

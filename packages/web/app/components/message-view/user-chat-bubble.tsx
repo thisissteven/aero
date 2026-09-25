@@ -11,6 +11,7 @@ import {
 import { StyledText } from '@/app/components/message-view/styled-text';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { FileAttachmentsView } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatDateTime } from '@/app/lib/date';
 import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 import { AeroConversationTurn } from '@/server/services/harness/types';
@@ -77,6 +78,7 @@ export const UserChatBubble = memo(function UserChatBubble({
   forkMessageId: string;
 }) {
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const { t } = useI18n();
 
   const bubbleRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -230,7 +232,9 @@ export const UserChatBubble = memo(function UserChatBubble({
                 <StyledText text={text} />
               )
             ) : (
-              <span className='text-sm text-muted'>Sent empty message.</span>
+              <span className='text-sm text-muted'>
+                {t.composer.sentEmptyMessage}
+              </span>
             )}
           </div>
 
@@ -246,7 +250,7 @@ export const UserChatBubble = memo(function UserChatBubble({
                 handleToggle();
               }}
             >
-              {isExpanded ? 'Show less' : 'Show more'}
+              {isExpanded ? t.composer.showLess : t.composer.showMore}
             </button>
           )}
         </div>

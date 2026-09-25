@@ -2,6 +2,7 @@ import { Button, Modal, Separator, toast } from '@aero/ui';
 import { useEffect } from 'react';
 import { sessionKeys } from '@/app/hooks/api/sessions';
 import { useUpdateWorkspace } from '@/app/hooks/api/workspaces';
+import { useI18n } from '@/app/hooks/i18n';
 import { queryClient, useGlobalModalStore } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
@@ -33,6 +34,8 @@ export function EditWorkspaceModal({
 
   const sessionId = useSessionId();
 
+  const { t } = useI18n();
+
   const handleSave = () => {
     const { name, selectedColor, selectedIcon, defaultModel, directory } =
       useEditWorkspaceStore.getState();
@@ -46,13 +49,13 @@ export function EditWorkspaceModal({
         directory,
       }),
       {
-        error: 'Failed to save changes',
-        loading: 'Saving changes...',
+        error: t.editWorkspace.failedToSaveChanges,
+        loading: t.editWorkspace.savingChanges,
         success: () => {
           queryClient.invalidateQueries({
             queryKey: sessionKeys.detail(undefined, sessionId),
           });
-          return 'Changes saved successfully';
+          return t.editWorkspace.changesSaved;
         },
       },
     );
@@ -62,7 +65,7 @@ export function EditWorkspaceModal({
     <Modal.Dialog className='px-0 rounded-xl sm:max-w-[480px] lg:max-w-[560px]'>
       <Modal.CloseTrigger />
       <Modal.Header className='px-4 sm:px-5'>
-        <Modal.Heading>Edit Workspace</Modal.Heading>
+        <Modal.Heading>{t.editWorkspace.editWorkspace}</Modal.Heading>
       </Modal.Header>
 
       <Modal.Body
@@ -97,7 +100,7 @@ export function EditWorkspaceModal({
           onPress={() => useGlobalModalStore.getState().closeModal()}
           className='rounded-lg'
         >
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           variant='primary'
@@ -106,7 +109,7 @@ export function EditWorkspaceModal({
           onPress={handleSave}
           className='rounded-lg'
         >
-          Save Changes
+          {t.editWorkspace.saveChanges}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>

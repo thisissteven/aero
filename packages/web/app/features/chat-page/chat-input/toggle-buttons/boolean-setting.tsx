@@ -1,6 +1,8 @@
 import { cn, ToggleButton, Tooltip } from '@aero/ui';
 import type { ReactNode } from 'react';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 interface BooleanSettingToggleButtonProps {
   enabled: boolean;
   label: string;
@@ -18,6 +20,8 @@ export function BooleanSettingToggleButton({
   isDisabled = false,
   className,
 }: BooleanSettingToggleButtonProps) {
+  const { t } = useI18n();
+
   return (
     <Tooltip>
       <Tooltip.Trigger>

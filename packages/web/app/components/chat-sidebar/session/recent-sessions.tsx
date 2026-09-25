@@ -11,6 +11,7 @@ import { memo } from 'react';
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
@@ -39,6 +40,8 @@ function RecentChatsLoader({ enabled }: { enabled: boolean }) {
 export const RecentChats = memo(function Recents({
   rowHeight = 38,
 }: RecentChatsProps) {
+  const { t } = useI18n();
+
   const sessionsQuery = useSessions();
 
   const {
@@ -53,7 +56,7 @@ export const RecentChats = memo(function Recents({
     <>
       <div className='pl-3 pr-2 pt-2'>
         <Sidebar.GroupLabel className='flex items-center justify-between'>
-          Recent Sessions
+          {t.session.recentSessions}
           <RecentsToggleEditModeButton />
         </Sidebar.GroupLabel>
       </div>
@@ -67,7 +70,7 @@ export const RecentChats = memo(function Recents({
             layoutOptions={{ rowSize: rowHeight }}
           >
             <Sidebar.Menu<AeroSessionSummary>
-              aria-label='Recent sessions'
+              aria-label={t.session.recentSessionsAria}
               items={sessions}
               selectionMode='single'
             >

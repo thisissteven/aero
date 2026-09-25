@@ -1,5 +1,6 @@
 import { IconButton, Tooltip } from '@aero/ui';
 import { useSessionContext } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatCompactNumber } from '@/app/lib/number';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -59,6 +60,8 @@ export function ContextUsagePreview() {
 
   const sessionId = useSessionId();
 
+  const { t } = useI18n();
+
   const { data } = useSessionContext(undefined, sessionId);
 
   if (!sessionId || !data) {
@@ -79,15 +82,15 @@ export function ContextUsagePreview() {
       <Tooltip.Content offset={4}>
         <div className='p-0.5 text-sm'>
           <div className='flex gap-2'>
-            <div>Used Tokens:</div>
+            <div>{t.chatNavbar.usedTokens}</div>
             <div>{formatCompactNumber(data.context.used)}</div>
           </div>
           <div className='flex gap-2'>
-            <div>Context Limit:</div>
+            <div>{t.chatNavbar.contextLimit}</div>
             <div>{formatCompactNumber(data.context.limit)}</div>
           </div>
           <div className='flex gap-2'>
-            <div>Output Limit:</div>
+            <div>{t.chatNavbar.outputLimit}</div>
             <div>{formatCompactNumber(data.context.outputLimit)}</div>
           </div>
         </div>

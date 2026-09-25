@@ -3,6 +3,7 @@ import { Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { ModelPickerList } from '@/app/features/chat-page/chat-input/models/model-picker-list';
 import { useModelPicker } from '@/app/features/chat-page/chat-input/models/use-model-picker';
+import { useI18n } from '@/app/hooks/i18n';
 import { getModelKey } from '@/app/lib/model';
 
 interface ModelPickerProps {
@@ -10,6 +11,7 @@ interface ModelPickerProps {
 }
 
 export function ModelPicker({ onModelSelect }: ModelPickerProps) {
+  const { t } = useI18n();
   const {
     selectedModel,
     favoriteModelIds,
@@ -40,7 +42,7 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
             <Command.InputGroup.Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder='Search models or providers'
+              placeholder={t.modelPicker.searchModelsOrProviders}
               className='py-2.5 pr-0 text-sm'
             />
 
@@ -51,7 +53,7 @@ export function ModelPicker({ onModelSelect }: ModelPickerProps) {
 
           {totalResults === 0 ? (
             <div className='text-muted flex h-24 items-center justify-center text-sm'>
-              No models found.
+              {t.modelPicker.noModelsFound}
             </div>
           ) : (
             <ModelPickerList

@@ -3,6 +3,7 @@ import {
   ModelEmptyState,
   ModelVirtualList,
 } from '@/app/features/chat-page/chat-input/models/model-picker-parts';
+import { useI18n } from '@/app/hooks/i18n';
 import { ProviderGroup, SearchableModel } from '@/app/lib/model';
 
 export interface ModelPickerListProps {
@@ -41,11 +42,15 @@ export function ModelPickerList({
   onSelect,
   onFavorite,
 }: ModelPickerListProps) {
-  const items = buildModelVirtualItems({
-    favoriteModels,
-    groupedProviders,
-    collapsedGroups,
-  });
+  const { t } = useI18n();
+  const items = buildModelVirtualItems(
+    {
+      favoriteModels,
+      groupedProviders,
+      collapsedGroups,
+    },
+    t.modelPicker.favorites,
+  );
 
   if (items.length === 0) {
     return <ModelEmptyState />;

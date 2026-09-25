@@ -3,9 +3,11 @@ import { ArrowUturnCcwLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function OpenSubagentsList() {
   const sessionId = useSideChatStore((state) => state.sessionId);
+  const { t } = useI18n();
   const setView = useSideChatStore((state) => state.setView);
   const setSessionId = useSideChatStore((state) => state.setSessionId);
 
@@ -37,7 +39,7 @@ export function OpenSubagentsList() {
             }}
             className='text-sm shrink-0 py-1 pl-2 pr-3 rounded-l-none active:opacity-50'
           >
-            Open parent session
+            {t.chatFeed.openParentSession}
           </button>
         )}
       </div>

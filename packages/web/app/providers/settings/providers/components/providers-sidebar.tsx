@@ -1,10 +1,11 @@
 // components/providers-sidebar.tsx
-import { Button, IconButton, Label, ListBox, Select, Skeleton } from '@aero/ui';
+import { IconButton, Skeleton } from '@aero/ui';
 import { Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect } from 'react';
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { useConfiguredProviders } from '@/app/hooks/api/providers';
+import { useI18n } from '@/app/hooks/i18n';
 import { useProvidersStore } from '../providers-store';
 
 export function ProvidersSidebar() {
@@ -12,6 +13,7 @@ export function ProvidersSidebar() {
   const setSelectedProviderId = useProvidersStore(
     (s) => s.setSelectedProviderId,
   );
+  const { t } = useI18n();
   const setViewMode = useProvidersStore((s) => s.setViewMode);
   const setMobilePanel = useProvidersStore((s) => s.setMobilePanel);
 
@@ -30,7 +32,7 @@ export function ProvidersSidebar() {
     <aside className='border-separator flex w-full shrink-0 flex-col border-r md:w-64'>
       <div className='flex items-center justify-between py-4 pl-4 pr-2'>
         <span className='text-muted text-xs font-medium'>
-          Total {providers.length}
+          {t.settingsProviders.total(providers.length)}
         </span>
         <IconButton
           onClick={() => {
@@ -44,7 +46,7 @@ export function ProvidersSidebar() {
 
       <div className='flex-1 scrollbar-thin overflow-y-auto px-2 pb-4'>
         <div className='text-muted px-2 py-2 text-[10px] font-semibold tracking-wider uppercase'>
-          Configured Providers
+          {t.settingsProviders.configuredProviders}
         </div>
         <nav className='flex flex-col gap-0.5'>
           {isLoading ? (

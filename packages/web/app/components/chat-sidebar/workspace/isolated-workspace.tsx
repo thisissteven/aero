@@ -1,9 +1,9 @@
-import { memo } from 'react';
-
 import { Sidebar } from '@aero/ui';
+import { memo } from 'react';
 
 import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useWorkspace } from '@/app/hooks/api/workspaces';
+import { useI18n } from '@/app/hooks/i18n';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 interface IsolatedWorkspaceProp {
@@ -28,6 +28,8 @@ export const IsolatedWorkspace = memo(function IsolatedWorkspace({
 }: IsolatedWorkspaceProp) {
   const { data: workspace, isLoading } = useWorkspace(directory);
 
+  const { t } = useI18n();
+
   if (isLoading) return null;
 
   return (
@@ -35,7 +37,7 @@ export const IsolatedWorkspace = memo(function IsolatedWorkspace({
       <Sidebar.Group>
         {workspace && (
           <Sidebar.Menu<AeroWorkspaceSummary>
-            aria-label='Recent workspaces'
+            aria-label={t.workspace.recentWorkspacesAria}
             items={[workspace]}
             selectionMode='single'
             defaultExpandedKeys={[

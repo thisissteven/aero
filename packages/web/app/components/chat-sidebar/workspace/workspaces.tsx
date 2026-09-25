@@ -1,5 +1,3 @@
-import { memo } from 'react';
-
 import {
   cn,
   ListLayout,
@@ -8,10 +6,12 @@ import {
   Spinner,
   Virtualizer,
 } from '@aero/ui';
+import { memo } from 'react';
 
 import { WorkspacesToggleEditModeButton } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { ChatSidebarWorkspaceItem } from '@/app/components/chat-sidebar/workspace/workspace-item';
 import { useWorkspaces } from '@/app/hooks/api/workspaces';
+import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
@@ -51,6 +51,8 @@ const getInitialKeys = () => {
 export const Workspaces = memo(function Workspaces({
   rowHeight = 38,
 }: WorkspacesProps) {
+  const { t } = useI18n();
+
   const workspacesQuery = useWorkspaces();
   const {
     items: workspaces,
@@ -64,7 +66,7 @@ export const Workspaces = memo(function Workspaces({
     <>
       <div className='px-2 pt-2'>
         <Sidebar.GroupLabel className='flex items-center justify-between'>
-          Workspaces
+          {t.sidebar.workspaces}
           <WorkspacesToggleEditModeButton />
         </Sidebar.GroupLabel>
       </div>
@@ -79,7 +81,7 @@ export const Workspaces = memo(function Workspaces({
               layoutOptions={{ rowSize: rowHeight }}
             >
               <Sidebar.Menu<AeroWorkspaceSummary>
-                aria-label='Recent workspaces'
+                aria-label={t.workspace.recentWorkspacesAria}
                 items={workspaces}
                 selectionMode='single'
                 defaultExpandedKeys={getInitialKeys()}

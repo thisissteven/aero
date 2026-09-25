@@ -14,6 +14,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 // ── Store ─────────────────────────────────────────────────────────────
 
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'result';
@@ -190,6 +192,7 @@ function ExpandableValue({
   path: readonly object[];
 }) {
   const isCycle = path.includes(value);
+  const { t } = useI18n();
   const [open, setOpen] = useState(depth === 0 && !isCycle);
 
   const { entries, omitted } = useMemo(() => {
@@ -253,7 +256,9 @@ function ExpandableValue({
             </div>
           ))}
           {omitted > 0 && (
-            <div className='text-muted italic'>… {omitted} more</div>
+            <div className='text-muted italic'>
+              … {omitted} {t.devConsole.more}
+            </div>
           )}
         </div>
       )}
@@ -336,6 +341,7 @@ function ReplInput() {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   const submit = useCallback(async () => {
     const code = value.trim();
@@ -398,7 +404,7 @@ function ReplInput() {
         onKeyDown={onKeyDown}
         spellCheck={false}
         autoComplete='off'
-        placeholder='Evaluate JavaScript… (↑ for history)'
+        placeholder={t.devConsole.evaluate}
         className='text-foreground placeholder:text-muted flex-1 bg-transparent font-mono text-xs outline-none'
       />
     </div>
@@ -414,6 +420,7 @@ export function DevConsole() {
   );
   const [query, setQuery] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
+  const { t } = useI18n();
 
   const entries = useDevConsoleStore((s) => s.entries);
   const clear = useDevConsoleStore((s) => s.clear);
@@ -490,7 +497,7 @@ export function DevConsole() {
       <button
         type='button'
         onClick={() => setOpen(true)}
-        title='Open dev console (`)'
+        title={t.devConsole.open}
         className='bg-surface border-separator text-muted hover:text-foreground fixed right-4 bottom-4 z-[100] flex h-9 items-center gap-2 rounded-full border px-3 text-xs shadow-lg'
       >
         <span className='font-mono'>›_</span>
@@ -507,7 +514,9 @@ export function DevConsole() {
     <div className='bg-background border-separator fixed inset-x-0 bottom-0 z-[100] flex h-[40vh] min-h-[240px] flex-col border-t shadow-2xl'>
       {/* Header */}
       <div className='border-separator flex shrink-0 items-center gap-2 border-b px-3 py-1.5'>
-        <span className='text-foreground text-xs font-medium'>Console</span>
+        <span className='text-foreground text-xs font-medium'>
+          {t.devConsole.console}
+        </span>
         <span className='text-muted text-xs'>({visible.length})</span>
 
         <div className='ml-2 flex items-center gap-0.5'>
@@ -530,22 +539,22 @@ export function DevConsole() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder='Filter…'
+          placeholder={t.devConsole.filter}
           className='border-separator bg-surface text-foreground placeholder:text-muted ml-auto h-6 w-40 rounded border px-2 font-mono text-[11px] outline-none'
         />
 
         <button
           type='button'
           onClick={clear}
-          title='Clear'
+          title={t.devConsole.clear}
           className='text-muted hover:text-foreground rounded px-1.5 py-0.5 text-xs'
         >
-          clear
+          {t.devConsole.clearLabel}
         </button>
         <button
           type='button'
           onClick={() => setOpen(false)}
-          title='Close (Esc)'
+          title={t.devConsole.close}
           className='text-muted hover:text-foreground rounded px-1.5 py-0.5 text-xs'
         >
           ✕

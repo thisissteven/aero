@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import { BrowserPane } from './browser-pane';
 import {
   useActiveBrowserTabId,
@@ -16,6 +18,7 @@ export function BrowserPanel({ onAttachToChat }: BrowserPanelProps) {
   const tabs = useBrowserTabs();
   const activeTabId = useActiveBrowserTabId();
   const { addTab } = useBrowserActions();
+  const { t } = useI18n();
 
   // Ensure there's always at least one tab, same as terminal's initialSession —
   // but browser tabs start empty (no session process to spin up), so this
@@ -32,7 +35,7 @@ export function BrowserPanel({ onAttachToChat }: BrowserPanelProps) {
       <div className='relative min-h-0 flex-1 overflow-hidden'>
         {tabs.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center text-sm'>
-            No tabs open
+            {t.browser.noTabsOpen}
           </div>
         ) : (
           tabs.map((tab) => (

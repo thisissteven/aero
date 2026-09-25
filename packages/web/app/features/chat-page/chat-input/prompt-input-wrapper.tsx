@@ -7,6 +7,7 @@ import { usePromptInput } from '@/app/features/chat-page/chat-input/use-prompt-i
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useCreateSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function NewSessionPromptInputWrapper({
@@ -14,6 +15,7 @@ export function NewSessionPromptInputWrapper({
 }: {
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   const { text, handleSend } = usePromptInput({ isDisabled: false });
   const [isPending, setIsPending] = useState(false);
 
@@ -48,7 +50,7 @@ export function NewSessionPromptInputWrapper({
         },
         {
           onError: () => {
-            toast.danger('Failed to create session');
+            toast.danger(t.chatInput.failedToCreateSession);
           },
         },
       );

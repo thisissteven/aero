@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { WebFetchPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 export const WebFetchToolView = memo(
@@ -15,6 +16,7 @@ export const WebFetchToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const url = part.input.url || '';
     const format = part.input.format || 'text';
     const rawOutput = formatToolOutput(part.output);
@@ -25,7 +27,7 @@ export const WebFetchToolView = memo(
         status={part.status}
         error={part.error}
         icon={Globe}
-        title='Web Fetch'
+        title={t.toolCall.webFetch}
         codeTitle={url}
         code={rawOutput}
         language={format}

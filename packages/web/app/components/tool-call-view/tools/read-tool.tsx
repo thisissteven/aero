@@ -3,11 +3,9 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { ReadPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { getFileExtension } from '@/app/lib/file';
-import {
-  formatReadToolOutput,
-  getLanguageFromExtension,
-} from '@/app/lib/file-icons/tool-helpers';
+import { formatReadToolOutput } from '@/app/lib/file-icons/tool-helpers';
 import { getBasename, normalizePath } from '@/server/shared';
 
 export const ReadToolView = memo(
@@ -20,6 +18,7 @@ export const ReadToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const path = normalizePath(part.input.path || part.input.filePath || '');
     const fileName = getBasename(path);
     const output = formatReadToolOutput(part.output);
@@ -32,7 +31,7 @@ export const ReadToolView = memo(
         status={part.status}
         error={part.error}
         icon={FileText}
-        title='Read File'
+        title={t.toolCall.readFile}
         codeTitle={path}
         code={output}
         language={language ?? 'text'}

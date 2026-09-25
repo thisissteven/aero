@@ -1,9 +1,10 @@
+import { Button, Modal } from '@aero/ui';
 import { Gear } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { ReactNode } from 'react';
 import { create, StateCreator } from 'zustand';
 
-import { Button, Modal } from '@aero/ui';
+import { useI18n } from '@/app/hooks/i18n';
 
 interface GlobalModalState {
   isOpen: boolean;
@@ -16,30 +17,32 @@ interface GlobalModalState {
   toggleOpen: (options: { children?: ReactNode }) => void;
 }
 
-const defaultChildren = (
-  <Modal.Dialog className='sm:max-w-[360px]'>
-    <Modal.CloseTrigger />
-    <Modal.Header>
-      <Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
-        <Icon className='size-5' data={Gear} />
-      </Modal.Icon>
-      <Modal.Heading>Settings</Modal.Heading>
-    </Modal.Header>
-    <Modal.Body>
-      <p>
-        Use <code>Modal.Trigger</code> to create custom trigger elements beyond
-        standard buttons. This example shows a card-style trigger with icons and
-        descriptive text.
-      </p>
-    </Modal.Body>
-    <Modal.Footer>
-      <Button slot='close' variant='secondary'>
-        Cancel
-      </Button>
-      <Button slot='close'>Save</Button>
-    </Modal.Footer>
-  </Modal.Dialog>
-);
+function DefaultModalContent() {
+  const { t } = useI18n();
+
+  return (
+    <Modal.Dialog className='sm:max-w-[360px]'>
+      <Modal.CloseTrigger />
+      <Modal.Header>
+        <Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
+          <Icon className='size-5' data={Gear} />
+        </Modal.Icon>
+        <Modal.Heading>{t.common.settings}</Modal.Heading>
+      </Modal.Header>
+      <Modal.Body>
+        <p>{t.devMisc.customTriggerDescription('Modal.Trigger')}</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button slot='close' variant='secondary'>
+          {t.common.cancel}
+        </Button>
+        <Button slot='close'>{t.common.save}</Button>
+      </Modal.Footer>
+    </Modal.Dialog>
+  );
+}
+
+const defaultChildren = <DefaultModalContent />;
 
 const globalModalSlice: StateCreator<GlobalModalState> = (set) => ({
   isOpen: false,

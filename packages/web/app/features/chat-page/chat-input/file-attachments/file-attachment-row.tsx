@@ -2,6 +2,7 @@ import { cn } from '@aero/ui';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 
 interface FileAttachmentRowProps {
   attachment: ExternalFileAttachment;
@@ -16,6 +17,8 @@ export function FileAttachmentRow({
   onRemove,
   onOpen,
 }: FileAttachmentRowProps) {
+  const { t } = useI18n();
+
   return (
     <div
       role={onOpen ? 'button' : undefined}
@@ -60,7 +63,7 @@ export function FileAttachmentRow({
             e.stopPropagation();
             onRemove(attachment.id);
           }}
-          aria-label={`Remove ${attachment.filename}`}
+          aria-label={t.fileSheet.removeAttachmentAria(attachment.filename)}
         >
           <svg
             viewBox='0 0 24 24'

@@ -34,7 +34,7 @@ const isBrowser = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
 export const useSpeechStore = create<SpeechState>((set, get) => {
   // Internal reference to current utterance to prevent Chrome garbage collection bugs
-  let currentUtterance: SpeechSynthesisUtterance | null = null;
+  let _currentUtterance: SpeechSynthesisUtterance | null = null;
 
   return {
     activeId: null,
@@ -59,7 +59,7 @@ export const useSpeechStore = create<SpeechState>((set, get) => {
       if (isBrowser) {
         window.speechSynthesis.cancel();
       }
-      currentUtterance = null;
+      _currentUtterance = null;
       set({ activeId: null, isSpeaking: false, isPaused: false });
     },
 
@@ -89,7 +89,7 @@ export const useSpeechStore = create<SpeechState>((set, get) => {
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      currentUtterance = utterance;
+      _currentUtterance = utterance;
 
       const { settings, voices } = get();
 
@@ -111,12 +111,12 @@ export const useSpeechStore = create<SpeechState>((set, get) => {
       };
 
       utterance.onend = () => {
-        currentUtterance = null;
+        _currentUtterance = null;
         set({ activeId: null, isSpeaking: false, isPaused: false });
       };
 
       utterance.onerror = () => {
-        currentUtterance = null;
+        _currentUtterance = null;
         set({ activeId: null, isSpeaking: false, isPaused: false });
       };
 

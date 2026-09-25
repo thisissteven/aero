@@ -9,13 +9,16 @@ import {
   Typography,
 } from '@aero/ui';
 
-import { InfoTooltip } from './info-tooltip';
+import { useI18n } from '@/app/hooks/i18n';
 import { KeymapOption, useGeneralStore } from '../general-store';
+import { InfoTooltip } from './info-tooltip';
 
 export function NavigationSection() {
+  const { t } = useI18n();
+
   return (
     <section className='space-y-6'>
-      <Typography type='h6'>Navigation</Typography>
+      <Typography type='h6'>{t.settingsGeneral.navigation}</Typography>
 
       <KeymapRadioGroup />
 
@@ -33,10 +36,11 @@ export function NavigationSection() {
 function KeymapRadioGroup() {
   const keymap = useGeneralStore((s) => s.keymap);
   const setKeymap = useGeneralStore((s) => s.setKeymap);
+  const { t } = useI18n();
 
   return (
     <div className='space-y-2'>
-      <Label>File editor keymap</Label>
+      <Label>{t.settingsGeneral.fileEditorKeymap}</Label>
       <RadioGroup
         value={keymap}
         onChange={(val) => setKeymap(val as KeymapOption)}
@@ -46,7 +50,7 @@ function KeymapRadioGroup() {
             <Radio.Control>
               <Radio.Indicator />
             </Radio.Control>
-            Default
+            {t.settingsGeneral.keymapDefault}
           </Radio.Content>
         </Radio>
         <Radio value='vim'>
@@ -54,7 +58,7 @@ function KeymapRadioGroup() {
             <Radio.Control>
               <Radio.Indicator />
             </Radio.Control>
-            Vim
+            {t.settingsGeneral.keymapVim}
           </Radio.Content>
         </Radio>
       </RadioGroup>
@@ -65,6 +69,7 @@ function KeymapRadioGroup() {
 function AutoSaveCheckbox() {
   const autoSave = useGeneralStore((s) => s.autoSave);
   const setAutoSave = useGeneralStore((s) => s.setAutoSave);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -73,10 +78,10 @@ function AutoSaveCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Auto-save files
+          {t.settingsGeneral.autoSaveFiles}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>Automatically save changes to disk on blur.</InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.autoSaveFilesTooltip}</InfoTooltip>
     </div>
   );
 }
@@ -84,6 +89,7 @@ function AutoSaveCheckbox() {
 function AlwaysShowToolbarCheckbox() {
   const alwaysShowToolbar = useGeneralStore((s) => s.alwaysShowToolbar);
   const setAlwaysShowToolbar = useGeneralStore((s) => s.setAlwaysShowToolbar);
+  const { t } = useI18n();
 
   return (
     <Checkbox isSelected={alwaysShowToolbar} onChange={setAlwaysShowToolbar}>
@@ -91,7 +97,7 @@ function AlwaysShowToolbarCheckbox() {
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        Always show editor toolbar (docked under the file tabs)
+        {t.settingsGeneral.alwaysShowEditorToolbar}
       </Checkbox.Content>
     </Checkbox>
   );
@@ -100,6 +106,7 @@ function AlwaysShowToolbarCheckbox() {
 function TerminalQuickKeysCheckbox() {
   const terminalQuickKeys = useGeneralStore((s) => s.terminalQuickKeys);
   const setTerminalQuickKeys = useGeneralStore((s) => s.setTerminalQuickKeys);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -108,12 +115,10 @@ function TerminalQuickKeysCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Terminal Quick Keys
+          {t.settingsGeneral.terminalQuickKeys}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>
-        Enable hotkey shortcuts inside the integrated terminal.
-      </InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.terminalQuickKeysTooltip}</InfoTooltip>
     </div>
   );
 }
@@ -121,14 +126,13 @@ function TerminalQuickKeysCheckbox() {
 function TerminalShellSelect() {
   const terminalShell = useGeneralStore((s) => s.terminalShell);
   const setTerminalShell = useGeneralStore((s) => s.setTerminalShell);
+  const { t } = useI18n();
 
   return (
     <div className='flex w-[220px] flex-col gap-2'>
       <div className='flex items-center gap-1.5'>
-        <Label>Terminal Shell</Label>
-        <InfoTooltip>
-          Specify shell binary used for built-in terminal sessions.
-        </InfoTooltip>
+        <Label>{t.settingsGeneral.terminalShell}</Label>
+        <InfoTooltip>{t.settingsGeneral.terminalShellTooltip}</InfoTooltip>
       </div>
       <Select
         value={terminalShell}
@@ -142,16 +146,16 @@ function TerminalShellSelect() {
         <Select.Popover className='rounded-xl'>
           <ListBox>
             <ListBox.Item id='auto' className='rounded-lg'>
-              <Label>auto</Label>
+              <Label>{t.settingsGeneral.shellAuto}</Label>
             </ListBox.Item>
             <ListBox.Item id='bash' className='rounded-lg'>
-              <Label>bash</Label>
+              <Label>{t.settingsGeneral.shellBash}</Label>
             </ListBox.Item>
             <ListBox.Item id='zsh' className='rounded-lg'>
-              <Label>zsh</Label>
+              <Label>{t.settingsGeneral.shellZsh}</Label>
             </ListBox.Item>
             <ListBox.Item id='powershell' className='rounded-lg'>
-              <Label>powershell</Label>
+              <Label>{t.settingsGeneral.shellPowershell}</Label>
             </ListBox.Item>
           </ListBox>
         </Select.Popover>

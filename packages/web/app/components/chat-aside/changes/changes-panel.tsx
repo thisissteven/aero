@@ -18,6 +18,7 @@ import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useGitCommit, useGitDiff, useGitStatus } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -110,6 +111,7 @@ function buildEntries(
 }
 
 export function ChangesPanel() {
+  const { t } = useI18n();
   const directory = useSessionDirectory();
   const { data, isLoading, refetch, isFetching } = useGitStatus(directory);
   const commitMutation = useGitCommit();
@@ -156,7 +158,7 @@ export function ChangesPanel() {
   const handleCommit = async (addAll: boolean) => {
     if (!directory) return;
     if (!message.trim()) {
-      toast.danger('Commit message is required');
+      toast.danger(t.changesPanel.commitMessageRequired);
       return;
     }
 
@@ -166,13 +168,15 @@ export function ChangesPanel() {
         message: message.trim(),
         ...(addAll ? { addAll: true } : { files: Array.from(selected) }),
       });
-      toast.success('Commit created');
+      toast.success(t.changesPanel.commitCreated);
       setMessage('');
       setSelected(new Set());
       refetch();
     } catch (error) {
       toast.danger(
-        error instanceof Error ? error.message : 'Failed to create commit',
+        error instanceof Error
+          ? error.message
+          : t.changesPanel.failedToCreateCommit,
       );
     }
   };
@@ -199,7 +203,7 @@ export function ChangesPanel() {
       <div className='border-separator flex items-center justify-between border-b px-3 py-2 text-sm'>
         <div className='flex items-center gap-2'>
           <span className='font-medium'>
-            {entries.length} {entries.length === 1 ? 'change' : 'changes'}
+            {t.changesPanel.changeCount(entries.length)}
           </span>
           {totalAdditions > 0 && (
             <span className='text-success text-xs'>+{totalAdditions}</span>
@@ -217,15 +221,15 @@ export function ChangesPanel() {
             isDisabled={!entries.length}
           >
             {selected.size === entries.length && entries.length > 0
-              ? 'Deselect all'
-              : 'Select all'}
+              ? t.changesPanel.deselectAll
+              : t.changesPanel.selectAll}
           </Button>
           <Button
             size='sm'
             variant='ghost'
             isIconOnly
             onPress={() => refetch()}
-            aria-label='Refresh'
+            aria-label={t.changesPanel.refresh}
           >
             <Icon
               data={Check}
@@ -239,17 +243,17 @@ export function ChangesPanel() {
       <div className='min-h-0 flex-1 overflow-y-auto'>
         {entries.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center px-4 text-center text-sm'>
-            Working tree clean
+            {t.changesPanel.workingTreeClean}
           </div>
         ) : (
           <ul className='p-1'>
             {entries.map((entry) => {
               const isSelected = selected.has(entry.path);
               const badge = entry.staged
-                ? 'Staged'
+                ? t.changesPanel.staged
                 : entry.untracked
-                  ? 'New'
-                  : 'Modified';
+                  ? t.changesPanel.new
+                  : t.changesPanel.modified;
               const badgeColor = entry.staged
                 ? 'success'
                 : entry.untracked
@@ -266,7 +270,7 @@ export function ChangesPanel() {
                     <Checkbox
                       isSelected={isSelected}
                       onChange={() => toggle(entry.path)}
-                      aria-label={`Select ${entry.path}`}
+                      aria-label={t.changesPanel.selectFile(entry.path)}
                     />
                   </div>
 
@@ -294,7 +298,7 @@ export function ChangesPanel() {
 
                   <button
                     type='button'
-                    title='Open in editor'
+                    title={t.toolCall.openInEditor}
                     onClick={(e) => {
                       e.stopPropagation();
                       openFileInEditor(entry.path);
@@ -314,7 +318,7 @@ export function ChangesPanel() {
         <TextArea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder='Commit message'
+          placeholder={t.changesPanel.commitMessage}
           className='text-sm'
         />
 
@@ -327,7 +331,8 @@ export function ChangesPanel() {
             isPending={commitMutation.isPending}
             isDisabled={!message.trim() || selected.size === 0}
           >
-            Commit {selected.size > 0 && `(${selected.size})`}
+            {t.changesPanel.commit}
+            {selected.size > 0 && ` (${selected.size})`}
           </Button>
           <Button
             size='sm'
@@ -336,7 +341,7 @@ export function ChangesPanel() {
             isPending={commitMutation.isPending}
             isDisabled={!message.trim() || entries.length === 0}
           >
-            Commit all
+            {t.changesPanel.commitAll}
           </Button>
         </div>
       </div>
@@ -359,6 +364,7 @@ function ChangesDiffModal({
   path: string | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const { data, isLoading } = useGitDiff(directory, path ?? undefined);
 
   const lines = useMemo(() => {
@@ -389,7 +395,7 @@ function ChangesDiffModal({
                   ) : lines.length === 0 ||
                     (lines.length === 1 && !lines[0]) ? (
                     <div className='text-muted py-8 text-center text-sm'>
-                      No changes to display
+                      {t.changesPanel.noChangesToDisplay}
                     </div>
                   ) : (
                     <pre className='bg-default/40 scrollbar-thin overflow-x-auto rounded-md p-3 font-mono text-xs leading-relaxed'>
@@ -417,7 +423,7 @@ function ChangesDiffModal({
                 <Modal.Footer>
                   <Button size='sm' variant='ghost' onPress={close}>
                     <Icon data={Xmark} size={14} />
-                    Close
+                    {t.common.close}
                   </Button>
                 </Modal.Footer>
               </>

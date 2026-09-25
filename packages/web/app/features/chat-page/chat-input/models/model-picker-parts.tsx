@@ -19,6 +19,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
 import { ProviderLogo } from '@/app/components/provider-logo';
 import { ModelVirtualItem } from '@/app/features/chat-page/chat-input/models/build-model-virtual-items';
+import { useI18n } from '@/app/hooks/i18n';
 import {
   formatCapabilities,
   formatContextLength,
@@ -39,6 +40,8 @@ export function ModelSearchInput({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <Command.InputGroup className='border-separator border-b'>
       <Command.InputGroup.Prefix className='pl-3'>
@@ -48,7 +51,7 @@ export function ModelSearchInput({
       <Command.InputGroup.Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='Search models or providers'
+        placeholder={t.modelPicker.searchModelsOrProviders}
         className='py-2.5 pr-0 text-sm'
       />
 
@@ -58,14 +61,18 @@ export function ModelSearchInput({
 }
 
 export function ModelEmptyState() {
+  const { t } = useI18n();
+
   return (
     <div className='text-muted flex h-24 items-center justify-center text-sm'>
-      No models found.
+      {t.modelPicker.noModelsFound}
     </div>
   );
 }
 
 export function AddProviderRow({ onClick }: { onClick?: () => void }) {
+  const { t } = useI18n();
+
   return (
     <div className='border-separator border-b p-1'>
       <IconButton
@@ -74,13 +81,15 @@ export function AddProviderRow({ onClick }: { onClick?: () => void }) {
         onClick={onClick}
       >
         <Icon data={Plus} className='size-3.5' />
-        <span>Add new provider</span>
+        <span>{t.modelPicker.addNewProvider}</span>
       </IconButton>
     </div>
   );
 }
 
 export function ModelPickerFooter() {
+  const { t } = useI18n();
+
   return (
     <div className='text-muted border-separator flex items-center justify-between border-t px-3 py-1.5'>
       <div className='flex items-center gap-2'>
@@ -92,11 +101,11 @@ export function ModelPickerFooter() {
             <Kbd.Abbr keyValue='down' />
           </Kbd>
         </div>
-        <span>Navigate</span>
+        <span>{t.modelPicker.navigate}</span>
       </div>
 
       <div className='flex items-center gap-2'>
-        <span>Switch agent</span>
+        <span>{t.modelPicker.switchAgent}</span>
         <Kbd className='text-xs'>Tab</Kbd>
       </div>
     </div>
@@ -268,6 +277,8 @@ export function ModelInfoPanelCard({
   top: number;
   side: 'left' | 'right';
 }) {
+  const { t } = useI18n();
+
   return (
     <div
       style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
@@ -277,30 +288,33 @@ export function ModelInfoPanelCard({
       )}
     >
       <div className='text-muted flex items-center justify-between gap-2'>
-        <span>Capabilities</span>
+        <span>{t.modelPicker.capabilities}</span>
         <span className='text-foreground truncate text-right font-medium'>
           {formatCapabilities(model.capabilities)}
         </span>
       </div>
 
       <div className='text-muted flex items-center justify-between'>
-        <span>Input</span>
+        <span>{t.modelPicker.input}</span>
         <span className='text-foreground font-medium'>
           {formatMediaTypes(model.capabilities?.input)}
         </span>
       </div>
 
       <div className='text-muted flex items-center justify-between'>
-        <span>Output</span>
+        <span>{t.modelPicker.output}</span>
         <span className='text-foreground font-medium'>
           {formatMediaTypes(model.capabilities?.output)}
         </span>
       </div>
 
       <div className='text-muted border-separator flex items-center justify-between border-t pt-1'>
-        <span>Cost ($/1M tokens)</span>
+        <span>{t.modelPicker.costPerMillion}</span>
         <span className='text-foreground font-medium'>
-          {`In $${model.cost?.input ?? 0} · Out $${model.cost?.output ?? 0}`}
+          {t.modelPicker.costLine(
+            model.cost?.input ?? 0,
+            model.cost?.output ?? 0,
+          )}
         </span>
       </div>
     </div>

@@ -1,13 +1,18 @@
 // components/desktop-network-access-section.tsx
 
 import { Button, Checkbox, Input, Label, Typography } from '@aero/ui';
+import { useI18n } from '@/app/hooks/i18n';
 import { useGeneralStore } from '../general-store';
 import { InfoTooltip } from './info-tooltip';
 
 export function DesktopNetworkAccessSection() {
+  const { t } = useI18n();
+
   return (
     <section className='space-y-6'>
-      <Typography type='h6'>Desktop Network Access</Typography>
+      <Typography type='h6'>
+        {t.settingsGeneral.desktopNetworkAccess}
+      </Typography>
 
       <div className='space-y-3'>
         <StartOnLoginCheckbox />
@@ -19,7 +24,7 @@ export function DesktopNetworkAccessSection() {
       <AllowNetworkAccessCheckbox />
 
       <div>
-        <Button variant='tertiary'>Save & Restart</Button>
+        <Button variant='tertiary'>{t.settingsGeneral.saveAndRestart}</Button>
       </div>
     </section>
   );
@@ -28,6 +33,7 @@ export function DesktopNetworkAccessSection() {
 function StartOnLoginCheckbox() {
   const startOnLogin = useGeneralStore((s) => s.startOnLogin);
   const setStartOnLogin = useGeneralStore((s) => s.setStartOnLogin);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -40,12 +46,10 @@ function StartOnLoginCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Start Aero when you log in
+          {t.settingsGeneral.startOnLogin}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>
-        Launch Aero automatically when you log into your computer.
-      </InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.startOnLoginTooltip}</InfoTooltip>
     </div>
   );
 }
@@ -53,6 +57,7 @@ function StartOnLoginCheckbox() {
 function MinimizeToTrayCheckbox() {
   const minimizeToTray = useGeneralStore((s) => s.minimizeToTray);
   const setMinimizeToTray = useGeneralStore((s) => s.setMinimizeToTray);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -65,12 +70,10 @@ function MinimizeToTrayCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Minimize and close to the system tray
+          {t.settingsGeneral.minimizeToTray}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>
-        Closing the window keeps Aero running in the background.
-      </InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.minimizeToTrayTooltip}</InfoTooltip>
     </div>
   );
 }
@@ -78,6 +81,7 @@ function MinimizeToTrayCheckbox() {
 function KeepAwakeCheckbox() {
   const keepAwake = useGeneralStore((s) => s.keepAwake);
   const setKeepAwake = useGeneralStore((s) => s.setKeepAwake);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -90,12 +94,10 @@ function KeepAwakeCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Keep computer awake while OpenChamber is running
+          {t.settingsGeneral.keepAwake}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>
-        Prevents sleep/display-off while Aero is active.
-      </InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.keepAwakeTooltip}</InfoTooltip>
     </div>
   );
 }
@@ -103,16 +105,17 @@ function KeepAwakeCheckbox() {
 function DesktopPasswordInput() {
   const desktopPassword = useGeneralStore((s) => s.desktopPassword);
   const setDesktopPassword = useGeneralStore((s) => s.setDesktopPassword);
+  const { t } = useI18n();
 
   return (
     <div className='w-[320px] space-y-2'>
       <div className='flex items-center gap-1.5'>
-        <Label>Desktop UI Password</Label>
-        <InfoTooltip>Require a password to access the UI.</InfoTooltip>
+        <Label>{t.settingsGeneral.desktopUiPassword}</Label>
+        <InfoTooltip>{t.settingsGeneral.desktopUiPasswordTooltip}</InfoTooltip>
       </div>
       <Input
         type='password'
-        placeholder='No password required'
+        placeholder={t.settingsGeneral.noPasswordRequired}
         value={desktopPassword}
         onChange={(e) => setDesktopPassword(e.target.value)}
         className='w-full'
@@ -124,6 +127,7 @@ function DesktopPasswordInput() {
 function AllowNetworkAccessCheckbox() {
   const allowNetworkAccess = useGeneralStore((s) => s.allowNetworkAccess);
   const setAllowNetworkAccess = useGeneralStore((s) => s.setAllowNetworkAccess);
+  const { t } = useI18n();
 
   return (
     <div className='space-y-1'>
@@ -136,17 +140,16 @@ function AllowNetworkAccessCheckbox() {
             <Checkbox.Control>
               <Checkbox.Indicator />
             </Checkbox.Control>
-            Let other devices on your local network open this app
+            {t.settingsGeneral.letLocalNetworkOpen}
           </Checkbox.Content>
         </Checkbox>
         <InfoTooltip>
-          Binds server interface to local network IP addresses.
+          {t.settingsGeneral.letLocalNetworkOpenTooltip}
         </InfoTooltip>
       </div>
       {allowNetworkAccess && (
         <Typography type='body-xs' className='text-warning pl-6'>
-          Warning: while enabled, the app is reachable by anyone on the same
-          local network.
+          {t.settingsGeneral.networkWarning}
         </Typography>
       )}
     </div>

@@ -10,6 +10,7 @@ import {
 } from '@aero/ui';
 import { Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useI18n } from '@/app/hooks/i18n';
 
 import { ACCENT_COLORS } from './edit-workspace-constants';
 import { useEditWorkspaceStore } from './edit-workspace-store';
@@ -20,6 +21,8 @@ export function EditWorkspaceAccentColorPicker() {
     (s) => s.workspace.selectedColor,
   );
   const setSelectedColor = useEditWorkspaceStore((s) => s.setSelectedColor);
+
+  const { t } = useI18n();
 
   const getParsedColor = () => {
     if (selectedColor && selectedColor.startsWith('#')) {
@@ -43,7 +46,7 @@ export function EditWorkspaceAccentColorPicker() {
 
   return (
     <div className='flex flex-col gap-3'>
-      <Label className='font-medium'>Accent Color</Label>
+      <Label className='font-medium'>{t.editWorkspace.accentColor}</Label>
       <div className='flex flex-wrap items-center gap-2'>
         <Button
           isIconOnly
@@ -85,7 +88,7 @@ export function EditWorkspaceAccentColorPicker() {
           </ColorPicker.Trigger>
           <ColorPicker.Popover className='flex flex-col gap-2 p-3'>
             <ColorArea
-              aria-label='Color area'
+              aria-label={t.editWorkspace.colorAreaAria}
               className='max-w-full'
               colorSpace='hsb'
               xChannel='saturation'
@@ -94,7 +97,7 @@ export function EditWorkspaceAccentColorPicker() {
               <ColorArea.Thumb />
             </ColorArea>
             <ColorSlider
-              aria-label='Hue slider'
+              aria-label={t.editWorkspace.hueSliderAria}
               channel='hue'
               className='gap-1 px-1'
               colorSpace='hsb'

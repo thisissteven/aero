@@ -1,15 +1,18 @@
 // components/localization-section.tsx
 import { Label, ListBox, Select, Typography } from '@aero/ui';
 
+import { useI18n } from '@/app/hooks/i18n';
 import { useAppearanceStore } from '../appearance-store';
 
 export function LocalizationSection() {
+  const { t } = useI18n();
+
   return (
     <section className='space-y-6'>
       <div>
-        <Typography type='h6'>Localization</Typography>
+        <Typography type='h6'>{t.settingsAppearance.localization}</Typography>
         <Typography type='body-sm' color='muted' className='mt-0.5'>
-          Language, time formats, and regional settings.
+          {t.settingsAppearance.localizationSubtitle}
         </Typography>
       </div>
 
@@ -28,16 +31,15 @@ export function LocalizationSection() {
 }
 
 function LanguageSelect() {
-  const language = useAppearanceStore((s) => s.language);
-  const setLanguage = useAppearanceStore((s) => s.setLanguage);
+  const { t, language, setLanguage } = useI18n();
 
   return (
     <Select
       value={language}
-      onChange={(key) => setLanguage(key as string)}
+      onChange={(key) => setLanguage(key as 'en' | 'zh' | 'id')}
       className='flex w-[220px] flex-col gap-2'
     >
-      <Label>Language</Label>
+      <Label>{t.settingsAppearance.language}</Label>
       <Select.Trigger>
         <Select.Value />
         <Select.Indicator />
@@ -45,22 +47,13 @@ function LanguageSelect() {
       <Select.Popover className='rounded-xl'>
         <ListBox>
           <ListBox.Item id='en' className='rounded-lg'>
-            <Label>English (US)</Label>
+            <Label>English</Label>
           </ListBox.Item>
-          <ListBox.Item id='en-gb' className='rounded-lg'>
-            <Label>English (UK)</Label>
+          <ListBox.Item id='zh' className='rounded-lg'>
+            <Label>中文</Label>
           </ListBox.Item>
-          <ListBox.Item id='es' className='rounded-lg'>
-            <Label>Español</Label>
-          </ListBox.Item>
-          <ListBox.Item id='fr' className='rounded-lg'>
-            <Label>Français</Label>
-          </ListBox.Item>
-          <ListBox.Item id='de' className='rounded-lg'>
-            <Label>Deutsch</Label>
-          </ListBox.Item>
-          <ListBox.Item id='ja' className='rounded-lg'>
-            <Label>日本語</Label>
+          <ListBox.Item id='id' className='rounded-lg'>
+            <Label>Bahasa Indonesia</Label>
           </ListBox.Item>
         </ListBox>
       </Select.Popover>
@@ -69,6 +62,7 @@ function LanguageSelect() {
 }
 
 function TimeFormatSelect() {
+  const { t } = useI18n();
   const timeFormat = useAppearanceStore((s) => s.timeFormat);
   const setTimeFormat = useAppearanceStore((s) => s.setTimeFormat);
 
@@ -78,7 +72,7 @@ function TimeFormatSelect() {
       onChange={(key) => setTimeFormat(key as string)}
       className='flex w-[220px] flex-col gap-2'
     >
-      <Label>Time Format</Label>
+      <Label>{t.settingsAppearance.timeFormat}</Label>
       <Select.Trigger>
         <Select.Value />
         <Select.Indicator />
@@ -86,13 +80,13 @@ function TimeFormatSelect() {
       <Select.Popover className='rounded-xl'>
         <ListBox>
           <ListBox.Item id='auto' className='rounded-lg'>
-            <Label>Auto (System Default)</Label>
+            <Label>{t.settingsAppearance.timeAuto}</Label>
           </ListBox.Item>
           <ListBox.Item id='12h' className='rounded-lg'>
-            <Label>12-hour (1:00 PM)</Label>
+            <Label>{t.settingsAppearance.time12h}</Label>
           </ListBox.Item>
           <ListBox.Item id='24h' className='rounded-lg'>
-            <Label>24-hour (13:00)</Label>
+            <Label>{t.settingsAppearance.time24h}</Label>
           </ListBox.Item>
         </ListBox>
       </Select.Popover>
@@ -101,6 +95,7 @@ function TimeFormatSelect() {
 }
 
 function WeekStartsOnSelect() {
+  const { t } = useI18n();
   const weekStartsOn = useAppearanceStore((s) => s.weekStartsOn);
   const setWeekStartsOn = useAppearanceStore((s) => s.setWeekStartsOn);
 
@@ -110,7 +105,7 @@ function WeekStartsOnSelect() {
       onChange={(key) => setWeekStartsOn(key as string)}
       className='flex w-[220px] flex-col gap-2'
     >
-      <Label>Week Starts On</Label>
+      <Label>{t.settingsAppearance.weekStartsOn}</Label>
       <Select.Trigger>
         <Select.Value />
         <Select.Indicator />
@@ -118,16 +113,16 @@ function WeekStartsOnSelect() {
       <Select.Popover className='rounded-xl'>
         <ListBox>
           <ListBox.Item id='auto' className='rounded-lg'>
-            <Label>Auto (System Default)</Label>
+            <Label>{t.settingsAppearance.timeAuto}</Label>
           </ListBox.Item>
           <ListBox.Item id='sunday' className='rounded-lg'>
-            <Label>Sunday</Label>
+            <Label>{t.settingsAppearance.sunday}</Label>
           </ListBox.Item>
           <ListBox.Item id='monday' className='rounded-lg'>
-            <Label>Monday</Label>
+            <Label>{t.settingsAppearance.monday}</Label>
           </ListBox.Item>
           <ListBox.Item id='saturday' className='rounded-lg'>
-            <Label>Saturday</Label>
+            <Label>{t.settingsAppearance.saturday}</Label>
           </ListBox.Item>
         </ListBox>
       </Select.Popover>

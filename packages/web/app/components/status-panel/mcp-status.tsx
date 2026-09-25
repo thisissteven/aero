@@ -5,6 +5,7 @@ import { Switch } from '@heroui/react';
 
 import { useConnectMCP, useDisconnectMCP, useMCPs } from '@/app/hooks/api/mcp';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 import { AeroMCPStatus } from '@/server/services/harness/types';
 
@@ -34,6 +35,7 @@ interface McpServerItemProps {
 function McpServerItem({ name, status, directory }: McpServerItemProps) {
   const { mutate: connect, isPending: isConnecting } = useConnectMCP();
   const { mutate: disconnect, isPending: isDisconnecting } = useDisconnectMCP();
+  const { t } = useI18n();
 
   const isConnected = status.status === 'connected';
   const isPending = isConnecting || isDisconnecting;
@@ -60,7 +62,7 @@ function McpServerItem({ name, status, directory }: McpServerItemProps) {
         size='sm'
         isSelected={isConnected}
         onChange={handleToggle}
-        aria-label={`Toggle ${name} server`}
+        aria-label={t.statusPanel.toggleServer(name)}
       >
         {({ isSelected }) => (
           <Switch.Content>
@@ -85,13 +87,14 @@ function McpServerItem({ name, status, directory }: McpServerItemProps) {
 function McpServerList() {
   const directory = useSessionDirectory();
   const { data: mcps } = useMCPs({ directory });
+  const { t } = useI18n();
 
   const entries = Object.entries(mcps ?? {});
 
   if (entries.length === 0) {
     return (
       <Typography type='body-xs' color='muted'>
-        No MCP servers found
+        {t.statusPanel.noMcpServersFound}
       </Typography>
     );
   }
@@ -112,6 +115,7 @@ function McpServerList() {
 
 export function McpStatus() {
   const isVisible = useStatusPanelStore((state) => state.visibleItems.mcp);
+  const { t } = useI18n();
 
   if (!isVisible) return null;
 
@@ -121,7 +125,7 @@ export function McpStatus() {
         <div className='flex items-center gap-1'>
           <Icon data={LogoMcp} className='text-muted' size={14} />
           <Typography type='body-sm' className='text-foreground font-medium'>
-            MCP Status
+            {t.statusPanel.mcpStatus}
           </Typography>
         </div>
         <McpAmount />

@@ -38,6 +38,7 @@ import {
   useUnarchiveSession,
   useUnshareSession,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
 import { getCheckboxVariant } from '@/app/lib/constants';
@@ -216,6 +217,8 @@ export function RenameSession({
   sessionId: string;
   from: 'recents' | 'navbar' | 'workspaces';
 }) {
+  const { t } = useI18n();
+
   const renameRecents = useRecentsSessionRenameStore((state) => state.rename);
   const renameNavbar = useNavbarSessionRenameStore((state) => state.rename);
   const renameWorkspaces = useWorkspacesSessionRenameStore(
@@ -240,13 +243,15 @@ export function RenameSession({
       }}
     >
       <Icon size={14} data={Pencil} />
-      <Label>Rename</Label>
+      <Label>{t.common.rename}</Label>
     </Dropdown.Item>
   );
 }
 
 export function CopySessionId({ sessionId }: { sessionId: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { t } = useI18n();
 
   const { copied, copy } = useCopyToClipboard({
     animatedRef: containerRef,
@@ -266,7 +271,7 @@ export function CopySessionId({ sessionId }: { sessionId: string }) {
         </div>
 
         <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Session ID'}
+          {copied ? t.common.copied : t.session.copySessionId}
         </Label>
       </div>
     </Dropdown.Item>
@@ -275,6 +280,8 @@ export function CopySessionId({ sessionId }: { sessionId: string }) {
 
 export function CopySessionUrl({ sharedUrl }: { sharedUrl: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { t } = useI18n();
 
   const { copied, copy } = useCopyToClipboard({
     animatedRef: containerRef,
@@ -294,7 +301,7 @@ export function CopySessionUrl({ sharedUrl }: { sharedUrl: string }) {
         </div>
 
         <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Shared Link'}
+          {copied ? t.common.copied : t.session.copySharedLink}
         </Label>
       </div>
     </Dropdown.Item>
@@ -304,19 +311,21 @@ export function CopySessionUrl({ sharedUrl }: { sharedUrl: string }) {
 export function UnshareSession({ sessionId }: { sessionId: string }) {
   const { mutateAsync } = useUnshareSession();
 
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item
       className='gap-1'
       onPress={() => {
         toast.promise(mutateAsync(sessionId), {
-          loading: 'Unsharing session...',
+          loading: t.session.unsharingSession,
           error: (err) => err.message,
-          success: 'Session unshared',
+          success: t.session.sessionUnshared,
         });
       }}
     >
       <Icon size={14} data={ArrowUpFromSquareSlash} className='shrink-0' />
-      <Label>Unshare session</Label>
+      <Label>{t.session.unshareSession}</Label>
     </Dropdown.Item>
   );
 }
@@ -324,14 +333,16 @@ export function UnshareSession({ sessionId }: { sessionId: string }) {
 export function ShareSession({ sessionId }: { sessionId: string }) {
   const { mutateAsync } = useShareSession();
 
+  const { t } = useI18n();
+
   const handleOnPress = async () => {
     const data = await mutateAsync(sessionId);
     if (data.sharedUrl) {
       try {
         await navigator.clipboard.writeText(data.sharedUrl);
-        return 'Session link copied to clipboard';
+        return t.session.sessionLinkCopied;
       } catch {
-        throw new Error('Clipboard not supported');
+        throw new Error(t.session.clipboardNotSupported);
       }
     }
   };
@@ -341,14 +352,14 @@ export function ShareSession({ sessionId }: { sessionId: string }) {
       className='gap-1'
       onPress={() => {
         toast.promise(handleOnPress, {
-          loading: 'Retrieving session link...',
+          loading: t.session.retrievingSessionLink,
           error: (err) => err.message,
-          success: 'Session link copied to clipboard',
+          success: t.session.sessionLinkCopied,
         });
       }}
     >
       <Icon size={14} data={ArrowUpFromSquare} className='shrink-0' />
-      <Label>Share session</Label>
+      <Label>{t.session.shareSession}</Label>
     </Dropdown.Item>
   );
 }
@@ -373,6 +384,8 @@ export function ShareUnshareSession({
 }
 
 export function OpenIsolatedWorkspace({ directory }: { directory: string }) {
+  const { t } = useI18n();
+
   const setIsolatedWorkspaceDirectory = useWorkspaceStore(
     (state) => state.setIsolatedWorkspaceDirectory,
   );
@@ -393,7 +406,7 @@ export function OpenIsolatedWorkspace({ directory }: { directory: string }) {
       }}
     >
       <Icon size={14} data={ArrowUpRight} className='shrink-0' />
-      <Label>Open Workspace</Label>
+      <Label>{t.session.openWorkspace}</Label>
     </Dropdown.Item>
   );
 }
@@ -401,22 +414,24 @@ export function OpenIsolatedWorkspace({ directory }: { directory: string }) {
 export function ExportMarkdown({ sessionId }: { sessionId: string }) {
   const { mutateAsync } = useSessionMarkdown();
 
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item
       className='gap-1'
       onPress={() => {
         toast.promise(mutateAsync(sessionId), {
-          loading: 'Retrieving markdown...',
+          loading: t.session.retrievingMarkdown,
           error: (err) => err.message,
           success: (data) => {
             handleDownloadMarkdown(data.markdown, data.title);
-            return 'Markdown retrieved';
+            return t.session.markdownRetrieved;
           },
         });
       }}
     >
       <Icon size={14} data={LogoMarkdown} className='shrink-0' />
-      <Label>Export Markdown</Label>
+      <Label>{t.session.exportMarkdown}</Label>
     </Dropdown.Item>
   );
 }
@@ -430,39 +445,38 @@ export function ArchiveBulkSessionsConfirmationModal({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Archive sessions?</Modal.Heading>
+        <Modal.Heading>{t.session.archiveSessions}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
-        <p>
-          A total of {sessionIds.length} session
-          {sessionIds.length > 1 ? 's' : ''} will be archived.
-        </p>
+        <p>{t.session.archiveMany(sessionIds.length)}</p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
           onPress={() => {
             toast.promise(mutateAsync(sessionIds), {
-              loading: 'Archiving sessions...',
+              loading: t.session.archivingSessions,
               error: (err) => err.message,
               success: (_data) => {
                 navigate({
                   to: '/new',
                 });
-                return 'Sessions archived';
+                return t.session.sessionsArchived;
               },
             });
           }}
           variant='danger'
         >
-          Archive
+          {t.common.archive}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -480,39 +494,42 @@ function ArchiveSessionConfirmationModal({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Archive session?</Modal.Heading>
+        <Modal.Heading>{t.session.archiveSession}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
         <p>
-          <span className='text-foreground'>"{sessionTitle}"</span> will be
-          archived.
+          <span className='text-foreground'>
+            {t.session.archiveOne(sessionTitle)}
+          </span>
         </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
           onPress={() => {
             toast.promise(mutateAsync(sessionId), {
-              loading: 'Archiving session...',
+              loading: t.session.archivingSession,
               error: (err) => err.message,
               success: (_data) => {
                 navigate({
                   to: '/new',
                 });
-                return 'Session archived';
+                return t.session.sessionArchived;
               },
             });
           }}
           variant='danger'
         >
-          Archive
+          {t.common.archive}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -528,9 +545,11 @@ export function ArchiveSessionIconButton({
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
 
+  const { t } = useI18n();
+
   return (
     <Sidebar.MenuAction
-      aria-label={`Archive ${sessionTitle}`}
+      aria-label={t.session.archiveSessionAria(sessionTitle)}
       className='group'
       onClick={(e) => {
         e.stopPropagation();
@@ -560,21 +579,23 @@ export function ArchiveSessionIconButton({
 export function UnarchiveSession({ sessionId }: { sessionId: string }) {
   const { mutateAsync: unarchiveSession } = useUnarchiveSession();
 
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item
       className='gap-1'
       onPress={async () => {
         toast.promise(unarchiveSession(sessionId), {
-          loading: 'Restoring session...',
+          loading: t.session.restoringSession,
           error: (err) => err.message,
           success: (_data) => {
-            return 'Session restored';
+            return t.session.sessionRestored;
           },
         });
       }}
     >
       <Icon size={14} data={Archive} />
-      <Label>Restore</Label>
+      <Label>{t.common.restore}</Label>
     </Dropdown.Item>
   );
 }
@@ -587,6 +608,8 @@ export function ArchiveSession({
   sessionTitle: string;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const { t } = useI18n();
 
   return (
     <Dropdown.Item
@@ -603,7 +626,7 @@ export function ArchiveSession({
       }}
     >
       <Icon size={14} data={Archive} />
-      <Label>Archive</Label>
+      <Label>{t.common.archive}</Label>
     </Dropdown.Item>
   );
 }
@@ -617,39 +640,38 @@ export function DeleteBulkSessionsConfirmationModal({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Delete sessions?</Modal.Heading>
+        <Modal.Heading>{t.session.deleteSessions}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
-        <p>
-          A total of {sessionIds.length} session
-          {sessionIds.length > 1 ? 's' : ''} will be deleted.
-        </p>
+        <p>{t.session.deleteMany(sessionIds.length)}</p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
           onPress={() => {
             toast.promise(mutateAsync(sessionIds), {
-              loading: 'Deleting sessions...',
+              loading: t.session.deletingSessions,
               error: (err) => err.message,
               success: (_data) => {
                 navigate({
                   to: '/new',
                 });
-                return 'Sessions deleted';
+                return t.session.sessionsDeleted;
               },
             });
           }}
           variant='danger'
         >
-          Delete
+          {t.common.delete}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -667,39 +689,42 @@ function DeleteSessionConfirmationModal({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Delete session?</Modal.Heading>
+        <Modal.Heading>{t.session.deleteSession}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
         <p>
-          <span className='text-foreground'>"{sessionTitle}"</span> will be
-          permanently deleted.
+          <span className='text-foreground'>
+            {t.session.deleteOne(sessionTitle)}
+          </span>
         </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
           onPress={() => {
             toast.promise(mutateAsync(sessionId), {
-              loading: 'Deleting session...',
+              loading: t.session.deletingSession,
               error: (err) => err.message,
               success: (_data) => {
                 navigate({
                   to: '/new',
                 });
-                return 'Session deleted';
+                return t.session.sessionDeleted;
               },
             });
           }}
           variant='danger'
         >
-          Delete
+          {t.common.delete}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -714,6 +739,8 @@ export function DeleteSession({
   sessionTitle: string;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const { t } = useI18n();
 
   return (
     <Dropdown.Item
@@ -731,7 +758,9 @@ export function DeleteSession({
       }}
     >
       <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
-      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+      <Label className='text-danger-soft-foreground! font-medium'>
+        {t.common.delete}
+      </Label>
     </Dropdown.Item>
   );
 }

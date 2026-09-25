@@ -28,6 +28,7 @@ import {
   useSendMessage,
   useSendShellCommand,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { compactSession } from '@/app/lib/commands/compact-session';
 import {
   restoreAllMessages,
@@ -41,6 +42,7 @@ import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 export function useHandleSend(sessionId: string, isSteerMode: boolean) {
+  const { t } = useI18n();
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: sendCommand } = useSendCommand(undefined);
@@ -100,7 +102,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
           harnessId: undefined,
         });
       } catch {
-        toast.danger('Failed to connect to session stream');
+        toast.danger(t.chatInput.failedToConnectStream);
         return;
       }
 
@@ -161,13 +163,15 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   );
 
                 if (lastUserTurn) {
-                  revertSessionToast(() =>
-                    revertSession({
-                      queryClient,
-                      harnessId: undefined,
-                      messageId: lastUserTurn.id,
-                      sessionId,
-                    }),
+                  revertSessionToast(
+                    () =>
+                      revertSession({
+                        queryClient,
+                        harnessId: undefined,
+                        messageId: lastUserTurn.id,
+                        sessionId,
+                      }),
+                    t,
                   );
                 }
 
@@ -180,22 +184,26 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                 if (revertedMessages.length === 0) return;
 
                 if (revertedMessages.length === 1) {
-                  restoreAllMessagesToast(() =>
-                    restoreAllMessages({
-                      queryClient,
-                      harnessId: undefined,
-                      sessionId,
-                    }),
+                  restoreAllMessagesToast(
+                    () =>
+                      restoreAllMessages({
+                        queryClient,
+                        harnessId: undefined,
+                        sessionId,
+                      }),
+                    t,
                   );
                 } else {
                   const messageToRevert = revertedMessages[1];
-                  revertSessionToast(() =>
-                    revertSession({
-                      queryClient,
-                      harnessId: undefined,
-                      messageId: messageToRevert.messageId,
-                      sessionId,
-                    }),
+                  revertSessionToast(
+                    () =>
+                      revertSession({
+                        queryClient,
+                        harnessId: undefined,
+                        messageId: messageToRevert.messageId,
+                        sessionId,
+                      }),
+                    t,
                   );
                 }
 
@@ -215,63 +223,62 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   sessionId,
                   modelId: selectedModel.model.id,
                   providerId: selectedModel.providerId,
+                  errorMessage: t.toolCommand.failedToCompact,
                 });
                 return;
               }
 
               case 'catch-up':
                 sendTextMessage([
-                  'Catch me up on where this project is right now.',
-                  ...(args ? [`Focus especially on:\n${args}`] : []),
+                  t.promptTemplates.catchUpIntro,
+                  ...(args ? [t.promptTemplates.catchUpFocus(args)] : []),
                 ]);
                 return;
               case 'craft-goal': {
                 sendTextMessage([
-                  'Help me turn an idea or task into a clear, verifiable Goal.',
-                  ...(args ? [`Here is my initial idea:\n${args}`] : []),
+                  t.promptTemplates.craftGoalIntro,
+                  ...(args ? [t.promptTemplates.craftGoalIdea(args)] : []),
                 ]);
                 return;
               }
               case 'debug':
                 sendTextMessage([
-                  'I want to debug an issue.',
-                  ...(args ? [`Here is what I encountered:\n${args}`] : []),
+                  t.promptTemplates.debugIntro,
+                  ...(args ? [t.promptTemplates.debugEncounter(args)] : []),
                 ]);
                 return;
               case 'explore':
                 sendTextMessage([
-                  'Give me a high-level tour of this codebase.',
-                  ...(args ? [`Focus on:\n${args}`] : []),
+                  t.promptTemplates.exploreIntro,
+                  ...(args ? [t.promptTemplates.exploreFocus(args)] : []),
                 ]);
                 return;
               case 'plan-feature':
                 sendTextMessage([
-                  'I want to start planning a feature.',
-                  ...(args ? [`Here is my initial idea:\n${args}`] : []),
+                  t.promptTemplates.planFeatureIntro,
+                  ...(args ? [t.promptTemplates.planFeatureIdea(args)] : []),
                 ]);
                 return;
               case 'schedule-task':
                 sendTextMessage([
-                  'Help me set up a scheduled task.',
-                  ...(args
-                    ? [`Here is what I want to schedule:\n${args}`]
-                    : []),
+                  t.promptTemplates.scheduleIntro,
+                  ...(args ? [t.promptTemplates.scheduleDetail(args)] : []),
                 ]);
                 return;
               case 'summary':
                 sendTextMessage([
-                  'Summarize this session.',
-                  ...(args ? [`Focus the summary on:\n${args}`] : []),
+                  t.promptTemplates.summaryIntro,
+                  ...(args ? [t.promptTemplates.summaryFocus(args)] : []),
                 ]);
                 return;
               case 'weigh':
                 sendTextMessage([
-                  'Help me decide how to approach this.',
-                  ...(args ? [`Here is what I am weighing:\n${args}`] : []),
+                  t.promptTemplates.weighIntro,
+                  ...(args ? [t.promptTemplates.weighDetail(args)] : []),
                 ]);
                 return;
               case 'workspace-review':
-                sendTextMessage(['Review the changes made in this workspace.']);
+                sendTextMessage([t.promptTemplates.workspaceReviewIntro]);
                 return;
             }
           }
@@ -306,13 +313,13 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
           });
         }
       } catch {
-        toast.danger('Failed to send message');
+        toast.danger(t.chatInput.failedToSendMessage);
       } finally {
         composerSubmitAfter(resolvedSessionId);
         useExternalPartsStore.getState().reset(resolvedSessionId);
       }
     },
-    [isPending, sendMessage, sendShellCommand, sendCommand, isSteerMode],
+    [isPending, sendMessage, sendShellCommand, sendCommand, isSteerMode, t],
   );
 
   return { handleSend, isPending };

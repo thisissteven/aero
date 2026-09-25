@@ -1,4 +1,5 @@
 import { cn, Tooltip, Typography } from '@aero/ui';
+import { useI18n } from '@/app/hooks/i18n';
 import { collapsibleNav, NavItemId } from '@/app/lib/constants';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -9,6 +10,7 @@ interface ChatAsideProps {
 
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
   const isSidePanelOpen = useSidePanelStore((state) => state.isOpen);
+  const { t } = useI18n();
   if (!isSidePanelOpen) return null;
 
   return (
@@ -23,7 +25,7 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
           const isActive = activeItem === item.id;
           return (
             <Tooltip key={item.id}>
-              <Tooltip.Trigger aria-label={item.label}>
+              <Tooltip.Trigger aria-label={t.nav[item.labelKey]}>
                 <button
                   type='button'
                   onClick={() => onSelect(item.id)}
@@ -42,10 +44,10 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
                   type='body-sm'
                   className='text-accent-soft-foreground'
                 >
-                  {item.label}
+                  {t.nav[item.labelKey]}
                 </Typography>
                 <Typography type='body-xs' className='leading-4'>
-                  {item.description}
+                  {t.nav[item.descriptionKey]}
                 </Typography>
               </Tooltip.Content>
             </Tooltip>

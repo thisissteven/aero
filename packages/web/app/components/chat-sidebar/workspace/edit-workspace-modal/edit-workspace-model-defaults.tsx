@@ -2,6 +2,7 @@ import { IconButton, Label } from '@aero/ui';
 import { ArrowRotateLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { WorkspaceModelDropdown } from '@/app/components/chat-sidebar/workspace/workspace-model-dropdown';
+import { useI18n } from '@/app/hooks/i18n';
 import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 import { useEditWorkspaceStore } from './edit-workspace-store';
 
@@ -9,16 +10,16 @@ export function EditWorkspaceModelDefaults() {
   const defaultModel = useEditWorkspaceStore((s) => s.defaultModel);
   const setDefaultModel = useEditWorkspaceStore((s) => s.setDefaultModel);
 
+  const { t } = useI18n();
+
   return (
     <div className='flex flex-col gap-3'>
       <div className='flex items-center gap-1.5 font-medium'>
-        <Label>Defaults for new chats</Label>
-        <InfoTooltip>
-          Default AI settings for new conversations in this workspace
-        </InfoTooltip>
+        <Label>{t.editWorkspace.defaultsForNewChats}</Label>
+        <InfoTooltip>{t.editWorkspace.defaultsDescription}</InfoTooltip>
       </div>
       <div className='flex flex-col gap-2'>
-        <Label>Project Model</Label>
+        <Label>{t.editWorkspace.projectModel}</Label>
 
         <div className='relative flex w-full items-center gap-2'>
           <WorkspaceModelDropdown

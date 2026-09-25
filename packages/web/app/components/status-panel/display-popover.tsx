@@ -1,28 +1,29 @@
 import { Popover } from '@aero/ui';
 import { Sliders } from '@gravity-ui/icons';
 import { Checkbox } from '@heroui/react';
-
+import { useI18n } from '@/app/hooks/i18n';
 import {
   type StatusItemKey,
   useStatusPanelStore,
 } from '@/app/stores/status-panel-store';
-
-const STATUS_ITEMS: { key: StatusItemKey; label: string }[] = [
-  { key: 'session', label: 'Session Status' },
-  { key: 'project', label: 'Project Status' },
-  // { key: 'usage', label: 'Usage Status' },
-  { key: 'subagent', label: 'Subagent Status' },
-  { key: 'task', label: 'Task Status' },
-  { key: 'mcp', label: 'MCP Status' },
-  { key: 'pinnedMessage', label: 'Pinned Messages' },
-  { key: 'contextSources', label: 'Context Sources' },
-];
 
 export function DisplayPopover() {
   const visibleItems = useStatusPanelStore((state) => state.visibleItems);
   const toggleItemVisibility = useStatusPanelStore(
     (state) => state.toggleItemVisibility,
   );
+  const { t } = useI18n();
+
+  const STATUS_ITEMS: { key: StatusItemKey; label: string }[] = [
+    { key: 'session', label: t.statusPanel.sessionStatus },
+    { key: 'project', label: t.statusPanel.projectStatus },
+    // { key: 'usage', label: 'Usage Status' },
+    { key: 'subagent', label: t.statusPanel.subagentStatus },
+    { key: 'task', label: t.statusPanel.taskStatus },
+    { key: 'mcp', label: t.statusPanel.mcpStatus },
+    { key: 'pinnedMessage', label: t.statusPanel.pinnedMessages },
+    { key: 'contextSources', label: t.statusPanel.contextSources },
+  ];
 
   return (
     <Popover>
@@ -31,7 +32,9 @@ export function DisplayPopover() {
       </Popover.Trigger>
       <Popover.Content className='w-56 rounded-xl p-0' placement='bottom right'>
         <Popover.Dialog className='flex flex-col gap-2'>
-          <p className='text-muted mb-1 text-xs font-semibold'>Display Items</p>
+          <p className='text-muted mb-1 text-xs font-semibold'>
+            {t.statusPanel.displayItems}
+          </p>
 
           {STATUS_ITEMS.map(({ key, label }) => (
             <Checkbox

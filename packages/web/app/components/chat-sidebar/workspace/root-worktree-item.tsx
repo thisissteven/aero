@@ -1,9 +1,9 @@
-import { memo, useMemo, useState } from 'react';
-
 import { Sidebar } from '@aero/ui';
+import { memo, useMemo, useState } from 'react';
 
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { AeroWorktreeSummary } from '@/server/services/harness/types';
 import { dedupeById } from '@/server/shared';
 
@@ -20,6 +20,8 @@ export const RootWorktreeItem = memo(function RootWorktreeItem({
   worktree,
 }: RootWorktreeItemProps) {
   const [limit, setLimit] = useState(INITIAL_LIMIT);
+
+  const { t } = useI18n();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSessions({
     directory: worktree.directory,
@@ -42,7 +44,7 @@ export const RootWorktreeItem = memo(function RootWorktreeItem({
         >
           <Sidebar.MenuItemContent>
             <Sidebar.MenuLabel className='text-xs'>
-              0 sessions found in this workspace.
+              {t.workspace.zeroSessionsInWorkspace}
             </Sidebar.MenuLabel>
           </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>
@@ -74,7 +76,9 @@ export const RootWorktreeItem = memo(function RootWorktreeItem({
               }}
               className='text-muted hover:text-foreground text-xs disabled:opacity-50'
             >
-              {isFetchingNextPage ? 'Loading...' : 'Show more sessions'}
+              {isFetchingNextPage
+                ? t.common.loading
+                : t.workspace.showMoreSessions}
             </button>
           </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>

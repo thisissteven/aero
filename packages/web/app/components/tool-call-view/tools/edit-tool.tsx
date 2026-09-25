@@ -3,6 +3,7 @@ import { memo, useMemo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { EditPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { getBasename, normalizePath } from '@/server/shared';
 
 function getLineCount(str: string | undefined): number {
@@ -70,6 +71,7 @@ export const EditToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const path = normalizePath(part.input.filePath || '');
     const fileName = getBasename(path);
 
@@ -98,7 +100,7 @@ export const EditToolView = memo(
         status={part.status}
         error={part.error}
         icon={Pencil}
-        title='Edit File'
+        title={t.toolCall.editFile}
         codeTitle={path}
         language='diff'
         preview={fileName}

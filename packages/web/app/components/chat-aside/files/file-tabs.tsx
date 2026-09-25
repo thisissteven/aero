@@ -4,6 +4,7 @@ import { cn } from '@aero/ui';
 import { memo } from 'react';
 import { useIsDirty } from '@/app/components/chat-aside/files/file-edit-store';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { useI18n } from '@/app/hooks/i18n';
 
 export interface FileTabsProps {
   openPaths: readonly string[];
@@ -53,6 +54,7 @@ interface FileTabProps {
 
 function FileTab({ path, isActive, onActivate, onClose }: FileTabProps) {
   const label = getTabLabel(path);
+  const { t } = useI18n();
   const isUnsaved = useIsDirty(path);
 
   return (
@@ -69,7 +71,7 @@ function FileTab({ path, isActive, onActivate, onClose }: FileTabProps) {
         role='tab'
         aria-selected={isActive}
         onClick={onActivate}
-        title={isUnsaved ? `${path} (unsaved)` : path}
+        title={isUnsaved ? t.fileExplorer.unsavedTabTitle(path) : path}
         // pr-7 reserves the right slot for the dot / X. Neither element
         // needs to be inside the activate button, so the button is free to
         // span the full width minus that slot.
@@ -89,7 +91,7 @@ function FileTab({ path, isActive, onActivate, onClose }: FileTabProps) {
       {isUnsaved && (
         <span
           aria-hidden='true'
-          title='Unsaved changes'
+          title={t.fileExplorer.unsavedChanges}
           className={cn(
             'bg-accent pointer-events-none absolute top-1/2 right-2.75 z-10 h-1.5 w-1.5 -translate-y-1/2 rounded-full',
             'transition-opacity duration-150 ',
@@ -101,8 +103,8 @@ function FileTab({ path, isActive, onActivate, onClose }: FileTabProps) {
       <button
         type='button'
         onClick={onClose}
-        title='Close tab'
-        aria-label={`Close ${label}`}
+        title={t.fileExplorer.closeTab}
+        aria-label={t.fileExplorer.closeTabAria(label)}
         className={cn(
           'text-muted absolute top-1/2 right-1 z-20 flex h-5 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded',
           'transition-opacity duration-150',

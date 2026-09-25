@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 
 import type { ChatQuoteItem } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 interface ChatQuoteCardProps {
@@ -17,6 +18,7 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
 }: ChatQuoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(quote.comment);
+  const { t } = useI18n();
 
   const updateChatQuote = useExternalPartsStore((s) => s.updateChatQuote);
   const removeChatQuote = useExternalPartsStore((s) => s.removeChatQuote);
@@ -47,7 +49,7 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
         <div className='space-x-1 py-1.5 w-full'>
           <span className='text-muted text-xs tabular-nums'>{index + 1}.</span>
           <span className='text-foreground/80 truncate text-xs font-medium'>
-            Quoted from an earlier message
+            {t.selectionPopover.quotedFromEarlier}
           </span>
         </div>
 
@@ -56,14 +58,14 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
             <>
               <IconButton
                 variant='ghost'
-                aria-label='Save comment'
+                aria-label={t.selectionPopover.saveComment}
                 onPress={commit}
               >
                 <Check />
               </IconButton>
               <IconButton
                 variant='ghost'
-                aria-label='Delete quote'
+                aria-label={t.selectionPopover.deleteQuote}
                 onPress={() => removeChatQuote(sessionId, quote.id)}
               >
                 <TrashBin />
@@ -73,14 +75,14 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
             <>
               <IconButton
                 variant='ghost'
-                aria-label='Edit comment'
+                aria-label={t.selectionPopover.editComment}
                 onPress={startEdit}
               >
                 <Pencil />
               </IconButton>
               <IconButton
                 variant='ghost'
-                aria-label='Delete quote'
+                aria-label={t.selectionPopover.deleteQuote}
                 onPress={() => removeChatQuote(sessionId, quote.id)}
               >
                 <TrashBin />
@@ -93,7 +95,7 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
       {/* Selected text */}
       <div className='border-separator border-t px-3 py-2'>
         <div className='text-muted text-[10px] font-medium tracking-wide uppercase'>
-          Selected text
+          {t.selectionPopover.selectedText}
         </div>
         <div className='text-foreground mt-1 text-sm leading-snug'>
           {quote.selection}
@@ -104,15 +106,15 @@ export const ChatQuoteCard = React.memo(function ChatQuoteCard({
       {showCommentSection && (
         <div className='border-separator border-t px-3 py-2'>
           <div className='text-muted text-[10px] font-medium tracking-wide uppercase'>
-            User comment
+            {t.selectionPopover.userComment}
           </div>
 
           {isEditing ? (
             <TextArea
               autoFocus
               variant='secondary'
-              aria-label='User comment'
-              placeholder='Add an optional comment...'
+              aria-label={t.selectionPopover.userComment}
+              placeholder={t.selectionPopover.addOptionalComment}
               className='mt-1 min-h-9 w-full resize-none rounded-lg'
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

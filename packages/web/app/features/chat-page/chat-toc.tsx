@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 
 import { useSessionScroll } from '@/app/features/chat-page/chat-feed/chat-store';
 import { useSessionToc } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export const ChatTocSection = React.memo(function ChatTocSection({
@@ -11,6 +12,7 @@ export const ChatTocSection = React.memo(function ChatTocSection({
   onSelectTocItem: (groupIndex: number) => void;
 }) {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const { data: tocItems = [] } = useSessionToc(undefined, sessionId);
 
   // Subscribe ONLY to activeGroupIndex. ChatPage no longer re-renders per scroll.
@@ -35,7 +37,7 @@ export const ChatTocSection = React.memo(function ChatTocSection({
   return (
     <div className='absolute top-1/2 right-2 z-1 translate-y-[calc(-50%-42px)]'>
       <FloatingToc placement='right' triggerMode='hover'>
-        <FloatingToc.Trigger aria-label='Table of contents'>
+        <FloatingToc.Trigger aria-label={t.chatFeed.tableOfContentsAria}>
           {tocItems.map((tocItem, idx) => (
             <FloatingToc.Bar
               key={tocItem.id}

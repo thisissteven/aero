@@ -5,7 +5,6 @@ import type {
 } from '@/app/components/smart-composer/smart-composer-helpers';
 import {
   ChatQuoteItem,
-  ExternalPartsState,
   SessionExternalPartsState,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { AeroPartUserMessage } from '@/server/services/harness/types';

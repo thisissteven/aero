@@ -5,6 +5,8 @@ import {
   useUpdateSetting,
 } from '@/app/hooks/api/settings';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import { BooleanSettingToggleButton } from './boolean-setting';
 
 export function AutoAcceptPermissionsToggleButton({
@@ -12,6 +14,7 @@ export function AutoAcceptPermissionsToggleButton({
 }: {
   sessionId: string;
 }) {
+  const { t } = useI18n();
   const { data } = usePermissionAutoAccept(sessionId);
 
   const { mutate: updateSetting } = useUpdateSetting();
@@ -21,7 +24,7 @@ export function AutoAcceptPermissionsToggleButton({
   return (
     <BooleanSettingToggleButton
       enabled={enabled}
-      label='Auto accept permissions'
+      label={t.chatInput.autoAcceptPermissions}
       icon={<ShieldCheck />}
       onPress={() =>
         updateSetting({

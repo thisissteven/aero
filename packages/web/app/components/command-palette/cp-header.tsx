@@ -4,8 +4,10 @@ import {
   defaultSelectedFilters,
   useCommandPaletteStore,
 } from '@/app/components/command-palette/command-palette-store';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function CommandPaletteHeader() {
+  const { t } = useI18n();
   const selectedFilters = useCommandPaletteStore(
     (state) => state.selectedFilters,
   );
@@ -16,7 +18,7 @@ export function CommandPaletteHeader() {
     <Command.Header>
       <div className='flex flex-wrap items-center gap-1.5 pb-2 pl-2.5'>
         <Typography type='body-sm' className='text-muted'>
-          Filters:
+          {t.commandPalette.filters}
         </Typography>
         {defaultSelectedFilters.map((filter) => (
           <ToggleButton

@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { TOKEN_COLOR_MAP } from '@/app/components/smart-composer/smart-composer-dom';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
+import { useI18n } from '@/app/hooks/i18n';
 
 import type { SearchItem } from '../smart-composer-helpers';
 
@@ -25,6 +26,7 @@ export function CommandPaletteItem({
   onShowTooltip,
 }: CommandPaletteItemProps) {
   const itemRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   const handleMouseMove = () => {
     const element = itemRef.current;
@@ -38,7 +40,7 @@ export function CommandPaletteItem({
     item.kind === 'agent'
       ? [
           item.agent.mode === 'subagent' ? 'subagent' : 'primary',
-          item.agent.native ? 'built-in' : 'custom',
+          item.agent.native ? t.composer.builtIn : t.composer.custom,
         ]
       : item.kind === 'command'
         ? [

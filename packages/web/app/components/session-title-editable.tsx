@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { sessionKeys, useRenameSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 import {
@@ -29,6 +30,7 @@ export function SessionTitleEditable({
   iconSize?: number;
 }) {
   const { mutateAsync, isPending } = useRenameSession();
+  const { t } = useI18n();
   const cancelRenameNavbar = useNavbarSessionRenameStore(
     (state) => state.cancelRename,
   );
@@ -101,9 +103,9 @@ export function SessionTitleEditable({
         };
 
         toast.promise(processRename(), {
-          loading: 'Renaming session...',
+          loading: t.sessionTitle.renamingSession,
           error: (err) => err.message,
-          success: 'Session renamed',
+          success: t.sessionTitle.sessionRenamed,
         });
       }}
     >
@@ -113,7 +115,7 @@ export function SessionTitleEditable({
       >
         <input
           ref={ref}
-          placeholder='Enter session title'
+          placeholder={t.sessionTitle.enterSessionTitle}
           value={value}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {

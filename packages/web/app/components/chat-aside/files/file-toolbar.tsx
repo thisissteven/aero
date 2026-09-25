@@ -19,6 +19,7 @@ import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button'
 import { ToolbarButton } from '@/app/components/chat-aside/files/toolbar-button';
 import { CopyMotionIcon } from '@/app/components/code-block/code-block-icons';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
+import { useI18n } from '@/app/hooks/i18n';
 
 export interface FileToolbarProps {
   filePath: string;
@@ -57,6 +58,7 @@ export const FileToolbar = memo(function FileToolbar({
   onSave,
   onRefresh,
 }: FileToolbarProps) {
+  const { t } = useI18n();
   const wrapText = useFileViewerStore((s) => s.wrapText);
   const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
   const increaseFontSize = useFileViewerStore((s) => s.increaseFontSize);
@@ -81,8 +83,8 @@ export const FileToolbar = memo(function FileToolbar({
         {isDirty && (
           <span
             className='bg-accent ml-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full'
-            aria-label='Unsaved changes'
-            title='Unsaved changes'
+            aria-label={t.fileExplorer.unsavedChanges}
+            title={t.fileExplorer.unsavedChanges}
           />
         )}
       </div>
@@ -91,7 +93,7 @@ export const FileToolbar = memo(function FileToolbar({
         {isImage && (
           <>
             <ToolbarButton
-              label='Zoom out'
+              label={t.markdown.zoomOutAria}
               onClick={zoomOut}
               disabled={imageZoom <= IMAGE_ZOOM_MIN}
             >
@@ -101,14 +103,14 @@ export const FileToolbar = memo(function FileToolbar({
             <button
               type='button'
               onClick={resetImageZoom}
-              title='Reset zoom (or double-click the image)'
+              title={t.fileExplorer.resetZoomTitle}
               className='text-muted hover:text-foreground min-w-[4ch] rounded px-1 text-center text-xs tabular-nums'
             >
               {Math.round(imageZoom * 100)}%
             </button>
 
             <ToolbarButton
-              label='Zoom in'
+              label={t.markdown.zoomInAria}
               onClick={zoomIn}
               disabled={imageZoom >= IMAGE_ZOOM_MAX}
             >
@@ -119,7 +121,11 @@ export const FileToolbar = memo(function FileToolbar({
 
         {showViewerControls && isMarkdown && (
           <ToolbarButton
-            label={previewMode ? 'Edit markdown' : 'Preview markdown'}
+            label={
+              previewMode
+                ? t.fileExplorer.editMarkdown
+                : t.fileExplorer.previewMarkdown
+            }
             active={previewMode}
             onClick={onTogglePreview}
           >
@@ -134,20 +140,24 @@ export const FileToolbar = memo(function FileToolbar({
         {showViewerControls && !previewActive && (
           <>
             <ToolbarButton
-              label='Decrease font size'
+              label={t.fileExplorer.decreaseFontSize}
               onClick={decreaseFontSize}
             >
               <span className='text-xs font-medium'>A-</span>
             </ToolbarButton>
             <ToolbarButton
-              label='Increase font size'
+              label={t.fileExplorer.increaseFontSize}
               onClick={increaseFontSize}
             >
               <span className='text-xs font-medium'>A+</span>
             </ToolbarButton>
 
             <ToolbarButton
-              label={wrapText ? 'Disable word wrap' : 'Enable word wrap'}
+              label={
+                wrapText
+                  ? t.fileExplorer.disableWordWrap
+                  : t.fileExplorer.enableWordWrap
+              }
               active={wrapText}
               onClick={toggleWrapText}
             >
@@ -156,7 +166,9 @@ export const FileToolbar = memo(function FileToolbar({
 
             <ToolbarButton
               label={
-                showLineNumbers ? 'Hide line numbers' : 'Show line numbers'
+                showLineNumbers
+                  ? t.fileExplorer.hideLineNumbers
+                  : t.fileExplorer.showLineNumbers
               }
               active={showLineNumbers}
               onClick={toggleLineNumbers}
@@ -168,7 +180,7 @@ export const FileToolbar = memo(function FileToolbar({
 
         {showViewerControls && (
           <ToolbarButton
-            label={copied ? 'Copied' : 'Copy contents'}
+            label={copied ? t.common.copied : t.fileExplorer.copyContents}
             active={copied}
             onClick={onCopy}
           >
@@ -180,10 +192,10 @@ export const FileToolbar = memo(function FileToolbar({
           <ToolbarButton
             label={
               saving
-                ? 'Saving…'
+                ? t.fileExplorer.savingEllipsis
                 : isDirty
-                  ? 'Save changes'
-                  : 'No unsaved changes'
+                  ? t.fileExplorer.saveChanges
+                  : t.fileExplorer.noUnsavedChanges
             }
             active={isDirty}
             disabled={!isDirty || saving}
@@ -193,7 +205,7 @@ export const FileToolbar = memo(function FileToolbar({
           </ToolbarButton>
         )}
 
-        <RefreshButton label='Reload file' onClick={onRefresh} />
+        <RefreshButton label={t.fileExplorer.reloadFile} onClick={onRefresh} />
       </div>
     </div>
   );

@@ -1,6 +1,31 @@
+export interface RelativeTimeLocale {
+  now: string;
+  justNow: string;
+  ago: string;
+  year: (n: number) => string;
+  month: (n: number) => string;
+  week: (n: number) => string;
+  day: (n: number) => string;
+  hour: (n: number) => string;
+  minute: (n: number) => string;
+}
+
+const defaultRelativeTimeLocale: RelativeTimeLocale = {
+  now: 'now',
+  justNow: 'Just now',
+  ago: ' ago',
+  year: (n) => `${n}y`,
+  month: (n) => `${n}mo`,
+  week: (n) => `${n}w`,
+  day: (n) => `${n}d`,
+  hour: (n) => `${n}h`,
+  minute: (n) => `${n}m`,
+};
+
 export function formatCompactRelativeTime(
   value: DateValue,
   withAgo?: boolean,
+  locale: RelativeTimeLocale = defaultRelativeTimeLocale,
 ): string {
   const date = parseDate(value);
 
@@ -17,16 +42,16 @@ export function formatCompactRelativeTime(
   const months = Math.floor(days / 30);
   const years = Math.floor(days / 365);
 
-  const suffix = withAgo ? ' ago' : '';
+  const suffix = withAgo ? locale.ago : '';
 
-  if (years > 0) return `${years}y${suffix}`;
-  if (months > 0) return `${months}mo${suffix}`;
-  if (weeks > 0) return `${weeks}w${suffix}`;
-  if (days > 0) return `${days}d${suffix}`;
-  if (hours > 0) return `${hours}h${suffix}`;
-  if (minutes > 0) return `${minutes}m${suffix}`;
+  if (years > 0) return `${locale.year(years)}${suffix}`;
+  if (months > 0) return `${locale.month(months)}${suffix}`;
+  if (weeks > 0) return `${locale.week(weeks)}${suffix}`;
+  if (days > 0) return `${locale.day(days)}${suffix}`;
+  if (hours > 0) return `${locale.hour(hours)}${suffix}`;
+  if (minutes > 0) return `${locale.minute(minutes)}${suffix}`;
 
-  return withAgo ? 'Just now' : 'now';
+  return withAgo ? locale.justNow : locale.now;
 }
 
 export function formatDateTimeFull(value: DateValue): string {

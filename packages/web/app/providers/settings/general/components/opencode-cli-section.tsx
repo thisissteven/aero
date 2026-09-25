@@ -3,13 +3,16 @@
 import { Button, Checkbox, Input, Label, Typography } from '@aero/ui';
 import { Folder } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { useI18n } from '@/app/hooks/i18n';
 import { useGeneralStore } from '../general-store';
 import { InfoTooltip } from './info-tooltip';
 
 export function OpenCodeCliSection() {
+  const { t } = useI18n();
+
   return (
     <section className='space-y-6'>
-      <Typography type='h6'>OpenCode CLI</Typography>
+      <Typography type='h6'>{t.settingsGeneral.opencodeCli}</Typography>
 
       <BinaryPathInput />
 
@@ -19,7 +22,7 @@ export function OpenCodeCliSection() {
       </div>
 
       <div>
-        <Button variant='tertiary'>Save & Reload</Button>
+        <Button variant='tertiary'>{t.settingsGeneral.saveAndReload}</Button>
       </div>
     </section>
   );
@@ -28,12 +31,13 @@ export function OpenCodeCliSection() {
 function BinaryPathInput() {
   const binaryPath = useGeneralStore((s) => s.binaryPath);
   const setBinaryPath = useGeneralStore((s) => s.setBinaryPath);
+  const { t } = useI18n();
 
   return (
     <div className='max-sm:grid-cols-1 max-sm:gap-2 grid grid-cols-2'>
       <div className='flex items-center gap-1.5'>
-        <Label>OpenCode Binary Path</Label>
-        <InfoTooltip>Path to executable binary file.</InfoTooltip>
+        <Label>{t.settingsGeneral.opencodeBinaryPath}</Label>
+        <InfoTooltip>{t.settingsGeneral.opencodeBinaryPathTooltip}</InfoTooltip>
       </div>
       <div className='flex items-center gap-2'>
         <Input
@@ -56,6 +60,7 @@ function ShowUpdateNotificationsCheckbox() {
   const setShowUpdateNotifications = useGeneralStore(
     (s) => s.setShowUpdateNotifications,
   );
+  const { t } = useI18n();
 
   return (
     <Checkbox
@@ -66,7 +71,7 @@ function ShowUpdateNotificationsCheckbox() {
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        Show OpenCode update notifications
+        {t.settingsGeneral.showOpencodeUpdates}
       </Checkbox.Content>
     </Checkbox>
   );
@@ -75,6 +80,7 @@ function ShowUpdateNotificationsCheckbox() {
 function AgentControlToolCheckbox() {
   const agentControlTool = useGeneralStore((s) => s.agentControlTool);
   const setAgentControlTool = useGeneralStore((s) => s.setAgentControlTool);
+  const { t } = useI18n();
 
   return (
     <div className='flex items-center gap-2'>
@@ -83,10 +89,10 @@ function AgentControlToolCheckbox() {
           <Checkbox.Control>
             <Checkbox.Indicator />
           </Checkbox.Control>
-          Agent control tool
+          {t.settingsGeneral.agentControlTool}
         </Checkbox.Content>
       </Checkbox>
-      <InfoTooltip>Enable internal agent management features.</InfoTooltip>
+      <InfoTooltip>{t.settingsGeneral.agentControlToolTooltip}</InfoTooltip>
     </div>
   );
 }

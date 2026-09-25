@@ -9,6 +9,7 @@ import React, {
 
 import { CommandPaletteItem } from '@/app/components/smart-composer/components/composer-cp-item';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
+import { useI18n } from '@/app/hooks/i18n';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
 import { useTooltipStore } from '@/app/providers/global-tooltip/global-tooltip-store';
 import { capitalizeFirstLetter, toPascalCase } from '@/server/shared';
@@ -41,6 +42,7 @@ export function ComposerCommandPalette({
   close,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useI18n();
 
   const showTooltip = useTooltipStore((s) => s.showTooltip);
   const hideTooltip = useTooltipStore((s) => s.hideTooltip);
@@ -247,6 +249,14 @@ export function ComposerCommandPalette({
 
   let flatIndex = 0;
 
+  const GROUP_LABELS: Record<(typeof GROUPS)[number], string> = {
+    AGENTS: t.composer.agents,
+    FILES: t.composer.files,
+    COMMANDS: t.composer.commands,
+    SKILLS: t.composer.skills,
+    SNIPPETS: t.composer.snippets,
+  };
+
   return (
     <div
       ref={paletteRef}
@@ -259,7 +269,7 @@ export function ComposerCommandPalette({
     >
       <ScrollShadow
         role='listbox'
-        aria-label='Composer suggestions'
+        aria-label={t.composer.composerSuggestionsAria}
         className='max-h-80 scroll-py-10 scrollbar-thin overflow-y-auto p-1'
       >
         {GROUPS.map((group) => {
@@ -279,7 +289,7 @@ export function ComposerCommandPalette({
                   'text-muted',
                 )}
               >
-                {group}
+                {GROUP_LABELS[group]}
               </div>
 
               {items.map((item) => {
@@ -303,7 +313,9 @@ export function ComposerCommandPalette({
         })}
 
         {!results.length && (
-          <div className='text-muted px-3 py-2 text-sm'>No results</div>
+          <div className='text-muted px-3 py-2 text-sm'>
+            {t.composer.noResults}
+          </div>
         )}
       </ScrollShadow>
 
@@ -318,7 +330,7 @@ export function ComposerCommandPalette({
             </Kbd>
           </div>
 
-          <span className='text-xs'>Navigate</span>
+          <span className='text-xs'>{t.composer.navigate}</span>
         </div>
 
         <div className='flex items-center gap-2'>
@@ -326,7 +338,7 @@ export function ComposerCommandPalette({
             <Kbd.Abbr keyValue='enter' />
           </Kbd>
 
-          <span className='text-xs'>Select</span>
+          <span className='text-xs'>{t.composer.select}</span>
         </div>
       </div>
     </div>

@@ -1,11 +1,11 @@
+import { Command } from '@aero/ui';
 import { Check, Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo, useState } from 'react';
 
-import { Command } from '@aero/ui';
-
 import { getAgentIconData } from '@/app/features/chat-page/chat-input/agents/get-agent-icon-data';
 import { useAgentsCompact } from '@/app/hooks/api/capabilities';
+import { useI18n } from '@/app/hooks/i18n';
 import { capitalizeFirstLetter } from '@/server/shared';
 
 import { useChatSettingsStore } from '../chat-settings-store';
@@ -15,6 +15,7 @@ interface AgentPickerProps {
 }
 
 export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
+  const { t } = useI18n();
   const selectedAgent = useChatSettingsStore((state) => state.selectedAgent);
 
   const setSelectedAgent = useChatSettingsStore(
@@ -63,7 +64,7 @@ export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               className='py-2.5 text-sm'
-              placeholder='Search agent modes...'
+              placeholder={t.chatInput.searchAgentModes}
             />
 
             <Command.InputGroup.ClearButton
@@ -73,11 +74,11 @@ export function AgentPicker({ onAgentSelect }: AgentPickerProps) {
 
           {visibleAgents.length === 0 ? (
             <div className='text-muted flex h-24 items-center justify-center text-sm'>
-              No agents found.
+              {t.chatInput.noAgentsFound}
             </div>
           ) : (
             <Command.List className='scroll-py-1 overflow-y-auto p-1 @md:max-h-72'>
-              <Command.Group heading='Native Agents'>
+              <Command.Group heading={t.chatInput.nativeAgents}>
                 {visibleAgents.map((agent) => (
                   <Command.Item
                     key={agent.name}

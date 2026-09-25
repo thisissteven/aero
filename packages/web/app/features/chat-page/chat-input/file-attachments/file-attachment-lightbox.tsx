@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 
 interface FileAttachmentLightboxProps {
   attachments: ExternalFileAttachment[];
@@ -19,6 +20,7 @@ export function FileAttachmentLightbox({
   onIndexChange,
   onClose,
 }: FileAttachmentLightboxProps) {
+  const { t } = useI18n();
   const isOpen = index !== null;
   const count = attachments.length;
 
@@ -90,7 +92,7 @@ export function FileAttachmentLightbox({
       onClick={onClose}
       role='dialog'
       aria-modal='true'
-      aria-label={`Preview ${attachment.filename}`}
+      aria-label={t.fileSheet.previewAttachmentAria(attachment.filename)}
     >
       {showNav && (
         <>
@@ -105,7 +107,7 @@ export function FileAttachmentLightbox({
               event.stopPropagation();
               goPrev();
             }}
-            aria-label='Previous attachment'
+            aria-label={t.fileSheet.previousAttachmentAria}
           >
             <Icon data={ChevronLeft} size={16} />
           </button>
@@ -121,7 +123,7 @@ export function FileAttachmentLightbox({
               event.stopPropagation();
               goNext();
             }}
-            aria-label='Next attachment'
+            aria-label={t.fileSheet.nextAttachmentAria}
           >
             <Icon data={ChevronRight} size={16} />
           </button>
@@ -139,7 +141,7 @@ export function FileAttachmentLightbox({
           event.stopPropagation();
           onClose();
         }}
-        aria-label='Close preview'
+        aria-label={t.fileSheet.closePreviewAria}
       >
         <Icon data={Xmark} size={14} />
       </button>

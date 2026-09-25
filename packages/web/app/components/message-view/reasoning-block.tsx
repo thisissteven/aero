@@ -11,6 +11,7 @@ import { Bulb } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, ReactElement, useEffect, useRef, useState } from 'react';
 import { AdaptiveMarkdown } from '@/app/components/markdown/adaptive-markdown';
+import { useI18n } from '@/app/hooks/i18n';
 import { useKeepMountedFeed } from '@/app/hooks/useKeepMounted';
 import { stripMarkdown } from '@/app/lib/file';
 
@@ -38,6 +39,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
   isStreaming: boolean;
 }): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [preview, setPreview] = useState('');
@@ -163,7 +165,7 @@ export const ReasoningBlock = memo(function ReasoningBlock({
             )
           }
         >
-          <span className='text-foreground'>Thinking</span>
+          <span className='text-foreground'>{t.composer.thinking}</span>
         </ChainOfThought.Trigger>
 
         <ChainOfThought.Content>

@@ -3,6 +3,7 @@ import { Paperclip } from '@gravity-ui/icons';
 import type { RefObject } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -25,6 +26,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
   containerRef,
 }: SelectionPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   const sessionId = useSessionId();
 
@@ -193,7 +195,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
         }}
       >
         <Popover.Trigger
-          aria-label='Selection'
+          aria-label={t.selectionPopover.selection}
           className='fixed h-px w-px opacity-0'
           style={{
             left: clampedLeft,
@@ -230,7 +232,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     setMode('comment');
                   }}
                 >
-                  Comment
+                  {t.selectionPopover.comment}
                 </Button>
 
                 <Separator orientation='vertical' />
@@ -245,7 +247,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     // TODO: add to notes
                   }}
                 >
-                  Add to notes
+                  {t.selectionPopover.addToNotes}
                 </Button>
               </div>
             ) : (
@@ -265,8 +267,8 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                   <TextArea
                     autoFocus
                     variant='secondary'
-                    aria-label='Comment'
-                    placeholder='Add a comment...'
+                    aria-label={t.selectionPopover.comment}
+                    placeholder={t.selectionPopover.addComment}
                     className='min-h-9 w-full resize-none scrollbar-thin rounded-lg'
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
@@ -282,7 +284,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     <Button
                       isIconOnly
                       type='submit'
-                      aria-label='Submit comment'
+                      aria-label={t.selectionPopover.submitComment}
                       size='sm'
                     >
                       <Paperclip />

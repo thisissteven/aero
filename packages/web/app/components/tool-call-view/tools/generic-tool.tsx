@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { GenericToolPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { toTitleCase } from '@/app/lib/file';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
@@ -16,6 +17,7 @@ export const GenericToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const rawOutput = formatToolOutput(part.output);
     const inputStr =
       typeof part.input === 'string'
@@ -33,7 +35,7 @@ export const GenericToolView = memo(
         codeTitle={title}
         code={rawOutput}
         language='json'
-        copyText={`// Input:\n${inputStr}\n\n// Output:\n${rawOutput}`}
+        copyText={t.toolCall.generic(inputStr, rawOutput)}
         isStreaming={isStreaming}
       />
     );

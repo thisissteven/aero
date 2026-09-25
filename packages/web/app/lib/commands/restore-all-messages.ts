@@ -1,6 +1,7 @@
 import { toast } from '@aero/ui';
 import { QueryClient } from '@tanstack/react-query';
 import { $individualSession, sessionKeys } from '@/app/hooks/api/sessions';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 
 export async function restoreAllMessages({
   queryClient,
@@ -26,10 +27,13 @@ export async function restoreAllMessages({
   return data;
 }
 
-export function restoreAllMessagesToast(fn: () => Promise<unknown>) {
+export function restoreAllMessagesToast(
+  fn: () => Promise<unknown>,
+  t: BaseTranslation,
+) {
   toast.promise(fn, {
-    loading: 'Restoring messages...',
+    loading: t.toolCommand.restoringMessages,
     error: (err) => err.message,
-    success: 'Messages restored successfully',
+    success: t.toolCommand.messagesRestored,
   });
 }

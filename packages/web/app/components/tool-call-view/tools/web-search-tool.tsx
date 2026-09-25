@@ -4,6 +4,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { WebSearchPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatDateTime } from '@/app/lib/date';
 
 type SearchResult = {
@@ -77,6 +78,7 @@ function SearchResults({
   output: SearchOutput | undefined;
 }) {
   const results = output?.results ?? [];
+  const { t } = useI18n();
 
   return (
     <div className='w-full min-w-0'>
@@ -88,13 +90,13 @@ function SearchResults({
 
         <div className='min-w-0 flex-1'>
           <div className='text-foreground truncate text-xs font-medium'>
-            {query || 'Web search'}
+            {query || t.toolCall.webSearch}
           </div>
         </div>
 
         {results.length > 0 && (
           <span className='bg-surface-secondary text-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
-            {results.length} results
+            {t.toolCall.searchResults(results.length)}
           </span>
         )}
       </div>
@@ -166,13 +168,13 @@ function SearchResults({
 
           {results.length > 5 && (
             <div className='bg-surface-secondary text-muted px-3 py-2 text-[10px] font-medium'>
-              +{results.length - 5} more results
+              {t.toolCall.moreResults(results.length - 5)}
             </div>
           )}
         </div>
       ) : (
         <div className='border-separator bg-surface text-muted rounded-xl border px-3 py-3 text-[11px]'>
-          No results found
+          {t.toolCall.noResultsFound}
         </div>
       )}
     </div>
@@ -189,6 +191,7 @@ export const WebSearchToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const query = part.input.query || '';
 
     let output: SearchOutput | undefined;
@@ -211,13 +214,13 @@ export const WebSearchToolView = memo(
         status={part.status}
         error={part.error}
         icon={Globe}
-        title='Web Search'
+        title={t.toolCall.webSearchTitle}
         preview={
           output?.results ? (
             <div className='space-x-1'>
               {isEmpty && (
                 <span className='bg-surface-secondary text-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
-                  Found no results
+                  {t.toolCall.foundNoResults}
                 </span>
               )}
               {!isEmpty && (

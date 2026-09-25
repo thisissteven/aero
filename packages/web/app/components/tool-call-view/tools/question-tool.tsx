@@ -3,6 +3,7 @@ import { memo, useMemo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { QuestionPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 
 /**
@@ -36,6 +37,7 @@ export const QuestionToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     // 1. Extract questions, metadata answers, and raw output safely
     const questions = part.input?.questions || [];
     const metadataAnswers = part.metadata?.answers || [];
@@ -54,7 +56,7 @@ export const QuestionToolView = memo(
 
       return questions
         .map((q, index) => {
-          let answerText = 'No answer provided';
+          let answerText = t.toolCall.noAnswerProvided;
 
           // Strategy A: Metadata answers array
           const metaAnswer = metadataAnswers[index];
@@ -66,13 +68,13 @@ export const QuestionToolView = memo(
             answerText = parsedAnswersMap.get(q.question)!;
           }
 
-          return `Q: ${q.question}\n> ANSWER: ${answerText}`;
+          return t.toolCall.questionLine(q.question, answerText);
         })
         .join('\n\n');
-    }, [questions, metadataAnswers, output]);
+    }, [questions, metadataAnswers, output, t]);
 
     const previewText = questions.map((q) => q.question).join('\n') || '';
-    const title = `Asked ${questions.length} question${questions.length > 1 ? 's' : ''}`;
+    const title = t.toolCall.askedQuestions(questions.length);
 
     return (
       <BaseTool
@@ -81,7 +83,7 @@ export const QuestionToolView = memo(
         error={error}
         icon={FileQuestion}
         title={title}
-        codeTitle='Questions'
+        codeTitle={t.toolCall.questions}
         code={formattedMarkdown}
         language='markdown'
         preview={previewText}

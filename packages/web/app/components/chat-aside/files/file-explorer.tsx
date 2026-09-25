@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, Dropdown, Label, Skeleton, toast } from '@aero/ui';
+import { cn, Dropdown, Label, Skeleton } from '@aero/ui';
 import { IconFilePlus, IconFolderPlus, IconSearch } from '@pierre/icons';
 import type { ContextMenuOpenContext } from '@pierre/trees';
 import { FileTree, useFileTreeSearch } from '@pierre/trees/react';
@@ -11,6 +11,7 @@ import { DeletePathConfirmationModal } from '@/app/components/chat-aside/files/d
 import { RefreshButton } from '@/app/components/chat-aside/files/refresh-button';
 import type { UseLazyFileTreeResult } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { CopyPath } from '@/app/components/chat-navbar/open-in-actions/copy-path';
+import { useI18n } from '@/app/hooks/i18n';
 import { useGlobalModalStore, useTheme } from '@/app/providers';
 
 export interface FileExplorerProps extends UseLazyFileTreeResult {
@@ -40,6 +41,7 @@ export function FileExplorer({
   root,
 }: FileExplorerProps) {
   const { resolvedTheme } = useTheme();
+  const { t } = useI18n();
   const search = useFileTreeSearch(model);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -136,27 +138,27 @@ export function FileExplorer({
             className='w-44 max-sm:min-w-44'
           >
             <div data-file-tree-context-menu-root='true'>
-              <Dropdown.Menu aria-label={`${item.path} actions`}>
+              <Dropdown.Menu aria-label={t.fileExplorer.pathActions(item.path)}>
                 <Dropdown.Item
                   id='new-file'
                   textValue='New file'
                   onClick={() => handleAction('new-file')}
                 >
-                  <Label>New file</Label>
+                  <Label>{t.fileExplorer.newFile}</Label>
                 </Dropdown.Item>
                 <Dropdown.Item
                   id='new-folder'
                   textValue='New folder'
                   onClick={() => handleAction('new-folder')}
                 >
-                  <Label>New folder</Label>
+                  <Label>{t.folderPicker.newFolder}</Label>
                 </Dropdown.Item>
                 <Dropdown.Item
                   id='rename'
                   textValue='Rename'
                   onClick={() => handleAction('rename')}
                 >
-                  <Label>Rename</Label>
+                  <Label>{t.common.rename}</Label>
                 </Dropdown.Item>
                 <CopyPath path={root + '/' + item.path} withIcon={false} />
                 <Dropdown.Item
@@ -165,7 +167,7 @@ export function FileExplorer({
                   variant='danger'
                   onClick={() => handleAction('delete')}
                 >
-                  <Label>Delete</Label>
+                  <Label>{t.common.delete}</Label>
                 </Dropdown.Item>
               </Dropdown.Menu>
             </div>
@@ -177,7 +179,7 @@ export function FileExplorer({
         ? createPortal(menu, document.body)
         : menu;
     },
-    [model, createFile, createFolder, deletePath],
+    [model, createFile, createFolder, deletePath, t],
   );
 
   return (
@@ -330,6 +332,8 @@ function FileExplorerHeader({
   onNewFolder,
   onRefresh,
 }: FileExplorerHeaderProps) {
+  const { t } = useI18n();
+
   return (
     <div className='flex h-8 shrink-0 items-center justify-between gap-2 px-2 pt-1 pb-2'>
       <div
@@ -342,8 +346,16 @@ function FileExplorerHeader({
       <div className='flex items-center gap-2'>
         <button
           type='button'
-          title={isSearchOpen ? 'Clear and close search' : 'Search files'}
-          aria-label={isSearchOpen ? 'Close search' : 'Search files'}
+          title={
+            isSearchOpen
+              ? t.fileExplorer.clearAndCloseSearch
+              : t.fileExplorer.searchFiles
+          }
+          aria-label={
+            isSearchOpen
+              ? t.fileExplorer.closeSearch
+              : t.fileExplorer.searchFiles
+          }
           aria-pressed={isSearchOpen}
           onMouseDown={(event) => {
             if (isSearchOpen) event.preventDefault();
@@ -370,13 +382,13 @@ function FileExplorerHeader({
         >
           <RefreshButton
             classNameOverride='relative text-muted hover:text-foreground flex h-4 w-4 cursor-pointer items-center justify-center'
-            label='Refresh'
+            label={t.fileExplorer.refresh}
             onClick={onRefresh}
           />
           <button
             type='button'
-            title='New file'
-            aria-label='New file'
+            title={t.fileExplorer.newFile}
+            aria-label={t.fileExplorer.newFile}
             onClick={onNewFile}
             className='text-muted hover:text-foreground flex h-4 w-4 cursor-pointer items-center justify-center'
           >
@@ -384,8 +396,8 @@ function FileExplorerHeader({
           </button>
           <button
             type='button'
-            title='New folder'
-            aria-label='New folder'
+            title={t.folderPicker.newFolder}
+            aria-label={t.folderPicker.newFolder}
             onClick={onNewFolder}
             className='text-muted hover:text-foreground flex h-4 w-4 cursor-pointer items-center justify-center'
           >

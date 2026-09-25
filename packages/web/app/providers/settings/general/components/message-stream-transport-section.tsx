@@ -1,6 +1,7 @@
 // components/message-stream-transport-section.tsx
 import { ButtonGroup, Typography } from '@aero/ui';
 
+import { useI18n } from '@/app/hooks/i18n';
 import { ButtonGroupPill } from '@/app/providers/settings/button-group-pill';
 
 import { TransportOption, useGeneralStore } from '../general-store';
@@ -8,10 +9,13 @@ import { TransportOption, useGeneralStore } from '../general-store';
 export function MessageStreamTransportSection() {
   const streamTransport = useGeneralStore((s) => s.streamTransport);
   const setStreamTransport = useGeneralStore((s) => s.setStreamTransport);
+  const { t } = useI18n();
 
   return (
     <section className='space-y-4'>
-      <Typography type='h6'>Message Stream Transport</Typography>
+      <Typography type='h6'>
+        {t.settingsGeneral.messageStreamTransport}
+      </Typography>
 
       <ButtonGroup size='sm' variant='outline'>
         <ButtonGroupPill
@@ -19,19 +23,19 @@ export function MessageStreamTransportSection() {
           onValueChange={setStreamTransport}
         >
           <ButtonGroupPill.Button<TransportOption> value='auto'>
-            Auto
+            {t.settingsGeneral.transportAuto}
           </ButtonGroupPill.Button>
           <ButtonGroupPill.Button<TransportOption> value='websocket'>
-            Websocket
+            {t.settingsGeneral.transportWebsocket}
           </ButtonGroupPill.Button>
           <ButtonGroupPill.Button<TransportOption> value='sse'>
-            SSE
+            {t.settingsGeneral.transportSse}
           </ButtonGroupPill.Button>
         </ButtonGroupPill>
       </ButtonGroup>
 
       <Typography type='body-sm' color='muted'>
-        Prefer WebSocket and fall back to SSE if needed.
+        {t.settingsGeneral.transportDescription}
       </Typography>
     </section>
   );

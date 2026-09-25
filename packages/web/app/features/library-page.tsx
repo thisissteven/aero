@@ -1,5 +1,8 @@
 import { Card, Chip } from '@aero/ui';
 
+import { useI18n } from '@/app/hooks/i18n';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
+
 interface LibraryItem {
   id: string;
   title: string;
@@ -9,78 +12,76 @@ interface LibraryItem {
   sessionId?: string;
 }
 
-const LIBRARY_ITEMS: LibraryItem[] = [
-  {
-    id: 'code-reviewer-preset',
-    title: 'Senior Code Reviewer',
-    description:
-      'Structured persona focused on performance, TypeScript strictness, and security best practices.',
-    tags: ['Preset', 'Engineering'],
-    updatedAt: '2h ago',
-    sessionId: 'session-code-reviewer',
-  },
-  {
-    id: 'exec-email-preset',
-    title: 'Concise Executive Writing',
-    description:
-      'Tone rule preset that condenses complex technical updates into bulleted emails for leadership.',
-    tags: ['Tone Rule', 'Writing'],
-    updatedAt: '1d ago',
-    sessionId: 'session-exec-email',
-  },
-  {
-    id: 'api-docs-generator',
-    title: 'OpenAPI & Type Generator',
-    description:
-      'Converts raw JSON payload samples into fully typed OpenAPI 3.0 schemas and TypeScript interfaces.',
-    tags: ['Prompt', 'Backend'],
-    updatedAt: '3d ago',
-  },
-  {
-    id: 'sql-optimizer',
-    title: 'Database Query Optimizer',
-    description:
-      'Analyzes slow PostgreSQL queries, EXPLAIN outputs, and recommends index strategies.',
-    tags: ['Preset', 'Database'],
-    updatedAt: '1w ago',
-    sessionId: 'session-sql-optimizer',
-  },
-  {
-    id: 'prd-template',
-    title: 'Product Requirements Starter',
-    description:
-      'Reusable prompt structure for drafting PRDs complete with user stories and edge cases.',
-    tags: ['Template', 'Product'],
-    updatedAt: '2w ago',
-  },
-  {
-    id: 'ux-microcopy',
-    title: 'UI Microcopy Assistant',
-    description:
-      'Generates concise error states, tooltip copy, and empty-state text options for web apps.',
-    tags: ['Design', 'Copywriting'],
-    updatedAt: '1m ago',
-    sessionId: 'session-ux-microcopy',
-  },
-];
+function getLibraryItems(t: BaseTranslation): LibraryItem[] {
+  return [
+    {
+      id: 'code-reviewer-preset',
+      title: t.library.seniorCodeReviewer,
+      description: t.library.seniorCodeReviewerDescription,
+      tags: [t.library.preset, t.library.engineering],
+      updatedAt: '2h ago',
+      sessionId: 'session-code-reviewer',
+    },
+    {
+      id: 'exec-email-preset',
+      title: t.library.conciseExecutiveWriting,
+      description: t.library.conciseExecutiveWritingDescription,
+      tags: [t.library.toneRule, t.library.writing],
+      updatedAt: '1d ago',
+      sessionId: 'session-exec-email',
+    },
+    {
+      id: 'api-docs-generator',
+      title: t.library.openApiTypeGenerator,
+      description: t.library.openApiTypeGeneratorDescription,
+      tags: [t.library.prompt, t.library.backend],
+      updatedAt: '3d ago',
+    },
+    {
+      id: 'sql-optimizer',
+      title: t.library.databaseQueryOptimizer,
+      description: t.library.databaseQueryOptimizerDescription,
+      tags: [t.library.preset, t.library.database],
+      updatedAt: '1w ago',
+      sessionId: 'session-sql-optimizer',
+    },
+    {
+      id: 'prd-template',
+      title: t.library.productRequirementsStarter,
+      description: t.library.productRequirementsStarterDescription,
+      tags: [t.library.template, t.library.product],
+      updatedAt: '2w ago',
+    },
+    {
+      id: 'ux-microcopy',
+      title: t.library.uiMicrocopyAssistant,
+      description: t.library.uiMicrocopyAssistantDescription,
+      tags: [t.library.design, t.library.copywriting],
+      updatedAt: '1m ago',
+      sessionId: 'session-ux-microcopy',
+    },
+  ];
+}
 
-const items = Array.from({ length: 10000 }, (_, i) => ({
+const _items = Array.from({ length: 10000 }, (_, i) => ({
   number: i,
   height: Math.random() * 100,
 }));
 
 export function LibraryPage() {
+  const { t } = useI18n();
+
+  const LIBRARY_ITEMS = getLibraryItems(t);
+
   return (
     <div className='h-full min-h-0 overflow-y-auto'>
       <div className='mx-auto flex w-full max-w-[960px] flex-col gap-6 px-4 py-8'>
         <header className='flex flex-col gap-2'>
           <h2 className='text-foreground text-2xl font-semibold tracking-tight'>
-            Saved prompts and reusable setups
+            {t.library.subtitle}
           </h2>
           <p className='text-muted max-w-[640px] text-sm'>
-            A mock workspace of prompt presets, tone rules, and starter sessions
-            the template ships with. Save your own to pick up where you left
-            off.
+            {t.library.description}
           </p>
         </header>
 

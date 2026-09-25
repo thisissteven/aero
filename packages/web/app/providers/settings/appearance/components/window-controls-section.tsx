@@ -1,6 +1,7 @@
 // components/window-controls-section.tsx
 import { Label, Typography } from '@aero/ui';
 
+import { useI18n } from '@/app/hooks/i18n';
 import { ButtonGroupPill } from '@/app/providers/settings/button-group-pill';
 
 import {
@@ -10,13 +11,17 @@ import {
 } from '../appearance-store';
 
 export function WindowControlsSection() {
+  const { t } = useI18n();
+
   return (
     <section className='space-y-6'>
       <div className='flex items-center gap-2'>
         <div>
-          <Typography type='h6'>Window Controls</Typography>
+          <Typography type='h6'>
+            {t.settingsAppearance.windowControls}
+          </Typography>
           <Typography type='body-sm' color='muted' className='mt-0.5'>
-            Choose where minimize, maximize, and close buttons appear.
+            {t.settingsAppearance.windowControlsSubtitle}
           </Typography>
         </div>
       </div>
@@ -32,10 +37,11 @@ export function WindowControlsSection() {
 function ControlsPositionPicker() {
   const controlsPosition = useAppearanceStore((s) => s.controlsPosition);
   const setControlsPosition = useAppearanceStore((s) => s.setControlsPosition);
+  const { t } = useI18n();
 
   return (
     <div className='flex w-[220px] flex-col gap-2'>
-      <Label>Position</Label>
+      <Label>{t.settingsAppearance.position}</Label>
       <ButtonGroupPill
         value={controlsPosition}
         onValueChange={setControlsPosition}
@@ -44,13 +50,13 @@ function ControlsPositionPicker() {
           value='left'
           className='flex-1'
         >
-          Left
+          {t.settingsAppearance.positionLeft}
         </ButtonGroupPill.Button>
         <ButtonGroupPill.Button<ControlsPosition>
           value='right'
           className='flex-1'
         >
-          Right
+          {t.settingsAppearance.positionRight}
         </ButtonGroupPill.Button>
       </ButtonGroupPill>
     </div>
@@ -60,22 +66,23 @@ function ControlsPositionPicker() {
 function ControlsStylePicker() {
   const controlsStyle = useAppearanceStore((s) => s.controlsStyle);
   const setControlsStyle = useAppearanceStore((s) => s.setControlsStyle);
+  const { t } = useI18n();
 
   return (
     <div className='flex w-[220px] flex-col gap-2'>
-      <Label>Style</Label>
+      <Label>{t.settingsAppearance.style}</Label>
       <ButtonGroupPill value={controlsStyle} onValueChange={setControlsStyle}>
         <ButtonGroupPill.Button<ControlsStyle>
           value='classic'
           className='flex-2'
         >
-          Classic
+          {t.settingsAppearance.styleClassic}
         </ButtonGroupPill.Button>
         <ButtonGroupPill.Button<ControlsStyle>
           value='traffic-lights'
           className='flex-3'
         >
-          Traffic Lights
+          {t.settingsAppearance.styleTrafficLights}
         </ButtonGroupPill.Button>
       </ButtonGroupPill>
     </div>

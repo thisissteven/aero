@@ -4,6 +4,7 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { SubagentPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 import { SessionIdProvider } from '@/app/providers/SessionIdProvider';
 
@@ -17,10 +18,14 @@ export const SubagentToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const { input, metadata, status, duration, error, output } = part;
     const subagentType = input?.subagent_type ?? 'subagent';
     const title =
-      part.title || input?.description || input?.command || 'Running Subagent';
+      part.title ||
+      input?.description ||
+      input?.command ||
+      t.toolCall.runningSubagent;
     const childSessionId = metadata?.sessionId;
 
     const rawOutput = formatToolOutput(output);
@@ -46,10 +51,10 @@ export const SubagentToolView = memo(
           error={error}
           duration={duration}
           icon={FaceRobot}
-          title='Subagent'
+          title={t.toolCall.subagent}
           preview={preview}
           codeTitle={title}
-          code={rawOutput || 'No output'}
+          code={rawOutput || t.toolCall.noOutput}
           language='text'
           copyText={rawOutput}
           isStreaming={isStreaming}

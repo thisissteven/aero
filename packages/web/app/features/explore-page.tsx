@@ -1,94 +1,106 @@
 import { Card } from '@aero/ui';
 
-const EXPLORE_CATEGORIES = [
-  {
-    id: 'writing-communication',
-    title: 'Writing & Communication',
-    subtitle: 'Draft emails, refine documentation, and adjust tone.',
-    prompts: [
-      {
-        id: 'project-update',
-        title: 'Draft a project status update',
-        description:
-          'Summarize key milestones, upcoming deadlines, and current blockers for stakeholders.',
-      },
-      {
-        id: 'tone-adjustment',
-        title: 'Refine email tone',
-        description:
-          'Rewrite a firm boundary-setting message to sound empathetic and professional.',
-      },
-      {
-        id: 'exec-summary',
-        title: 'Generate executive summary',
-        description:
-          'Condense long technical documentation into three actionable bullet points.',
-      },
-    ],
-  },
-  {
-    id: 'coding-development',
-    title: 'Coding & Architecture',
-    subtitle: 'Debug issues, optimize code, and generate TypeScript types.',
-    prompts: [
-      {
-        id: 'code-review',
-        title: 'Perform code review',
-        description:
-          'Check a React component for performance bottlenecks and unnecessary re-renders.',
-      },
-      {
-        id: 'type-generation',
-        title: 'Generate TypeScript types',
-        description:
-          'Convert a raw API JSON response into strict TypeScript interface definitions.',
-      },
-      {
-        id: 'sql-optimization',
-        title: 'Optimize SQL query',
-        description:
-          'Refactor a slow query with multiple JOINs for better indexing and throughput.',
-      },
-    ],
-  },
-  {
-    id: 'strategy-planning',
-    title: 'Strategy & Planning',
-    subtitle: 'Structure frameworks, plan sprints, and ideate solutions.',
-    prompts: [
-      {
-        id: 'feature-prioritization',
-        title: 'Prioritize feature backlog',
-        description:
-          'Apply the RICE scoring model to evaluate upcoming user feature requests.',
-      },
-      {
-        id: 'sprint-retro',
-        title: 'Design sprint retro agenda',
-        description:
-          'Outline a 45-minute interactive retro format focused on continuous improvement.',
-      },
-      {
-        id: 'user-persona',
-        title: 'Define user personas',
-        description:
-          'Identify core user goals, frustrations, and workflows for a new feature launch.',
-      },
-    ],
-  },
-];
+import { useI18n } from '@/app/hooks/i18n';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
+
+interface ExplorePrompt {
+  id: string;
+  title: string;
+  description: string;
+}
+
+interface ExploreCategory {
+  id: string;
+  title: string;
+  subtitle: string;
+  prompts: ExplorePrompt[];
+}
+
+function getExploreCategories(t: BaseTranslation): ExploreCategory[] {
+  return [
+    {
+      id: 'writing-communication',
+      title: t.explore.writingCommunication,
+      subtitle: t.explore.writingCommunicationDescription,
+      prompts: [
+        {
+          id: 'project-update',
+          title: t.explore.draftStatusUpdate,
+          description: t.explore.draftStatusUpdateDescription,
+        },
+        {
+          id: 'tone-adjustment',
+          title: t.explore.refineEmailTone,
+          description: t.explore.refineEmailToneDescription,
+        },
+        {
+          id: 'exec-summary',
+          title: t.explore.generateExecutiveSummary,
+          description: t.explore.generateExecutiveSummaryDescription,
+        },
+      ],
+    },
+    {
+      id: 'coding-development',
+      title: t.explore.codingArchitecture,
+      subtitle: t.explore.codingArchitectureDescription,
+      prompts: [
+        {
+          id: 'code-review',
+          title: t.explore.performCodeReview,
+          description: t.explore.performCodeReviewDescription,
+        },
+        {
+          id: 'type-generation',
+          title: t.explore.generateTypeScriptTypes,
+          description: t.explore.generateTypeScriptTypesDescription,
+        },
+        {
+          id: 'sql-optimization',
+          title: t.explore.optimizeSqlQuery,
+          description: t.explore.optimizeSqlQueryDescription,
+        },
+      ],
+    },
+    {
+      id: 'strategy-planning',
+      title: t.explore.strategyPlanning,
+      subtitle: t.explore.strategyPlanningDescription,
+      prompts: [
+        {
+          id: 'feature-prioritization',
+          title: t.explore.prioritizeBacklog,
+          description: t.explore.prioritizeBacklogDescription,
+        },
+        {
+          id: 'sprint-retro',
+          title: t.explore.designSprintRetro,
+          description: t.explore.designSprintRetroDescription,
+        },
+        {
+          id: 'user-persona',
+          title: t.explore.defineUserPersonas,
+          description: t.explore.defineUserPersonasDescription,
+        },
+      ],
+    },
+  ];
+}
 
 export function ExplorePage() {
+  const { t } = useI18n();
+
+  const EXPLORE_CATEGORIES = getExploreCategories(t);
+
   return (
     <div className='h-full min-h-0 overflow-y-auto'>
       <div className='mx-auto flex w-full max-w-[960px] flex-col gap-8 px-4 py-8'>
         <header className='flex flex-col gap-2'>
           <h2 className='text-foreground text-2xl font-semibold tracking-tight'>
-            Starter prompts for everyday work
+            {t.explore.subtitle}
           </h2>
           <p className='text-muted max-w-[640px] text-sm'>
-            Pick one to see what kinds of conversations this template pattern is
-            designed for. Prompts are mock data, nothing is sent to any backend.
+            {t.explore.description}
           </p>
         </header>
 

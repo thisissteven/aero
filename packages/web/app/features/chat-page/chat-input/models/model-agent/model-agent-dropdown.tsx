@@ -1,6 +1,7 @@
 import { Button, Sheet } from '@aero/ui';
 
 import { VariantsPicker } from '@/app/features/chat-page/chat-input/variants-picker';
+import { useI18n } from '@/app/hooks/i18n';
 
 import { AgentPicker } from '../../agents/agent-picker';
 import { useChatSettingsStore } from '../../chat-settings-store';
@@ -11,6 +12,7 @@ export function ModelAgentDropdownSheet({
 }: {
   container: HTMLDivElement;
 }) {
+  const { t } = useI18n();
   const isOpen = useChatSettingsStore((state) => state.modelAgentSheetOpen);
 
   const setIsOpen = useChatSettingsStore(
@@ -57,7 +59,7 @@ export function ModelAgentDropdownSheet({
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('agent')}
                 >
-                  Agent
+                  {t.modelPicker.agent}
                 </Button>
 
                 <Button
@@ -65,7 +67,7 @@ export function ModelAgentDropdownSheet({
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('model')}
                 >
-                  Model
+                  {t.modelPicker.model}
                 </Button>
 
                 <Button
@@ -73,7 +75,7 @@ export function ModelAgentDropdownSheet({
                   className='w-fit rounded-lg text-sm'
                   onPress={() => setSelection('variant')}
                 >
-                  Variant
+                  {t.modelPicker.variant}
                 </Button>
               </div>
 

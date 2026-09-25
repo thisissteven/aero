@@ -10,11 +10,14 @@ import {
 } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useCreateWorktree } from '@/app/hooks/api/worktree';
+import { useI18n } from '@/app/hooks/i18n';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { getLastPathName } from '@/app/lib/file';
 import { queryClient } from '@/app/providers';
 
 export function WorktreesDropdown() {
+  const { t } = useI18n();
+
   const selectedWorkspace = useNewSessionStore(
     (state) => state.selectedWorkspace?.directory,
   );
@@ -48,14 +51,14 @@ export function WorktreesDropdown() {
           }),
           {
             error: (err) => err.message,
-            loading: 'Creating new worktree...',
+            loading: t.workspace.creatingNewWorktree,
             success: (data) => {
               setSelectedWorktree(data?.directory);
               queryClient.invalidateQueries({
                 queryKey: workspaceKeys.detail(selectedWorkspaceId),
               });
               refetch();
-              return 'Worktree created successfully';
+              return t.workspace.worktreeCreated;
             },
           },
         );
@@ -75,13 +78,13 @@ export function WorktreesDropdown() {
   if (error?.code === 'INVALID_GIT_REPOSITORY') {
     return (
       <div className='text-muted flex items-end text-xs'>
-        No git repository detected.
+        {t.workspace.noGitRepository}
       </div>
     );
   } else if (error?.code === 'DIRECTORY_NOT_FOUND') {
     return (
       <div className='text-danger flex items-end text-xs'>
-        Directory not found.
+        {t.workspace.directoryNotFound}
       </div>
     );
   }
@@ -92,7 +95,7 @@ export function WorktreesDropdown() {
   return (
     <Dropdown size='sm'>
       <Dropdown.Trigger
-        aria-label='Select a worktree to work on'
+        aria-label={t.workspace.selectWorktreeAria}
         className='mt-1.5 ml-1'
       >
         <div className='flex items-center gap-1 text-xs'>
@@ -120,34 +123,34 @@ export function WorktreesDropdown() {
                   }),
                   {
                     error: (err) => err.message,
-                    loading: 'Creating new worktree...',
+                    loading: t.workspace.creatingNewWorktree,
                     success: (data) => {
                       setSelectedWorktree(data?.directory);
                       queryClient.invalidateQueries({
                         queryKey: workspaceKeys.detail(selectedWorkspaceId),
                       });
                       refetch();
-                      return 'Worktree created successfully';
+                      return t.workspace.worktreeCreated;
                     },
                   },
                 );
               }}
             >
               <Icon size={14} data={Plus} className='shrink-0' />
-              <Label>new worktree</Label>
+              <Label>{t.workspace.newWorktree}</Label>
             </Dropdown.Item>
           </Dropdown.Menu>
           <Separator className='!ms-0 !w-[calc(100%+8px)] -translate-x-1' />
         </div>
         <div className='max-h-[min(190px,40vh)] scrollbar-thin overflow-y-auto'>
-          <Dropdown.Menu aria-label='List of worktrees'>
+          <Dropdown.Menu aria-label={t.workspace.listOfWorktreesAria}>
             <Dropdown.Item
               className='justify-between gap-1'
               onPress={() => setSelectedWorktree(undefined)}
             >
               <div className='flex items-center gap-1'>
                 <Icon size={14} data={CircleTree} className='shrink-0' />
-                <Label>{git.currentBranch} (current)</Label>
+                <Label>{t.workspace.currentBranch(git.currentBranch)}</Label>
               </div>
               {!selectedWorktree && (
                 <Icon size={14} data={Check} className='shrink-0' />

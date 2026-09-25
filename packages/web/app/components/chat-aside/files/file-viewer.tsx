@@ -11,6 +11,7 @@ import {
   type FileEditorOptions,
   PierreEditorView,
 } from '@/app/components/chat-aside/files/pierre-editor-view';
+import { useI18n } from '@/app/hooks/i18n';
 
 export interface FileViewerProps {
   file: CachedFile;
@@ -47,6 +48,8 @@ export const FileViewer = memo(function FileViewer({
   onOpenFile,
   onEditChange,
 }: FileViewerProps) {
+  const { t } = useI18n();
+
   if (mediaKind && mediaUrl) {
     if (mediaKind === 'image') {
       return <ImageZoomView src={mediaUrl} alt={fileName} />;
@@ -57,8 +60,10 @@ export const FileViewer = memo(function FileViewer({
   if (mediaKind) {
     return (
       <div className='text-muted flex min-h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm'>
-        <span>File is too large to preview.</span>
-        <span>{file.size.toLocaleString()} bytes</span>
+        <span>{t.fileExplorer.fileTooLarge}</span>
+        <span>
+          {file.size.toLocaleString()} {t.fileExplorer.bytes}
+        </span>
       </div>
     );
   }
@@ -66,7 +71,7 @@ export const FileViewer = memo(function FileViewer({
   if (file.binary) {
     return (
       <div className='text-muted flex min-h-full items-center justify-center p-4 text-sm'>
-        Binary file not shown ({file.size.toLocaleString()} bytes).
+        {t.fileExplorer.binaryFileNotShown(file.size.toLocaleString())}
       </div>
     );
   }

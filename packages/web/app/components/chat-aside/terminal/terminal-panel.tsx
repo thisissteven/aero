@@ -3,6 +3,8 @@ import { ArrowsRotateRight, Paperclip } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useRef } from 'react';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 import {
   TerminalInstance,
   type TerminalInstanceHandle,
@@ -15,6 +17,7 @@ interface TerminalPanelProps {
 }
 
 export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
+  const { t } = useI18n();
   const sessions = useTerminalSessions();
   const activeSessionId = useActiveSessionId();
 
@@ -76,7 +79,7 @@ export function TerminalPanel({ onAttachToChat }: TerminalPanelProps) {
       <div className='relative min-h-0 flex-1 overflow-hidden p-2'>
         {sessions.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center text-sm'>
-            No terminals open
+            {t.terminal.noTerminalsOpen}
           </div>
         ) : (
           sessions.map((session) => (

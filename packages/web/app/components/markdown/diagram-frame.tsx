@@ -13,6 +13,8 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+
+import { useI18n } from '@/app/hooks/i18n';
 import { CodeBlock } from '../code-block/code-block';
 
 // ---- icons (inline-SVG, matching CodeBlock's pattern) --------------------
@@ -292,6 +294,7 @@ export const DiagramFrame = memo(function DiagramFrame({
   previewUnavailable = false,
   className,
 }: DiagramFrameProps): ReactElement {
+  const { t } = useI18n();
   const [mode, setMode] = useState<ViewMode>(
     previewUnavailable ? 'code' : 'preview',
   );
@@ -387,7 +390,7 @@ export const DiagramFrame = memo(function DiagramFrame({
           onClick={() => setMode('preview')}
         >
           <EyeIcon className='size-3.5' />
-          Preview
+          {t.markdown.preview}
         </button>
         <button
           type='button'
@@ -397,7 +400,7 @@ export const DiagramFrame = memo(function DiagramFrame({
           onClick={() => setMode('code')}
         >
           <CodeIcon className='size-3.5' />
-          Code
+          {t.markdown.code}
         </button>
       </div>
 
@@ -406,7 +409,7 @@ export const DiagramFrame = memo(function DiagramFrame({
           <>
             <Button
               isIconOnly
-              aria-label='Zoom out'
+              aria-label={t.markdown.zoomOutAria}
               className={actionButtonClass}
               size='sm'
               variant='ghost'
@@ -416,7 +419,7 @@ export const DiagramFrame = memo(function DiagramFrame({
             </Button>
             <Button
               isIconOnly
-              aria-label='Reset zoom'
+              aria-label={t.markdown.resetZoomAria}
               className={actionButtonClass}
               size='sm'
               variant='ghost'
@@ -426,7 +429,7 @@ export const DiagramFrame = memo(function DiagramFrame({
             </Button>
             <Button
               isIconOnly
-              aria-label='Zoom in'
+              aria-label={t.markdown.zoomInAria}
               className={actionButtonClass}
               size='sm'
               variant='ghost'

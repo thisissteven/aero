@@ -1,6 +1,6 @@
 import { cn } from '@aero/ui';
-import { Video } from '@gravity-ui/icons';
 import { ExternalFileAttachment } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 import styles from './file-attachment-tile.module.css';
 
 interface FileAttachmentTileProps {
@@ -21,6 +21,7 @@ export function FileAttachmentTile({
   onPreview,
   variant = 'pending',
 }: FileAttachmentTileProps) {
+  const { t } = useI18n();
   const isVideo = attachment.mime.startsWith('video/');
   const isSent = variant === 'sent';
 
@@ -30,7 +31,7 @@ export function FileAttachmentTile({
       onClick={() => onPreview(attachment)}
       role='button'
       tabIndex={0}
-      aria-label={`Preview ${attachment.filename}`}
+      aria-label={t.fileSheet.previewAttachmentAria(attachment.filename)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -79,7 +80,7 @@ export function FileAttachmentTile({
             event.stopPropagation();
             onRemove(attachment.id);
           }}
-          aria-label={`Remove ${attachment.filename}`}
+          aria-label={t.fileSheet.removeAttachmentAria(attachment.filename)}
         >
           <svg
             viewBox='0 0 24 24'

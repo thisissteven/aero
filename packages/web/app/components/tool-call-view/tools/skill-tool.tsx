@@ -3,8 +3,8 @@ import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { SkillPart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
-import { normalizePath } from '@/server/shared';
 
 export const SkillToolView = memo(
   ({
@@ -16,6 +16,7 @@ export const SkillToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const name = part.input.name || part.input.skill || '';
     const rawOutput = formatToolOutput(part.output);
 
@@ -25,8 +26,8 @@ export const SkillToolView = memo(
         status={part.status}
         error={part.error}
         icon={Book}
-        title='Load Skill'
-        codeTitle={`Skill loaded: ${name}`}
+        title={t.toolCall.loadSkill}
+        codeTitle={t.toolCall.skillLoaded(name)}
         code={rawOutput}
         language='markdown'
         preview={name}

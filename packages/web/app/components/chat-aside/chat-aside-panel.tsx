@@ -18,6 +18,7 @@ import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-cha
 import { TerminalPanel } from '@/app/components/chat-aside/terminal/terminal-panel';
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { collapsibleNav, NavItem } from '@/app/lib/constants';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -27,6 +28,7 @@ export function ChatAsidePanel() {
   const isExpanded = useSidePanelStore((s) => s.isExpanded);
   const storeToggleExpanded = useSidePanelStore((s) => s.toggleExpanded);
   const closePanel = useSidePanelStore((s) => s.closePanel);
+  const { t } = useI18n();
 
   const activeNavData = useMemo(
     () => collapsibleNav.find((item) => item.id === activeNavItem),
@@ -56,8 +58,10 @@ export function ChatAsidePanel() {
                 type='button'
                 onClick={storeToggleExpanded}
                 className='p-1 opacity-80 transition hover:opacity-100'
-                title={isExpanded ? 'Collapse panel' : 'Expand panel'}
-                aria-label='Expand panel'
+                title={
+                  isExpanded ? t.devMisc.collapsePanel : t.devMisc.expandPanel
+                }
+                aria-label={t.devMisc.expandPanel}
               >
                 <Icon
                   data={
@@ -71,8 +75,8 @@ export function ChatAsidePanel() {
                 type='button'
                 onClick={closePanel}
                 className='p-1 opacity-80 transition hover:opacity-100'
-                title='Close panel'
-                aria-label='Close panel'
+                title={t.devMisc.closePanel}
+                aria-label={t.devMisc.closePanel}
               >
                 <Icon data={Xmark} size={15} />
               </button>
@@ -98,7 +102,9 @@ export function ChatAsidePanel() {
               <SideChatPanel />
             ) : (
               <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
-                Content body: {activeNavData?.label}
+                {t.devMisc.contentBody(
+                  activeNavData ? t.nav[activeNavData.labelKey] : '',
+                )}
               </div>
             )}
           </div>
@@ -109,6 +115,7 @@ export function ChatAsidePanel() {
 }
 
 function ChatAsideHeader({ activeNavData }: { activeNavData?: NavItem }) {
+  const { t } = useI18n();
   const isSubagentDetail =
     useSideChatStore((state) => state.view === 'detail') &&
     activeNavData?.id === 'side-chat';
@@ -122,7 +129,9 @@ function ChatAsideHeader({ activeNavData }: { activeNavData?: NavItem }) {
       <span className='flex size-4 place-items-center'>
         {activeNavData?.icon}
       </span>
-      <span className='text-sm font-medium'>{activeNavData?.label}</span>
+      <span className='text-sm font-medium'>
+        {activeNavData ? t.nav[activeNavData.labelKey] : null}
+      </span>
     </>
   );
 }

@@ -1,14 +1,15 @@
 import {
-  customCommandsNonSession,
-  excludedCommands,
+  getCustomCommandsNonSession,
+  getExcludedCommands,
+  getSteerCommand,
   isCustomCommandName,
-  steerCommand,
 } from '@/app/components/smart-composer/custom-commands';
 import {
   AnyComposerSegment,
   getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import {
   AeroAgentCompact,
   AeroCommandCompact,
@@ -16,9 +17,9 @@ import {
   SendCommandInput,
 } from '@/server/services/harness/types';
 
-const SNIPPETS = [
-  { id: 'n1', label: '#bug-report', value: 'bug-report' },
-  { id: 'n2', label: '#react-component', value: 'react-component' },
+const SNIPPETS = (t: BaseTranslation) => [
+  { id: 'n1', label: t.composer.bugReport, value: 'bug-report' },
+  { id: 'n2', label: t.composer.reactComponent, value: 'react-component' },
 ];
 
 export const COMPOSER_CLIPBOARD_MIME = 'application/x-aero-composer+json';
@@ -167,6 +168,7 @@ export function unifiedSearch(
   query: string,
   data: SearchData,
   sessionId: string,
+  t: BaseTranslation,
 ) {
   const q = query.toLowerCase();
   const results: SearchItem[] = [];
@@ -219,9 +221,9 @@ export function unifiedSearch(
     if (canAddCommandIfEmpty || canAddCommandIfSteer) {
       const commands = [
         ...data.commands,
-        ...(sessionId ? excludedCommands : []),
-        ...(sessionId && !canAddCommandIfSteer ? [steerCommand] : []),
-        ...customCommandsNonSession,
+        ...(sessionId ? getExcludedCommands(t) : []),
+        ...(sessionId && !canAddCommandIfSteer ? [getSteerCommand(t)] : []),
+        ...getCustomCommandsNonSession(t),
       ];
       for (const command of commands) {
         if (
@@ -260,7 +262,7 @@ export function unifiedSearch(
   }
 
   if (trigger === '#') {
-    for (const snippet of SNIPPETS) {
+    for (const snippet of SNIPPETS(t)) {
       if (matches(snippet.value, q) || matches(snippet.label, q)) {
         results.push({
           ...snippet,

@@ -2,7 +2,7 @@
 import { ChevronLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useLayoutEffect, useRef, useState } from 'react';
-
+import { useI18n } from '@/app/hooks/i18n';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 
 import { ConnectProviderView } from './components/connect-provider-view';
@@ -16,6 +16,7 @@ export function ProvidersView() {
   const viewMode = useProvidersStore((s) => s.viewMode);
   const mobilePanel = useProvidersStore((s) => s.mobilePanel);
   const setMobilePanel = useProvidersStore((s) => s.setMobilePanel);
+  const { t } = useI18n();
 
   const isMobile = useWindowSize((size) => size.width < 768);
 
@@ -75,10 +76,12 @@ export function ProvidersView() {
           className='text-muted hover:text-foreground flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors'
         >
           <Icon data={ChevronLeft} size={18} />
-          Back
+          {t.common.back}
         </button>
         <span className='text-foreground text-sm font-medium'>
-          {viewMode === 'connect' ? 'Connect Provider' : 'Provider Details'}
+          {viewMode === 'connect'
+            ? t.settingsProviders.connectProvider
+            : t.settingsProviders.providerDetails}
         </span>
       </div>
       <div

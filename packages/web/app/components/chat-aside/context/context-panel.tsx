@@ -11,6 +11,7 @@ import { VList } from 'virtua';
 import { CodeBlock } from '@/app/components/code-block/code-block';
 import { CodeBlockContent } from '@/app/components/code-block/code-block-content';
 import { useSession, useSessionContext } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatDateTimeFull } from '@/app/lib/date';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useKeepMountedStoreContext } from '@/app/stores/keep-mounted';
@@ -35,6 +36,7 @@ function formatTime(timestamp: number): string {
 
 export function ContextPanel() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
 
   const { data: contextDetails, isLoading } = useSessionContext(
     undefined,
@@ -45,7 +47,7 @@ export function ContextPanel() {
   if (!sessionId)
     return (
       <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
-        Open a session to view its context details.
+        {t.contextPanel.openSession}
       </div>
     );
 
@@ -91,6 +93,7 @@ function ContextPanelContent({
   contextDetails,
   session,
 }: ContextPanelContentProps) {
+  const { t } = useI18n();
   const {
     provider,
     model,
@@ -146,7 +149,7 @@ function ContextPanelContent({
         <div className='bg-surface flex flex-col gap-2 rounded-xl p-3 pb-4'>
           <div className='flex items-center justify-between'>
             <Typography type='body-sm' color='muted'>
-              Context
+              {t.statusPanel.context}
             </Typography>
             <Typography type='body-sm' color='muted'>
               {context.used.toLocaleString()} / {context.limit.toLocaleString()}
@@ -155,13 +158,13 @@ function ContextPanelContent({
 
           {/* Progress Bar */}
           <ProgressBar
-            aria-label='Context usage'
+            aria-label={t.statusPanel.contextUsageAria}
             className='w-full'
             minValue={0}
             maxValue={100}
             value={Math.min(100, Math.max(0, context.usedPercentage))}
           >
-            <Label className='sr-only'>Context Usage</Label>
+            <Label className='sr-only'>{t.contextPanel.contextUsage}</Label>
             <ProgressBar.Track className='h-1.5'>
               <ProgressBar.Fill />
             </ProgressBar.Track>
@@ -172,7 +175,7 @@ function ContextPanelContent({
             weight='medium'
             className='text-foreground'
           >
-            {context.usedPercentage.toFixed(1)}% used
+            {t.contextPanel.percentUsed(context.usedPercentage.toFixed(1))}
           </Typography>
         </div>
       </div>
@@ -181,7 +184,7 @@ function ContextPanelContent({
       <div className='grid grid-cols-2 gap-2 pb-4'>
         <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
-            Messages
+            {t.contextPanel.messages}
           </Typography>
           <Typography type='h6' weight='semibold'>
             {messages}
@@ -190,7 +193,7 @@ function ContextPanelContent({
 
         <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
-            User
+            {t.contextPanel.user}
           </Typography>
           <Typography type='h6' weight='semibold'>
             {user}
@@ -199,7 +202,7 @@ function ContextPanelContent({
 
         <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
-            Assistant
+            {t.contextPanel.assistant}
           </Typography>
           <Typography type='h6' weight='semibold'>
             {assistant}
@@ -208,7 +211,7 @@ function ContextPanelContent({
 
         <div className='bg-surface flex flex-col gap-1 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
-            Cost
+            {t.contextPanel.cost}
           </Typography>
           <Typography type='h6' weight='semibold'>
             {formatCost(cost)}
@@ -220,13 +223,13 @@ function ContextPanelContent({
       <div className='pb-4'>
         <div className='bg-surface flex flex-col gap-3 rounded-xl p-3'>
           <Typography type='body-sm' color='muted'>
-            Last Assistant Message
+            {t.contextPanel.lastAssistantMessage}
           </Typography>
 
           <div className='grid grid-cols-3 gap-x-2 gap-y-4'>
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Input
+                {t.modelPicker.input}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.input.toLocaleString()}
@@ -235,7 +238,7 @@ function ContextPanelContent({
 
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Output
+                {t.modelPicker.output}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.output.toLocaleString()}
@@ -244,7 +247,7 @@ function ContextPanelContent({
 
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Reasoning
+                {t.contextPanel.reasoning}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.reasoning.toLocaleString()}
@@ -253,7 +256,7 @@ function ContextPanelContent({
 
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Cache Read
+                {t.contextPanel.cacheRead}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.cacheRead.toLocaleString()}
@@ -262,7 +265,7 @@ function ContextPanelContent({
 
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Cache Write
+                {t.contextPanel.cacheWrite}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.cacheWrite.toLocaleString()}
@@ -271,7 +274,7 @@ function ContextPanelContent({
 
             <div className='flex flex-col gap-0.5'>
               <Typography type='body-xs' color='muted'>
-                Cache Hit
+                {t.contextPanel.cacheHit}
               </Typography>
               <Typography type='body-sm' weight='semibold'>
                 {lastAssistantMessage.cacheHit.toFixed(1)}%
@@ -312,28 +315,30 @@ function ContextPanelContent({
           <div className='flex items-center gap-1.5'>
             <span className='h-2 w-2 rounded-full bg-emerald-500' />
             <Typography type='body-xs' color='muted'>
-              User {Math.round(distribution.userPercentage)}%
+              {t.contextPanel.user} {Math.round(distribution.userPercentage)}%
             </Typography>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='bg-accent h-2 w-2 rounded-full' />
             <Typography type='body-xs' color='muted'>
-              Assistant {Math.round(distribution.assistantPercentage)}%
+              {t.contextPanel.assistant}{' '}
+              {Math.round(distribution.assistantPercentage)}%
             </Typography>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='h-2 w-2 rounded-full bg-amber-500' />
             <Typography type='body-xs' color='muted'>
-              Tool Calls {Math.round(distribution.toolCallPercentage)}%
+              {t.contextPanel.toolCalls}{' '}
+              {Math.round(distribution.toolCallPercentage)}%
             </Typography>
           </div>
 
           <div className='flex items-center gap-1.5'>
             <span className='bg-muted h-2 w-2 rounded-full' />
             <Typography type='body-xs' color='muted'>
-              Other {Math.round(distribution.otherPercentage)}%
+              {t.contextPanel.other} {Math.round(distribution.otherPercentage)}%
             </Typography>
           </div>
         </div>
@@ -343,7 +348,7 @@ function ContextPanelContent({
       {rawMessages.length > 0 && (
         <div className='pb-3'>
           <Typography type='body-sm' color='muted'>
-            Raw Messages
+            {t.contextPanel.rawMessages}
           </Typography>
         </div>
       )}
@@ -362,6 +367,7 @@ const MessageItem = memo(
   }: {
     msg: AeroSessionContextDetails['rawMessages'][number];
   }) {
+    const { t } = useI18n();
     const isExpanded = useKeepMountedStoreContext((s) =>
       Boolean(s.ids[msg.id]),
     );
@@ -382,7 +388,9 @@ const MessageItem = memo(
                   className='text-foreground text-muted min-w-0 truncate'
                 >
                   {msg.role === 'user' ? (
-                    <span className='text-foreground font-medium'>User: </span>
+                    <span className='text-foreground font-medium'>
+                      {t.contextPanel.userPrefix}{' '}
+                    </span>
                   ) : (
                     ''
                   )}

@@ -1,11 +1,11 @@
 import { en } from './en';
-import { es } from './es';
-import { fr } from './fr';
+import { id } from './id';
+import { zh } from './zh';
 
 export const translations = {
   en,
-  es,
-  fr,
+  zh,
+  id,
 };
 
 export type BaseTranslation = typeof en;

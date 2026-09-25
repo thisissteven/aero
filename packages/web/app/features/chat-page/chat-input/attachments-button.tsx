@@ -4,12 +4,14 @@ import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useExternalPartsStore } from './external-parts-store';
 
 export function AttachmentsButton() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   const sessionId = useSessionId();
   const directory = useSessionDirectory();
@@ -47,7 +49,7 @@ export function AttachmentsButton() {
           />
         </IconButton>
         <Dropdown.Popover className='' placement='top start' crossOffset={-8}>
-          <Dropdown.Menu aria-label='Attachment actions list'>
+          <Dropdown.Menu aria-label={t.chatInput.attachmentActionsAria}>
             <FileAttachments inputRef={inputRef} />
             <LinkGithubIssue
               directory={directory}
@@ -69,10 +71,12 @@ function FileAttachments({
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
 }) {
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item className='gap-1' onPress={() => inputRef.current?.click()}>
       <Icon size={14} data={File} />
-      <Label className='font-medium'>Attach files</Label>
+      <Label className='font-medium'>{t.chatInput.attachFiles}</Label>
     </Dropdown.Item>
   );
 }
@@ -84,7 +88,8 @@ function LinkGithubIssue({
   directory?: string;
   isDisabled: boolean;
 }) {
-  const openModal = useGlobalModalStore((state) => state.openModal);
+  const _openModal = useGlobalModalStore((state) => state.openModal);
+  const { t } = useI18n();
 
   return (
     <Dropdown.Item className='gap-1' isDisabled={isDisabled}>
@@ -93,7 +98,7 @@ function LinkGithubIssue({
         data={LogoGithub}
         className={cn(isDisabled && 'opacity-50')}
       />
-      <Label className='font-medium'>Link GitHub issue</Label>
+      <Label className='font-medium'>{t.chatInput.linkGithubIssue}</Label>
     </Dropdown.Item>
   );
 }
@@ -105,7 +110,8 @@ function LinkGithubPullRequest({
   directory?: string;
   isDisabled: boolean;
 }) {
-  const openModal = useGlobalModalStore((state) => state.openModal);
+  const _openModal = useGlobalModalStore((state) => state.openModal);
+  const { t } = useI18n();
 
   return (
     <Dropdown.Item className='gap-1' isDisabled={isDisabled}>
@@ -114,7 +120,7 @@ function LinkGithubPullRequest({
         data={CircleTree}
         className={cn(isDisabled && 'opacity-50')}
       />
-      <Label className='font-medium'>Link GitHub pull request</Label>
+      <Label className='font-medium'>{t.chatInput.linkGithubPr}</Label>
     </Dropdown.Item>
   );
 }

@@ -4,6 +4,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 
 import { useDiscoverFavicon } from '@/app/hooks/api/discovery';
+import { useI18n } from '@/app/hooks/i18n';
 
 import { PROJECT_ICONS } from './edit-workspace-constants';
 import { useEditWorkspaceStore } from './edit-workspace-store';
@@ -17,6 +18,8 @@ export function EditWorkspaceIconPicker() {
   const setSelectedIcon = useEditWorkspaceStore((s) => s.setSelectedIcon);
   const setCustomIconUri = useEditWorkspaceStore((s) => s.setCustomIconUri);
 
+  const { t } = useI18n();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { refetch: discoverFavicon, isFetching: isDiscovering } =
@@ -24,7 +27,7 @@ export function EditWorkspaceIconPicker() {
 
   const handleDiscoverFavicon = async () => {
     if (!directory) {
-      toast.danger('Directory is required to discover a favicon');
+      toast.danger(t.editWorkspace.directoryRequiredForFavicon);
       return;
     }
 
@@ -32,15 +35,15 @@ export function EditWorkspaceIconPicker() {
       const { data, isError, error } = await discoverFavicon();
 
       if (isError || !data?.found || !data?.dataUri) {
-        toast.danger(error?.message || 'No favicon found in directory');
+        toast.danger(error?.message || t.editWorkspace.noFaviconFound);
         return;
       }
 
       setCustomIconUri(data.dataUri);
       setSelectedIcon(data.dataUri);
-      toast.success(`Favicon discovered (${data.fileName})`);
+      toast.success(t.editWorkspace.faviconDiscovered(data.fileName));
     } catch {
-      toast.danger('Failed to discover favicon');
+      toast.danger(t.editWorkspace.failedToDiscoverFavicon);
     }
   };
 
@@ -49,12 +52,12 @@ export function EditWorkspaceIconPicker() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.danger('Please upload a valid image file (.png, .svg, .ico, etc.)');
+      toast.danger(t.editWorkspace.uploadValidImage);
       return;
     }
 
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      toast.danger('Icon file size must be less than 256 KB');
+      toast.danger(t.editWorkspace.iconTooLarge);
       return;
     }
 
@@ -64,11 +67,11 @@ export function EditWorkspaceIconPicker() {
       if (dataUri) {
         setCustomIconUri(dataUri);
         setSelectedIcon(dataUri);
-        toast.success('Custom icon uploaded');
+        toast.success(t.editWorkspace.customIconUploaded);
       }
     };
     reader.onerror = () => {
-      toast.danger('Failed to read image file');
+      toast.danger(t.editWorkspace.failedToReadImage);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -76,7 +79,7 @@ export function EditWorkspaceIconPicker() {
 
   return (
     <div className='flex flex-col gap-3'>
-      <Label className='font-medium'>Project Icon</Label>
+      <Label className='font-medium'>{t.editWorkspace.projectIcon}</Label>
       <div className='flex flex-wrap items-center gap-1.5'>
         <Button
           isIconOnly
@@ -117,7 +120,7 @@ export function EditWorkspaceIconPicker() {
           >
             <img
               src={customIconUri}
-              alt='Custom workspace icon'
+              alt={t.editWorkspace.customWorkspaceIcon}
               className='h-4 w-4 object-contain'
             />
           </button>
@@ -139,7 +142,7 @@ export function EditWorkspaceIconPicker() {
           onPress={() => fileInputRef.current?.click()}
           className='rounded-lg'
         >
-          Upload icon
+          {t.editWorkspace.uploadIcon}
         </Button>
         <Button
           size='sm'
@@ -148,7 +151,7 @@ export function EditWorkspaceIconPicker() {
           onPress={handleDiscoverFavicon}
           className='rounded-lg'
         >
-          Discover favicon
+          {t.editWorkspace.discoverFavicon}
         </Button>
       </div>
     </div>

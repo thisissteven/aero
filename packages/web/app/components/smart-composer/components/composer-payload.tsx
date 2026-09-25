@@ -4,17 +4,21 @@ import {
   getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export function ComposerPayload() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const payload = useComposerStore(
     (state) => getComposerSession(state, sessionId).payload,
   );
 
   return (
     <div>
-      <h2 className='text-muted mt-6 mb-1 text-[13px]'>Structured Payload</h2>
+      <h2 className='text-muted mt-6 mb-1 text-[13px]'>
+        {t.composer.structuredPayload}
+      </h2>
 
       <pre
         className={cn(
@@ -30,7 +34,9 @@ export function ComposerPayload() {
         {payload ? (
           JSON.stringify(payload, null, 2)
         ) : (
-          <strong className='text-foreground'>Awaiting submit...</strong>
+          <strong className='text-foreground'>
+            {t.composer.awaitingSubmit}
+          </strong>
         )}
       </pre>
     </div>

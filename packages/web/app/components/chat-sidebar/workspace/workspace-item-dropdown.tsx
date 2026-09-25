@@ -1,7 +1,6 @@
+import { Dropdown, Separator } from '@aero/ui';
 import { EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-
-import { Dropdown, Separator } from '@aero/ui';
 
 import { OpenIsolatedWorkspace } from '@/app/components/chat-sidebar/session/session-actions';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { useWorkspaceItemDropdownStore } from '@/app/components/chat-sidebar/workspace/workspace-item-dropdown-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
+import { useI18n } from '@/app/hooks/i18n';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
 export function WorkspaceItemDropdown({
@@ -30,6 +30,8 @@ export function WorkspaceItemDropdown({
 
   const directoryNotFound = errorCode?.code === 'DIRECTORY_NOT_FOUND';
 
+  const { t } = useI18n();
+
   return (
     <Dropdown
       size='sm'
@@ -37,7 +39,7 @@ export function WorkspaceItemDropdown({
       onOpenChange={(open) => setDropdownOpen(!open ? '' : workspace.directory)}
     >
       <Dropdown.Trigger
-        aria-label={`More actions for ${workspace.name}`}
+        aria-label={t.workspace.moreWorktreeActions(workspace.name)}
         className='sidebar__menu-action group'
         data-slot='sidebar-menu-action'
       >
@@ -56,7 +58,7 @@ export function WorkspaceItemDropdown({
         </div>
       </Dropdown.Trigger>
       <Dropdown.Popover className='w-44' crossOffset={6} placement='bottom end'>
-        <Dropdown.Menu aria-label={`${workspace.name} actions`}>
+        <Dropdown.Menu aria-label={t.workspace.worktreeActions(workspace.name)}>
           <EditWorkspace
             workspace={workspace}
             directoryNotFound={directoryNotFound}

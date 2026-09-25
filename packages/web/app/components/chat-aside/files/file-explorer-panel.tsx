@@ -23,6 +23,7 @@ import {
 import { useLazyFileTree } from '@/app/components/chat-aside/files/use-lazy-file-tree';
 import { useLocalStorageState } from '@/app/components/chat-aside/files/use-persistent-state';
 import { useSession, useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 const DEFAULT_EXPLORER_WIDTH = 288;
@@ -32,6 +33,7 @@ const EXPLORER_WIDTH_STORAGE_KEY = 'aero:file-explorer:width';
 
 export function FileExplorerPanel() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
 
   const directory = useSessionDirectory();
 
@@ -52,7 +54,7 @@ export function FileExplorerPanel() {
   if (!directory) {
     return (
       <div className='text-muted flex h-full w-full flex-1 items-center justify-center p-6 text-center text-sm'>
-        Open a workspace to browse its files.
+        {t.fileExplorer.openWorkspace}
       </div>
     );
   }
@@ -61,6 +63,7 @@ export function FileExplorerPanel() {
 }
 
 function FileExplorerPanelInner({ root }: { root: string }) {
+  const { t } = useI18n();
   const lazyFileTree = useLazyFileTree({ root });
   const { model, socket } = lazyFileTree;
 
@@ -144,8 +147,8 @@ function FileExplorerPanelInner({ root }: { root: string }) {
 
   const projectName = useMemo(() => {
     const clean = root.replace(/\/$/, '');
-    return clean.split('/').pop() || clean || 'workspace';
-  }, [root]);
+    return clean.split('/').pop() || clean || t.fileExplorer.workspace;
+  }, [root, t]);
 
   // ── Resize ───────────────────────────────────────────────────────────
 
@@ -206,7 +209,7 @@ function FileExplorerPanelInner({ root }: { root: string }) {
         <div
           role='separator'
           aria-orientation='vertical'
-          aria-label='Resize file explorer'
+          aria-label={t.fileExplorer.resizeAria}
           onPointerDown={onResizeStart}
           onPointerMove={onResizeMove}
           onPointerUp={onResizeEnd}

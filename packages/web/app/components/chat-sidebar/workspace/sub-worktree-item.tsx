@@ -1,8 +1,7 @@
+import { Dropdown, Separator, Sidebar } from '@aero/ui';
 import { CircleTree, EllipsisVertical } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { memo, useMemo, useState } from 'react';
-
-import { Dropdown, Separator, Sidebar } from '@aero/ui';
 
 import { WorkspaceSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@/app/components/chat-sidebar/workspace/workspace-actions';
 import { WorkspaceNewSessionButton } from '@/app/components/chat-sidebar/workspace/workspace-new-session-button';
 import { useSessions } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import {
   AeroWorkspaceSummary,
   AeroWorktreeSummary,
@@ -36,6 +36,8 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
   const worktreeItemId = `${idPrefix}-wt-${worktree.id}`;
 
   const [limit, setLimit] = useState(INITIAL_LIMIT);
+
+  const { t } = useI18n();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSessions({
     directory: worktree.directory,
@@ -70,7 +72,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
           />
           <Dropdown size='sm'>
             <Dropdown.Trigger
-              aria-label={`More actions for ${worktree.name}`}
+              aria-label={t.workspace.moreWorktreeActions(worktree.name)}
               className='sidebar__menu-action group'
               data-slot='sidebar-menu-action'
             >
@@ -88,7 +90,9 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
               crossOffset={6}
               placement='bottom end'
             >
-              <Dropdown.Menu aria-label={`${worktree.name} actions`}>
+              <Dropdown.Menu
+                aria-label={t.workspace.worktreeActions(worktree.name)}
+              >
                 <CopyDirectoryPath directory={worktree.directory} />
                 <OpenIsolatedWorkspace directory={worktree.directory} />
                 <Separator className='my-0.5 h-[0.5px]' />
@@ -114,7 +118,7 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
           >
             <Sidebar.MenuItemContent>
               <Sidebar.MenuLabel className='text-xs'>
-                0 sessions found in this worktree.
+                {t.workspace.zeroSessionsInWorktree}
               </Sidebar.MenuLabel>
             </Sidebar.MenuItemContent>
           </Sidebar.MenuItem>
@@ -145,7 +149,9 @@ export const SubWorktreeItem = memo(function SubWorktreeItem({
                 }}
                 className='text-muted hover:text-foreground text-xs disabled:opacity-50'
               >
-                {isFetchingNextPage ? 'Loading...' : 'Show more sessions'}
+                {isFetchingNextPage
+                  ? t.common.loading
+                  : t.workspace.showMoreSessions}
               </button>
             </Sidebar.MenuItemContent>
           </Sidebar.MenuItem>

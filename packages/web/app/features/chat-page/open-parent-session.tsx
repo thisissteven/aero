@@ -2,10 +2,11 @@ import { Button } from '@aero/ui';
 import { ArrowUturnCcwLeft } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
-
 import { useSession } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function OpenParentSession({ sessionId }: { sessionId: string }) {
+  const { t } = useI18n();
   const { data: session } = useSession(undefined, sessionId);
   const navigate = useNavigate();
 
@@ -23,7 +24,7 @@ export function OpenParentSession({ sessionId }: { sessionId: string }) {
         className='backdrop-blur-sm'
       >
         <Icon data={ArrowUturnCcwLeft} />
-        Open parent session
+        {t.chatFeed.openParentSession}
       </Button>
     </div>
   );

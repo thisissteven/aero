@@ -1,5 +1,5 @@
 import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
-import { Check, Folder, Plus } from '@gravity-ui/icons';
+import { Check, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';
@@ -9,6 +9,7 @@ import {
   useCreateWorkspace,
   useWorkspacesCompact,
 } from '@/app/hooks/api/workspaces';
+import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { getLastPathName } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
@@ -16,6 +17,8 @@ import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 import { normalizePath } from '@/server/shared';
 
 export function WorkspacesDropdown() {
+  const { t } = useI18n();
+
   const workspacesQuery = useWorkspacesCompact();
 
   const { mutateAsync: createWorkspace } = useCreateWorkspace();
@@ -45,12 +48,12 @@ export function WorkspacesDropdown() {
   return (
     <Dropdown size='sm'>
       <Dropdown.Trigger
-        aria-label='Select a workspace to work on'
+        aria-label={t.workspace.selectWorkspaceAria}
         className='mt-1.5 ml-2'
       >
         <div className='flex items-center gap-1.5 text-xs'>
           {selectedWorkspace && <WorkspaceIcon workspace={selectedWorkspace} />}
-          <span>{selectedWorkspace?.name ?? 'Choose Project'}</span>
+          <span>{selectedWorkspace?.name ?? t.workspace.chooseProject}</span>
         </div>
       </Dropdown.Trigger>
       <Dropdown.Popover
@@ -84,12 +87,12 @@ export function WorkspacesDropdown() {
             }}
           >
             <Icon size={14} data={Plus} className='shrink-0' />
-            <Label>new project</Label>
+            <Label>{t.workspace.newProject}</Label>
           </Dropdown.Item>
         </Dropdown.Menu>
         <Separator className='!ms-0 !w-[calc(100%+8px)] -translate-x-1' />
         <div className='max-h-[min(190px,40vh)] scrollbar-thin overflow-y-auto'>
-          <Dropdown.Menu aria-label='List of workspaces'>
+          <Dropdown.Menu aria-label={t.workspace.listOfWorkspacesAria}>
             {workspaces.map((workspace) => {
               return (
                 <Dropdown.Item

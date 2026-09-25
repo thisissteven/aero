@@ -3,6 +3,7 @@ import { memo, useMemo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
 import { WritePart } from '@/app/components/tool-call-view/tools/tool-types';
+import { useI18n } from '@/app/hooks/i18n';
 import { getBasename, normalizePath } from '@/server/shared';
 
 /**
@@ -45,6 +46,7 @@ export const WriteToolView = memo(
     blockId: string;
     isStreaming: boolean;
   }) => {
+    const { t } = useI18n();
     const path = normalizePath(part.input.filePath || '');
     const fileName = getBasename(path);
 
@@ -72,7 +74,7 @@ export const WriteToolView = memo(
         status={part.status}
         error={part.error}
         icon={Pencil}
-        title='Write File'
+        title={t.toolCall.writeFile}
         codeTitle={path}
         language='diff'
         preview={fileName}

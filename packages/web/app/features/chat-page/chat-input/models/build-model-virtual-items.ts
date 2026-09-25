@@ -24,15 +24,18 @@ export type ModelVirtualItem =
       groupId: string;
     };
 
-export function buildModelVirtualItems({
-  favoriteModels,
-  groupedProviders,
-  collapsedGroups,
-}: {
-  favoriteModels: SearchableModel[];
-  groupedProviders: ProviderGroup[];
-  collapsedGroups: Set<string>;
-}): ModelVirtualItem[] {
+export function buildModelVirtualItems(
+  {
+    favoriteModels,
+    groupedProviders,
+    collapsedGroups,
+  }: {
+    favoriteModels: SearchableModel[];
+    groupedProviders: ProviderGroup[];
+    collapsedGroups: Set<string>;
+  },
+  favoritesLabel = 'Favorites',
+): ModelVirtualItem[] {
   const items: ModelVirtualItem[] = [];
 
   if (favoriteModels.length > 0) {
@@ -40,7 +43,7 @@ export function buildModelVirtualItems({
       kind: 'group-header',
       id: 'header-favorites',
       groupId: 'favorites',
-      label: 'Favorites',
+      label: favoritesLabel,
       isFavorites: true,
       isFirst: items.length === 0,
     });

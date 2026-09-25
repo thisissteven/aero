@@ -20,6 +20,7 @@ import {
   useGitHubStartDeviceFlow,
 } from '@/app/hooks/api/github';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function PullRequestPanel() {
   const directory = useSessionDirectory();
@@ -49,6 +50,7 @@ interface DeviceFlowState {
 }
 
 function ConnectCard() {
+  const { t } = useI18n();
   const [flow, setFlow] = useState<DeviceFlowState | null>(null);
   const startMutation = useGitHubStartDeviceFlow();
   const exchangeMutation = useGitHubExchangeDeviceCode();
@@ -68,7 +70,7 @@ function ConnectCard() {
         if (cancelled) return;
 
         if (result.connected) {
-          toast.success('Connected to GitHub');
+          toast.success(t.pullRequest.connectedToGitHub);
           setFlow(null);
           return;
         }
@@ -87,7 +89,7 @@ function ConnectCard() {
       cancelled = true;
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     };
-  }, [flow, exchangeMutation]);
+  }, [flow, exchangeMutation, t]);
 
   const handleStart = async () => {
     try {
@@ -95,7 +97,9 @@ function ConnectCard() {
       setFlow(result);
     } catch (error) {
       toast.danger(
-        error instanceof Error ? error.message : 'Failed to start GitHub login',
+        error instanceof Error
+          ? error.message
+          : t.pullRequest.failedToStartGithubLogin,
       );
     }
   };
@@ -104,9 +108,9 @@ function ConnectCard() {
     if (!flow) return;
     try {
       await navigator.clipboard.writeText(flow.user_code);
-      toast.success('Code copied');
+      toast.success(t.pullRequest.codeCopied);
     } catch {
-      toast.danger('Copy failed');
+      toast.danger(t.pullRequest.copyFailed);
     }
   };
 
@@ -116,11 +120,10 @@ function ConnectCard() {
         {!flow ? (
           <>
             <div className='text-foreground mb-1 text-sm font-medium'>
-              Connect GitHub
+              {t.pullRequest.connectGitHub}
             </div>
             <p className='text-muted mb-4 text-xs'>
-              Sign in to see pull request status, CI checks, and reviews for the
-              current branch.
+              {t.pullRequest.signInDescription}
             </p>
             <Button
               variant='primary'
@@ -128,16 +131,16 @@ function ConnectCard() {
               onPress={handleStart}
               isPending={startMutation.isPending}
             >
-              Connect with GitHub
+              {t.pullRequest.connectWithGitHub}
             </Button>
           </>
         ) : (
           <>
             <div className='text-foreground mb-1 text-sm font-medium'>
-              Authorize this device
+              {t.pullRequest.authorizeDevice}
             </div>
             <p className='text-muted mb-3 text-xs'>
-              Open the link below and enter this code:
+              {t.pullRequest.openLinkDescription}
             </p>
 
             <div className='border-separator bg-default/40 mb-3 flex items-center justify-between rounded-md border px-3 py-2'>
@@ -149,7 +152,7 @@ function ConnectCard() {
                 variant='ghost'
                 isIconOnly
                 onPress={copyCode}
-                aria-label='Copy code'
+                aria-label={t.pullRequest.copyCodeAria}
               >
                 <Icon data={Copy} size={14} />
               </Button>
@@ -161,7 +164,7 @@ function ConnectCard() {
               rel='noopener noreferrer'
               className='w-full'
             >
-              Open {flow.verification_uri}
+              {t.common.open} {flow.verification_uri}
               <Icon data={ArrowUpRightFromSquare} size={12} />
             </a>
 
@@ -171,7 +174,7 @@ function ConnectCard() {
                 size={12}
                 className={cn('animate-spin origin-center')}
               />
-              Waiting for authorization…
+              {t.pullRequest.waitingForAuthorization}
             </div>
 
             <Button
@@ -180,7 +183,7 @@ function ConnectCard() {
               className='mt-2 w-full'
               onPress={() => setFlow(null)}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
           </>
         )}
@@ -190,6 +193,7 @@ function ConnectCard() {
 }
 
 function ConnectedHeader({ auth }: { auth: unknown }) {
+  const { t } = useI18n();
   const me =
     (
       auth as
@@ -231,10 +235,12 @@ function ConnectedHeader({ auth }: { auth: unknown }) {
             onPress={async () => {
               try {
                 await disconnect.mutateAsync();
-                toast.success('Disconnected');
+                toast.success(t.pullRequest.disconnected);
               } catch (error) {
                 toast.danger(
-                  error instanceof Error ? error.message : 'Disconnect failed',
+                  error instanceof Error
+                    ? error.message
+                    : t.pullRequest.disconnectFailed,
                 );
               }
             }}
@@ -242,7 +248,7 @@ function ConnectedHeader({ auth }: { auth: unknown }) {
             <Icon data={CircleXmark} size={14} />
           </Button>
         </Tooltip.Trigger>
-        <Tooltip.Content>Disconnect</Tooltip.Content>
+        <Tooltip.Content>{t.pullRequest.disconnect}</Tooltip.Content>
       </Tooltip>
     </div>
   );
@@ -269,6 +275,7 @@ interface PrStatusShape {
 }
 
 function PrStatusSection({ directory }: { directory?: string }) {
+  const { t } = useI18n();
   const { data: branchData } = useGitCurrentBranch(directory);
   const branch =
     (branchData as { currentBranch?: string | null } | null | undefined)
@@ -284,7 +291,7 @@ function PrStatusSection({ directory }: { directory?: string }) {
   if (!branch) {
     return (
       <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
-        No branch checked out
+        {t.pullRequest.noBranchCheckedOut}
       </div>
     );
   }
@@ -308,7 +315,7 @@ function PrStatusSection({ directory }: { directory?: string }) {
           variant='ghost'
           isIconOnly
           onPress={() => refetch()}
-          aria-label='Refresh'
+          aria-label={t.pullRequest.refresh}
         >
           <Icon
             data={ArrowRotateLeft}
@@ -321,7 +328,7 @@ function PrStatusSection({ directory }: { directory?: string }) {
       {!status?.found ? (
         <div className='border-separator bg-default/30 text-muted rounded-lg border border-dashed p-4 text-center text-sm'>
           <Icon data={CircleInfo} size={16} className='mx-auto mb-1.5' />
-          No pull request for this branch
+          {t.pullRequest.noPullRequest}
         </div>
       ) : (
         <div className='space-y-3'>
@@ -338,7 +345,7 @@ function PrStatusSection({ directory }: { directory?: string }) {
                   href={status.url}
                   target='_blank'
                   rel='noopener noreferrer'
-                  aria-label='Open on GitHub'
+                  aria-label={t.pullRequest.openOnGitHub}
                 >
                   <Icon data={ArrowUpRightFromSquare} size={12} />
                 </a>
@@ -364,8 +371,8 @@ function PrStatusSection({ directory }: { directory?: string }) {
               />
               <span className='text-muted'>
                 {status.mergeable
-                  ? 'Ready to merge'
-                  : 'Merge conflicts or checks pending'}
+                  ? t.pullRequest.readyToMerge
+                  : t.pullRequest.mergeConflictsOrChecksPending}
               </span>
             </div>
           )}
@@ -373,23 +380,25 @@ function PrStatusSection({ directory }: { directory?: string }) {
           {status.checks && (
             <div className='border-separator bg-default/30 rounded-lg border p-3'>
               <div className='mb-2 flex items-center justify-between'>
-                <span className='text-sm font-medium'>Checks</span>
+                <span className='text-sm font-medium'>
+                  {t.pullRequest.checks}
+                </span>
                 <ChecksChip summary={status.checks} />
               </div>
 
               <div className='grid grid-cols-3 gap-2 text-center text-xs'>
                 <Stat
-                  label='Passed'
+                  label={t.pullRequest.passed}
                   value={status.checks.success}
                   tone='success'
                 />
                 <Stat
-                  label='Failed'
+                  label={t.pullRequest.failed}
                   value={status.checks.failure}
                   tone='danger'
                 />
                 <Stat
-                  label='Pending'
+                  label={t.pullRequest.pending}
                   value={status.checks.pending}
                   tone='warning'
                 />

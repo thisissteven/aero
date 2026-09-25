@@ -1,3 +1,4 @@
+import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { AeroCommandCompact } from '@/server/services/harness/types';
 
 export const commandNames = [
@@ -25,32 +26,6 @@ export function isCustomCommandName(str: string): str is AeroCommandName {
 
 export type AeroCommandName = (typeof commandNames)[number];
 
-const descriptions: Record<AeroCommandName, string> = {
-  undo: 'Undo the last message',
-  redo: 'Redo previously undone messages',
-  timeline: 'Open the conversation timeline',
-  compact: 'Compress session history using AI to reduce context size',
-  btw: 'Ask a side question in a temporary child session without derailing this chat.',
-  steer:
-    'Send a message mid-turn to redirect the assistant while it is still working.',
-  summary:
-    'Non-destructive session summary. Optional topic hint after the command.',
-  'workspace-review':
-    'Review the workspace diff for intent, correctness, and adequacy, graded by severity.',
-  'handoff-review':
-    'Create or reuse a separate review session from a generated handoff.',
-  'plan-feature':
-    'Start a guided, back-and-forth planning session for a new feature.',
-  'craft-goal': 'Turn an idea or task into a clear, verifiable Goal.',
-  'schedule-task': 'Define a scheduled task through a guided dialogue.',
-  'catch-up': 'Re-establish context: what you were doing and where to pick up.',
-  debug: 'Guided root-cause investigation for a bug before proposing a fix.',
-  weigh:
-    'Weigh 2-3 approaches with trade-offs and a recommendation before you commit.',
-  explore:
-    'Get oriented in this codebase: a high-level tour of the architecture and main parts.',
-};
-
 const hints: Record<AeroCommandName, Array<string>> = {
   undo: ['undo message', 'revert', 'rollback'],
   redo: ['redo message', 'reapply'],
@@ -70,14 +45,40 @@ const hints: Record<AeroCommandName, Array<string>> = {
   explore: ['architecture', 'codebase tour', 'findings'],
 };
 
-export const customCommands: Array<AeroCommandCompact> = commandNames.map(
-  (name): AeroCommandCompact => ({
-    name,
-    description: descriptions[name],
-    source: 'aero',
-    hints: hints[name],
-  }),
-);
+const commandDictKeys: Record<
+  AeroCommandName,
+  keyof BaseTranslation['commands']['description']
+> = {
+  undo: 'undo',
+  redo: 'redo',
+  timeline: 'timeline',
+  btw: 'btw',
+  steer: 'steer',
+  summary: 'summary',
+  compact: 'compact',
+  'workspace-review': 'workspaceReview',
+  'handoff-review': 'handoffReview',
+  'plan-feature': 'planFeature',
+  'craft-goal': 'craftGoal',
+  'schedule-task': 'scheduleTask',
+  'catch-up': 'catchUp',
+  debug: 'debug',
+  weigh: 'weigh',
+  explore: 'explore',
+};
+
+export function getCustomCommands(
+  t: BaseTranslation,
+): Array<AeroCommandCompact> {
+  return commandNames.map(
+    (name): AeroCommandCompact => ({
+      name,
+      description: t.commands.description[commandDictKeys[name]],
+      source: 'aero',
+      hints: hints[name],
+    }),
+  );
+}
 
 const excludedCommandsList = [
   'undo',
@@ -89,51 +90,57 @@ const excludedCommandsList = [
   'handoff-review',
 ];
 
-export const customCommandsNonSession = customCommands.filter(
-  (command) =>
-    !excludedCommandsList.includes(command.name) && command.name !== 'steer',
-);
+export function getCustomCommandsNonSession(t: BaseTranslation) {
+  return getCustomCommands(t).filter(
+    (command) =>
+      !excludedCommandsList.includes(command.name) && command.name !== 'steer',
+  );
+}
 
-export const excludedCommands = customCommands.filter(
-  (command) =>
-    excludedCommandsList.includes(command.name) && command.name !== 'steer',
-);
+export function getExcludedCommands(t: BaseTranslation) {
+  return getCustomCommands(t).filter(
+    (command) =>
+      excludedCommandsList.includes(command.name) && command.name !== 'steer',
+  );
+}
 
-export const steerCommand = {
-  name: 'steer',
-  description: descriptions.steer,
-  source: 'aero',
-  hints: hints.steer,
+export function getSteerCommand(t: BaseTranslation) {
+  return {
+    name: 'steer',
+    description: t.commands.description.steer,
+    source: 'aero',
+    hints: hints.steer,
+  };
+}
+
+const templateDictKeys: Record<
+  Exclude<AeroCommandName, 'steer'>,
+  keyof BaseTranslation['commands']['template']
+> = {
+  undo: 'undo',
+  redo: 'redo',
+  timeline: 'timeline',
+  compact: 'compact',
+  btw: 'btw',
+  summary: 'summary',
+  'workspace-review': 'workspaceReview',
+  'handoff-review': 'handoffReview',
+  'plan-feature': 'planFeature',
+  'craft-goal': 'craftGoal',
+  'schedule-task': 'scheduleTask',
+  'catch-up': 'catchUp',
+  debug: 'debug',
+  weigh: 'weigh',
+  explore: 'explore',
 };
 
-const templates: Record<Exclude<AeroCommandName, 'steer'>, string> = {
-  undo: 'Undo the last message. Explain what was reverted and confirm the resulting state.',
-  redo: 'Redo the previously undone message(s). Explain what was reapplied and confirm the resulting state.',
-  timeline:
-    'Open the conversation timeline and summarize the sequence of actions taken so far in chronological order.',
-  compact:
-    'Compress this session history using AI to reduce context size. Preserve key decisions, open questions, and next steps.',
-  btw: 'Aside (temporary child session, not part of the main task): {{input}}',
-  summary:
-    'Provide a non-destructive summary of the session so far, including what changed, why, and what remains. Optional topic hint: {{input}}',
-  'workspace-review':
-    'Review the workspace diff for intent, correctness, and adequacy. Grade findings by severity and suggest cleanup or follow-ups.',
-  'handoff-review':
-    'Create or reuse a separate review session from a generated handoff. Summarize what should be reviewed and by whom.',
-  'plan-feature':
-    'Start a guided, back-and-forth planning session for a new feature. Ask clarifying questions, then produce a step-by-step implementation plan.',
-  'craft-goal':
-    'Turn the following idea or task into a clear, verifiable Goal: {{input}}. Include success criteria and constraints.',
-  'schedule-task':
-    'Define a scheduled task through a guided dialogue for: {{input}}. Cover ordering, dependencies, and rough estimates.',
-  'catch-up':
-    'Re-establish context: summarize what I was doing and where to pick up, including decisions and blockers.',
-  debug:
-    'Guided root-cause investigation for a bug before proposing a fix. Reproduce, isolate, identify root cause, then propose the fix.',
-  weigh:
-    'Weigh 2-3 approaches for: {{input}}. Present trade-offs, a recommendation, and rationale before I commit.',
-  explore:
-    'Get oriented in this codebase: a high-level tour of the architecture and main parts. Focus area: {{input}}.',
-};
-
-export const commandTemplates = templates;
+export function getCommandTemplates(
+  t: BaseTranslation,
+): Record<Exclude<AeroCommandName, 'steer'>, string> {
+  const templates = {} as Record<Exclude<AeroCommandName, 'steer'>, string>;
+  for (const name of commandNames) {
+    if (name === 'steer') continue;
+    templates[name] = t.commands.template[templateDictKeys[name]];
+  }
+  return templates;
+}

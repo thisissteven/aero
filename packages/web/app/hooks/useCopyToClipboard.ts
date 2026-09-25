@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 interface UseCopyToClipboardOptions {
   /** Reset delay back to `false` in ms. Defaults to 2000ms. */
   duration?: number;
@@ -11,6 +13,7 @@ interface UseCopyToClipboardOptions {
 
 export function useCopyToClipboard(options: UseCopyToClipboardOptions = {}) {
   const { duration = 2000, animatedRef, animationDuration = 150 } = options;
+  const { t } = useI18n();
 
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,10 +73,10 @@ export function useCopyToClipboard(options: UseCopyToClipboardOptions = {}) {
           timeoutRef.current = null;
         }, duration);
       } catch {
-        alert('Clipboard not supported');
+        alert(t.session.clipboardNotSupported);
       }
     },
-    [duration, animatedRef, swapTextWithAnimation],
+    [duration, animatedRef, swapTextWithAnimation, t],
   );
 
   return { copied, copy };

@@ -10,6 +10,7 @@ import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/works
 import { WorkspacesView } from '@/app/components/chat-sidebar/workspace/workspaces-view';
 import { TransitionInOut } from '@/app/components/transitions/in-and-out/TransitionInOut';
 import { TransitionLeftRight } from '@/app/components/transitions/transition-left-right/TransitionLeftRight';
+import { useI18n } from '@/app/hooks/i18n';
 
 import { ChatSidebarProps } from './index';
 import { SidebarFooter } from './sidebar-footer';
@@ -23,6 +24,8 @@ export const SidebarContents = memo(function SidebarContents({
   onSearch,
 }: SidebarContentsProps) {
   const [, startTransition] = useTransition();
+
+  const { t } = useI18n();
 
   const { href } = useLocation();
   const navigate = useNavigate();
@@ -49,7 +52,7 @@ export const SidebarContents = memo(function SidebarContents({
           current={isWorkspacesOpen ? 'right' : 'left'}
           left={
             <Sidebar.Group className='px-3'>
-              <Sidebar.Menu aria-label='Chat actions'>
+              <Sidebar.Menu aria-label={t.session.chatActions}>
                 <Sidebar.MenuItem
                   href='/new'
                   id={`${idPrefix}-new`}
@@ -61,7 +64,7 @@ export const SidebarContents = memo(function SidebarContents({
                     <Comment className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
-                    New Session
+                    {t.sidebar.newSession}
                   </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
 
@@ -70,7 +73,7 @@ export const SidebarContents = memo(function SidebarContents({
                     <Magnifier className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
-                    Search
+                    {t.sidebar.search}
                   </Sidebar.MenuLabel>
                   <Sidebar.MenuChip>
                     <Kbd className='text-[11px]'>⌘K</Kbd>
@@ -91,7 +94,7 @@ export const SidebarContents = memo(function SidebarContents({
                     <Folder className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
-                    Workspaces
+                    {t.sidebar.workspaces}
                   </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
 
@@ -106,7 +109,7 @@ export const SidebarContents = memo(function SidebarContents({
                     <PlugWire className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
-                    Plugins
+                    {t.sidebar.plugins}
                   </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
               </Sidebar.Menu>

@@ -2,12 +2,15 @@ import { Segment } from '@aero/ui';
 
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 
 export function ChatWorkToggle() {
   const state = useNewSessionStore((state) => state.state);
   const setState = useNewSessionStore((state) => state.setState);
 
   const enabled = useChatInputExpanded();
+
+  const { t } = useI18n();
 
   if (enabled) return null;
 
@@ -17,8 +20,8 @@ export function ChatWorkToggle() {
         selectedKey={state}
         onSelectionChange={(key) => setState(key as 'chat' | 'work')}
       >
-        <Segment.Item id='chat'>Chat</Segment.Item>
-        <Segment.Item id='work'>Work</Segment.Item>
+        <Segment.Item id='chat'>{t.newSession.chat}</Segment.Item>
+        <Segment.Item id='work'>{t.newSession.work}</Segment.Item>
       </Segment>
     </div>
   );

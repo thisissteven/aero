@@ -11,6 +11,8 @@ import { Check, Magnifier } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { ReactNode, useMemo } from 'react';
 
+import { useI18n } from '@/app/hooks/i18n';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -87,7 +89,7 @@ export function VirtualizedDropdown<T>({
   triggerClassName,
   searchValue,
   onSearchValueChange,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   emptyState,
   renderRow,
   contentClassName,
@@ -96,6 +98,8 @@ export function VirtualizedDropdown<T>({
   headingSize = 28,
   placement = 'top right',
 }: VirtualizedDropdownProps<T>) {
+  const { t } = useI18n();
+
   const layout = useMemo(
     () => new ListLayout({ headingSize, estimatedRowSize }),
     [headingSize, estimatedRowSize],
@@ -137,7 +141,7 @@ export function VirtualizedDropdown<T>({
                   value={searchValue ?? ''}
                   onChange={(event) => onSearchValueChange(event.target.value)}
                   className='py-2.5 pr-0 text-sm'
-                  placeholder={searchPlaceholder}
+                  placeholder={searchPlaceholder ?? t.common.searchEllipsis}
                 />
 
                 <Command.InputGroup.ClearButton
@@ -148,7 +152,7 @@ export function VirtualizedDropdown<T>({
 
             {entries.length === 0 ? (
               <div className='text-muted flex h-24 items-center justify-center text-sm'>
-                {emptyState ?? 'No results found.'}
+                {emptyState ?? t.common.noResultsPeriod}
               </div>
             ) : (
               <Virtualizer layout={layout}>

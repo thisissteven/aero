@@ -20,6 +20,7 @@ import {
   useDisconnectProvider,
 } from '@/app/hooks/api/providers';
 import { useHiddenModels, useUpdateSetting } from '@/app/hooks/api/settings';
+import { useI18n } from '@/app/hooks/i18n';
 import { InfoTooltip } from '@/app/providers/settings/general/components/info-tooltip';
 import { useProvidersStore } from '../providers-store';
 
@@ -52,20 +53,45 @@ function ModelCapabilityBadges({
 }: {
   capabilities: ModelCapabilities;
 }) {
+  const { t } = useI18n();
   const badges = [];
 
   if (capabilities.reasoning)
-    badges.push({ key: 'reasoning', icon: Sparkles, label: 'Reasoning' });
+    badges.push({
+      key: 'reasoning',
+      icon: Sparkles,
+      label: t.settingsProviders.reasoning,
+    });
   if (capabilities.toolcall)
-    badges.push({ key: 'toolcall', icon: Wrench, label: 'Tool Calling' });
+    badges.push({
+      key: 'toolcall',
+      icon: Wrench,
+      label: t.settingsProviders.toolCalling,
+    });
   if (capabilities.input?.image || capabilities.input?.video)
-    badges.push({ key: 'input-image', icon: Picture, label: 'Image Input' });
+    badges.push({
+      key: 'input-image',
+      icon: Picture,
+      label: t.settingsProviders.imageInput,
+    });
   if (capabilities.input?.audio)
-    badges.push({ key: 'input-audio', icon: Volume, label: 'Audio Input' });
+    badges.push({
+      key: 'input-audio',
+      icon: Volume,
+      label: t.settingsProviders.audioInput,
+    });
   if (capabilities.input?.video)
-    badges.push({ key: 'input-video', icon: Video, label: 'Video Input' });
+    badges.push({
+      key: 'input-video',
+      icon: Video,
+      label: t.settingsProviders.videoInput,
+    });
   if (capabilities.input?.pdf)
-    badges.push({ key: 'input-pdf', icon: File, label: 'PDF Input' });
+    badges.push({
+      key: 'input-pdf',
+      icon: File,
+      label: t.settingsProviders.pdfInput,
+    });
 
   if (badges.length === 0) return null;
 
@@ -96,6 +122,7 @@ export function ProviderDetailsView() {
     useDisconnectProvider();
   const { mutateAsync: updateSetting } = useUpdateSetting();
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useI18n();
 
   const setViewMode = useProvidersStore((state) => state.setViewMode);
   const setSelectedProviderId = useProvidersStore(
@@ -144,7 +171,7 @@ export function ProviderDetailsView() {
   if (isLoading) {
     return (
       <div className='text-muted flex h-full items-center text-sm justify-center'>
-        Loading provider details...
+        {t.settingsProviders.loadingProviderDetails}
       </div>
     );
   }
@@ -171,7 +198,9 @@ export function ProviderDetailsView() {
       {/* Authentication */}
       <section className='space-y-4'>
         <div className='flex items-center justify-between'>
-          <Typography type='h6'>Authentication</Typography>
+          <Typography type='h6'>
+            {t.settingsProviders.authentication}
+          </Typography>
           <Button
             variant='outline'
             size='sm'
@@ -181,15 +210,15 @@ export function ProviderDetailsView() {
               setSelectedProviderId(provider.id);
             }}
           >
-            reconnect
+            {t.settingsProviders.reconnect}
           </Button>
         </div>
         <div className='text-success flex items-center gap-2'>
           <Icon data={Check} className='size-4' />
-          <span className='text-sm font-medium'>Connected</span>
-          <InfoTooltip>
-            Your connection to this provider is active and working.
-          </InfoTooltip>
+          <span className='text-sm font-medium'>
+            {t.settingsProviders.connected}
+          </span>
+          <InfoTooltip>{t.settingsProviders.connectedTooltip}</InfoTooltip>
         </div>
       </section>
 
@@ -197,10 +226,12 @@ export function ProviderDetailsView() {
 
       {/* Connection Details */}
       <section className='space-y-4'>
-        <Typography type='h6'>Connection Details</Typography>
+        <Typography type='h6'>
+          {t.settingsProviders.connectionDetails}
+        </Typography>
         <div className='flex items-center justify-between'>
           <Typography type='body-sm' color='muted'>
-            Configured in: {provider.source} credentials
+            {t.settingsProviders.configuredIn(provider.source)}
           </Typography>
           <Button
             variant='danger'
@@ -212,7 +243,7 @@ export function ProviderDetailsView() {
             }}
             isPending={isDisconnecting}
           >
-            disconnect
+            {t.settingsProviders.disconnect}
           </Button>
         </div>
       </section>
@@ -223,10 +254,12 @@ export function ProviderDetailsView() {
       <section className='space-y-4'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-2'>
-            <Typography type='h6'>Available Models</Typography>
+            <Typography type='h6'>
+              {t.settingsProviders.availableModels}
+            </Typography>
             <Typography type='body-sm' color='muted'>
               ({totalModels}
-              {hiddenCount > 0 && ` · ${hiddenCount} hidden`})
+              {hiddenCount > 0 && t.settingsProviders.hiddenCount(hiddenCount)})
             </Typography>
           </div>
           <div className='flex items-center gap-2'>
@@ -237,7 +270,7 @@ export function ProviderDetailsView() {
               onPress={hideAll}
               isDisabled={hiddenCount === totalModels}
             >
-              hide all
+              {t.settingsProviders.hideAll}
             </Button>
             <Button
               variant='outline'
@@ -246,7 +279,7 @@ export function ProviderDetailsView() {
               onPress={showAll}
               isDisabled={hiddenCount === 0}
             >
-              show all
+              {t.settingsProviders.showAll}
             </Button>
           </div>
         </div>
@@ -258,7 +291,7 @@ export function ProviderDetailsView() {
             className='text-muted absolute top-1/2 left-3 size-4 -translate-y-1/2'
           />
           <Input
-            placeholder='Filter models...'
+            placeholder={t.settingsProviders.filterModels}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className='w-full pl-9 font-normal'
@@ -269,7 +302,7 @@ export function ProviderDetailsView() {
         <div className='flex flex-col'>
           {models.length === 0 ? (
             <div className='text-muted py-8 text-center text-sm'>
-              No models found.
+              {t.settingsProviders.noModelsFound}
             </div>
           ) : (
             models.map((model) => {
@@ -288,11 +321,11 @@ export function ProviderDetailsView() {
                         {model.limit.context >= 1000000
                           ? `${(model.limit.context / 1000000).toFixed(1)}M`
                           : `${(model.limit.context / 1000).toFixed(1)}K`}{' '}
-                        ctx ·{' '}
+                        {t.settingsProviders.ctxFragment}{' '}
                         {model.limit.output >= 1000
                           ? `${(model.limit.output / 1000).toFixed(1)}K`
                           : model.limit.output}{' '}
-                        out
+                        {t.settingsProviders.outFragment}
                       </span>
                     </div>
                     <div className='flex items-center gap-2'>
@@ -305,7 +338,9 @@ export function ProviderDetailsView() {
                             onClick={() => toggleModelHidden(model.id)}
                             className='text-muted hover:text-foreground flex h-6 w-6 items-center justify-center rounded transition-colors'
                             aria-label={
-                              isHidden ? 'Unhide model' : 'Hide model'
+                              isHidden
+                                ? t.settingsProviders.unhideModel
+                                : t.settingsProviders.hideModel
                             }
                           >
                             <Icon
@@ -316,7 +351,9 @@ export function ProviderDetailsView() {
                         </Tooltip.Trigger>
                         <Tooltip.Content>
                           <Typography type='body-xs'>
-                            {isHidden ? 'Unhide model' : 'Hide model'}
+                            {isHidden
+                              ? t.settingsProviders.unhideModel
+                              : t.settingsProviders.hideModel}
                           </Typography>
                         </Tooltip.Content>
                       </Tooltip>

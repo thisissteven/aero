@@ -18,11 +18,13 @@ import {
   useReplyToQuestion,
   useSessionQuestions,
 } from '@/app/hooks/api/sessions';
+import { useI18n } from '@/app/hooks/i18n';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 
 export const ReplyToQuestion = React.memo(() => {
   const activeSessionId = useSessionId();
+  const { t } = useI18n();
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
@@ -210,8 +212,8 @@ export const ReplyToQuestion = React.memo(() => {
       },
       refetch: refetchQuestions,
       messages: {
-        loading: 'Submitting answers...',
-        success: 'Answers submitted',
+        loading: t.question.submittingAnswers,
+        success: t.question.answersSubmitted,
       },
     });
   };
@@ -233,8 +235,8 @@ export const ReplyToQuestion = React.memo(() => {
       },
       refetch: refetchQuestions,
       messages: {
-        loading: 'Rejecting question...',
-        success: 'Question rejected',
+        loading: t.question.rejectingQuestion,
+        success: t.question.questionRejected,
       },
     });
   };
@@ -284,13 +286,16 @@ export const ReplyToQuestion = React.memo(() => {
 
                   <div className='min-w-0 text-left'>
                     <div className='truncate font-medium'>
-                      Agent question{questions.length > 1 ? 's' : ''}
+                      {t.question.agentQuestion(questions.length)}
                     </div>
 
                     <div className='text-muted truncate text-[11px]'>
                       {allAnswered
-                        ? 'All questions answered'
-                        : `${answeredCount}/${questions.length} answered`}
+                        ? t.question.allQuestionsAnswered
+                        : t.question.answeredCount(
+                            answeredCount,
+                            questions.length,
+                          )}
                     </div>
                   </div>
                 </div>
@@ -332,7 +337,7 @@ export const ReplyToQuestion = React.memo(() => {
 
                 {isMultiple && (
                   <div className='text-muted px-2 text-[11px]'>
-                    Select one or more options.
+                    {t.question.selectOneOrMore}
                   </div>
                 )}
 
@@ -382,7 +387,7 @@ export const ReplyToQuestion = React.memo(() => {
                       handleCustomAnswerChange(event.target.value)
                     }
                     disabled={isSubmitting || isExiting}
-                    placeholder='Or type your own answer'
+                    placeholder={t.question.typeOwnAnswer}
                   />
                 </div>
 
@@ -393,7 +398,7 @@ export const ReplyToQuestion = React.memo(() => {
                     isDisabled={isSubmitting || isExiting || !canReject}
                     onPress={handleReject}
                   >
-                    Reject
+                    {t.question.reject}
                   </Button>
 
                   <div className='flex items-center gap-1'>
@@ -401,7 +406,7 @@ export const ReplyToQuestion = React.memo(() => {
                       variant='ghost'
                       size='sm'
                       isIconOnly
-                      aria-label='Previous question'
+                      aria-label={t.question.previousQuestionAria}
                       isDisabled={isFirstQuestion || isSubmitting || isExiting}
                       onPress={handlePrevious}
                     >
@@ -416,7 +421,7 @@ export const ReplyToQuestion = React.memo(() => {
                         }
                         onPress={handleNext}
                       >
-                        Next
+                        {t.common.next}
                         <Icon data={ChevronRight} />
                       </Button>
                     ) : (
@@ -425,7 +430,9 @@ export const ReplyToQuestion = React.memo(() => {
                         isDisabled={!canSubmit || isSubmitting || isExiting}
                         onPress={handleSubmit}
                       >
-                        {isPendingReply ? 'Submitting…' : 'Continue'}
+                        {isPendingReply
+                          ? t.question.submitting
+                          : t.common.continue}
                       </Button>
                     )}
                   </div>

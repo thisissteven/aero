@@ -1,4 +1,4 @@
-import { cn, logger, running, usePrompt } from '@aero/ui';
+import { cn, running, usePrompt } from '@aero/ui';
 import { useLocation } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 

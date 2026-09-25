@@ -6,11 +6,13 @@ import {
   getExternalPartsSession,
   useExternalPartsStore,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { ChatQuoteCard } from './chat-quote-card';
 
 export const ChatQuotesPanel = React.memo(function ChatQuotesPanel() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
   const quotes = useExternalPartsStore(
     (state) => getExternalPartsSession(state, sessionId).chatQuotes,
   );
@@ -28,7 +30,7 @@ export const ChatQuotesPanel = React.memo(function ChatQuotesPanel() {
         )}
       >
         <Comment className='size-3.5' />
-        <span>Chat quotes</span>
+        <span>{t.selectionPopover.chatQuotes}</span>
         <span className='bg-accent/15 text-accent rounded-md px-1.5 text-[10px] font-medium tabular-nums'>
           {quotes.length}
         </span>

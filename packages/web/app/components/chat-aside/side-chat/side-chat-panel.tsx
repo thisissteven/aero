@@ -14,6 +14,7 @@ import {
 } from '@/app/features/chat-page/chat-feed/chat-feed';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { useSessionPage } from '@/app/features/new-session-page/use-session-page';
+import { useI18n } from '@/app/hooks/i18n';
 import { OfflineWrapper } from '@/app/providers';
 import {
   SessionIdProvider,
@@ -34,6 +35,7 @@ export function SideChatPanel() {
 
 export function SideChatPage() {
   const sessionId = useSessionId();
+  const { t } = useI18n();
 
   const { turns: groups, notFound } = useSessionPage(sessionId);
 
@@ -104,7 +106,7 @@ export function SideChatPage() {
           </OfflineWrapper>
 
           <div className='text-muted text-center py-4 text-sm'>
-            Subagent sessions cannot be prompted.
+            {t.sideChat.cannotPrompt}
           </div>
         </div>
       </div>

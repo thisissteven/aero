@@ -1,4 +1,4 @@
-import { cn, logger } from '@aero/ui';
+import { cn } from '@aero/ui';
 import {
   ComponentPropsWithoutRef,
   memo,

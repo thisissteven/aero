@@ -14,6 +14,7 @@ import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { SessionsPageResponse, sessionKeys } from '@/app/hooks/api/sessions';
 import { useDeleteWorkspace, workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
+import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { getCheckboxVariant } from '@/app/lib/constants';
 import { copyButtonCss } from '@/app/lib/file';
@@ -183,40 +184,42 @@ function DeleteWorkspaceConfirmationModal({
 
   const navigate = useNavigate();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Delete workspace?</Modal.Heading>
+        <Modal.Heading>{t.workspace.deleteWorkspace}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
         <p>
-          <span className='text-foreground'>"{workspace.name}"</span> will be
-          permanently deleted. All sessions under this workspace will also be
-          archived.
+          <span className='text-foreground'>
+            {t.workspace.deleteWorkspaceConfirm(workspace.name)}
+          </span>
         </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
           onPress={() => {
             toast.promise(mutateAsync(workspace), {
-              loading: 'Deleting workspace...',
+              loading: t.workspace.deletingWorkspace,
               error: (err) => err.message,
               success: (_data) => {
                 navigate({
                   to: '/new',
                 });
-                return 'Workspace deleted';
+                return t.workspace.workspaceDeleted;
               },
             });
           }}
           variant='danger'
         >
-          Delete
+          {t.common.delete}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -230,6 +233,8 @@ export function DeleteWorkspace({
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
 
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item
       className='gap-1'
@@ -241,7 +246,9 @@ export function DeleteWorkspace({
       }}
     >
       <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
-      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+      <Label className='text-danger-soft-foreground! font-medium'>
+        {t.common.delete}
+      </Label>
     </Dropdown.Item>
   );
 }
@@ -261,22 +268,24 @@ function DeleteWorktreeConfirmationModal({
 
   const { mutateAsync } = useDeleteWorktree();
 
+  const { t } = useI18n();
+
   return (
     <Modal.Dialog className='sm:max-w-[360px]'>
       <Modal.CloseTrigger />
       <Modal.Header>
-        <Modal.Heading>Delete worktree?</Modal.Heading>
+        <Modal.Heading>{t.workspace.deleteWorktree}</Modal.Heading>
       </Modal.Header>
       <Modal.Body>
         <p>
-          <span className='text-foreground'>"{worktreeName}"</span> will be
-          permanently deleted. All sessions under this worktree will also be
-          read only.
+          <span className='text-foreground'>
+            {t.workspace.deleteWorktreeConfirm(worktreeName)}
+          </span>
         </p>
       </Modal.Body>
       <Modal.Footer>
         <Button slot='close' variant='tertiary'>
-          Cancel
+          {t.common.cancel}
         </Button>
         <Button
           slot='close'
@@ -284,7 +293,7 @@ function DeleteWorktreeConfirmationModal({
             toast.promise(
               mutateAsync({ directory: workspaceDirectory, worktreeDirectory }),
               {
-                loading: 'Deleting worktree...',
+                loading: t.workspace.deletingWorktree,
                 error: (err) => err.message,
                 success: () => {
                   queryClient.invalidateQueries({
@@ -293,14 +302,14 @@ function DeleteWorktreeConfirmationModal({
                   queryClient.invalidateQueries({
                     queryKey: workspaceKeys.detail(workspaceId),
                   });
-                  return 'Worktree deleted';
+                  return t.workspace.worktreeDeleted;
                 },
               },
             );
           }}
           variant='danger'
         >
-          Delete
+          {t.common.delete}
         </Button>
       </Modal.Footer>
     </Modal.Dialog>
@@ -320,6 +329,8 @@ export function DeleteWorktree({
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
 
+  const { t } = useI18n();
+
   return (
     <Dropdown.Item
       className='gap-1'
@@ -338,13 +349,17 @@ export function DeleteWorktree({
       }}
     >
       <Icon size={14} data={TrashBin} className='text-danger-soft-foreground' />
-      <Label className='text-danger-soft-foreground! font-medium'>Delete</Label>
+      <Label className='text-danger-soft-foreground! font-medium'>
+        {t.common.delete}
+      </Label>
     </Dropdown.Item>
   );
 }
 
 export function CopyDirectoryPath({ directory }: { directory: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const { t } = useI18n();
 
   const { copied, copy } = useCopyToClipboard({
     animatedRef: containerRef,
@@ -364,7 +379,7 @@ export function CopyDirectoryPath({ directory }: { directory: string }) {
         </div>
 
         <Label className='min-w-0 flex-1'>
-          {copied ? 'Copied' : 'Copy Path'}
+          {copied ? t.common.copied : t.chatNavbar.copyPath}
         </Label>
       </div>
     </Dropdown.Item>
@@ -379,6 +394,8 @@ export function EditWorkspace({
   directoryNotFound: boolean;
 }) {
   const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const { t } = useI18n();
 
   return (
     <Dropdown.Item
@@ -398,7 +415,7 @@ export function EditWorkspace({
         {directoryNotFound && (
           <div className='bg-danger absolute top-0.5 -right-2 size-1 rounded-full' />
         )}
-        <Label className='font-medium'>Edit</Label>
+        <Label className='font-medium'>{t.common.edit}</Label>
       </div>
     </Dropdown.Item>
   );
