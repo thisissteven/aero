@@ -171,6 +171,9 @@ export const id: BaseTranslation = {
   session: {
     recentSessions: 'Sesi Terbaru',
     recentSessionsAria: 'Sesi terbaru',
+    today: 'Hari ini',
+    yesterday: 'Kemarin',
+    older: 'Lebih lama',
     chatActions: 'Tindakan chat',
     exitIsolationMode: 'Keluar dari mode isolasi',
     exitIsolatedWorkspace: 'Keluar dari Ruang Kerja Terisolasi',

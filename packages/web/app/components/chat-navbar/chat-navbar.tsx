@@ -204,10 +204,7 @@ function SessionsNavbarContent() {
               {session.archived ? (
                 <UnarchiveSession sessionId={session.id} />
               ) : (
-                <ArchiveSession
-                  sessionId={session.id}
-                  sessionTitle={session.title}
-                />
+                <ArchiveSession sessionId={session.id} />
               )}
               <DeleteSession
                 sessionId={session.id}

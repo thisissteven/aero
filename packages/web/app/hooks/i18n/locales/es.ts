@@ -171,6 +171,9 @@ export const es: BaseTranslation = {
   session: {
     recentSessions: 'Sesiones recientes',
     recentSessionsAria: 'Sesiones recientes',
+    today: 'Hoy',
+    yesterday: 'Ayer',
+    older: 'Más antiguos',
     chatActions: 'Acciones del chat',
     exitIsolationMode: 'Salir del modo aislado',
     exitIsolatedWorkspace: 'Salir del espacio de trabajo aislado',

@@ -51,6 +51,11 @@
     --sidebar-duration: 0.2s;
     --sidebar-ease: ease;
     --sidebar-edge-outline: #00000014;
+    --sidebar-surface: color-mix(
+      in srgb,
+      var(--surface) 30%,
+      var(--background)
+    );
     height: 100svh;
     width: var(--sidebar-width);
     min-width: var(--sidebar-width-collapsed);
@@ -240,6 +245,7 @@
     border-radius: calc(var(--radius) * 2);
     border-style: var(--tw-border-style);
     background-color: var(--surface);
+    --sidebar-surface: var(--surface);
     --tw-shadow:
       0 10px 15px -3px var(--tw-shadow-color, #0000001a),
       0 4px 6px -4px var(--tw-shadow-color, #0000001a);
@@ -280,6 +286,22 @@
     flex: 1;
     display: flex;
     overflow-y: auto;
+  }
+
+  /* ScrollShadow fades the scroll container with a mask, which a sticky
+     descendant cannot render above. For the virtualized session list, drop the
+     container's top fade and paint an equivalent fade just below each sticky
+     header instead (see .sidebar__menu-header::after), so the fade never
+     overlays the header itself. The bottom fade stays on the container. */
+  .sidebar__content:has(.sidebar__menu--virtualized)[data-top-scroll="true"] {
+    --scroll-linear-gradient: #000;
+  }
+
+  .sidebar__content:has(
+    .sidebar__menu--virtualized
+  )[data-top-bottom-scroll="true"] {
+    --scroll-linear-gradient:
+      180deg, #000 0, #000 calc(100% - var(--scroll-shadow-size)), transparent;
   }
 
   .sidebar__footer {
@@ -409,6 +431,41 @@
 
   .sidebar[data-state="collapsed"] .sidebar__menu-header {
     display: none;
+  }
+
+  .sidebar__menu--virtualized .sidebar__menu-section {
+    position: relative;
+    height: 100%;
+  }
+
+  .sidebar__menu--virtualized .sidebar__menu-section:not(:first-child) {
+    margin-top: 0;
+  }
+
+  .sidebar__menu--virtualized .sidebar__menu-header {
+    position: relative;
+    background-color: var(--sidebar-surface);
+  }
+
+  .sidebar__menu--virtualized .sidebar__menu-header::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--scroll-shadow-size, 40px);
+    background: linear-gradient(to bottom, var(--sidebar-surface), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s var(--ease-out, ease);
+  }
+
+  .sidebar__content[data-top-scroll="true"]
+    .sidebar__menu--virtualized
+    .sidebar__menu-header::after,
+  .sidebar__content[data-top-bottom-scroll="true"]
+    .sidebar__menu--virtualized
+    .sidebar__menu-header::after {
+    opacity: 1;
   }
 
   .sidebar__menu-item {

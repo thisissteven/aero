@@ -169,6 +169,9 @@ export const en = {
   session: {
     recentSessions: 'Recent Sessions',
     recentSessionsAria: 'Recent sessions',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    older: 'Older',
     chatActions: 'Chat actions',
     exitIsolationMode: 'Exit isolation mode',
     exitIsolatedWorkspace: 'Exit Isolated Workspace',

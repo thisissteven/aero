@@ -166,6 +166,9 @@ export const zh: BaseTranslation = {
   session: {
     recentSessions: '最近会话',
     recentSessionsAria: '最近会话',
+    today: '今天',
+    yesterday: '昨天',
+    older: '更早',
     chatActions: '聊天操作',
     exitIsolationMode: '退出隔离模式',
     exitIsolatedWorkspace: '退出隔离工作区',

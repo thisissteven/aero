@@ -29,8 +29,6 @@ import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
   SessionsPageResponse,
   sessionKeys,
-  useArchiveBulkSessions,
-  useArchiveSession,
   useDeleteBulkSessions,
   useDeleteSession,
   useSessionMarkdown,
@@ -39,6 +37,10 @@ import {
   useUnshareSession,
 } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
+import {
+  useArchiveBulkSessionsAction,
+  useArchiveSessionAction,
+} from '@/app/hooks/useArchiveSessionAction';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { handleDownloadMarkdown } from '@/app/lib';
 import { getCheckboxVariant } from '@/app/lib/constants';
@@ -57,6 +59,7 @@ export function RecentsToggleEditModeButton() {
     (state) => state.toggleisEditMode,
   );
   const openModal = useGlobalModalStore((state) => state.openModal);
+  const archiveBulkSessions = useArchiveBulkSessionsAction();
 
   const { resolvedTheme } = useTheme();
 
@@ -112,13 +115,7 @@ export function RecentsToggleEditModeButton() {
             const sessionIds =
               useRecentsSidebarStore.getState().selectedSessionIds;
             if (sessionIds.length > 0) {
-              openModal({
-                children: (
-                  <ArchiveBulkSessionsConfirmationModal
-                    sessionIds={sessionIds}
-                  />
-                ),
-              });
+              archiveBulkSessions(sessionIds);
             }
           }}
           isIconOnly
@@ -436,106 +433,6 @@ export function ExportMarkdown({ sessionId }: { sessionId: string }) {
   );
 }
 
-export function ArchiveBulkSessionsConfirmationModal({
-  sessionIds,
-}: {
-  sessionIds: string[];
-}) {
-  const { mutateAsync } = useArchiveBulkSessions();
-
-  const navigate = useNavigate();
-
-  const { t } = useI18n();
-
-  return (
-    <Modal.Dialog className='sm:max-w-[360px]'>
-      <Modal.CloseTrigger />
-      <Modal.Header>
-        <Modal.Heading>{t.session.archiveSessions}</Modal.Heading>
-      </Modal.Header>
-      <Modal.Body>
-        <p>{t.session.archiveMany(sessionIds.length)}</p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button slot='close' variant='tertiary'>
-          {t.common.cancel}
-        </Button>
-        <Button
-          slot='close'
-          onPress={() => {
-            toast.promise(mutateAsync(sessionIds), {
-              loading: t.session.archivingSessions,
-              error: (err) => err.message,
-              success: (_data) => {
-                navigate({
-                  to: '/new',
-                });
-                return t.session.sessionsArchived;
-              },
-            });
-          }}
-          variant='danger'
-        >
-          {t.common.archive}
-        </Button>
-      </Modal.Footer>
-    </Modal.Dialog>
-  );
-}
-
-function ArchiveSessionConfirmationModal({
-  sessionId,
-  sessionTitle,
-}: {
-  sessionId: string;
-  sessionTitle: string;
-}) {
-  const { mutateAsync } = useArchiveSession();
-
-  const navigate = useNavigate();
-
-  const { t } = useI18n();
-
-  return (
-    <Modal.Dialog className='sm:max-w-[360px]'>
-      <Modal.CloseTrigger />
-      <Modal.Header>
-        <Modal.Heading>{t.session.archiveSession}</Modal.Heading>
-      </Modal.Header>
-      <Modal.Body>
-        <p>
-          <span className='text-foreground'>
-            {t.session.archiveOne(sessionTitle)}
-          </span>
-        </p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button slot='close' variant='tertiary'>
-          {t.common.cancel}
-        </Button>
-        <Button
-          slot='close'
-          onPress={() => {
-            toast.promise(mutateAsync(sessionId), {
-              loading: t.session.archivingSession,
-              error: (err) => err.message,
-              success: (_data) => {
-                navigate({
-                  to: '/new',
-                });
-                return t.session.sessionArchived;
-              },
-            });
-          }}
-          variant='danger'
-        >
-          {t.common.archive}
-        </Button>
-      </Modal.Footer>
-    </Modal.Dialog>
-  );
-}
-
 export function ArchiveSessionIconButton({
   sessionId,
   sessionTitle,
@@ -543,7 +440,7 @@ export function ArchiveSessionIconButton({
   sessionId: string;
   sessionTitle: string;
 }) {
-  const openModal = useGlobalModalStore((state) => state.openModal);
+  const archiveSession = useArchiveSessionAction();
 
   const { t } = useI18n();
 
@@ -554,14 +451,7 @@ export function ArchiveSessionIconButton({
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
-        openModal({
-          children: (
-            <ArchiveSessionConfirmationModal
-              sessionId={sessionId}
-              sessionTitle={sessionTitle}
-            />
-          ),
-        });
+        archiveSession(sessionId);
       }}
     >
       <Icon
@@ -600,31 +490,13 @@ export function UnarchiveSession({ sessionId }: { sessionId: string }) {
   );
 }
 
-export function ArchiveSession({
-  sessionId,
-  sessionTitle,
-}: {
-  sessionId: string;
-  sessionTitle: string;
-}) {
-  const openModal = useGlobalModalStore((state) => state.openModal);
+export function ArchiveSession({ sessionId }: { sessionId: string }) {
+  const archiveSession = useArchiveSessionAction();
 
   const { t } = useI18n();
 
   return (
-    <Dropdown.Item
-      className='gap-1'
-      onPress={() => {
-        openModal({
-          children: (
-            <ArchiveSessionConfirmationModal
-              sessionId={sessionId}
-              sessionTitle={sessionTitle}
-            />
-          ),
-        });
-      }}
-    >
+    <Dropdown.Item className='gap-1' onPress={() => archiveSession(sessionId)}>
       <Icon size={14} data={Archive} />
       <Label>{t.common.archive}</Label>
     </Dropdown.Item>

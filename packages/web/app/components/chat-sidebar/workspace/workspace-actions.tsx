@@ -5,16 +5,14 @@ import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
-import {
-  ArchiveBulkSessionsConfirmationModal,
-  DeleteBulkSessionsConfirmationModal,
-} from '@/app/components/chat-sidebar/session/session-actions';
+import { DeleteBulkSessionsConfirmationModal } from '@/app/components/chat-sidebar/session/session-actions';
 import { useWorkspacesSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import { SessionsPageResponse, sessionKeys } from '@/app/hooks/api/sessions';
 import { useDeleteWorkspace, workspaceKeys } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useI18n } from '@/app/hooks/i18n';
+import { useArchiveBulkSessionsAction } from '@/app/hooks/useArchiveSessionAction';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { getCheckboxVariant } from '@/app/lib/constants';
 import { copyButtonCss } from '@/app/lib/file';
@@ -30,6 +28,7 @@ export function WorkspacesToggleEditModeButton() {
     (state) => state.toggleisEditMode,
   );
   const openModal = useGlobalModalStore((state) => state.openModal);
+  const archiveBulkSessions = useArchiveBulkSessionsAction();
 
   const { resolvedTheme } = useTheme();
 
@@ -85,13 +84,7 @@ export function WorkspacesToggleEditModeButton() {
             const sessionIds =
               useWorkspacesSidebarStore.getState().selectedSessionIds;
             if (sessionIds.length > 0) {
-              openModal({
-                children: (
-                  <ArchiveBulkSessionsConfirmationModal
-                    sessionIds={sessionIds}
-                  />
-                ),
-              });
+              archiveBulkSessions(sessionIds);
             }
           }}
           isIconOnly

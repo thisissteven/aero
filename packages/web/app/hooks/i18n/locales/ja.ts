@@ -171,6 +171,9 @@ export const ja: BaseTranslation = {
   session: {
     recentSessions: '最近のセッション',
     recentSessionsAria: '最近のセッション',
+    today: '今日',
+    yesterday: '昨日',
+    older: 'それ以前',
     chatActions: 'チャットのアクション',
     exitIsolationMode: '分離モードを終了',
     exitIsolatedWorkspace: '分離ワークスペースを終了',

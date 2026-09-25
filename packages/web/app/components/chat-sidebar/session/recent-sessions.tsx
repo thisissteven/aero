@@ -1,18 +1,20 @@
 import {
+  Collection,
   cn,
-  ListLayout,
   Sidebar,
   Skeleton,
   Spinner,
+  StickySectionListLayout,
   Virtualizer,
 } from '@aero/ui';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
+import { groupSessionsByDay, SessionGroup } from '@/app/lib/session-groups';
 import { AeroSessionSummary } from '@/server/services/harness/types';
 
 interface RecentChatsProps {
@@ -20,6 +22,12 @@ interface RecentChatsProps {
   /** Fixed row height for virtualizer calculations */
   rowHeight?: number;
 }
+
+/** Fixed height of a date group header, matching `.sidebar__menu-header`. */
+const GROUP_HEADER_HEIGHT = 28;
+
+/** Lift the sticky header by 0.5rem so it sits flush with the scrollport edge. */
+const GROUP_HEADER_TOP = 8;
 
 function RecentChatsLoader({ enabled }: { enabled: boolean }) {
   if (!enabled) return null;
@@ -52,6 +60,23 @@ export const RecentChats = memo(function Recents({
     isLoading,
   } = useInfiniteScroll<AeroSessionSummary>(sessionsQuery);
 
+  const groups = useMemo(() => groupSessionsByDay(sessions), [sessions]);
+
+  const groupLabels: Record<SessionGroup['key'], string> = {
+    today: t.session.today,
+    yesterday: t.session.yesterday,
+    older: t.session.older,
+  };
+
+  const layoutOptions = useMemo(
+    () => ({
+      rowSize: rowHeight,
+      headingSize: GROUP_HEADER_HEIGHT,
+      stickyHeaderOffset: -GROUP_HEADER_TOP,
+    }),
+    [rowHeight],
+  );
+
   return (
     <>
       <div className='pl-3 pr-2 pt-2'>
@@ -66,21 +91,31 @@ export const RecentChats = memo(function Recents({
           <RecentChatsLoader enabled={isLoading} />
 
           <Virtualizer
-            layout={ListLayout}
-            layoutOptions={{ rowSize: rowHeight }}
+            layout={StickySectionListLayout}
+            layoutOptions={layoutOptions}
           >
-            <Sidebar.Menu<AeroSessionSummary>
+            <Sidebar.Menu<SessionGroup>
               aria-label={t.session.recentSessionsAria}
-              items={sessions}
+              className='sidebar__menu--virtualized'
+              items={groups}
               selectionMode='single'
             >
-              {(session) => (
-                <ChatSidebarSessionItem
-                  key={session.id}
-                  idPrefix='recents'
-                  session={session}
-                  from='recents'
-                />
+              {(group) => (
+                <Sidebar.MenuSection id={group.key} key={group.key}>
+                  <Sidebar.MenuHeader>
+                    {groupLabels[group.key]}
+                  </Sidebar.MenuHeader>
+                  <Collection items={group.sessions}>
+                    {(session) => (
+                      <ChatSidebarSessionItem
+                        key={session.id}
+                        idPrefix='recents'
+                        session={session}
+                        from='recents'
+                      />
+                    )}
+                  </Collection>
+                </Sidebar.MenuSection>
               )}
             </Sidebar.Menu>
           </Virtualizer>
