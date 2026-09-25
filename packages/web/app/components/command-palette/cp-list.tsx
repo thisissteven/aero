@@ -7,12 +7,15 @@ import { useEffect, useMemo, useRef } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { SessionItemMetadata } from '@/app/components/chat-sidebar/session/session-item-metadata';
 import { ShortcutsModal } from '@/app/components/chat-sidebar/sidebar-footer';
+import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';
+import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { useCommandPaletteStore } from '@/app/components/command-palette/command-palette-store';
 import { CommandPaletteLoader } from '@/app/components/command-palette/cp-loader';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import { useSessionDirectory, useSessions } from '@/app/hooks/api/sessions';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
+import { useWorkspaces } from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
 import { useInfiniteScroll } from '@/app/hooks/useInfiniteScroll';
 import { formatCompactRelativeTime } from '@/app/lib';
@@ -20,7 +23,10 @@ import { toWorkspaceRelative } from '@/app/lib/file';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
-import type { AeroSessionSummary } from '@/server/services/harness/types';
+import type {
+  AeroSessionSummary,
+  AeroWorkspaceSummary,
+} from '@/server/services/harness/types';
 
 export type VirtualPaletteItem =
   | { kind: 'header'; id: string; title: string; isFirst: boolean }
@@ -33,8 +39,13 @@ export type VirtualPaletteItem =
       onAction: () => void;
     }
   | { kind: 'session'; id: string; session: AeroSessionSummary }
+  | { kind: 'workspace'; id: string; workspace: AeroWorkspaceSummary }
   | { kind: 'file'; id: string; file: string }
-  | { kind: 'loader'; id: string };
+  | {
+      kind: 'loader';
+      id: string;
+      loadMoreRef: (node: HTMLElement | null) => void;
+    };
 
 export function CommandPaletteList() {
   const { t } = useI18n();
@@ -81,6 +92,18 @@ export function CommandPaletteList() {
     limitWithoutSearch: 10,
   });
 
+  const workspacesQuery = useWorkspaces(debouncedSearch || undefined);
+
+  const {
+    items: workspaces,
+    loadMoreRef: loadMoreWorkspacesRef,
+    hasNextPage: hasNextWorkspacesPage,
+  } = useInfiniteScroll<AeroWorkspaceSummary>(workspacesQuery, {
+    search: debouncedSearch,
+    rootRef: listRef,
+    limitWithoutSearch: 5,
+  });
+
   const directory = useSessionDirectory();
 
   const { data: files = [] } = useFilesInDirectory({
@@ -93,6 +116,13 @@ export function CommandPaletteList() {
   function onSelect(callback: () => void) {
     toggleIsOpen();
     callback();
+  }
+
+  function openIsolatedWorkspace(workspace: AeroWorkspaceSummary) {
+    const store = useWorkspaceStore.getState();
+    store.setState('isolated');
+    store.setIsolatedWorkspaceDirectory(workspace.directory);
+    store.setIsWorkspacesOpen(true);
   }
 
   const selectedFilters = useCommandPaletteStore(
@@ -108,6 +138,7 @@ export function CommandPaletteList() {
     const showActions = selectedFilters.includes('Actions');
     const showFiles = selectedFilters.includes('Files');
     const showSessions = selectedFilters.includes('Sessions');
+    const showWorkspaces = selectedFilters.includes('Workspaces');
 
     if (showActions) {
       const allActions: Extract<VirtualPaletteItem, { kind: 'action' }>[] = [
@@ -155,6 +186,31 @@ export function CommandPaletteList() {
       }
     }
 
+    if (showWorkspaces && workspaces.length > 0) {
+      items.push({
+        kind: 'header',
+        id: 'header-workspaces',
+        title: t.commandPalette.workspaces,
+        isFirst: !hasHeader(),
+      });
+
+      workspaces.forEach((workspace) => {
+        items.push({
+          kind: 'workspace',
+          id: workspace.id,
+          workspace,
+        });
+      });
+
+      if (hasNextWorkspacesPage && debouncedSearch !== '') {
+        items.push({
+          kind: 'loader',
+          id: 'workspaces-loader',
+          loadMoreRef: loadMoreWorkspacesRef,
+        });
+      }
+    }
+
     if (showFiles && files.length > 0) {
       items.push({
         kind: 'header',
@@ -189,7 +245,11 @@ export function CommandPaletteList() {
       });
 
       if (hasNextPage && debouncedSearch !== '') {
-        items.push({ kind: 'loader', id: 'sentinel-loader' });
+        items.push({
+          kind: 'loader',
+          id: 'sessions-loader',
+          loadMoreRef,
+        });
       }
     }
 
@@ -197,9 +257,13 @@ export function CommandPaletteList() {
   }, [
     files,
     sessions,
+    workspaces,
     debouncedSearch,
     selectedFilters,
     hasNextPage,
+    hasNextWorkspacesPage,
+    loadMoreRef,
+    loadMoreWorkspacesRef,
     committedViewRef.current.sessionsHeading,
     t,
   ]);
@@ -332,12 +396,38 @@ export function CommandPaletteList() {
               );
             }
 
+            case 'workspace': {
+              return (
+                <Command.Item
+                  key={typedItem.id}
+                  id={typedItem.id}
+                  textValue={typedItem.workspace.name}
+                  onAction={() =>
+                    onSelect(() => openIsolatedWorkspace(typedItem.workspace))
+                  }
+                  className='mx-2 h-[48px]'
+                >
+                  <span className='shrink-0'>
+                    <WorkspaceIcon workspace={typedItem.workspace} />
+                  </span>
+                  <div className='flex min-w-0 flex-1 flex-col justify-center'>
+                    <span className='text-foreground truncate text-sm leading-tight font-medium'>
+                      {typedItem.workspace.name}
+                    </span>
+                    <span className='text-muted truncate text-xs leading-tight'>
+                      {typedItem.workspace.directory}
+                    </span>
+                  </div>
+                </Command.Item>
+              );
+            }
+
             case 'loader':
               return (
                 <CommandPaletteLoader
                   key={typedItem.id}
                   id={typedItem.id}
-                  loadMoreRef={loadMoreRef}
+                  loadMoreRef={typedItem.loadMoreRef}
                 />
               );
           }

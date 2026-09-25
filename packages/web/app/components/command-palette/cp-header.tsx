@@ -20,6 +20,7 @@ export function CommandPaletteHeader() {
       Actions: t.common.actions,
       Files: t.common.files,
       Sessions: t.commandPalette.sessions,
+      Workspaces: t.commandPalette.workspaces,
     };
 
   return (

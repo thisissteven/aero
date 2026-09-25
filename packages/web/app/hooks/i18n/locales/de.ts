@@ -613,6 +613,7 @@ export const de: BaseTranslation = {
     searchResults: 'Suchergebnisse',
     newChat: 'Neuer Chat',
     sessions: 'Sitzungen',
+    workspaces: 'Workspaces',
     noMatch: 'Keine Dateien, Sitzungen oder Befehle entsprechen dieser Suche.',
     recentSession: (title: string) => `${title} – Letzte Sitzung`,
     searchPlaceholder: 'Nach Dateien, Sitzungen und Aktionen suchen',

@@ -604,6 +604,7 @@ export const id: BaseTranslation = {
     searchResults: 'Hasil pencarian',
     newChat: 'Chat Baru',
     sessions: 'Sesi',
+    workspaces: 'Ruang kerja',
     noMatch:
       'Tidak ada file, sesi, dan perintah yang cocok dengan pencarian tersebut.',
     recentSession: (title: string) => `${title} Sesi terbaru`,

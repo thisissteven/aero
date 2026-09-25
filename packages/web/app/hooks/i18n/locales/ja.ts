@@ -609,6 +609,7 @@ export const ja: BaseTranslation = {
     searchResults: '検索結果',
     newChat: '新しいチャット',
     sessions: 'セッション',
+    workspaces: 'ワークスペース',
     noMatch: '検索に一致するファイル、セッション、コマンドはありません。',
     recentSession: (title: string) => `${title}の最近のセッション`,
     searchPlaceholder: 'ファイル、セッション、アクションを検索',

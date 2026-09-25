@@ -1,6 +1,11 @@
 import { create, StateCreator } from 'zustand';
 
-export const defaultSelectedFilters = ['Actions', 'Files', 'Sessions'] as const;
+export const defaultSelectedFilters = [
+  'Actions',
+  'Workspaces',
+  'Files',
+  'Sessions',
+] as const;
 
 type Filter = (typeof defaultSelectedFilters)[number];
 

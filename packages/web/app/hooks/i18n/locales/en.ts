@@ -606,6 +606,7 @@ export const en = {
     searchResults: 'Search results',
     newChat: 'New Chat',
     sessions: 'Sessions',
+    workspaces: 'Workspaces',
     noMatch: 'No files, sessions, and commands match that search.',
     recentSession: (title: string) => `${title} Recent session`,
     searchPlaceholder: 'Search for files, sessions, and actions',

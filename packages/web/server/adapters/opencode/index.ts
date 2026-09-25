@@ -177,13 +177,25 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
     async listWorkspaces({
       cursor,
       limit = PAGINATION_LIMIT,
+      search,
     }: BasePaginationParams) {
       const all = await listStoredWorkspaces();
 
-      const startIndex = cursor ? all.findIndex((w) => w.id === cursor) + 1 : 0;
+      const query = search?.trim().toLowerCase();
+      const filtered = query
+        ? all.filter(
+            (workspace) =>
+              workspace.name.toLowerCase().includes(query) ||
+              workspace.directory.toLowerCase().includes(query),
+          )
+        : all;
 
-      const pageItems = all.slice(startIndex, startIndex + limit);
-      const hasMore = startIndex + limit < all.length;
+      const startIndex = cursor
+        ? filtered.findIndex((w) => w.id === cursor) + 1
+        : 0;
+
+      const pageItems = filtered.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < filtered.length;
 
       const nextCursor = hasMore
         ? pageItems[pageItems.length - 1]?.id

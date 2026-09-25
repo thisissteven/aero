@@ -620,6 +620,7 @@ export const fr: BaseTranslation = {
     searchResults: 'Résultats de recherche',
     newChat: 'Nouvelle discussion',
     sessions: 'Sessions',
+    workspaces: 'Espaces de travail',
     noMatch:
       'Aucun fichier, aucune session et aucune commande ne correspond à cette recherche.',
     recentSession: (title: string) => `${title} Session récente`,

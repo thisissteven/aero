@@ -589,6 +589,7 @@ export const zhTW: BaseTranslation = {
     searchResults: '搜尋結果',
     newChat: '新增對話',
     sessions: '工作階段',
+    workspaces: '工作區',
     noMatch: '找不到符合搜尋條件的檔案、工作階段或指令。',
     recentSession: (title: string) => `「${title}」是最近的工作階段`,
     searchPlaceholder: '搜尋檔案、工作階段與操作',

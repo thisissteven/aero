@@ -590,6 +590,7 @@ export const zh: BaseTranslation = {
     searchResults: '搜索结果',
     newChat: '新建聊天',
     sessions: '会话',
+    workspaces: '工作区',
     noMatch: '没有匹配该搜索的文件、会话和命令。',
     recentSession: (title: string) => `${title} 最近会话`,
     searchPlaceholder: '搜索文件、会话和操作',
