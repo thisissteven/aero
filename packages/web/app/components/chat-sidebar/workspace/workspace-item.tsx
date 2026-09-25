@@ -1,5 +1,6 @@
 import { Sidebar } from '@aero/ui';
 import { memo, useMemo } from 'react';
+import { Button } from 'react-aria-components';
 
 import { DirectoryNotFoundIndicator } from '@/app/components/chat-sidebar/workspace/directory-not-found-indicator';
 
@@ -55,7 +56,8 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
         onClick={(event) => {
           if (
             event.target instanceof HTMLElement &&
-            event.target.closest("[data-slot='sidebar-menu-actions']")
+            (event.target.closest("[data-slot='sidebar-menu-actions']") ||
+              event.target.closest("[data-slot='sidebar-menu-trigger']"))
           ) {
             return;
           }
@@ -66,7 +68,9 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
           <WorkspaceIcon workspace={workspace} />
         </Sidebar.MenuIcon>
 
-        <Sidebar.MenuIndicator className='pointer-events-none absolute top-1/2 left-1 -translate-y-1/2 opacity-0 transition group-hover:opacity-100' />
+        <Sidebar.MenuTrigger className='absolute top-1/2 left-0 flex size-5 -translate-y-1/2 items-center justify-center opacity-0 transition group-hover:opacity-100'>
+          <Sidebar.MenuIndicator />
+        </Sidebar.MenuTrigger>
 
         <Sidebar.MenuLabel>{workspace.name}</Sidebar.MenuLabel>
 
@@ -79,6 +83,8 @@ export const ChatSidebarWorkspaceItem = memo(function ChatSidebarWorkspaceItem({
           />
           <WorkspaceItemDropdown workspace={workspace} />
         </Sidebar.MenuActions>
+
+        <Button slot='drag' className='sr-only' />
       </Sidebar.MenuItemContent>
 
       <Sidebar.Submenu>
