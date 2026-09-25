@@ -246,6 +246,8 @@ export const zh: BaseTranslation = {
     noGitRepository: '未检测到 Git 仓库。',
     directoryNotFound: '未找到目录。',
     currentBranch: (branch: string) => `${branch}（当前）`,
+    worktreeName: 'Worktree name (optional)',
+    worktreeNamePlaceholder: 'e.g. feat/my-feature',
   },
 
   editWorkspace: {
@@ -1084,6 +1086,19 @@ export const zh: BaseTranslation = {
     noRepository: 'This workspace is not a git repository.',
     directoryNotFound: 'This workspace directory could not be found.',
     noDirectory: 'Open a workspace to view git status.',
+    branchActions: (name: string) => `Actions for ${name}`,
+    deleteBranch: 'Delete branch',
+    deleteBranchTitle: 'Delete branch?',
+    deleteBranchConfirm: (name: string) =>
+      `You are about to delete the branch "${name}".`,
+    deleteLocalBranch: 'Delete local branch',
+    deleteRemoteBranch: 'Delete remote branch',
+    remote: 'Remote',
+    branchDeleted: (name: string) => `Deleted branch ${name}`,
+    deleteBranchFailed: 'Failed to delete branch',
+    deleteWorktree: 'Delete worktree',
+    alsoDeleteBranch: 'Also delete the branch',
+    deleteWorktreeFailed: 'Failed to delete worktree',
   },
 
   pullRequest: {

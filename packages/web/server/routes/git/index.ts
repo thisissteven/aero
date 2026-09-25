@@ -17,6 +17,8 @@ import {
   commitBodySchema,
   continueMerge,
   continueRebase,
+  deleteBranch,
+  deleteBranchBodySchema,
   diffQuerySchema,
   fetch,
   fetchBodySchema,
@@ -186,6 +188,18 @@ const git = new Hono()
     }
     return c.json({ success: true, activeTarget: target });
   })
+  .delete(
+    '/branches',
+    zValidator('query', gitDirectoryQuerySchema),
+    zValidator('json', deleteBranchBodySchema),
+    async (c) => {
+      const { directory: inputDirectory } = c.req.valid('query');
+      const options = c.req.valid('json');
+      const directory = await getGitDirectory(inputDirectory);
+      const result = await deleteBranch(directory, options);
+      return c.json(result);
+    },
+  )
 
   // ----- Commit -----
   .post('/commit', zValidator('json', commitBodySchema), async (c) => {

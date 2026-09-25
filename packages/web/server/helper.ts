@@ -178,13 +178,36 @@ export async function ensureGitHead(directory: string) {
 export async function removeGitWorktree(
   repoDirectory: string,
   worktreeDirectory: string,
+  force = true,
 ) {
-  await simpleGit(repoDirectory).raw([
-    'worktree',
-    'remove',
-    '--force',
-    path.resolve(worktreeDirectory),
-  ]);
+  const args = ['worktree', 'remove'];
+  if (force) args.push('--force');
+  args.push(path.resolve(worktreeDirectory));
+  await simpleGit(repoDirectory).raw(args);
+}
+
+export async function deleteLocalBranch(
+  repoDirectory: string,
+  branch: string,
+  force = true,
+) {
+  const git = simpleGit(repoDirectory);
+  const listing = await git.raw(['branch', '--list', branch]);
+  if (!listing.trim()) return false;
+  await git.raw(['branch', force ? '-D' : '-d', branch]);
+  return true;
+}
+
+export async function deleteRemoteBranch(
+  repoDirectory: string,
+  remote: string,
+  branch: string,
+) {
+  const git = simpleGit(repoDirectory);
+  const listing = await git.raw(['ls-remote', '--heads', remote, branch]);
+  if (!listing.trim()) return false;
+  await git.raw(['push', remote, '--delete', branch]);
+  return true;
 }
 
 export function directoryExists(directory: string) {
@@ -240,7 +263,7 @@ export function parseWorktreePorcelain(output: string) {
 export function parseWorktreePorcelainBrief(output: string) {
   const blocks = output.trim().split(/\r?\n\r?\n/);
 
-  return blocks.filter(Boolean).map((block) => {
+  return blocks.filter(Boolean).map((block, index) => {
     const lines = block.split(/\r?\n/);
 
     const worktreeLine = lines.find((l) => l.startsWith('worktree '));
@@ -251,6 +274,8 @@ export function parseWorktreePorcelainBrief(output: string) {
       branch: branchLine
         ? branchLine.replace(/^branch\s+refs\/heads\//, '')
         : null,
+      // Git always lists the primary repository first.
+      isMain: index === 0,
     };
   });
 }

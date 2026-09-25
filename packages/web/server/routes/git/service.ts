@@ -154,6 +154,14 @@ export const removeRemoteBodySchema = z.object({
   remote: z.string().min(1),
 });
 
+export const deleteBranchBodySchema = z.object({
+  branch: z.string().min(1, 'Branch name is required'),
+  force: z.boolean().optional().default(true),
+  deleteLocal: z.boolean().optional().default(true),
+  deleteRemote: z.boolean().optional().default(false),
+  remote: z.string().optional(),
+});
+
 export const rebaseBodySchema = z.object({
   upstream: z.string().optional(),
   branch: z.string().optional(),
@@ -436,6 +444,34 @@ export async function removeRemote(
 ) {
   const client = getGitClient(directory);
   return client.removeRemote(options.remote);
+}
+
+export async function deleteBranch(
+  directory: string,
+  options: {
+    branch: string;
+    force?: boolean;
+    deleteLocal?: boolean;
+    deleteRemote?: boolean;
+    remote?: string;
+  },
+) {
+  const client = getGitClient(directory);
+
+  if (options.deleteLocal !== false) {
+    await client.raw([
+      'branch',
+      options.force === false ? '-d' : '-D',
+      options.branch,
+    ]);
+  }
+
+  if (options.deleteRemote) {
+    const remote = options.remote?.trim() || 'origin';
+    await client.raw(['push', remote, '--delete', options.branch]);
+  }
+
+  return { success: true };
 }
 
 export interface DiffSummaryEntry {

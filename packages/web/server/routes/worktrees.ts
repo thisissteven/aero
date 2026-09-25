@@ -19,6 +19,11 @@ const createWorktreeSchema = z.object({
 const removeWorktreeSchema = z.object({
   directory: z.string().min(1, 'Directory is required'),
   worktreeDirectory: z.string().min(1, 'Worktree directory is required'),
+  force: z.boolean().optional(),
+  branch: z.string().optional(),
+  deleteBranch: z.boolean().optional(),
+  deleteRemote: z.boolean().optional(),
+  remote: z.string().optional(),
 });
 
 const worktree = new Hono()
@@ -53,10 +58,28 @@ const worktree = new Hono()
     zValidator('json', removeWorktreeSchema),
     async (c) => {
       const { harnessId } = c.req.valid('query');
-      const { directory, worktreeDirectory } = c.req.valid('json');
+      const {
+        directory,
+        worktreeDirectory,
+        force,
+        branch,
+        deleteBranch,
+        deleteRemote,
+        remote,
+      } = c.req.valid('json');
 
       const harness = await getActiveAdapter(harnessId);
-      const ok = await harness.removeWorktreeItem(directory, worktreeDirectory);
+      const ok = await harness.removeWorktreeItem(
+        directory,
+        worktreeDirectory,
+        {
+          force,
+          branch,
+          deleteBranch,
+          deleteRemote,
+          remote,
+        },
+      );
       return c.json({ ok });
     },
   );

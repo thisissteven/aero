@@ -480,6 +480,14 @@ export interface AddWorktreeInput {
   directory: string;
 }
 
+export interface RemoveWorktreeOptions {
+  force?: boolean;
+  branch?: string;
+  deleteBranch?: boolean;
+  deleteRemote?: boolean;
+  remote?: string;
+}
+
 export interface BasePaginationParams {
   cursor?: string;
   limit?: number;
@@ -688,6 +696,7 @@ export interface HarnessAdapter {
   removeWorktreeItem(
     directory: string,
     worktreeDirectory: string,
+    options?: RemoveWorktreeOptions,
   ): Promise<boolean>;
 
   listProviders(directory?: string): Promise<AeroProvider[]>;

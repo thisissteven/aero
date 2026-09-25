@@ -11,6 +11,8 @@ import { opencodePoolV2 } from '@/server/adapters/opencode/pool';
 import { parseSseEventEnvelope } from '@/server/adapters/opencode/sse-envelope';
 import {
   AERO_DIR,
+  deleteLocalBranch,
+  deleteRemoteBranch,
   ensureGitHead,
   GET_ALL_LIMIT,
   PAGINATION_LIMIT,
@@ -29,6 +31,7 @@ import type {
   CreateWorkspaceInput,
   HarnessAdapter,
   ListSessionsParams,
+  RemoveWorktreeOptions,
   UpdateWorkspaceInput,
 } from '@/server/services/harness/types';
 import { handleOpencodePermissions } from '@/server/services/permissions/runtime';
@@ -706,6 +709,7 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
 
       const workspace = await getWorkspaceByDirectory(directory);
+      const worktreeName = name?.trim() || getBasename(entry.directory);
 
       if (!workspace) {
         await createWorkspace({
@@ -713,14 +717,14 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
           directory: directory,
           worktrees: [
             {
-              name: getBasename(entry.directory),
+              name: worktreeName,
               directory: entry.directory,
             },
           ],
         });
       } else {
         await addWorktreeToWorkspace(workspace.id, {
-          name: getBasename(entry.directory),
+          name: worktreeName,
           directory: entry.directory,
         });
       }
@@ -728,9 +732,15 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       return toAeroWorktreeItem(entry);
     },
 
-    async removeWorktreeItem(directory, worktreeDirectory) {
+    async removeWorktreeItem(
+      directory,
+      worktreeDirectory,
+      options: RemoveWorktreeOptions = {},
+    ) {
+      const workspace = await getWorkspaceByDirectory(directory);
+
       try {
-        const ok = await withOpencodeClientV2(async (client) =>
+        await withOpencodeClientV2(async (client) =>
           unwrap(
             await client.worktree.remove({
               directory: directory,
@@ -740,20 +750,42 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
             }),
           ),
         );
-
-        return ok;
       } catch {
         const repoDirectory = await resolveGitDir(directory);
-
-        await removeGitWorktree(repoDirectory, worktreeDirectory);
-
-        return true;
+        await removeGitWorktree(
+          repoDirectory,
+          worktreeDirectory,
+          options.force !== false,
+        );
       } finally {
-        const workspace = await getWorkspaceByDirectory(directory);
         if (workspace) {
           await removeWorktreeFromWorkspace(workspace.id, worktreeDirectory);
         }
       }
+
+      if (options.deleteBranch && options.branch) {
+        try {
+          const repoDirectory = await resolveGitDir(
+            workspace?.directory ?? directory,
+          );
+
+          await deleteLocalBranch(repoDirectory, options.branch, true);
+
+          if (options.deleteRemote) {
+            await deleteRemoteBranch(
+              repoDirectory,
+              options.remote?.trim() || 'origin',
+              options.branch,
+            );
+          }
+        } catch (error) {
+          // The worktree is already gone; a failed branch cleanup shouldn't
+          // mask the successful removal. Surface it in logs only.
+          debugLog('[opencode]', 'worktree branch cleanup failed', error);
+        }
+      }
+
+      return true;
     },
 
     async setApiKey(provider, apiKey) {

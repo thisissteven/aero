@@ -251,6 +251,8 @@ export const en = {
     noGitRepository: 'No git repository detected.',
     directoryNotFound: 'Directory not found.',
     currentBranch: (branch: string) => `${branch} (current)`,
+    worktreeName: 'Worktree name (optional)',
+    worktreeNamePlaceholder: 'e.g. feat/my-feature',
   },
 
   editWorkspace: {
@@ -1123,6 +1125,19 @@ export const en = {
     noRepository: 'This workspace is not a git repository.',
     directoryNotFound: 'This workspace directory could not be found.',
     noDirectory: 'Open a workspace to view git status.',
+    branchActions: (name: string) => `Actions for ${name}`,
+    deleteBranch: 'Delete branch',
+    deleteBranchTitle: 'Delete branch?',
+    deleteBranchConfirm: (name: string) =>
+      `You are about to delete the branch "${name}".`,
+    deleteLocalBranch: 'Delete local branch',
+    deleteRemoteBranch: 'Delete remote branch',
+    remote: 'Remote',
+    branchDeleted: (name: string) => `Deleted branch ${name}`,
+    deleteBranchFailed: 'Failed to delete branch',
+    deleteWorktree: 'Delete worktree',
+    alsoDeleteBranch: 'Also delete the branch',
+    deleteWorktreeFailed: 'Failed to delete worktree',
   },
 
   pullRequest: {

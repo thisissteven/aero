@@ -406,6 +406,7 @@ type FetchBody = InferRequestType<typeof $git.fetch.$post>['json'];
 type StashPushBody = InferRequestType<typeof $git.stash.$post>['json'];
 type StashRefBody = InferRequestType<typeof $git.stash.apply.$post>['json'];
 type RemoveRemoteBody = InferRequestType<typeof $git.remotes.$delete>['json'];
+type DeleteBranchBody = InferRequestType<typeof $git.branches.$delete>['json'];
 type RebaseBody = InferRequestType<typeof $git.rebase.$post>['json'];
 type MergeBody = InferRequestType<typeof $git.merge.$post>['json'];
 
@@ -509,6 +510,21 @@ export function useGitRemoveRemote() {
       unwrap(
         $git.remotes.$delete({ query: { directory }, json }),
         'remove remote',
+      ),
+    ({ directory }) => directory,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mutation hooks — Branches
+// ---------------------------------------------------------------------------
+
+export function useGitDeleteBranch() {
+  return useGitMutation(
+    ({ directory, ...json }: WithDirectory<DeleteBranchBody>) =>
+      unwrap(
+        $git.branches.$delete({ query: { directory }, json }),
+        'delete branch',
       ),
     ({ directory }) => directory,
   );

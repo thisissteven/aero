@@ -194,14 +194,6 @@ export function ChangesPanel() {
     });
   };
 
-  const toggleAll = () => {
-    if (selected.size === entries.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(entries.map((e) => e.path)));
-    }
-  };
-
   const handleCommit = async (addAll: boolean) => {
     if (!directory) return;
     if (!message.trim()) {
@@ -296,17 +288,30 @@ export function ChangesPanel() {
           )}
         </div>
 
-        <div className='flex shrink-0 items-center gap-1'>
-          <Button
-            size='sm'
-            variant='ghost'
-            onPress={toggleAll}
+        <div className='flex shrink-0 items-center gap-2'>
+          <Checkbox
+            isSelected={allSelected}
+            isIndeterminate={selected.size > 0 && !allSelected}
+            onChange={(isSelected) => {
+              setSelected(
+                isSelected
+                  ? new Set(entries.map((entry) => entry.path))
+                  : new Set(),
+              );
+            }}
             isDisabled={!entries.length}
           >
-            {allSelected
-              ? t.changesPanel.deselectAll
-              : t.changesPanel.selectAll}
-          </Button>
+            <Checkbox.Content className='gap-2'>
+              <Checkbox.Control>
+                <Checkbox.Indicator />
+              </Checkbox.Control>
+              <span className='text-muted text-xs'>
+                {allSelected
+                  ? t.changesPanel.deselectAll
+                  : t.changesPanel.selectAll}
+              </span>
+            </Checkbox.Content>
+          </Checkbox>
           <Tooltip>
             <Tooltip.Trigger>
               <IconButton
@@ -451,7 +456,13 @@ function ChangeGroup({
                   isSelected={isSelected}
                   onChange={() => onToggle(entry.path)}
                   aria-label={t.changesPanel.selectFile(entry.path)}
-                />
+                >
+                  <Checkbox.Content>
+                    <Checkbox.Control>
+                      <Checkbox.Indicator />
+                    </Checkbox.Control>
+                  </Checkbox.Content>
+                </Checkbox>
               </div>
 
               <FileTypeIcon filePath={entry.path} />

@@ -1,12 +1,15 @@
 // app/components/chat-aside/git/git-panel.tsx
 import {
   Button,
+  Checkbox,
   Chip,
   cn,
+  Dropdown,
   IconButton,
   Input,
   Label,
   Modal,
+  Separator,
   Skeleton,
   TextField,
   Tooltip,
@@ -23,19 +26,21 @@ import {
   CircleInfo,
   CodeCompare,
   CodeMerge,
+  EllipsisVertical,
   FileText,
   Plus,
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
-import { type ComponentProps, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 
 import {
   gitKeys,
   useGitBranches,
   useGitCheckout,
   useGitCurrentBranch,
+  useGitDeleteBranch,
   useGitErrorCode,
   useGitFetch,
   useGitMerge,
@@ -59,7 +64,9 @@ import {
   useGitWorktrees,
 } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useI18n } from '@/app/hooks/i18n';
+import { getLastPathName } from '@/app/lib/file';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 import { GitDiffContent } from './git-diff-content';
@@ -76,8 +83,10 @@ interface GitBranch {
 
 interface Worktree {
   path?: string;
+  directory?: string;
   branch?: string;
   head?: string;
+  isMain?: boolean;
 }
 
 interface Remote {
@@ -474,6 +483,7 @@ function BranchesTab({
 }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitBranches(directory);
+  const { data: remotesData } = useGitRemotes(directory);
   const checkout = useGitCheckout();
   const merge = useGitMerge();
   const rebase = useGitRebase();
@@ -482,10 +492,19 @@ function BranchesTab({
   const [newName, setNewName] = useState('');
   const [filter, setFilter] = useState('');
   const [compareBranch, setCompareBranch] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    branch: string;
+    remote?: string;
+    display: string;
+  } | null>(null);
 
   const branches =
     (data as { branches?: GitBranch[] } | null | undefined)?.branches ?? [];
   const currentBranch = branches.find((b) => b.current)?.name ?? null;
+
+  const remoteNames = (
+    Array.isArray(remotesData) ? (remotesData as Remote[]) : []
+  ).map((remote) => remote.name);
 
   const query = filter.trim().toLowerCase();
   const visible = query
@@ -579,115 +598,93 @@ function BranchesTab({
         />
       ) : (
         <ul className='space-y-0.5'>
-          {visible.map((branch) => (
-            <li
-              key={branch.name}
-              className='group hover:bg-default/40 grid grid-cols-[minmax(0,1fr)_4.5rem_7.5rem] items-center gap-0 rounded-md px-2 py-1.5 text-sm'
-            >
-              {/* Column 1 — branch name. The current branch renders as a plain
-          div (not a disabled button) so its row baseline matches every
-          other row exactly. */}
-              <div className='flex min-w-0 items-center gap-2'>
-                {branch.current ? (
-                  <>
-                    <Icon
-                      data={CodeMerge}
-                      size={12}
-                      className='text-accent shrink-0'
+          {visible.map((branch) => {
+            const remote = remoteNames.find((name) =>
+              branch.name.startsWith(`${name}/`),
+            );
+            const isRemote = Boolean(remote);
+
+            return (
+              <li
+                key={branch.name}
+                className='group hover:bg-default/40 grid grid-cols-[minmax(0,1fr)_4.5rem_1.75rem] items-center gap-0 rounded-md px-2 py-1.5 text-sm'
+              >
+                <div className='flex min-w-0 items-center gap-2'>
+                  {branch.current ? (
+                    <>
+                      <Icon
+                        data={CodeMerge}
+                        size={12}
+                        className='text-accent shrink-0'
+                      />
+                      <span className='min-w-0 truncate font-medium'>
+                        {branch.name}
+                      </span>
+                    </>
+                  ) : isRemote ? (
+                    <>
+                      <Icon
+                        data={CodeMerge}
+                        size={12}
+                        className='text-muted shrink-0'
+                      />
+                      <span className='text-muted min-w-0 truncate'>
+                        {branch.name}
+                      </span>
+                    </>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={() => handleCheckout(branch.name)}
+                      className='flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left'
+                    >
+                      <Icon
+                        data={CodeMerge}
+                        size={12}
+                        className='text-muted shrink-0'
+                      />
+                      <span className='min-w-0 truncate'>{branch.name}</span>
+                    </button>
+                  )}
+                </div>
+
+                <span className='text-muted min-w-0 truncate text-right font-mono text-xs tabular-nums'>
+                  {branch.commit ? branch.commit.slice(0, 7) : ''}
+                </span>
+
+                <div className='flex h-6 items-center justify-end'>
+                  {branch.current ? (
+                    <Chip size='sm' variant='soft' color='success'>
+                      {t.gitPanel.currentBranch}
+                    </Chip>
+                  ) : (
+                    <BranchActionsMenu
+                      name={branch.name}
+                      showCheckout={!isRemote}
+                      onCheckout={() => handleCheckout(branch.name)}
+                      onMerge={() => handleMerge(branch.name)}
+                      onRebase={() => handleRebase(branch.name)}
+                      onCompare={() => setCompareBranch(branch.name)}
+                      onDelete={() =>
+                        setDeleteTarget(
+                          remote
+                            ? {
+                                branch: branch.name.slice(remote.length + 1),
+                                remote,
+                                display: branch.name,
+                              }
+                            : {
+                                branch: branch.name,
+                                display: branch.name,
+                              },
+                        )
+                      }
                     />
-                    <span className='min-w-0 truncate font-medium'>
-                      {branch.name}
-                    </span>
-                  </>
-                ) : (
-                  <button
-                    type='button'
-                    onClick={() => handleCheckout(branch.name)}
-                    className='flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left'
-                  >
-                    <Icon
-                      data={CodeMerge}
-                      size={12}
-                      className='text-muted shrink-0'
-                    />
-                    <span className='min-w-0 truncate'>{branch.name}</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Column 2 — commit hash. Fixed-width, right-aligned so hashes
-          line up in a clean vertical rule across every row. */}
-              <span className='text-muted min-w-0 truncate text-right font-mono text-xs tabular-nums'>
-                {branch.commit ? branch.commit.slice(0, 7) : ''}
-              </span>
-
-              {/* Column 3 — trailing slot. Fixed 7.5rem reserves room for the
-          4-icon hover toolbar, so it never bleeds left into the hash. */}
-              <div className='flex h-6 items-center justify-start overflow-hidden ml-2'>
-                {branch.current ? (
-                  <Chip size='sm' variant='soft' color='success'>
-                    {t.gitPanel.currentBranch}
-                  </Chip>
-                ) : (
-                  <div className='flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100'>
-                    <Tooltip>
-                      <Tooltip.Trigger>
-                        <IconButton
-                          aria-label={t.gitPanel.mergeIntoCurrent}
-                          isDisabled={merge.isPending || rebase.isPending}
-                          onPress={() => handleMerge(branch.name)}
-                        >
-                          <Icon data={CodeMerge} />
-                        </IconButton>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        {t.gitPanel.mergeIntoCurrent}
-                      </Tooltip.Content>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <Tooltip.Trigger>
-                        <IconButton
-                          aria-label={t.gitPanel.rebaseOnto}
-                          isDisabled={merge.isPending || rebase.isPending}
-                          onPress={() => handleRebase(branch.name)}
-                        >
-                          <Icon data={BranchesRight} />
-                        </IconButton>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>{t.gitPanel.rebaseOnto}</Tooltip.Content>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <Tooltip.Trigger>
-                        <IconButton
-                          aria-label={t.gitPanel.compareWithCurrent}
-                          onPress={() => setCompareBranch(branch.name)}
-                        >
-                          <Icon data={CodeCompare} />
-                        </IconButton>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        {t.gitPanel.compareWithCurrent}
-                      </Tooltip.Content>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <Tooltip.Trigger>
-                        <IconButton
-                          aria-label={t.gitPanel.checkout}
-                          onPress={() => handleCheckout(branch.name)}
-                        >
-                          <Icon data={Check} />
-                        </IconButton>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>{t.gitPanel.checkout}</Tooltip.Content>
-                    </Tooltip>
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -735,7 +732,219 @@ function BranchesTab({
         head={compareBranch}
         onClose={() => setCompareBranch(null)}
       />
+
+      <DeleteBranchModal
+        directory={directory}
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
+  );
+}
+
+function BranchActionsMenu({
+  name,
+  showCheckout,
+  onCheckout,
+  onMerge,
+  onRebase,
+  onCompare,
+  onDelete,
+}: {
+  name: string;
+  showCheckout: boolean;
+  onCheckout: () => void;
+  onMerge: () => void;
+  onRebase: () => void;
+  onCompare: () => void;
+  onDelete: () => void;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <Dropdown size='sm'>
+      <IconButton aria-label={t.gitPanel.branchActions(name)}>
+        <Icon data={EllipsisVertical} />
+      </IconButton>
+      <Dropdown.Popover placement='bottom end'>
+        <Dropdown.Menu
+          onAction={(key) => {
+            if (key === 'checkout') onCheckout();
+            else if (key === 'merge') onMerge();
+            else if (key === 'rebase') onRebase();
+            else if (key === 'compare') onCompare();
+            else if (key === 'delete') onDelete();
+          }}
+        >
+          {showCheckout && (
+            <Dropdown.Item id='checkout' textValue={t.gitPanel.checkout}>
+              <Icon data={Check} />
+              <Label>{t.gitPanel.checkout}</Label>
+            </Dropdown.Item>
+          )}
+          <Dropdown.Item id='merge' textValue={t.gitPanel.mergeIntoCurrent}>
+            <Icon data={CodeMerge} />
+            <Label>{t.gitPanel.mergeIntoCurrent}</Label>
+          </Dropdown.Item>
+          <Dropdown.Item id='rebase' textValue={t.gitPanel.rebaseOnto}>
+            <Icon data={BranchesRight} />
+            <Label>{t.gitPanel.rebaseOnto}</Label>
+          </Dropdown.Item>
+          <Dropdown.Item id='compare' textValue={t.gitPanel.compareWithCurrent}>
+            <Icon data={CodeCompare} />
+            <Label>{t.gitPanel.compareWithCurrent}</Label>
+          </Dropdown.Item>
+          <Separator />
+          <Dropdown.Item
+            id='delete'
+            variant='danger'
+            textValue={t.gitPanel.deleteBranch}
+          >
+            <Icon data={TrashBin} className='text-danger-soft-foreground' />
+            <Label className='text-danger-soft-foreground! font-medium'>
+              {t.gitPanel.deleteBranch}
+            </Label>
+          </Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown.Popover>
+    </Dropdown>
+  );
+}
+
+function OptionCheckbox({
+  isSelected,
+  onChange,
+  label,
+  isDisabled,
+}: {
+  isSelected: boolean;
+  onChange: (isSelected: boolean) => void;
+  label: string;
+  isDisabled?: boolean;
+}) {
+  return (
+    <Checkbox
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      onChange={onChange}
+    >
+      <Checkbox.Content className='gap-2'>
+        <Checkbox.Control>
+          <Checkbox.Indicator />
+        </Checkbox.Control>
+        <span className='text-foreground text-sm'>{label}</span>
+      </Checkbox.Content>
+    </Checkbox>
+  );
+}
+
+function DeleteBranchModal({
+  directory,
+  target,
+  onClose,
+}: {
+  directory: string;
+  target: { branch: string; remote?: string; display: string } | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const deleteBranch = useGitDeleteBranch();
+
+  const [deleteLocal, setDeleteLocal] = useState(true);
+  const [deleteRemote, setDeleteRemote] = useState(false);
+  const [remote, setRemote] = useState('origin');
+
+  useEffect(() => {
+    if (!target) return;
+    setDeleteLocal(!target.remote);
+    setDeleteRemote(Boolean(target.remote));
+    setRemote(target.remote ?? 'origin');
+  }, [target]);
+
+  const isRemoteOnly = Boolean(target?.remote);
+
+  const handleDelete = async () => {
+    if (!target) return;
+    try {
+      await deleteBranch.mutateAsync({
+        directory,
+        branch: target.branch,
+        force: true,
+        deleteLocal,
+        deleteRemote,
+        remote: deleteRemote ? remote.trim() || 'origin' : undefined,
+      });
+      toast.success(t.gitPanel.branchDeleted(target.display));
+      onClose();
+    } catch (error) {
+      toast.danger(
+        error instanceof Error ? error.message : t.gitPanel.deleteBranchFailed,
+      );
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={Boolean(target)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog>
+            {({ close }) => (
+              <>
+                <Modal.Header>{t.gitPanel.deleteBranchTitle}</Modal.Header>
+                <Modal.Body>
+                  <p className='text-muted text-sm'>
+                    {t.gitPanel.deleteBranchConfirm(target?.display ?? '')}
+                  </p>
+
+                  {!isRemoteOnly && (
+                    <div className='mt-4 space-y-3'>
+                      <OptionCheckbox
+                        isSelected={deleteLocal}
+                        onChange={setDeleteLocal}
+                        label={t.gitPanel.deleteLocalBranch}
+                      />
+                      <OptionCheckbox
+                        isSelected={deleteRemote}
+                        onChange={setDeleteRemote}
+                        label={t.gitPanel.deleteRemoteBranch}
+                      />
+                      {deleteRemote && (
+                        <Input
+                          value={remote}
+                          onChange={(e) => setRemote(e.target.value)}
+                          placeholder='origin'
+                          className='h-7 px-2 text-xs rounded-md'
+                          aria-label={t.gitPanel.remote}
+                        />
+                      )}
+                    </div>
+                  )}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button size='sm' variant='ghost' onPress={close}>
+                    {t.common.cancel}
+                  </Button>
+                  <Button
+                    size='sm'
+                    variant='danger'
+                    onPress={handleDelete}
+                    isPending={deleteBranch.isPending}
+                    isDisabled={!isRemoteOnly && !deleteLocal && !deleteRemote}
+                  >
+                    {t.gitPanel.deleteBranch}
+                  </Button>
+                </Modal.Footer>
+              </>
+            )}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 
@@ -928,6 +1137,7 @@ function StashesTab({ directory }: { directory: string }) {
 function WorktreesTab({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitWorktrees(directory);
+  const [deleteTarget, setDeleteTarget] = useState<Worktree | null>(null);
 
   if (isLoading) return <ListSkeleton />;
 
@@ -939,28 +1149,200 @@ function WorktreesTab({ directory }: { directory: string }) {
   if (!worktrees.length) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
   return (
-    <ul className='space-y-1 p-2'>
-      {worktrees.map((wt, i) => (
-        <li
-          key={wt.path ?? i}
-          className='bg-default/40 rounded-md px-2 py-1.5 text-sm'
-        >
-          <div className='truncate font-mono text-xs'>{wt.path}</div>
-          <div className='mt-1 flex items-center gap-2 text-xs'>
-            {wt.branch && (
-              <Chip size='sm' variant='soft' color='accent'>
-                {wt.branch}
-              </Chip>
+    <>
+      <ul className='space-y-1 p-2'>
+        {worktrees.map((wt, i) => {
+          const path = wt.directory ?? wt.path ?? '';
+          const name = getLastPathName(path);
+
+          return (
+            <li
+              key={path || i}
+              className='bg-default/40 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm'
+            >
+              <div className='min-w-0 flex-1'>
+                <div className='truncate font-mono text-xs'>{path}</div>
+                <div className='mt-1 flex items-center gap-2 text-xs'>
+                  {wt.branch && (
+                    <Chip size='sm' variant='soft' color='accent'>
+                      {wt.branch}
+                    </Chip>
+                  )}
+                  {wt.head && (
+                    <span className='text-muted font-mono tabular-nums'>
+                      {wt.head.slice(0, 7)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {!wt.isMain && (
+                <Dropdown size='sm'>
+                  <IconButton aria-label={t.workspace.worktreeActions(name)}>
+                    <Icon data={EllipsisVertical} />
+                  </IconButton>
+                  <Dropdown.Popover placement='bottom end'>
+                    <Dropdown.Menu
+                      onAction={(key) => {
+                        if (key === 'delete') setDeleteTarget(wt);
+                      }}
+                    >
+                      <Dropdown.Item
+                        id='delete'
+                        variant='danger'
+                        textValue={t.gitPanel.deleteWorktree}
+                      >
+                        <Icon
+                          data={TrashBin}
+                          className='text-danger-soft-foreground'
+                        />
+                        <Label className='text-danger-soft-foreground! font-medium'>
+                          {t.gitPanel.deleteWorktree}
+                        </Label>
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown.Popover>
+                </Dropdown>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <DeleteWorktreeModal
+        directory={directory}
+        worktree={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+      />
+    </>
+  );
+}
+
+function DeleteWorktreeModal({
+  directory,
+  worktree,
+  onClose,
+}: {
+  directory: string;
+  worktree: Worktree | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const deleteWorktree = useDeleteWorktree();
+
+  const [alsoDeleteBranch, setAlsoDeleteBranch] = useState(false);
+  const [deleteLocal, setDeleteLocal] = useState(true);
+  const [deleteRemote, setDeleteRemote] = useState(false);
+  const [remote, setRemote] = useState('origin');
+
+  const branch = worktree?.branch ?? undefined;
+  const name = worktree?.directory
+    ? getLastPathName(worktree.directory)
+    : (branch ?? '');
+
+  useEffect(() => {
+    if (!worktree) return;
+    setAlsoDeleteBranch(false);
+    setDeleteLocal(true);
+    setDeleteRemote(false);
+    setRemote('origin');
+  }, [worktree]);
+
+  const handleDelete = async () => {
+    if (!worktree?.directory) return;
+    try {
+      await deleteWorktree.mutateAsync({
+        directory,
+        worktreeDirectory: worktree.directory,
+        force: true,
+        branch,
+        deleteBranch: alsoDeleteBranch && Boolean(branch),
+        deleteRemote: alsoDeleteBranch && deleteRemote,
+        remote:
+          alsoDeleteBranch && deleteRemote
+            ? remote.trim() || 'origin'
+            : undefined,
+      });
+      toast.success(t.workspace.worktreeDeleted);
+      onClose();
+    } catch (error) {
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.deleteWorktreeFailed,
+      );
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={Boolean(worktree)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog>
+            {({ close }) => (
+              <>
+                <Modal.Header>{t.workspace.deleteWorktree}</Modal.Header>
+                <Modal.Body>
+                  <p className='text-muted text-sm'>
+                    {t.workspace.deleteWorktreeConfirm(name)}
+                  </p>
+
+                  <div className='mt-4 space-y-3'>
+                    <OptionCheckbox
+                      isSelected={alsoDeleteBranch}
+                      onChange={setAlsoDeleteBranch}
+                      label={t.gitPanel.alsoDeleteBranch}
+                      isDisabled={!branch}
+                    />
+                    {alsoDeleteBranch && branch && (
+                      <>
+                        <OptionCheckbox
+                          isSelected={deleteLocal}
+                          onChange={setDeleteLocal}
+                          label={t.gitPanel.deleteLocalBranch}
+                        />
+                        <OptionCheckbox
+                          isSelected={deleteRemote}
+                          onChange={setDeleteRemote}
+                          label={t.gitPanel.deleteRemoteBranch}
+                        />
+                        {deleteRemote && (
+                          <Input
+                            value={remote}
+                            onChange={(e) => setRemote(e.target.value)}
+                            placeholder='origin'
+                            className='h-7 px-2 text-xs rounded-md'
+                            aria-label={t.gitPanel.remote}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button size='sm' variant='ghost' onPress={close}>
+                    {t.common.cancel}
+                  </Button>
+                  <Button
+                    size='sm'
+                    variant='danger'
+                    onPress={handleDelete}
+                    isPending={deleteWorktree.isPending}
+                  >
+                    {t.gitPanel.deleteWorktree}
+                  </Button>
+                </Modal.Footer>
+              </>
             )}
-            {wt.head && (
-              <span className='text-muted font-mono tabular-nums'>
-                {wt.head.slice(0, 7)}
-              </span>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 
