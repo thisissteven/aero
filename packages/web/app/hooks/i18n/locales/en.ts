@@ -1001,6 +1001,11 @@ export const en = {
     commit: 'Commit',
     commitAll: 'Commit all',
     noChangesToDisplay: 'No changes to display',
+    diff: 'Diff',
+    source: 'Source',
+    stagedChanges: 'Staged changes',
+    workingChanges: 'Changes',
+    original: 'Original',
   },
 
   contextPanel: {
@@ -1103,6 +1108,21 @@ export const en = {
     removedRemote: (name: string) => `Removed ${name}`,
     removeRemoteFailed: 'Remove remote failed',
     removeRemote: 'Remove remote',
+    refresh: 'Refresh',
+    filterBranches: 'Filter branches',
+    checkout: 'Checkout',
+    merge: 'Merge',
+    rebase: 'Rebase',
+    mergeIntoCurrent: 'Merge into current',
+    rebaseOnto: 'Rebase onto this branch',
+    compareWithCurrent: 'Compare with current',
+    operationConflict: (operation: string) => `${operation} needs attention`,
+    abort: 'Abort',
+    mergeFailed: 'Merge failed',
+    rebaseFailed: 'Rebase failed',
+    noRepository: 'This workspace is not a git repository.',
+    directoryNotFound: 'This workspace directory could not be found.',
+    noDirectory: 'Open a workspace to view git status.',
   },
 
   pullRequest: {

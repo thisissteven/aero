@@ -1007,6 +1007,11 @@ export const ja: BaseTranslation = {
     commit: 'コミット',
     commitAll: 'すべてコミット',
     noChangesToDisplay: '表示する変更がありません',
+    diff: 'Diff',
+    source: 'Source',
+    stagedChanges: 'Staged changes',
+    workingChanges: 'Changes',
+    original: 'Original',
   },
 
   contextPanel: {
@@ -1110,6 +1115,21 @@ export const ja: BaseTranslation = {
     removedRemote: (name: string) => `${name}を削除しました`,
     removeRemoteFailed: 'リモートの削除に失敗しました',
     removeRemote: 'リモートを削除',
+    refresh: 'Refresh',
+    filterBranches: 'Filter branches',
+    checkout: 'Checkout',
+    merge: 'Merge',
+    rebase: 'Rebase',
+    mergeIntoCurrent: 'Merge into current',
+    rebaseOnto: 'Rebase onto this branch',
+    compareWithCurrent: 'Compare with current',
+    operationConflict: (operation: string) => `${operation} needs attention`,
+    abort: 'Abort',
+    mergeFailed: 'Merge failed',
+    rebaseFailed: 'Rebase failed',
+    noRepository: 'This workspace is not a git repository.',
+    directoryNotFound: 'This workspace directory could not be found.',
+    noDirectory: 'Open a workspace to view git status.',
   },
 
   pullRequest: {

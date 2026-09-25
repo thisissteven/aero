@@ -1027,6 +1027,11 @@ export const es: BaseTranslation = {
     commit: 'Commit',
     commitAll: 'Hacer commit de todo',
     noChangesToDisplay: 'No hay cambios que mostrar',
+    diff: 'Diff',
+    source: 'Source',
+    stagedChanges: 'Staged changes',
+    workingChanges: 'Changes',
+    original: 'Original',
   },
 
   contextPanel: {
@@ -1131,6 +1136,21 @@ export const es: BaseTranslation = {
     removedRemote: (name: string) => `Se eliminó ${name}`,
     removeRemoteFailed: 'No se pudo eliminar la remota',
     removeRemote: 'Eliminar remota',
+    refresh: 'Refresh',
+    filterBranches: 'Filter branches',
+    checkout: 'Checkout',
+    merge: 'Merge',
+    rebase: 'Rebase',
+    mergeIntoCurrent: 'Merge into current',
+    rebaseOnto: 'Rebase onto this branch',
+    compareWithCurrent: 'Compare with current',
+    operationConflict: (operation: string) => `${operation} needs attention`,
+    abort: 'Abort',
+    mergeFailed: 'Merge failed',
+    rebaseFailed: 'Rebase failed',
+    noRepository: 'This workspace is not a git repository.',
+    directoryNotFound: 'This workspace directory could not be found.',
+    noDirectory: 'Open a workspace to view git status.',
   },
 
   pullRequest: {

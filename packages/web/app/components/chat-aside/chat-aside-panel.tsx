@@ -46,8 +46,13 @@ export function ChatAsidePanel() {
         minSize={isExpanded ? '100%' : '320px'}
         maxSize={isExpanded ? '100%' : '70%'}
         groupResizeBehavior='preserve-pixel-size'
+        // FIX: force a real height + stretch on the panel itself.
+        className='relative !h-full !self-stretch'
+        style={{ height: '100%' }}
       >
-        <aside className='flex h-full flex-col bg-surface/30 overflow-x-hidden'>
+        {/* FIX: `absolute inset-0` decouples the layout from any inherited
+      height. The inner grid still routes overflow correctly. */}
+        <aside className='bg-surface/30 absolute inset-0 grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden'>
           <div className='border-separator flex h-12 shrink-0 items-center justify-between border-b px-3'>
             <div className='flex items-center gap-2 overflow-hidden'>
               <ChatAsideHeader activeNavData={activeNavData} />
@@ -83,7 +88,7 @@ export function ChatAsidePanel() {
             </div>
           </div>
 
-          <div className='relative h-full w-full'>
+          <div className='relative min-h-0 overflow-hidden'>
             {activeNavItem === 'terminal' ? (
               <TerminalPanel />
             ) : activeNavItem === 'browser' ? (
@@ -101,7 +106,7 @@ export function ChatAsidePanel() {
             ) : activeNavItem === 'side-chat' ? (
               <SideChatPanel />
             ) : (
-              <div className='text-muted flex flex-1 items-center justify-center p-6 text-center text-sm'>
+              <div className='text-muted flex h-full items-center justify-center p-6 text-center text-sm'>
                 {t.devMisc.contentBody(
                   activeNavData ? t.nav[activeNavData.labelKey] : '',
                 )}

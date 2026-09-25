@@ -3,34 +3,50 @@ import {
   Button,
   Chip,
   cn,
+  IconButton,
   Input,
   Label,
   Modal,
   Skeleton,
-  Tabs,
   TextField,
   Tooltip,
   toast,
 } from '@aero/ui';
 import {
   ArrowDown,
+  ArrowRotateLeft,
   ArrowsRotateRight,
   ArrowUp,
+  BranchesRight,
   Check,
-  CircleTree,
+  CircleCheck,
+  CircleInfo,
+  CodeCompare,
+  CodeMerge,
+  FileText,
   Plus,
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useState } from 'react';
+import { useIsFetching, useQueryClient } from '@tanstack/react-query';
+import { type ComponentProps, useState } from 'react';
 
 import {
+  gitKeys,
   useGitBranches,
   useGitCheckout,
   useGitCurrentBranch,
+  useGitErrorCode,
   useGitFetch,
+  useGitMerge,
+  useGitMergeAbort,
+  useGitMergeContinue,
   useGitPull,
   useGitPush,
+  useGitRangeDiff,
+  useGitRebase,
+  useGitRebaseAbort,
+  useGitRebaseContinue,
   useGitRemotes,
   useGitRemoveRemote,
   useGitStashApply,
@@ -39,72 +55,87 @@ import {
   useGitStashPop,
   useGitStashPush,
   useGitStatus,
+  useGitSummary,
   useGitWorktrees,
 } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
+import { useSidePanelStore } from '@/app/stores/side-panel-store';
+
+import { GitDiffContent } from './git-diff-content';
+
+type Operation = 'merge' | 'rebase';
+type GitSection = 'branches' | 'stashes' | 'worktrees' | 'remotes';
+
+interface GitBranch {
+  name: string;
+  current: boolean;
+  commit: string;
+  label: string;
+}
+
+interface Worktree {
+  path?: string;
+  branch?: string;
+  head?: string;
+}
+
+interface Remote {
+  name: string;
+  refs?: { fetch?: string; push?: string };
+}
+
+interface Stash {
+  ref: string;
+  message: string;
+  relativeTime: string;
+}
 
 export function GitPanel() {
   const { t } = useI18n();
   const directory = useSessionDirectory();
+  const { data: errorCode, isLoading: repoLoading } =
+    useGitErrorCode(directory);
+
+  const code = (errorCode as { code?: string | null } | null | undefined)?.code;
+
+  if (!directory) {
+    return <PanelMessage icon={CodeMerge} message={t.gitPanel.noDirectory} />;
+  }
+
+  if (repoLoading) {
+    return <PanelSkeleton />;
+  }
+
+  if (code === 'DIRECTORY_NOT_FOUND') {
+    return (
+      <PanelMessage icon={CircleInfo} message={t.gitPanel.directoryNotFound} />
+    );
+  }
+
+  if (code === 'INVALID_GIT_REPOSITORY') {
+    return (
+      <PanelMessage
+        icon={CodeMerge}
+        message={t.gitPanel.noRepository}
+        tone='default'
+      />
+    );
+  }
 
   return (
-    <div className='flex h-full flex-col overflow-hidden'>
+    <div className='flex h-full min-h-0 flex-col overflow-hidden'>
       <BranchHeader directory={directory} />
-
-      <Tabs
-        defaultSelectedKey='branches'
-        variant='secondary'
-        className='flex flex-1 min-h-0 flex-col'
-      >
-        <Tabs.ListContainer className='shrink-0'>
-          <Tabs.List aria-label={t.gitPanel.sectionsAria} className='px-2'>
-            <Tabs.Tab id='branches'>
-              <Tabs.Indicator />
-              {t.gitPanel.branches}
-            </Tabs.Tab>
-            <Tabs.Tab id='stashes'>
-              <Tabs.Indicator />
-              {t.gitPanel.stashes}
-            </Tabs.Tab>
-            <Tabs.Tab id='worktrees'>
-              <Tabs.Indicator />
-              {t.gitPanel.worktrees}
-            </Tabs.Tab>
-            <Tabs.Tab id='remotes'>
-              <Tabs.Indicator />
-              {t.gitPanel.remotes}
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs.ListContainer>
-
-        <Tabs.Panel
-          id='branches'
-          className='flex-1 min-h-0 overflow-y-auto p-0'
-        >
-          <BranchesTab directory={directory} />
-        </Tabs.Panel>
-        <Tabs.Panel id='stashes' className='flex-1 min-h-0 overflow-y-auto p-0'>
-          <StashesTab directory={directory} />
-        </Tabs.Panel>
-        <Tabs.Panel
-          id='worktrees'
-          className='flex-1 min-h-0 overflow-y-auto p-0'
-        >
-          <WorktreesTab directory={directory} />
-        </Tabs.Panel>
-        <Tabs.Panel id='remotes' className='flex-1 min-h-0 overflow-y-auto p-0'>
-          <RemotesTab directory={directory} />
-        </Tabs.Panel>
-      </Tabs>
+      <GitTabs directory={directory} />
     </div>
   );
 }
 
-function BranchHeader({ directory }: { directory?: string }) {
+function BranchHeader({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data: statusData } = useGitStatus(directory);
   const { data: branchData } = useGitCurrentBranch(directory);
+  const { data: summaryData } = useGitSummary(directory);
 
   const pull = useGitPull();
   const push = useGitPush();
@@ -124,13 +155,22 @@ function BranchHeader({ directory }: { directory?: string }) {
     (branchData as { currentBranch?: string | null } | null | undefined)
       ?.currentBranch ?? '—';
 
+  const summary =
+    (
+      summaryData as {
+        summary?: Array<{ additions: number; deletions: number }>;
+      }
+    )?.summary ?? [];
+  const additions = summary.reduce((sum, entry) => sum + entry.additions, 0);
+  const deletions = summary.reduce((sum, entry) => sum + entry.deletions, 0);
+  const changeCount = summary.length;
+
   const busy = pull.isPending || push.isPending || fetch.isPending;
 
   const run = async (
     mutation: { mutateAsync: (input: any) => Promise<unknown> },
     label: string,
   ) => {
-    if (!directory) return;
     try {
       await mutation.mutateAsync({ directory });
       toast.success(t.gitPanel.operationComplete(label));
@@ -146,7 +186,7 @@ function BranchHeader({ directory }: { directory?: string }) {
   return (
     <div className='border-separator shrink-0 border-b px-3 py-2'>
       <div className='flex items-center gap-2'>
-        <Icon data={CircleTree} size={14} className='text-accent shrink-0' />
+        <Icon data={CodeMerge} size={14} className='text-accent shrink-0' />
         <span className='min-w-0 flex-1 truncate text-sm font-medium'>
           {branch}
         </span>
@@ -163,6 +203,49 @@ function BranchHeader({ directory }: { directory?: string }) {
             {status.behind}
           </Chip>
         )}
+
+        <div className='flex shrink-0 items-center gap-0.5'>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
+                isDisabled={busy}
+                aria-label={t.gitPanel.pull}
+                onPress={() => run(pull, t.gitPanel.pull)}
+              >
+                <Icon data={ArrowDown} />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{t.gitPanel.pull}</Tooltip.Content>
+          </Tooltip>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
+                isDisabled={busy}
+                aria-label={t.gitPanel.push}
+                onPress={() => run(push, t.gitPanel.push)}
+              >
+                <Icon data={ArrowUp} />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{t.gitPanel.push}</Tooltip.Content>
+          </Tooltip>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
+                isDisabled={busy}
+                aria-label={t.gitPanel.fetch}
+                onPress={() => run(fetch, t.gitPanel.fetch)}
+              >
+                <Icon
+                  data={ArrowsRotateRight}
+                  className={cn(fetch.isPending && 'animate-spin')}
+                />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{t.gitPanel.fetch}</Tooltip.Content>
+          </Tooltip>
+          <GitRefreshButton directory={directory} />
+        </div>
       </div>
 
       {status?.tracking && (
@@ -171,70 +254,246 @@ function BranchHeader({ directory }: { directory?: string }) {
         </div>
       )}
 
-      <div className='mt-2 flex items-center gap-1.5'>
-        <Button
-          size='sm'
-          variant='ghost'
-          className='flex-1'
-          isDisabled={!directory || busy}
-          onPress={() => run(pull, t.gitPanel.pull)}
-        >
-          <Icon data={ArrowDown} size={12} />
-          {t.gitPanel.pull}
-        </Button>
-        <Button
-          size='sm'
-          variant='ghost'
-          className='flex-1'
-          isDisabled={!directory || busy}
-          onPress={() => run(push, t.gitPanel.push)}
-        >
-          <Icon data={ArrowUp} size={12} />
-          {t.gitPanel.push}
-        </Button>
-        <Button
-          size='sm'
-          variant='ghost'
-          className='flex-1'
-          isDisabled={!directory || busy}
-          onPress={() => run(fetch, t.gitPanel.fetch)}
-        >
-          <Icon
-            data={ArrowsRotateRight}
-            size={12}
-            className={cn(fetch.isPending && 'animate-spin')}
-          />
-          {t.gitPanel.fetch}
-        </Button>
-      </div>
+      <SummaryStrip
+        changeCount={changeCount}
+        additions={additions}
+        deletions={deletions}
+        clean={changeCount === 0}
+      />
     </div>
   );
 }
 
-function BranchesTab({ directory }: { directory?: string }) {
+function SummaryStrip({
+  changeCount,
+  additions,
+  deletions,
+  clean,
+}: {
+  changeCount: number;
+  additions: number;
+  deletions: number;
+  clean: boolean;
+}) {
+  const { t } = useI18n();
+  const setActiveNavItem = useSidePanelStore((s) => s.setActiveNavItem);
+
+  return (
+    <button
+      type='button'
+      onClick={() => setActiveNavItem('changes')}
+      className='border-separator bg-default/30 hover:bg-default/60 mt-2 flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors'
+    >
+      <Icon
+        data={clean ? CircleCheck : FileText}
+        size={12}
+        className={cn('shrink-0', clean ? 'text-success' : 'text-muted')}
+      />
+      <span className='min-w-0 flex-1 truncate text-left'>
+        {clean
+          ? t.changesPanel.workingTreeClean
+          : t.changesPanel.changeCount(changeCount)}
+      </span>
+      {additions > 0 && (
+        <span className='text-success shrink-0 tabular-nums'>+{additions}</span>
+      )}
+      {deletions > 0 && (
+        <span className='text-danger shrink-0 tabular-nums'>-{deletions}</span>
+      )}
+    </button>
+  );
+}
+
+function GitRefreshButton({ directory }: { directory: string }) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: gitKeys.all(directory) }) > 0;
+
+  return (
+    <Tooltip>
+      <Tooltip.Trigger>
+        <IconButton
+          aria-label={t.gitPanel.refresh}
+          onPress={() => {
+            void queryClient.invalidateQueries({
+              queryKey: gitKeys.all(directory),
+            });
+          }}
+        >
+          <Icon
+            data={ArrowRotateLeft}
+            className={cn(isFetching && 'animate-spin')}
+          />
+        </IconButton>
+      </Tooltip.Trigger>
+      <Tooltip.Content>{t.gitPanel.refresh}</Tooltip.Content>
+    </Tooltip>
+  );
+}
+
+function GitTabs({ directory }: { directory: string }) {
+  const { t } = useI18n();
+  const [operation, setOperation] = useState<Operation | null>(null);
+  const [section, setSection] = useState<GitSection>('branches');
+
+  const sections: Array<{ id: GitSection; label: string }> = [
+    { id: 'branches', label: t.gitPanel.branches },
+    { id: 'stashes', label: t.gitPanel.stashes },
+    { id: 'worktrees', label: t.gitPanel.worktrees },
+    { id: 'remotes', label: t.gitPanel.remotes },
+  ];
+
+  const abortMerge = useGitMergeAbort();
+  const continueMerge = useGitMergeContinue();
+  const abortRebase = useGitRebaseAbort();
+  const continueRebase = useGitRebaseContinue();
+
+  const busy =
+    abortMerge.isPending ||
+    continueMerge.isPending ||
+    abortRebase.isPending ||
+    continueRebase.isPending;
+
+  const handleAbort = async () => {
+    if (!operation) return;
+    try {
+      await (operation === 'merge' ? abortMerge : abortRebase).mutateAsync({
+        directory,
+      });
+      toast.success(t.gitPanel.operationComplete(t.gitPanel.abort));
+    } catch (error) {
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.operationFailed(t.gitPanel.abort),
+      );
+    } finally {
+      setOperation(null);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!operation) return;
+    try {
+      await (operation === 'merge'
+        ? continueMerge
+        : continueRebase
+      ).mutateAsync({ directory });
+      toast.success(t.gitPanel.operationComplete(t.common.continue));
+      setOperation(null);
+    } catch (error) {
+      toast.danger(
+        error instanceof Error
+          ? error.message
+          : t.gitPanel.operationFailed(t.common.continue),
+      );
+    }
+  };
+
+  return (
+    <>
+      {operation && (
+        <div className='border-warning/40 bg-warning/10 flex shrink-0 items-center gap-2 border-b px-3 py-2 text-xs'>
+          <Icon data={CircleInfo} size={14} className='text-warning shrink-0' />
+          <span className='min-w-0 flex-1 truncate'>
+            {t.gitPanel.operationConflict(
+              operation === 'merge' ? t.gitPanel.merge : t.gitPanel.rebase,
+            )}
+          </span>
+          <Button
+            size='sm'
+            variant='ghost'
+            onPress={handleContinue}
+            isPending={busy}
+          >
+            {t.common.continue}
+          </Button>
+          <Button
+            size='sm'
+            variant='ghost'
+            onPress={handleAbort}
+            isDisabled={busy}
+          >
+            {t.gitPanel.abort}
+          </Button>
+        </div>
+      )}
+
+      <div
+        role='tablist'
+        aria-label={t.gitPanel.sectionsAria}
+        className='border-separator flex shrink-0 items-center gap-0.5 border-b px-2'
+      >
+        {sections.map((item) => {
+          const isActive = section === item.id;
+          return (
+            <button
+              key={item.id}
+              type='button'
+              role='tab'
+              aria-selected={isActive}
+              onClick={() => setSection(item.id)}
+              className={cn(
+                'relative px-2.5 py-2 text-xs outline-none transition-colors',
+                isActive
+                  ? 'text-foreground font-medium'
+                  : 'text-muted hover:text-foreground',
+              )}
+            >
+              {item.label}
+              {isActive && (
+                <span className='bg-accent absolute inset-x-1.5 -bottom-px h-0.5 rounded-full' />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        role='tabpanel'
+        aria-label={sections.find((item) => item.id === section)?.label}
+        className='scrollbar-thin min-h-0 flex-1 overflow-y-auto'
+      >
+        {section === 'branches' && (
+          <BranchesTab directory={directory} onOperation={setOperation} />
+        )}
+        {section === 'stashes' && <StashesTab directory={directory} />}
+        {section === 'worktrees' && <WorktreesTab directory={directory} />}
+        {section === 'remotes' && <RemotesTab directory={directory} />}
+      </div>
+    </>
+  );
+}
+
+function BranchesTab({
+  directory,
+  onOperation,
+}: {
+  directory: string;
+  onOperation: (operation: Operation) => void;
+}) {
   const { t } = useI18n();
   const { data, isLoading } = useGitBranches(directory);
   const checkout = useGitCheckout();
+  const merge = useGitMerge();
+  const rebase = useGitRebase();
+
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
-
-  if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label={t.gitPanel.noBranches} />;
+  const [filter, setFilter] = useState('');
+  const [compareBranch, setCompareBranch] = useState<string | null>(null);
 
   const branches =
-    (
-      data as {
-        branches?: Array<{
-          name: string;
-          current: boolean;
-          commit: string;
-          label: string;
-        }>;
-      }
-    ).branches ?? [];
+    (data as { branches?: GitBranch[] } | null | undefined)?.branches ?? [];
+  const currentBranch = branches.find((b) => b.current)?.name ?? null;
+
+  const query = filter.trim().toLowerCase();
+  const visible = query
+    ? branches.filter((b) => b.name.toLowerCase().includes(query))
+    : branches;
 
   const handleCheckout = async (name: string) => {
-    if (!directory || checkout.isPending) return;
+    if (checkout.isPending) return;
     try {
       await checkout.mutateAsync({ directory, target: name });
       toast.success(t.gitPanel.switchedToBranch(name));
@@ -245,9 +504,33 @@ function BranchesTab({ directory }: { directory?: string }) {
     }
   };
 
+  const handleMerge = async (name: string) => {
+    try {
+      await merge.mutateAsync({ directory, branch: name });
+      toast.success(t.gitPanel.operationComplete(t.gitPanel.merge));
+    } catch (error) {
+      toast.danger(
+        error instanceof Error ? error.message : t.gitPanel.mergeFailed,
+      );
+      onOperation('merge');
+    }
+  };
+
+  const handleRebase = async (name: string) => {
+    try {
+      await rebase.mutateAsync({ directory, upstream: name });
+      toast.success(t.gitPanel.operationComplete(t.gitPanel.rebase));
+    } catch (error) {
+      toast.danger(
+        error instanceof Error ? error.message : t.gitPanel.rebaseFailed,
+      );
+      onOperation('rebase');
+    }
+  };
+
   const handleCreate = async () => {
     const target = newName.trim();
-    if (!directory || !target) return;
+    if (!target) return;
     try {
       await checkout.mutateAsync({
         directory,
@@ -266,56 +549,147 @@ function BranchesTab({ directory }: { directory?: string }) {
     }
   };
 
+  if (isLoading) return <ListSkeleton />;
+
   return (
-    <div className='p-1'>
-      <div className='flex justify-end px-1 py-1'>
-        <Button size='sm' variant='ghost' onPress={() => setCreateOpen(true)}>
-          <Icon data={Plus} size={12} />
-          {t.gitPanel.newBranch}
-        </Button>
+    <div className='flex flex-col gap-1 p-2'>
+      <div className='flex items-center gap-1.5'>
+        <Input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder={t.gitPanel.filterBranches}
+          className='min-w-0 flex-1 h-7 px-2 text-xs rounded-md'
+        />
+        <Tooltip>
+          <Tooltip.Trigger>
+            <IconButton
+              aria-label={t.gitPanel.newBranch}
+              onPress={() => setCreateOpen(true)}
+            >
+              <Icon data={Plus} />
+            </IconButton>
+          </Tooltip.Trigger>
+          <Tooltip.Content>{t.gitPanel.newBranch}</Tooltip.Content>
+        </Tooltip>
       </div>
 
-      <ul>
-        {branches.map((branch) => (
-          <li
-            key={branch.name}
-            className={cn(
-              'hover:bg-default/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-              !branch.current && 'cursor-pointer',
-            )}
-            onClick={() => {
-              if (!branch.current) handleCheckout(branch.name);
-            }}
-          >
-            <Icon
-              data={CircleTree}
-              size={12}
-              className={cn(
-                'shrink-0',
-                branch.current ? 'text-accent' : 'text-muted',
-              )}
-            />
-            <span
-              className={cn(
-                'min-w-0 flex-1 truncate',
-                branch.current && 'font-medium',
-              )}
+      {visible.length === 0 ? (
+        <EmptyState
+          label={query ? t.common.noResults : t.gitPanel.noBranches}
+        />
+      ) : (
+        <ul className='space-y-0.5'>
+          {visible.map((branch) => (
+            <li
+              key={branch.name}
+              className='group hover:bg-default/40 grid grid-cols-[minmax(0,1fr)_4.5rem_7.5rem] items-center gap-0 rounded-md px-2 py-1.5 text-sm'
             >
-              {branch.name}
-            </span>
-            {branch.commit && (
-              <span className='text-muted shrink-0 font-mono text-xs'>
-                {branch.commit.slice(0, 7)}
+              {/* Column 1 — branch name. The current branch renders as a plain
+          div (not a disabled button) so its row baseline matches every
+          other row exactly. */}
+              <div className='flex min-w-0 items-center gap-2'>
+                {branch.current ? (
+                  <>
+                    <Icon
+                      data={CodeMerge}
+                      size={12}
+                      className='text-accent shrink-0'
+                    />
+                    <span className='min-w-0 truncate font-medium'>
+                      {branch.name}
+                    </span>
+                  </>
+                ) : (
+                  <button
+                    type='button'
+                    onClick={() => handleCheckout(branch.name)}
+                    className='flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left'
+                  >
+                    <Icon
+                      data={CodeMerge}
+                      size={12}
+                      className='text-muted shrink-0'
+                    />
+                    <span className='min-w-0 truncate'>{branch.name}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Column 2 — commit hash. Fixed-width, right-aligned so hashes
+          line up in a clean vertical rule across every row. */}
+              <span className='text-muted min-w-0 truncate text-right font-mono text-xs tabular-nums'>
+                {branch.commit ? branch.commit.slice(0, 7) : ''}
               </span>
-            )}
-            {branch.current && (
-              <Chip size='sm' variant='soft' color='success'>
-                {t.gitPanel.currentBranch}
-              </Chip>
-            )}
-          </li>
-        ))}
-      </ul>
+
+              {/* Column 3 — trailing slot. Fixed 7.5rem reserves room for the
+          4-icon hover toolbar, so it never bleeds left into the hash. */}
+              <div className='flex h-6 items-center justify-start overflow-hidden ml-2'>
+                {branch.current ? (
+                  <Chip size='sm' variant='soft' color='success'>
+                    {t.gitPanel.currentBranch}
+                  </Chip>
+                ) : (
+                  <div className='flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100'>
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton
+                          aria-label={t.gitPanel.mergeIntoCurrent}
+                          isDisabled={merge.isPending || rebase.isPending}
+                          onPress={() => handleMerge(branch.name)}
+                        >
+                          <Icon data={CodeMerge} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>
+                        {t.gitPanel.mergeIntoCurrent}
+                      </Tooltip.Content>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton
+                          aria-label={t.gitPanel.rebaseOnto}
+                          isDisabled={merge.isPending || rebase.isPending}
+                          onPress={() => handleRebase(branch.name)}
+                        >
+                          <Icon data={BranchesRight} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>{t.gitPanel.rebaseOnto}</Tooltip.Content>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton
+                          aria-label={t.gitPanel.compareWithCurrent}
+                          onPress={() => setCompareBranch(branch.name)}
+                        >
+                          <Icon data={CodeCompare} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>
+                        {t.gitPanel.compareWithCurrent}
+                      </Tooltip.Content>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton
+                          aria-label={t.gitPanel.checkout}
+                          onPress={() => handleCheckout(branch.name)}
+                        >
+                          <Icon data={Check} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>{t.gitPanel.checkout}</Tooltip.Content>
+                    </Tooltip>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <Modal isOpen={isCreateOpen} onOpenChange={setCreateOpen}>
         <Modal.Backdrop>
@@ -354,11 +728,82 @@ function BranchesTab({ directory }: { directory?: string }) {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+
+      <RangeDiffModal
+        directory={directory}
+        base={currentBranch}
+        head={compareBranch}
+        onClose={() => setCompareBranch(null)}
+      />
     </div>
   );
 }
 
-function StashesTab({ directory }: { directory?: string }) {
+function RangeDiffModal({
+  directory,
+  base,
+  head,
+  onClose,
+}: {
+  directory: string;
+  base: string | null;
+  head: string | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { data, isLoading } = useGitRangeDiff(
+    directory,
+    base ?? undefined,
+    head ?? undefined,
+  );
+  const diff = (data as { diff?: string } | null | undefined)?.diff;
+
+  return (
+    <Modal
+      isOpen={Boolean(base && head)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog>
+            {({ close }) => (
+              <>
+                <Modal.Header className='flex items-center gap-2'>
+                  <Icon data={CodeCompare} size={14} className='text-accent' />
+                  <span className='min-w-0 truncate font-mono text-sm'>
+                    {base} → {head}
+                  </span>
+                </Modal.Header>
+
+                <Modal.Body>
+                  {isLoading ? (
+                    <Skeleton className='h-40 w-full rounded' />
+                  ) : (
+                    <GitDiffContent
+                      diff={diff}
+                      emptyLabel={t.changesPanel.noChangesToDisplay}
+                      className='max-h-[60vh]'
+                    />
+                  )}
+                </Modal.Body>
+
+                <Modal.Footer>
+                  <Button size='sm' variant='ghost' onPress={close}>
+                    {t.common.close}
+                  </Button>
+                </Modal.Footer>
+              </>
+            )}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
+  );
+}
+
+function StashesTab({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitStashes(directory);
   const push = useGitStashPush();
@@ -368,28 +813,14 @@ function StashesTab({ directory }: { directory?: string }) {
 
   const [message, setMessage] = useState('');
 
-  if (isLoading) return <ListSkeleton />;
-
   const stashes =
-    (
-      data as
-        | {
-            stashes?: Array<{
-              ref: string;
-              message: string;
-              relativeTime: string;
-            }>;
-          }
-        | null
-        | undefined
-    )?.stashes ?? [];
+    (data as { stashes?: Stash[] } | null | undefined)?.stashes ?? [];
 
   const run = async (
     mutation: { mutateAsync: (input: any) => Promise<unknown> },
     input: Record<string, unknown>,
     label: string,
   ) => {
-    if (!directory) return;
     try {
       await mutation.mutateAsync({ directory, ...input });
       toast.success(t.gitPanel.operationComplete(label));
@@ -402,13 +833,16 @@ function StashesTab({ directory }: { directory?: string }) {
     }
   };
 
+  if (isLoading) return <ListSkeleton />;
+
   return (
     <div className='space-y-2 p-2'>
-      <div className='flex items-center gap-2'>
+      <div className='flex items-center gap-1.5'>
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={t.gitPanel.stashMessagePlaceholder}
+          className='min-w-0 flex-1 h-7 text-xs rounded-md px-2'
         />
         <Button
           size='sm'
@@ -422,6 +856,7 @@ function StashesTab({ directory }: { directory?: string }) {
             setMessage('');
           }}
           isPending={push.isPending}
+          className='rounded-md h-7 text-xs'
         >
           {t.gitPanel.stash}
         </Button>
@@ -434,7 +869,7 @@ function StashesTab({ directory }: { directory?: string }) {
           {stashes.map((stash) => (
             <li
               key={stash.ref}
-              className='bg-default/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm'
+              className='bg-default/40 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm'
             >
               <div className='min-w-0 flex-1'>
                 <div className='truncate font-medium'>{stash.ref}</div>
@@ -445,46 +880,40 @@ function StashesTab({ directory }: { directory?: string }) {
 
               <Tooltip>
                 <Tooltip.Trigger>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    isIconOnly
+                  <IconButton
+                    aria-label={t.gitPanel.applyStash}
                     onPress={() =>
                       run(apply, { ref: stash.ref }, t.gitPanel.applyStash)
                     }
                   >
-                    <Icon data={Check} size={12} />
-                  </Button>
+                    <Icon data={Check} />
+                  </IconButton>
                 </Tooltip.Trigger>
                 <Tooltip.Content>{t.gitPanel.apply}</Tooltip.Content>
               </Tooltip>
               <Tooltip>
                 <Tooltip.Trigger>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    isIconOnly
+                  <IconButton
+                    aria-label={t.gitPanel.popStash}
                     onPress={() =>
                       run(pop, { ref: stash.ref }, t.gitPanel.popStash)
                     }
                   >
-                    <Icon data={ArrowUp} size={12} />
-                  </Button>
+                    <Icon data={ArrowUp} />
+                  </IconButton>
                 </Tooltip.Trigger>
                 <Tooltip.Content>{t.gitPanel.pop}</Tooltip.Content>
               </Tooltip>
               <Tooltip>
                 <Tooltip.Trigger>
-                  <Button
-                    size='sm'
-                    variant='danger'
-                    isIconOnly
+                  <IconButton
+                    aria-label={t.gitPanel.dropStash}
                     onPress={() =>
                       run(drop, { ref: stash.ref }, t.gitPanel.dropStash)
                     }
                   >
-                    <Icon data={TrashBin} size={12} />
-                  </Button>
+                    <Icon data={TrashBin} />
+                  </IconButton>
                 </Tooltip.Trigger>
                 <Tooltip.Content>{t.gitPanel.drop}</Tooltip.Content>
               </Tooltip>
@@ -496,41 +925,35 @@ function StashesTab({ directory }: { directory?: string }) {
   );
 }
 
-function WorktreesTab({ directory }: { directory?: string }) {
+function WorktreesTab({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitWorktrees(directory);
 
   if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
   const worktrees = Array.isArray(data)
-    ? data
-    : ((data as { worktrees?: unknown[] }).worktrees ?? []);
+    ? (data as Worktree[])
+    : ((data as { worktrees?: Worktree[] } | null | undefined)?.worktrees ??
+      []);
 
   if (!worktrees.length) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
   return (
     <ul className='space-y-1 p-2'>
-      {(
-        worktrees as Array<{
-          path?: string;
-          branch?: string;
-          head?: string;
-        }>
-      ).map((wt, i) => (
+      {worktrees.map((wt, i) => (
         <li
           key={wt.path ?? i}
           className='bg-default/40 rounded-md px-2 py-1.5 text-sm'
         >
           <div className='truncate font-mono text-xs'>{wt.path}</div>
-          <div className='mt-0.5 flex items-center gap-2 text-xs'>
+          <div className='mt-1 flex items-center gap-2 text-xs'>
             {wt.branch && (
               <Chip size='sm' variant='soft' color='accent'>
                 {wt.branch}
               </Chip>
             )}
             {wt.head && (
-              <span className='text-muted font-mono'>
+              <span className='text-muted font-mono tabular-nums'>
                 {wt.head.slice(0, 7)}
               </span>
             )}
@@ -541,45 +964,65 @@ function WorktreesTab({ directory }: { directory?: string }) {
   );
 }
 
-function RemotesTab({ directory }: { directory?: string }) {
+function RemotesTab({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitRemotes(directory);
   const removeRemote = useGitRemoveRemote();
+  const fetch = useGitFetch();
 
   if (isLoading) return <ListSkeleton />;
-  if (!data) return <EmptyState label={t.gitPanel.noRemotes} />;
 
-  const remotes = Array.isArray(data) ? data : [];
+  const remotes = Array.isArray(data) ? (data as Remote[]) : [];
   if (!remotes.length) return <EmptyState label={t.gitPanel.noRemotes} />;
 
   return (
     <ul className='space-y-1 p-2'>
-      {(
-        remotes as Array<{
-          name: string;
-          refs?: { fetch?: string; push?: string };
-        }>
-      ).map((remote) => (
+      {remotes.map((remote) => (
         <li
           key={remote.name}
-          className='bg-default/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm'
+          className='bg-default/40 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm'
         >
           <div className='min-w-0 flex-1'>
             <div className='font-medium'>{remote.name}</div>
             {remote.refs?.fetch && (
-              <div className='text-muted truncate text-xs'>
+              <div className='text-muted truncate font-mono text-xs'>
                 {remote.refs.fetch}
               </div>
             )}
           </div>
+
           <Tooltip>
             <Tooltip.Trigger>
-              <Button
-                size='sm'
-                variant='danger'
-                isIconOnly
+              <IconButton
+                aria-label={t.gitPanel.fetch}
+                isDisabled={fetch.isPending}
                 onPress={async () => {
-                  if (!directory) return;
+                  try {
+                    await fetch.mutateAsync({ directory, remote: remote.name });
+                    toast.success(
+                      t.gitPanel.operationComplete(t.gitPanel.fetch),
+                    );
+                  } catch (error) {
+                    toast.danger(
+                      error instanceof Error
+                        ? error.message
+                        : t.gitPanel.operationFailed(t.gitPanel.fetch),
+                    );
+                  }
+                }}
+              >
+                <Icon data={ArrowsRotateRight} />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{t.gitPanel.fetch}</Tooltip.Content>
+          </Tooltip>
+
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
+                aria-label={t.gitPanel.removeRemote}
+                isDisabled={removeRemote.isPending}
+                onPress={async () => {
                   try {
                     await removeRemote.mutateAsync({
                       directory,
@@ -595,14 +1038,45 @@ function RemotesTab({ directory }: { directory?: string }) {
                   }
                 }}
               >
-                <Icon data={TrashBin} size={12} />
-              </Button>
+                <Icon data={TrashBin} />
+              </IconButton>
             </Tooltip.Trigger>
             <Tooltip.Content>{t.gitPanel.removeRemote}</Tooltip.Content>
           </Tooltip>
         </li>
       ))}
     </ul>
+  );
+}
+
+function PanelMessage({
+  icon,
+  message,
+  tone = 'default',
+}: {
+  icon: ComponentProps<typeof Icon>['data'];
+  message: string;
+  tone?: 'default' | 'warning';
+}) {
+  return (
+    <div className='flex h-full min-h-0 flex-col items-center justify-center gap-2 p-6 text-center'>
+      <Icon
+        data={icon}
+        size={20}
+        className={tone === 'warning' ? 'text-warning' : 'text-muted'}
+      />
+      <p className='text-muted max-w-64 text-sm'>{message}</p>
+    </div>
+  );
+}
+
+function PanelSkeleton() {
+  return (
+    <div className='space-y-2 p-3'>
+      <Skeleton className='h-9 w-full rounded' />
+      <Skeleton className='h-16 w-full rounded' />
+      <Skeleton className='h-7 w-2/3 rounded' />
+    </div>
   );
 }
 

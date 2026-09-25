@@ -4,19 +4,34 @@ import {
   Checkbox,
   Chip,
   cn,
+  IconButton,
   Modal,
   Skeleton,
   TextArea,
+  Tooltip,
   toast,
 } from '@aero/ui';
-import { ArrowUpRightFromSquare, Check, Xmark } from '@gravity-ui/icons';
+import {
+  ArrowRotateLeft,
+  ArrowUpRightFromSquare,
+  CircleInfo,
+  CodeMerge,
+  Xmark,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useState } from 'react';
-
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
+import { GitDiffContent } from '@/app/components/chat-aside/git/git-diff-content';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useGitCommit, useGitDiff, useGitStatus } from '@/app/hooks/api/git';
+import {
+  useGitCommit,
+  useGitDiff,
+  useGitErrorCode,
+  useGitFileDiff,
+  useGitStatus,
+  useGitSummary,
+} from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
@@ -54,6 +69,14 @@ interface ChangeEntry {
   deletions: number;
 }
 
+interface DiffTarget {
+  path: string;
+  staged: boolean;
+  untracked: boolean;
+}
+
+type DiffMode = 'diff' | 'source';
+
 function mergeStats(status: GitStatusShape | null | undefined) {
   const merged = new Map<string, { additions: number; deletions: number }>();
   for (const bucketKey of ['staged', 'working'] as const) {
@@ -72,9 +95,14 @@ function mergeStats(status: GitStatusShape | null | undefined) {
 
 function buildEntries(
   status: GitStatusShape | null | undefined,
+  summary: DiffStatEntry[],
 ): ChangeEntry[] {
   if (!status) return [];
-  const stats = mergeStats(status);
+
+  const stats =
+    summary.length > 0
+      ? new Map(summary.map((entry) => [entry.path, entry]))
+      : mergeStats(status);
 
   const entries: ChangeEntry[] = (status.files ?? []).map((file) => {
     const index = file.index ?? ' ';
@@ -113,15 +141,27 @@ function buildEntries(
 export function ChangesPanel() {
   const { t } = useI18n();
   const directory = useSessionDirectory();
+
+  const { data: errorCode, isLoading: repoLoading } =
+    useGitErrorCode(directory);
+  const code = (errorCode as { code?: string | null } | null | undefined)?.code;
+
   const { data, isLoading, refetch, isFetching } = useGitStatus(directory);
+  const { data: summaryData } = useGitSummary(directory);
   const commitMutation = useGitCommit();
 
   const status = data as GitStatusShape | null | undefined;
-  const entries = useMemo(() => buildEntries(status), [status]);
+  const summary =
+    (summaryData as { summary?: DiffStatEntry[] } | null | undefined)
+      ?.summary ?? [];
+  const entries = useMemo(
+    () => buildEntries(status, summary),
+    [status, summary],
+  );
 
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [diffPath, setDiffPath] = useState<string | null>(null);
+  const [diffTarget, setDiffTarget] = useState<DiffTarget | null>(null);
 
   useEffect(() => {
     if (!entries.length) return;
@@ -134,6 +174,13 @@ export function ChangesPanel() {
       return next;
     });
   }, [entries]);
+
+  const stagedEntries = entries.filter(
+    (entry) => entry.index !== ' ' && entry.index !== '?',
+  );
+  const workingEntries = entries.filter(
+    (entry) => entry.untracked || entry.working !== ' ',
+  );
 
   const totalAdditions = entries.reduce((a, e) => a + e.additions, 0);
   const totalDeletions = entries.reduce((a, e) => a + e.deletions, 0);
@@ -188,129 +235,121 @@ export function ChangesPanel() {
     openFileWhenReady(relative);
   };
 
-  if (isLoading) {
+  const openDiff = (entry: ChangeEntry, variant: 'staged' | 'working') => {
+    setDiffTarget({
+      path: entry.path,
+      staged: variant === 'staged',
+      untracked: variant === 'working' && entry.untracked,
+    });
+  };
+
+  if (!directory) {
     return (
-      <div className='space-y-2 p-3'>
-        <Skeleton className='h-6 w-full rounded' />
-        <Skeleton className='h-6 w-full rounded' />
-        <Skeleton className='h-6 w-2/3 rounded' />
+      <div className='text-muted flex h-full min-h-0 flex-col items-center justify-center gap-2 p-6 text-center'>
+        <Icon data={CodeMerge} size={20} className='text-muted' />
+        <p className='max-w-64 text-sm'>{t.gitPanel.noDirectory}</p>
       </div>
     );
   }
 
+  if (repoLoading || isLoading) {
+    return (
+      <div className='space-y-2 p-3'>
+        <Skeleton className='h-8 w-full rounded' />
+        <Skeleton className='h-6 w-3/4 rounded' />
+        <Skeleton className='h-6 w-1/2 rounded' />
+      </div>
+    );
+  }
+
+  if (code === 'DIRECTORY_NOT_FOUND' || code === 'INVALID_GIT_REPOSITORY') {
+    return (
+      <div className='text-muted flex h-full min-h-0 flex-col items-center justify-center gap-2 p-6 text-center'>
+        <Icon data={CircleInfo} size={20} />
+        <p className='max-w-64 text-sm'>
+          {code === 'DIRECTORY_NOT_FOUND'
+            ? t.gitPanel.directoryNotFound
+            : t.gitPanel.noRepository}
+        </p>
+      </div>
+    );
+  }
+
+  const allSelected = entries.length > 0 && selected.size === entries.length;
+
   return (
-    <div className='flex h-full flex-col overflow-hidden'>
+    <div className='flex h-full min-h-0 flex-col overflow-hidden'>
       <div className='border-separator flex items-center justify-between border-b px-3 py-2 text-sm'>
-        <div className='flex items-center gap-2'>
+        <div className='flex min-w-0 items-center gap-2'>
           <span className='font-medium'>
             {t.changesPanel.changeCount(entries.length)}
           </span>
           {totalAdditions > 0 && (
-            <span className='text-success text-xs'>+{totalAdditions}</span>
+            <span className='text-success text-xs tabular-nums'>
+              +{totalAdditions}
+            </span>
           )}
           {totalDeletions > 0 && (
-            <span className='text-danger text-xs'>-{totalDeletions}</span>
+            <span className='text-danger text-xs tabular-nums'>
+              -{totalDeletions}
+            </span>
           )}
         </div>
 
-        <div className='flex items-center gap-1'>
+        <div className='flex shrink-0 items-center gap-1'>
           <Button
             size='sm'
             variant='ghost'
             onPress={toggleAll}
             isDisabled={!entries.length}
           >
-            {selected.size === entries.length && entries.length > 0
+            {allSelected
               ? t.changesPanel.deselectAll
               : t.changesPanel.selectAll}
           </Button>
-          <Button
-            size='sm'
-            variant='ghost'
-            isIconOnly
-            onPress={() => refetch()}
-            aria-label={t.changesPanel.refresh}
-          >
-            <Icon
-              data={Check}
-              size={14}
-              className={cn(isFetching && 'animate-pulse')}
-            />
-          </Button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
+                aria-label={t.changesPanel.refresh}
+                onPress={() => refetch()}
+              >
+                <Icon
+                  data={ArrowRotateLeft}
+                  className={cn(isFetching && 'animate-spin')}
+                />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{t.changesPanel.refresh}</Tooltip.Content>
+          </Tooltip>
         </div>
       </div>
 
-      <div className='min-h-0 flex-1 overflow-y-auto'>
+      <div className='scrollbar-thin min-h-0 flex-1 overflow-y-auto'>
         {entries.length === 0 ? (
           <div className='text-muted flex h-full items-center justify-center px-4 text-center text-sm'>
             {t.changesPanel.workingTreeClean}
           </div>
         ) : (
-          <ul className='p-1'>
-            {entries.map((entry) => {
-              const isSelected = selected.has(entry.path);
-              const badge = entry.staged
-                ? t.changesPanel.staged
-                : entry.untracked
-                  ? t.changesPanel.new
-                  : t.changesPanel.modified;
-              const badgeColor = entry.staged
-                ? 'success'
-                : entry.untracked
-                  ? 'accent'
-                  : 'warning';
-
-              return (
-                <li
-                  key={entry.path}
-                  className='hover:bg-default/40 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5'
-                  onClick={() => setDiffPath(entry.path)}
-                >
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      isSelected={isSelected}
-                      onChange={() => toggle(entry.path)}
-                      aria-label={t.changesPanel.selectFile(entry.path)}
-                    />
-                  </div>
-
-                  <FileTypeIcon filePath={entry.path} />
-
-                  <div className='min-w-0 flex-1'>
-                    <MiddleTruncatePath
-                      path={entry.path}
-                      className='text-muted text-xs'
-                      fileClassName='text-foreground text-sm'
-                    />
-                  </div>
-
-                  <div className='flex shrink-0 items-center gap-1.5 text-xs'>
-                    {entry.additions > 0 && (
-                      <span className='text-success'>+{entry.additions}</span>
-                    )}
-                    {entry.deletions > 0 && (
-                      <span className='text-danger'>-{entry.deletions}</span>
-                    )}
-                    <Chip size='sm' variant='soft' color={badgeColor}>
-                      {badge}
-                    </Chip>
-                  </div>
-
-                  <button
-                    type='button'
-                    title={t.toolCall.openInEditor}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openFileInEditor(entry.path);
-                    }}
-                    className='text-muted hover:text-foreground shrink-0 p-0.5'
-                  >
-                    <Icon data={ArrowUpRightFromSquare} size={12} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <div className='p-1'>
+            <ChangeGroup
+              variant='staged'
+              title={t.changesPanel.stagedChanges}
+              entries={stagedEntries}
+              selected={selected}
+              onToggle={toggle}
+              onOpen={openDiff}
+              onOpenFile={openFileInEditor}
+            />
+            <ChangeGroup
+              variant='working'
+              title={t.changesPanel.workingChanges}
+              entries={workingEntries}
+              selected={selected}
+              onToggle={toggle}
+              onOpen={openDiff}
+              onOpenFile={openFileInEditor}
+            />
+          </div>
         )}
       </div>
 
@@ -319,17 +358,18 @@ export function ChangesPanel() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={t.changesPanel.commitMessage}
-          className='text-sm'
+          className='text-sm w-full scrollbar-thin rounded-md text-xs px-2'
+          rows={3}
         />
 
-        <div className='mt-2 flex items-center gap-2'>
+        <div className='flex items-center justify-end gap-2'>
           <Button
             size='sm'
             variant='primary'
-            className='flex-1'
             onPress={() => handleCommit(false)}
             isPending={commitMutation.isPending}
             isDisabled={!message.trim() || selected.size === 0}
+            className='text-xs rounded-md h-7'
           >
             {t.changesPanel.commit}
             {selected.size > 0 && ` (${selected.size})`}
@@ -340,6 +380,7 @@ export function ChangesPanel() {
             onPress={() => handleCommit(true)}
             isPending={commitMutation.isPending}
             isDisabled={!message.trim() || entries.length === 0}
+            className='text-xs rounded-md h-7'
           >
             {t.changesPanel.commitAll}
           </Button>
@@ -348,33 +389,161 @@ export function ChangesPanel() {
 
       <ChangesDiffModal
         directory={directory}
-        path={diffPath}
-        onClose={() => setDiffPath(null)}
+        target={diffTarget}
+        onClose={() => setDiffTarget(null)}
       />
     </div>
   );
 }
 
+function ChangeGroup({
+  variant,
+  title,
+  entries,
+  selected,
+  onToggle,
+  onOpen,
+  onOpenFile,
+}: {
+  variant: 'staged' | 'working';
+  title: string;
+  entries: ChangeEntry[];
+  selected: Set<string>;
+  onToggle: (path: string) => void;
+  onOpen: (entry: ChangeEntry, variant: 'staged' | 'working') => void;
+  onOpenFile: (path: string) => void;
+}) {
+  const { t } = useI18n();
+
+  if (!entries.length) return null;
+
+  return (
+    <section className='mb-1'>
+      <div className='text-muted flex items-center justify-between px-2 py-1 text-[10px] font-medium tracking-wide uppercase'>
+        <span>{title}</span>
+        <span className='tabular-nums'>{entries.length}</span>
+      </div>
+
+      <ul>
+        {entries.map((entry) => {
+          const isSelected = selected.has(entry.path);
+          const badge =
+            variant === 'staged'
+              ? t.changesPanel.staged
+              : entry.untracked
+                ? t.changesPanel.new
+                : t.changesPanel.modified;
+          const badgeColor =
+            variant === 'staged'
+              ? 'success'
+              : entry.untracked
+                ? 'accent'
+                : 'warning';
+
+          return (
+            <li
+              key={entry.path}
+              onClick={() => onOpen(entry, variant)}
+              className='group hover:bg-default/40 flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5'
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  isSelected={isSelected}
+                  onChange={() => onToggle(entry.path)}
+                  aria-label={t.changesPanel.selectFile(entry.path)}
+                />
+              </div>
+
+              <FileTypeIcon filePath={entry.path} />
+
+              <div className='min-w-0 flex-1'>
+                <MiddleTruncatePath
+                  path={entry.path}
+                  className='text-muted text-xs'
+                  fileClassName='text-foreground text-xs'
+                />
+              </div>
+
+              <div className='flex shrink-0 items-center gap-1.5 text-xs tabular-nums'>
+                {entry.additions > 0 && (
+                  <span className='text-success'>+{entry.additions}</span>
+                )}
+                {entry.deletions > 0 && (
+                  <span className='text-danger'>-{entry.deletions}</span>
+                )}
+                <Chip
+                  size='sm'
+                  className='text-xs'
+                  variant='soft'
+                  color={badgeColor}
+                >
+                  {badge}
+                </Chip>
+              </div>
+
+              <div onClick={(e) => e.stopPropagation()}>
+                <Tooltip>
+                  <Tooltip.Trigger>
+                    <IconButton
+                      aria-label={t.toolCall.openInEditor}
+                      onPress={() => onOpenFile(entry.path)}
+                    >
+                      <Icon data={ArrowUpRightFromSquare} />
+                    </IconButton>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>{t.toolCall.openInEditor}</Tooltip.Content>
+                </Tooltip>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function ChangesDiffModal({
   directory,
-  path,
+  target,
   onClose,
 }: {
-  directory?: string;
-  path: string | null;
+  directory: string;
+  target: DiffTarget | null;
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const { data, isLoading } = useGitDiff(directory, path ?? undefined);
+  const path = target?.path;
+  const [mode, setMode] = useState<DiffMode>('diff');
+  const [staged, setStaged] = useState(false);
 
-  const lines = useMemo(() => {
-    const raw = (data as { diff?: string } | null | undefined)?.diff ?? '';
-    return raw.split('\n');
-  }, [data]);
+  useEffect(() => {
+    if (!target) return;
+    setMode(target.untracked ? 'source' : 'diff');
+    setStaged(target.staged);
+  }, [target]);
+
+  const { data: diffData, isLoading: diffLoading } = useGitDiff(
+    directory,
+    path,
+    staged,
+    { enabled: Boolean(path) && mode === 'diff' },
+  );
+  const { data: fileData, isLoading: fileLoading } = useGitFileDiff(
+    directory,
+    path,
+    staged,
+    { enabled: Boolean(path) && mode === 'source' },
+  );
+
+  const diff = (diffData as { diff?: string } | null | undefined)?.diff;
+  const original =
+    (fileData as { original?: string } | null | undefined)?.original ?? '';
+  const modified =
+    (fileData as { modified?: string } | null | undefined)?.modified ?? '';
 
   return (
     <Modal
-      isOpen={Boolean(path)}
+      isOpen={Boolean(target)}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
@@ -386,37 +555,53 @@ function ChangesDiffModal({
               <>
                 <Modal.Header className='flex items-center gap-2'>
                   <FileTypeIcon filePath={path ?? ''} />
-                  <span className='truncate text-sm'>{path}</span>
+                  <span className='min-w-0 flex-1 truncate font-mono text-sm'>
+                    {path}
+                  </span>
+                  <div className='flex shrink-0 items-center gap-1'>
+                    <Button
+                      size='sm'
+                      variant={mode === 'diff' ? 'secondary' : 'ghost'}
+                      onPress={() => setMode('diff')}
+                    >
+                      {t.changesPanel.diff}
+                    </Button>
+                    <Button
+                      size='sm'
+                      variant={mode === 'source' ? 'secondary' : 'ghost'}
+                      onPress={() => setMode('source')}
+                    >
+                      {t.changesPanel.source}
+                    </Button>
+                  </div>
                 </Modal.Header>
 
                 <Modal.Body>
-                  {isLoading ? (
+                  {mode === 'diff' ? (
+                    diffLoading ? (
+                      <Skeleton className='h-40 w-full rounded' />
+                    ) : (
+                      <GitDiffContent
+                        diff={diff}
+                        emptyLabel={t.changesPanel.noChangesToDisplay}
+                        className='max-h-[60vh]'
+                      />
+                    )
+                  ) : fileLoading ? (
                     <Skeleton className='h-40 w-full rounded' />
-                  ) : lines.length === 0 ||
-                    (lines.length === 1 && !lines[0]) ? (
-                    <div className='text-muted py-8 text-center text-sm'>
-                      {t.changesPanel.noChangesToDisplay}
-                    </div>
                   ) : (
-                    <pre className='bg-default/40 scrollbar-thin overflow-x-auto rounded-md p-3 font-mono text-xs leading-relaxed'>
-                      {lines.map((line, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            'whitespace-pre',
-                            line.startsWith('+') && !line.startsWith('+++')
-                              ? 'text-success'
-                              : line.startsWith('-') && !line.startsWith('---')
-                                ? 'text-danger'
-                                : line.startsWith('@@')
-                                  ? 'text-accent'
-                                  : 'text-muted',
-                          )}
-                        >
-                          {line || ' '}
-                        </div>
-                      ))}
-                    </pre>
+                    <div className='grid h-[50vh] grid-cols-1 gap-2 overflow-hidden sm:grid-cols-2'>
+                      <SourcePane
+                        label={t.changesPanel.original}
+                        content={original}
+                        emptyLabel={t.changesPanel.noChangesToDisplay}
+                      />
+                      <SourcePane
+                        label={t.common.current}
+                        content={modified}
+                        emptyLabel={t.changesPanel.noChangesToDisplay}
+                      />
+                    </div>
                   )}
                 </Modal.Body>
 
@@ -432,5 +617,32 @@ function ChangesDiffModal({
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
+  );
+}
+
+function SourcePane({
+  label,
+  content,
+  emptyLabel,
+}: {
+  label: string;
+  content: string;
+  emptyLabel: string;
+}) {
+  return (
+    <div className='border-separator flex min-h-0 flex-col overflow-hidden rounded-md border'>
+      <div className='border-separator text-muted shrink-0 border-b px-2 py-1 text-[10px] font-medium tracking-wide uppercase'>
+        {label}
+      </div>
+      {content ? (
+        <pre className='scrollbar-thin bg-default/40 min-h-0 flex-1 overflow-auto p-2 font-mono text-xs leading-relaxed whitespace-pre'>
+          {content}
+        </pre>
+      ) : (
+        <div className='text-muted flex min-h-24 flex-1 items-center justify-center p-4 text-center text-xs'>
+          {emptyLabel}
+        </div>
+      )}
+    </div>
   );
 }

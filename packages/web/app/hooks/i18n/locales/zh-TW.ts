@@ -962,6 +962,11 @@ export const zhTW: BaseTranslation = {
     commit: '提交',
     commitAll: '全部提交',
     noChangesToDisplay: '沒有可顯示的變更',
+    diff: 'Diff',
+    source: 'Source',
+    stagedChanges: 'Staged changes',
+    workingChanges: 'Changes',
+    original: 'Original',
   },
 
   contextPanel: {
@@ -1063,6 +1068,21 @@ export const zhTW: BaseTranslation = {
     removedRemote: (name: string) => `已移除 ${name}`,
     removeRemoteFailed: '移除遠端失敗',
     removeRemote: '移除遠端',
+    refresh: 'Refresh',
+    filterBranches: 'Filter branches',
+    checkout: 'Checkout',
+    merge: 'Merge',
+    rebase: 'Rebase',
+    mergeIntoCurrent: 'Merge into current',
+    rebaseOnto: 'Rebase onto this branch',
+    compareWithCurrent: 'Compare with current',
+    operationConflict: (operation: string) => `${operation} needs attention`,
+    abort: 'Abort',
+    mergeFailed: 'Merge failed',
+    rebaseFailed: 'Rebase failed',
+    noRepository: 'This workspace is not a git repository.',
+    directoryNotFound: 'This workspace directory could not be found.',
+    noDirectory: 'Open a workspace to view git status.',
   },
 
   pullRequest: {

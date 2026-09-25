@@ -1000,6 +1000,11 @@ export const id: BaseTranslation = {
     commit: 'Commit',
     commitAll: 'Commit semua',
     noChangesToDisplay: 'Tidak ada perubahan untuk ditampilkan',
+    diff: 'Diff',
+    source: 'Source',
+    stagedChanges: 'Staged changes',
+    workingChanges: 'Changes',
+    original: 'Original',
   },
 
   contextPanel: {
@@ -1102,6 +1107,21 @@ export const id: BaseTranslation = {
     removedRemote: (name: string) => `${name} dihapus`,
     removeRemoteFailed: 'Gagal menghapus remote',
     removeRemote: 'Hapus remote',
+    refresh: 'Refresh',
+    filterBranches: 'Filter branches',
+    checkout: 'Checkout',
+    merge: 'Merge',
+    rebase: 'Rebase',
+    mergeIntoCurrent: 'Merge into current',
+    rebaseOnto: 'Rebase onto this branch',
+    compareWithCurrent: 'Compare with current',
+    operationConflict: (operation: string) => `${operation} needs attention`,
+    abort: 'Abort',
+    mergeFailed: 'Merge failed',
+    rebaseFailed: 'Rebase failed',
+    noRepository: 'This workspace is not a git repository.',
+    directoryNotFound: 'This workspace directory could not be found.',
+    noDirectory: 'Open a workspace to view git status.',
   },
 
   pullRequest: {
