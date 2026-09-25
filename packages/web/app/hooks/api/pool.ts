@@ -1,6 +1,6 @@
 import { Query, useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
 
@@ -63,7 +63,7 @@ const poolStatusQueryKey = ['pool', 'status'] as const;
 async function fetchPoolStatus(): Promise<PoolStatus> {
   const response = await fetch('/api/pool');
   if (!response.ok) {
-    throw new Error(`Pool endpoint returned ${response.status}`);
+    throw new Error(apiError('poolEndpointReturned', response.status));
   }
   return response.json();
 }

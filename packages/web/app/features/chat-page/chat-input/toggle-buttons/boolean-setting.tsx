@@ -40,7 +40,7 @@ export function BooleanSettingToggleButton({
       </Tooltip.Trigger>
 
       <Tooltip.Content>
-        {label}: {enabled ? 'on' : 'off'}
+        {label}: {enabled ? t.common.on : t.common.off}
       </Tooltip.Content>
     </Tooltip>
   );

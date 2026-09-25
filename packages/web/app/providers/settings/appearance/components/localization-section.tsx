@@ -2,7 +2,19 @@
 import { Label, ListBox, Select, Typography } from '@aero/ui';
 
 import { useI18n } from '@/app/hooks/i18n';
+import { SupportedLanguage } from '@/app/hooks/i18n/locales/translations';
 import { useAppearanceStore } from '../appearance-store';
+
+const LANGUAGES: { id: SupportedLanguage; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'zh', label: '简体中文' },
+  { id: 'zh-TW', label: '繁體中文' },
+  { id: 'es', label: 'Español' },
+  { id: 'fr', label: 'Français' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'ja', label: '日本語' },
+  { id: 'id', label: 'Bahasa Indonesia' },
+];
 
 export function LocalizationSection() {
   const { t } = useI18n();
@@ -36,7 +48,7 @@ function LanguageSelect() {
   return (
     <Select
       value={language}
-      onChange={(key) => setLanguage(key as 'en' | 'zh' | 'id')}
+      onChange={(key) => setLanguage(key as SupportedLanguage)}
       className='flex w-[220px] flex-col gap-2'
     >
       <Label>{t.settingsAppearance.language}</Label>
@@ -46,15 +58,11 @@ function LanguageSelect() {
       </Select.Trigger>
       <Select.Popover className='rounded-xl'>
         <ListBox>
-          <ListBox.Item id='en' className='rounded-lg'>
-            <Label>English</Label>
-          </ListBox.Item>
-          <ListBox.Item id='zh' className='rounded-lg'>
-            <Label>中文</Label>
-          </ListBox.Item>
-          <ListBox.Item id='id' className='rounded-lg'>
-            <Label>Bahasa Indonesia</Label>
-          </ListBox.Item>
+          {LANGUAGES.map(({ id, label }) => (
+            <ListBox.Item key={id} id={id} className='rounded-lg'>
+              <Label>{label}</Label>
+            </ListBox.Item>
+          ))}
         </ListBox>
       </Select.Popover>
     </Select>

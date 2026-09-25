@@ -7,6 +7,8 @@ import {
   ChatQuoteItem,
   SessionExternalPartsState,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
+
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { AeroPartUserMessage } from '@/server/services/harness/types';
 
 /* ------------------------------------------------------------------ */
@@ -141,7 +143,7 @@ function fileToDataUrl(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () =>
-      reject(reader.error ?? new Error('Failed to read file'));
+      reject(reader.error ?? new Error(apiError('failedToReadFile')));
     reader.readAsDataURL(file);
   });
 }

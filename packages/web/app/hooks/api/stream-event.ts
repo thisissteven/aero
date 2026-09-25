@@ -5,6 +5,8 @@ import {
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
 import { $individualSession } from '@/app/hooks/api/sessions';
+
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
 interface Params {
@@ -90,15 +92,15 @@ export function useRestoreSessionStreams() {
           if (sessionRes.status === 500) {
             removeRunningSession(sessionId);
           }
-          throw new Error('Failed to load session');
+          throw new Error(apiError('failedToLoadSession'));
         }
 
         if (!messagesRes.ok) {
-          throw new Error('Failed to load session messages');
+          throw new Error(apiError('failedToLoadSessionMessages'));
         }
 
         if (!statusRes.ok) {
-          throw new Error('Failed to load session status');
+          throw new Error(apiError('failedToLoadSessionStatus'));
         }
 
         const session = await sessionRes.json();

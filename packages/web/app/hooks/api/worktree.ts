@@ -7,6 +7,8 @@ import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/works
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { gitKeys } from '@/app/hooks/api/git';
 import { workspaceKeys } from '@/app/hooks/api/workspaces';
+
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 
 const $worktrees = honoClient.api.worktrees;
@@ -34,7 +36,7 @@ export function useWorktrees({
       const res = await $worktrees.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch worktrees');
+      if (!res.ok) throw new Error(apiError('failedToFetchWorktrees'));
       return res.json();
     },
     enabled: !!directory,
@@ -50,7 +52,7 @@ export function useCreateWorktree(harnessId?: string) {
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to create worktree');
+      if (!res.ok) throw new Error(apiError('failedToCreateWorktree'));
       return res.json();
     },
     onSuccess: (_, input) => {
@@ -78,7 +80,7 @@ export function useDeleteWorktree(harnessId?: string) {
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to delete worktree');
+      if (!res.ok) throw new Error(apiError('failedToDeleteWorktree'));
       return res.json();
     },
     onSuccess: (_, input) => {

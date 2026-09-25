@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 
 const $github = honoClient.api.github;
@@ -77,7 +78,7 @@ async function unwrap<T>(
 ): Promise<T> {
   const res = await promise;
   if (!res.ok) {
-    throw new Error(`GitHub request failed: ${label} (${res.status})`);
+    throw new Error(apiError('githubRequestFailed', label, res.status));
   }
   return res.json() as Promise<T>;
 }

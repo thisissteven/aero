@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useState } from 'react';
+import { setApiErrorMessages } from '@/app/hooks/i18n/api-errors';
 import {
   SupportedLanguage,
   TranslationsMap,
@@ -45,6 +46,8 @@ export function I18nProvider({
   }, []);
 
   const t = translations[language] ?? translations[defaultLanguage];
+
+  setApiErrorMessages(t.apiErrors);
 
   return (
     <I18nContext.Provider value={{ t, language, setLanguage: updateLanguage }}>

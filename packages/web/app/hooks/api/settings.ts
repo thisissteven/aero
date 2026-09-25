@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -33,7 +34,7 @@ export async function getSetting<const P extends AeroSettingPath>(path: P) {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch setting: ${normalizedPath.join('.')}`);
+    throw new Error(apiError('failedToFetchSetting', normalizedPath.join('.')));
   }
 
   const data = await res.json();
@@ -69,7 +70,9 @@ export async function updateSetting({ path, value }: SettingUpdate) {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to update setting: ${normalizedPath.join('.')}`);
+    throw new Error(
+      apiError('failedToUpdateSetting', normalizedPath.join('.')),
+    );
   }
 
   const data = await res.json();

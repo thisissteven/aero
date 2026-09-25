@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 
 const $capabilities = honoClient.api.capabilities;
@@ -90,7 +91,7 @@ export function useCapabilities({
       const res = await $capabilities.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch capabilities');
+      if (!res.ok) throw new Error(apiError('failedToFetchCapabilities'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -107,7 +108,7 @@ export function useAgents({
       const res = await $capabilities.agents.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch agents');
+      if (!res.ok) throw new Error(apiError('failedToFetchAgents'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -124,7 +125,7 @@ export function useAgentsCompact({
       const res = await $capabilities.agents.compact.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch agents');
+      if (!res.ok) throw new Error(apiError('failedToFetchAgents'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -141,7 +142,7 @@ export function useSkills({
       const res = await $capabilities.skills.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch skills');
+      if (!res.ok) throw new Error(apiError('failedToFetchSkills'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -158,7 +159,7 @@ export function useSkillsCompact({
       const res = await $capabilities.skills.compact.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch skills');
+      if (!res.ok) throw new Error(apiError('failedToFetchSkills'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -175,7 +176,7 @@ export function useCommands({
       const res = await $capabilities.commands.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch commands');
+      if (!res.ok) throw new Error(apiError('failedToFetchCommands'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -199,7 +200,7 @@ export function useTools({
       const res = await $capabilities.tools.$get({
         query: { provider, model, harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch tools');
+      if (!res.ok) throw new Error(apiError('failedToFetchTools'));
       return res.json();
     },
     enabled: Boolean(provider && model),

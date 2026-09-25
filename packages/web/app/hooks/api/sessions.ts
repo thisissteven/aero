@@ -16,6 +16,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 import { useCallback } from 'react';
 import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import {
   staleProps,
   useOptimisticMutation,
@@ -32,7 +33,7 @@ import {
   ConversationRole,
   HarnessId,
 } from '@/server/services/harness/types';
-import type {
+import {
   AeroSessionMetadata,
   SessionMetadata,
 } from '@/server/types/opencode-sdk';
@@ -181,7 +182,7 @@ export function useSessions({
         },
       });
 
-      if (!res.ok) throw new Error('Failed to fetch sessions');
+      if (!res.ok) throw new Error(apiError('failedToFetchSessions'));
       return res.json();
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -205,7 +206,7 @@ export function useSessionsArchived(harnessId?: string) {
     queryKey: sessionKeys.allArchived(harnessId),
     queryFn: async () => {
       const res = await $sessions.archived.$get({ query: { harnessId } });
-      if (!res.ok) throw new Error('Failed to fetch archived sessions');
+      if (!res.ok) throw new Error(apiError('failedToFetchArchivedSessions'));
       return res.json();
     },
   });
@@ -245,7 +246,7 @@ export function useSessionStatus(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to load session status');
+      if (!res.ok) throw new Error(apiError('failedToLoadSessionStatus'));
       return res.json();
     },
     enabled: !!sessionId,
@@ -292,7 +293,7 @@ export function useSessionMessages(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch messages');
+      if (!res.ok) throw new Error(apiError('failedToFetchMessages'));
       return res.json();
     },
     enabled: !!sessionId,
@@ -311,7 +312,7 @@ export function useSessionPermissions(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch permission requests');
+      if (!res.ok) throw new Error(apiError('failedToFetchPermissionRequests'));
       return res.json();
     },
     enabled: !!sessionId,
@@ -329,7 +330,7 @@ export function useSessionQuestions(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch questions');
+      if (!res.ok) throw new Error(apiError('failedToFetchQuestions'));
       return res.json();
     },
     enabled: !!sessionId,
@@ -347,7 +348,7 @@ export function useSessionContext(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch session context');
+      if (!res.ok) throw new Error(apiError('failedToFetchSessionContext'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -366,7 +367,7 @@ export function useSessionToc(
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to fetch session TOC');
+      if (!res.ok) throw new Error(apiError('failedToFetchSessionToc'));
       return res.json();
     },
     enabled: !!sessionId,
@@ -407,7 +408,7 @@ export function useCreateSession(defaultharnessId?: HarnessId) {
           query: { harnessId: targetharnessId },
         }),
       );
-      if (!res.ok) throw new Error('Failed to create session');
+      if (!res.ok) throw new Error(apiError('failedToCreateSession'));
       return res.json();
     },
     onSuccess: () => invalidateMergedSessions(qc),
@@ -423,7 +424,7 @@ export function useDeleteBulkSessions(harnessId?: string) {
           query: { harnessId, ids: sessionIds.join(',') },
         }),
       );
-      if (!res.ok) throw new Error('Failed to delete sessions');
+      if (!res.ok) throw new Error(apiError('failedToDeleteSessions'));
       return res.json();
     },
     onSuccess: () => invalidateMergedAndClearSelection(qc),
@@ -440,7 +441,7 @@ export function useDeleteSession(harnessId?: string) {
           query: { harnessId },
         }),
       );
-      if (!res.ok) throw new Error('Failed to delete session');
+      if (!res.ok) throw new Error(apiError('failedToDeleteSession'));
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
@@ -458,7 +459,7 @@ export function useShareSession(harnessId?: string) {
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to share session');
+      if (!res.ok) throw new Error(apiError('failedToShareSession'));
       return res.json();
     },
     onSuccess: (_data, sessionId) =>
@@ -474,7 +475,7 @@ export function useUnshareSession(harnessId?: string) {
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to unshare session');
+      if (!res.ok) throw new Error(apiError('failedToUnshareSession'));
       return res.json();
     },
     onSuccess: (_data, sessionId) =>
@@ -489,7 +490,7 @@ export function useSessionMarkdown(harnessId?: string) {
         param: { id: sessionId },
         query: { harnessId },
       });
-      if (!res.ok) throw new Error('Failed to retrieve markdown');
+      if (!res.ok) throw new Error(apiError('failedToRetrieveMarkdown'));
       return res.json();
     },
   });
@@ -529,7 +530,7 @@ export function useForkSession(
         query: { harnessId },
         json: { messageId },
       });
-      if (!res.ok) throw new Error('Failed to fork session');
+      if (!res.ok) throw new Error(apiError('failedToForkSession'));
       return res.json();
     },
     onSuccess: () => invalidateMergedSessions(qc),
@@ -549,7 +550,7 @@ export function useSendCommand(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to send command');
+      if (!res.ok) throw new Error(apiError('failedToSendCommand'));
       return res.json();
     },
   });
@@ -564,7 +565,7 @@ export function useSendShellCommand(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to send shell command');
+      if (!res.ok) throw new Error(apiError('failedToSendShellCommand'));
       return res.json();
     },
   });
@@ -577,7 +578,7 @@ export function useSendMessage(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to send message');
+      if (!res.ok) throw new Error(apiError('failedToSendMessage'));
       return res.json();
     },
   });
@@ -589,7 +590,7 @@ export function useAbortSession(harnessId: string | undefined) {
       const res = await $individualSession.abort.$post(
         sessionAction(sessionId, harnessId),
       );
-      if (!res.ok) throw new Error('Failed to abort session');
+      if (!res.ok) throw new Error(apiError('failedToAbortSession'));
       return res.json();
     },
   });
@@ -606,7 +607,8 @@ export function useReplyToPermission(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: { requestId: input.requestId, reply: input.reply },
       });
-      if (!res.ok) throw new Error('Failed to reply to permission request');
+      if (!res.ok)
+        throw new Error(apiError('failedToReplyToPermissionRequest'));
       return res.json();
     },
   });
@@ -623,7 +625,7 @@ export function useReplyToQuestion(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: { requestId: input.requestId, answers: input.answers },
       });
-      if (!res.ok) throw new Error('Failed to reply to question');
+      if (!res.ok) throw new Error(apiError('failedToReplyToQuestion'));
       return res.json();
     },
   });
@@ -636,7 +638,7 @@ export function useRejectQuestion(harnessId: string | undefined) {
         ...sessionAction(input.sessionId, harnessId),
         json: { requestId: input.requestId },
       });
-      if (!res.ok) throw new Error('Failed to reject question');
+      if (!res.ok) throw new Error(apiError('failedToRejectQuestion'));
       return res.json();
     },
   });
@@ -649,7 +651,7 @@ export function useArchiveSession(harnessId?: string) {
       const res = await withMinDelay(
         $individualSession.archive.$patch(sessionAction(sessionId, harnessId)),
       );
-      if (!res.ok) throw new Error('Failed to archive session');
+      if (!res.ok) throw new Error(apiError('failedToArchiveSession'));
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
@@ -668,7 +670,7 @@ export function useArchiveBulkSessions(harnessId?: string) {
           query: { harnessId, ids: sessionIds.join(',') },
         }),
       );
-      if (!res.ok) throw new Error('Failed to archive sessions');
+      if (!res.ok) throw new Error(apiError('failedToArchiveSessions'));
       return res.json();
     },
     onSuccess: () => invalidateMergedAndClearSelection(qc),
@@ -684,7 +686,7 @@ export function useUnarchiveSession(harnessId?: string) {
           sessionAction(sessionId, harnessId),
         ),
       );
-      if (!res.ok) throw new Error('Failed to unarchive session');
+      if (!res.ok) throw new Error(apiError('failedToUnarchiveSession'));
       return res.json();
     },
     onSuccess: (_data, sessionId) => {
@@ -703,7 +705,7 @@ export function useUnarchiveBulkSessions(harnessId?: string) {
           query: { harnessId, ids: sessionIds.join(',') },
         }),
       );
-      if (!res.ok) throw new Error('Failed to unarchive sessions');
+      if (!res.ok) throw new Error(apiError('failedToUnarchiveSessions'));
       return res.json();
     },
     onSuccess: () => invalidateMergedAndClearSelection(qc),
@@ -717,7 +719,7 @@ export function useRenameSession(harnessId?: string) {
         ...sessionAction(input.sessionId, harnessId),
         json: { title: input.title },
       });
-      if (!res.ok) throw new Error('Failed to rename session');
+      if (!res.ok) throw new Error(apiError('failedToRenameSession'));
       return res.json();
     },
   });
@@ -737,7 +739,7 @@ export function usePinnedMessages(sessionId: string) {
         param: { id: sessionId },
         query: { harnessId: undefined },
       });
-      if (!res.ok) throw new Error('Failed to fetch pinned messages');
+      if (!res.ok) throw new Error(apiError('failedToFetchPinnedMessages'));
       return await res.json();
     },
   });
@@ -760,7 +762,7 @@ export function useTogglePinnedMessage() {
         query: { harnessId: undefined },
         json: { messageId, pinned },
       });
-      if (!res.ok) throw new Error('Failed to update pin');
+      if (!res.ok) throw new Error(apiError('failedToUpdatePin'));
       return (await res.json()) as PinnedMessage[];
     },
     optimisticUpdate: (current = [], { messageId, pinned }) =>
@@ -799,7 +801,7 @@ export function useSessionMetadataValue<T = unknown>(
       if (res.status === 404) {
         return { key, value: undefined };
       }
-      if (!res.ok) throw new Error('Failed to fetch session metadata');
+      if (!res.ok) throw new Error(apiError('failedToFetchSessionMetadata'));
       return (await res.json()) as { key: string; value: T };
     },
     enabled: !!sessionId && !!key,
@@ -844,7 +846,7 @@ export function usePatchSessionMetadata(
         query: { harnessId },
         json: { metadata },
       });
-      if (!res.ok) throw new Error('Failed to patch session metadata');
+      if (!res.ok) throw new Error(apiError('failedToPatchSessionMetadata'));
 
       // `getQueryData` is typed `TData | undefined`, but the mutation generic
       // is `SessionDetail | null` — collapse both to `null`.
@@ -932,7 +934,7 @@ export function useSelectModelMutation(
           },
         },
       });
-      if (!res.ok) throw new Error('Failed to update selected model');
+      if (!res.ok) throw new Error(apiError('failedToUpdateSelectedModel'));
 
       return { key: SELECTED_MODEL_METADATA_KEY, value: selectedModelKey };
     },

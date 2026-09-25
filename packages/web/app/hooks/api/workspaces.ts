@@ -9,6 +9,7 @@ import type { InferRequestType, InferResponseType } from 'hono/client';
 
 import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient, PAGINATION_LIMIT } from '@/app/lib';
 import { AeroWorkspaceSummary } from '@/server/services/harness/types';
 
@@ -54,7 +55,7 @@ export function useWorkspaces(search?: string) {
       ]);
 
       if (!res.ok) {
-        throw new Error('Failed to fetch workspaces');
+        throw new Error(apiError('failedToFetchWorkspaces'));
       }
 
       return res.json();
@@ -79,7 +80,7 @@ export function useWorkspacesKeys() {
       ]);
 
       if (!res.ok) {
-        throw new Error('Failed to fetch workspaces');
+        throw new Error(apiError('failedToFetchWorkspaces'));
       }
 
       return res.json();
@@ -108,7 +109,7 @@ export function useWorkspacesCompact(search?: string) {
       ]);
 
       if (!res.ok) {
-        throw new Error('Failed to fetch workspaces');
+        throw new Error(apiError('failedToFetchWorkspaces'));
       }
 
       return res.json();
@@ -159,7 +160,7 @@ export function useCreateWorkspace() {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to create workspace');
+      if (!res.ok) throw new Error(apiError('failedToCreateWorkspace'));
       return res.json();
     },
     onSuccess: (_data) => {
@@ -182,7 +183,7 @@ export function useUpdateWorkspace(id: string) {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to update workspace');
+      if (!res.ok) throw new Error(apiError('failedToUpdateWorkspace'));
       return res.json();
     },
     onSuccess: (_data, input) => {
@@ -209,7 +210,7 @@ export function useDeleteWorkspace() {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to delete workspace');
+      if (!res.ok) throw new Error(apiError('failedToDeleteWorkspace'));
       return res.json();
     },
     onSuccess: (_data, workspace) => {

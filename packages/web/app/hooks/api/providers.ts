@@ -9,6 +9,7 @@ import {
 import type { InferRequestType } from 'hono/client';
 import { useMemo } from 'react';
 import { configKeys, getSetting } from '@/app/hooks/api/settings';
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { staleProps } from '@/app/hooks/useOptimisticMutation';
 import { honoClient } from '@/app/lib';
 import { type AeroSettingPath } from '@/server/services/settings';
@@ -51,7 +52,7 @@ export function useProviders({
       const res = await $providers.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch providers');
+      if (!res.ok) throw new Error(apiError('failedToFetchProviders'));
       return res.json();
     },
     ...staleProps,
@@ -69,7 +70,7 @@ export function useProvidersCompact({
       const res = await $providers.compact.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch providers');
+      if (!res.ok) throw new Error(apiError('failedToFetchProviders'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -86,7 +87,8 @@ export function useConfiguredProviders({
       const res = await $providers.configured.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch configured providers');
+      if (!res.ok)
+        throw new Error(apiError('failedToFetchConfiguredProviders'));
       return res.json();
     },
     ...staleProps,
@@ -103,7 +105,7 @@ export function useSetApiKey(harnessId?: string) {
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to set API key');
+      if (!res.ok) throw new Error(apiError('failedToSetApiKey'));
       return res.json();
     },
     onSuccess: () => {
@@ -123,7 +125,7 @@ export function useDisconnectProvider(harnessId?: string) {
         query: { harnessId },
         json: input,
       });
-      if (!res.ok) throw new Error('Failed to disconnect provider');
+      if (!res.ok) throw new Error(apiError('failedToDisconnectProvider'));
       return res.json();
     },
     onSuccess: () => {

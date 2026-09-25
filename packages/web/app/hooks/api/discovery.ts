@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 
 const $discovery = honoClient.api.discovery;
@@ -15,7 +16,7 @@ export function useDiscoverFavicon(directory: string | null, enabled = false) {
       });
 
       if (!res.ok) {
-        throw new Error('No favicon found in directory');
+        throw new Error(apiError('noFaviconFoundInDirectory'));
       }
 
       return res.json();
@@ -33,7 +34,7 @@ export function useDiscoverScript() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to discover script');
+        throw new Error(apiError('failedToDiscoverScript'));
       }
 
       return res.json();

@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 import type { InferRequestType, InferResponseType } from 'hono/client';
 
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 
 const $git = honoClient.api.git;
@@ -120,7 +121,7 @@ async function unwrap<T>(
 ): Promise<T> {
   const res = await promise;
   if (!res.ok) {
-    throw new Error(`Git request failed: ${label} (${res.status})`);
+    throw new Error(apiError('gitRequestFailed', label, res.status));
   }
   return res.json() as Promise<T>;
 }

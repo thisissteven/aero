@@ -1,6 +1,8 @@
 import { toast } from '@aero/ui';
 import { QueryClient } from '@tanstack/react-query';
 import { $individualSession, sessionKeys } from '@/app/hooks/api/sessions';
+
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 
 export async function restoreAllMessages({
@@ -16,7 +18,7 @@ export async function restoreAllMessages({
     param: { id: sessionId },
     query: { harnessId },
   });
-  if (!res.ok) throw new Error('Failed to restore messages');
+  if (!res.ok) throw new Error(apiError('failedToRestoreMessages'));
   const data = await res.json();
   queryClient.invalidateQueries({
     queryKey: sessionKeys.detail(harnessId, sessionId),

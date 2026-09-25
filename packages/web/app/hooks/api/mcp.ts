@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-
+import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
 import { AeroMCPConfig, AeroMCPStatus } from '@/server/services/harness/types';
 
@@ -27,7 +27,7 @@ export function useMCPs({ harnessId, directory }: UseMcpOptions = {}) {
       const res = await $mcp.$get({
         query: { harnessId, directory },
       });
-      if (!res.ok) throw new Error('Failed to fetch MCP servers');
+      if (!res.ok) throw new Error(apiError('failedToFetchMcpServers'));
       return res.json();
     },
     placeholderData: keepPreviousData,
@@ -54,7 +54,7 @@ export function useAddMCP(harnessId?: string) {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to add MCP server');
+      if (!res.ok) throw new Error(apiError('failedToAddMcpServer'));
       return res.json();
     },
     onSuccess: (_data, input) => {
@@ -82,7 +82,7 @@ export function useDisconnectMCP(harnessId?: string) {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to disconnect MCP server');
+      if (!res.ok) throw new Error(apiError('failedToDisconnectMcpServer'));
       return res.json();
     },
     onSuccess: (_data, input) => {
@@ -122,7 +122,7 @@ export function useConnectMCP(harnessId?: string) {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to connect to MCP server');
+      if (!res.ok) throw new Error(apiError('failedToConnectMcpServer'));
       return res.json();
     },
     onSuccess: (_data, input) => {
@@ -162,7 +162,7 @@ export function useRemoveMCP(harnessId?: string) {
         }),
         new Promise((resolve) => setTimeout(resolve, 100)),
       ]);
-      if (!res.ok) throw new Error('Failed to delete MCP server');
+      if (!res.ok) throw new Error(apiError('failedToDeleteMcpServer'));
       return res.json();
     },
     onSuccess: (_data, input) => {
