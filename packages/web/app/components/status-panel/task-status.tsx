@@ -1,6 +1,7 @@
 import { cn, Typography } from '@aero/ui';
 import { CircleCheck, CircleStop, ListCheck } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { useSessionTodos } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
@@ -29,19 +30,21 @@ export function TaskStatusContent({ sessionId }: { sessionId: string }) {
   ).length;
 
   return (
-    <div className='border-separator border-b py-3'>
+    <div className='py-3'>
       {/* Title Header */}
-      <div className='mb-2.5 flex items-center justify-between px-3'>
-        <div className='flex items-center gap-1'>
-          <Icon data={ListCheck} className='text-muted' size={14} />
-          <Typography type='body-sm' className='text-foreground font-medium'>
-            {t.statusPanel.tasks}
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center justify-between px-3'>
+          <div className='flex items-center gap-1'>
+            <Icon data={ListCheck} className='text-muted' size={14} />
+            <Typography type='body-sm' className='text-foreground font-medium'>
+              {t.statusPanel.tasks}
+            </Typography>
+          </div>
+          <Typography type='body-xs' className='text-muted'>
+            {completedCount}/{todos.length}
           </Typography>
         </div>
-        <Typography type='body-xs' className='text-muted'>
-          {completedCount}/{todos.length}
-        </Typography>
-      </div>
+      </StatusSectionHandle>
 
       {/* Task List */}
       <div className='flex flex-col gap-1.5 px-3'>

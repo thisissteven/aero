@@ -11,6 +11,7 @@ export const settingsSchema = z.object({
   recentModelVariants: z.record(z.string(), z.string()),
   hiddenModels: z.record(z.string(), z.array(z.string())),
   pinnedSessions: z.array(z.string()),
+  statusPanelOrder: z.array(z.string()),
 
   // Future examples:
   // theme: z.enum(['light', 'dark', 'system']),
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: AeroSettings = {
   recentModelVariants: {},
   hiddenModels: {},
   pinnedSessions: [],
+  statusPanelOrder: [],
 };
 
 type SettingsObject = Record<string, unknown>;

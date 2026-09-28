@@ -3,7 +3,6 @@ import { DisplayPopover } from '@/app/components/status-panel/display-popover';
 import { useSessionContext } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
-import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
 function ContextUsage() {
   const sessionId = useSessionId();
@@ -41,10 +40,9 @@ function ContextUsage() {
 
 export function SessionStatus() {
   const { t } = useI18n();
-  const isVisible = useStatusPanelStore((state) => state.visibleItems.session);
 
   return (
-    <div className='border-separator border-b p-3'>
+    <div className='p-3'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <Typography type='body-sm' className='text-foreground font-medium'>
@@ -54,7 +52,7 @@ export function SessionStatus() {
         <DisplayPopover />
       </div>
 
-      {isVisible && <ContextUsage />}
+      <ContextUsage />
     </div>
   );
 }

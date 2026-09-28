@@ -196,3 +196,17 @@ export function useTogglePinnedSession() {
     [mutate, pinnedSessions],
   );
 }
+
+export function useStatusPanelOrder() {
+  const { data } = useSetting(['statusPanelOrder']);
+  const { mutate } = useUpdateSetting();
+
+  const setOrder = useCallback(
+    (order: string[]) => {
+      mutate({ path: ['statusPanelOrder'], value: order });
+    },
+    [mutate],
+  );
+
+  return { order: data?.value, setOrder };
+}

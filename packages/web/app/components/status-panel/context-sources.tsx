@@ -2,6 +2,7 @@ import { Typography } from '@aero/ui';
 import { Layers } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { useSkillsCompact } from '@/app/hooks/api/capabilities';
 import { useMCPs } from '@/app/hooks/api/mcp';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
@@ -67,15 +68,17 @@ export function ContextSources() {
 
   return (
     <div className='p-3'>
-      <div className='mb-2.5 flex items-center justify-between'>
-        <div className='flex items-center gap-1'>
-          <Icon data={Layers} className='text-muted' size={14} />
-          <Typography type='body-sm' className='text-foreground font-medium'>
-            {t.statusPanel.contextSources}
-          </Typography>
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center justify-between'>
+          <div className='flex items-center gap-1'>
+            <Icon data={Layers} className='text-muted' size={14} />
+            <Typography type='body-sm' className='text-foreground font-medium'>
+              {t.statusPanel.contextSources}
+            </Typography>
+          </div>
+          <SkillsAmount />
         </div>
-        <SkillsAmount />
-      </div>
+      </StatusSectionHandle>
       <div className='flex flex-col gap-1.5'>
         <SkillsSection />
         <McpSection />

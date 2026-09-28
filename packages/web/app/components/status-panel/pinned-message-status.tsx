@@ -2,6 +2,7 @@ import { cn, IconButton, Typography } from '@aero/ui';
 import { Pin, PinFill } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
   useIsPinned,
@@ -66,13 +67,15 @@ export function PinnedMessageStatusContent({
   }
 
   return (
-    <div className='border-b-separator border-b py-3'>
-      <div className='mb-2.5 flex items-center gap-1 px-3'>
-        <Icon data={Pin} className='text-muted' size={14} />
-        <Typography type='body-sm' className='text-foreground font-medium'>
-          {t.statusPanel.pinnedMessages}
-        </Typography>
-      </div>
+    <div className='py-3'>
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center gap-1 px-3'>
+          <Icon data={Pin} className='text-muted' size={14} />
+          <Typography type='body-sm' className='text-foreground font-medium'>
+            {t.statusPanel.pinnedMessages}
+          </Typography>
+        </div>
+      </StatusSectionHandle>
 
       <div className='flex flex-col gap-1.5 pr-3 pl-2'>
         {orderedPinnedTurns.map((turn) => (

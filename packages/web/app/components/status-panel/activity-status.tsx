@@ -6,6 +6,7 @@ import {
   ActivitySummaryContent,
   ActivitySummarySkeleton,
 } from '@/app/components/activity/activity-summary-content';
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { useActivitySummary } from '@/app/hooks/api/activity';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
@@ -20,18 +21,21 @@ export function ActivityStatus() {
   if (!isVisible) return null;
 
   return (
-    <div className='border-separator border-b p-3'>
-      <div className='mb-2.5 flex items-center gap-1'>
-        <Icon data={LayoutCells} className='text-muted' size={14} />
-        <Typography type='body-sm' className='text-foreground font-medium'>
-          {t.statusPanel.activity}
-        </Typography>
-      </div>
+    <div className='p-3'>
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center gap-1'>
+          <Icon data={LayoutCells} className='text-muted' size={14} />
+          <Typography type='body-sm' className='text-foreground font-medium'>
+            {t.statusPanel.activity}
+          </Typography>
+        </div>
+      </StatusSectionHandle>
 
       {isPending && !data ? (
         <ActivitySummarySkeleton />
       ) : data ? (
         <ActivitySummaryContent
+          emphasizeStats={false}
           range='year'
           showWorkspaces={false}
           summary={data}

@@ -199,10 +199,12 @@ function ActivityGraph({
 function ActivityStats({
   summary,
   showWorkspaces,
+  emphasizeStats,
   className,
 }: {
   summary: ActivitySummary;
   showWorkspaces: boolean;
+  emphasizeStats: boolean;
   className?: string;
 }) {
   const { t } = useI18n();
@@ -213,28 +215,59 @@ function ActivityStats({
   return (
     <dl className={cn('grid gap-x-4 gap-y-1.5', className)}>
       <Stat
+        emphasize={emphasizeStats}
         label={t.activity.currentStreak}
         value={formatDays(summary.currentStreak)}
       />
-      <Stat label={t.activity.activeDays} value={summary.activeDays} />
-      <Stat label={t.activity.sessions} value={summary.totalSessions} />
-      <Stat label={t.activity.last7Days} value={summary.last7Days} />
       <Stat
+        emphasize={emphasizeStats}
+        label={t.activity.activeDays}
+        value={summary.activeDays}
+      />
+      <Stat
+        emphasize={emphasizeStats}
+        label={t.activity.sessions}
+        value={summary.totalSessions}
+      />
+      <Stat
+        emphasize={emphasizeStats}
+        label={t.activity.last7Days}
+        value={summary.last7Days}
+      />
+      <Stat
+        emphasize={emphasizeStats}
         label={t.activity.longestStreak}
         value={formatDays(summary.longestStreak)}
       />
       {showWorkspaces && (
-        <Stat label={t.activity.workspaces} value={summary.workspaces} />
+        <Stat
+          emphasize={emphasizeStats}
+          label={t.activity.workspaces}
+          value={summary.workspaces}
+        />
       )}
     </dl>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: string | number;
+  emphasize: boolean;
+}) {
   return (
     <div className='flex min-w-0 items-baseline justify-between gap-2'>
       <dt className='text-muted whitespace-nowrap text-xs'>{label}</dt>
-      <dd className='text-sm font-semibold whitespace-nowrap tabular-nums'>
+      <dd
+        className={cn(
+          'whitespace-nowrap tabular-nums',
+          emphasize ? 'text-sm font-semibold' : 'text-xs',
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -268,10 +301,12 @@ function useContainerWidth<T extends HTMLElement>(ref: RefObject<T | null>) {
 export function ActivitySummaryContent({
   summary,
   showWorkspaces = true,
+  emphasizeStats = true,
   range = 'auto',
 }: {
   summary: ActivitySummary;
   showWorkspaces?: boolean;
+  emphasizeStats?: boolean;
   range?: 'auto' | 'year';
 }) {
   const { t } = useI18n();
@@ -301,7 +336,8 @@ export function ActivitySummaryContent({
         </div>
 
         <ActivityStats
-          className='grid-cols-2 @sm:w-36 @sm:shrink-0 @sm:grid-cols-1'
+          className='grid-cols-1 @min-[280px]:@max-[383px]:grid-cols-2 @sm:w-36 @sm:shrink-0 @sm:grid-cols-1'
+          emphasizeStats={emphasizeStats}
           showWorkspaces={showWorkspaces}
           summary={summary}
         />
@@ -315,7 +351,7 @@ export function ActivitySummarySkeleton() {
     <div className='@container motion-safe:animate-pulse'>
       <div className='flex flex-col gap-4 @sm:flex-row @sm:items-center'>
         <div className='h-[68px] min-w-0 rounded-md bg-surface-secondary @sm:flex-1' />
-        <div className='grid grid-cols-2 gap-x-4 gap-y-1.5 @sm:w-36 @sm:shrink-0 @sm:grid-cols-1'>
+        <div className='grid grid-cols-1 gap-x-4 gap-y-1.5 @min-[280px]:@max-[383px]:grid-cols-2 @sm:w-36 @sm:shrink-0 @sm:grid-cols-1'>
           {Array.from({ length: 6 }, (_, index) => (
             <div key={index} className='h-9 rounded bg-surface-secondary' />
           ))}

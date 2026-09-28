@@ -2,6 +2,7 @@ import { Typography } from '@aero/ui';
 import { CircleTree } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { SubagentStatusItem } from '@/app/components/status-panel/subagent-status-item';
 import { useSessionChildren, useSessionStatus } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
@@ -25,18 +26,20 @@ function SubagentStatusContent() {
 
   if (!children.length || !sessionStatus) return null;
   return (
-    <div className='border-separator border-b p-3'>
-      <div className='mb-2.5 flex items-center justify-between gap-1'>
-        <div className='flex items-center gap-1'>
-          <Icon data={CircleTree} className='text-muted' size={14} />
-          <Typography type='body-sm' className='text-foreground font-medium'>
-            {t.statusPanel.subagents}
+    <div className='p-3'>
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center justify-between gap-1'>
+          <div className='flex items-center gap-1'>
+            <Icon data={CircleTree} className='text-muted' size={14} />
+            <Typography type='body-sm' className='text-foreground font-medium'>
+              {t.statusPanel.subagents}
+            </Typography>
+          </div>
+          <Typography type='body-xs' className='text-muted'>
+            {children.length}
           </Typography>
         </div>
-        <Typography type='body-xs' className='text-muted'>
-          {children.length}
-        </Typography>
-      </div>
+      </StatusSectionHandle>
 
       <div className='flex flex-col gap-1'>
         {children.map((session) => {

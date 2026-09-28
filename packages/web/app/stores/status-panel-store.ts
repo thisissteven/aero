@@ -12,7 +12,6 @@ interface Size {
 }
 
 export type StatusItemKey =
-  | 'session'
   | 'project'
   // | 'usage'
   | 'subagent'
@@ -39,7 +38,6 @@ interface StatusPanelState {
 }
 
 const DEFAULT_VISIBLE_ITEMS: Record<StatusItemKey, boolean> = {
-  session: true,
   project: true,
   // usage: true,
   subagent: true,

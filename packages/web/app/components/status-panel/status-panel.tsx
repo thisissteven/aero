@@ -1,16 +1,29 @@
+import { cn } from '@aero/ui';
 import { Dots9 } from '@gravity-ui/icons';
-import React, { useCallback, useLayoutEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
-import { ActivityStatus } from '@/app/components/status-panel/activity-status';
-import { ContextSources } from '@/app/components/status-panel/context-sources';
-import { McpStatus } from '@/app/components/status-panel/mcp-status';
-import { PinnedMessageStatus } from '@/app/components/status-panel/pinned-message-status';
-import { ProjectStatus } from '@/app/components/status-panel/project-status';
 import { SessionStatus } from '@/app/components/status-panel/session-status';
-import { SubagentStatus } from '@/app/components/status-panel/subagent-status';
-import { TaskStatus } from '@/app/components/status-panel/task-status';
-import { useStatusPanelStore } from '@/app/stores/status-panel-store';
+import {
+  type DropPosition,
+  SortableStatusSection,
+} from '@/app/components/status-panel/sortable-status-section';
+import {
+  renderStatusSection,
+  resolveStatusPanelOrder,
+} from '@/app/components/status-panel/status-sections';
+import { useStatusPanelOrder } from '@/app/hooks/api/settings';
+import {
+  type StatusItemKey,
+  useStatusPanelStore,
+} from '@/app/stores/status-panel-store';
 
 const MIN_WIDTH = 260;
 const MIN_HEIGHT = 200;
@@ -22,6 +35,153 @@ type ResizeDirection =
   | 'bottom-left'
   | 'bottom-right';
 
+function moveStatusSection(
+  order: StatusItemKey[],
+  from: string,
+  target: string,
+  position: DropPosition,
+): StatusItemKey[] {
+  if (from === target) return order;
+
+  const next = order.filter((key) => key !== from);
+  const targetIndex = next.indexOf(target as StatusItemKey);
+  if (targetIndex === -1) return order;
+
+  const insertAt = position === 'before' ? targetIndex : targetIndex + 1;
+  next.splice(insertAt, 0, from as StatusItemKey);
+
+  return next;
+}
+
+function StatusPanelSections() {
+  const { order, setOrder } = useStatusPanelOrder();
+  const visibleItems = useStatusPanelStore((state) => state.visibleItems);
+  const orderedKeys = useMemo(() => resolveStatusPanelOrder(order), [order]);
+
+  const [localOrder, setLocalOrder] = useState<StatusItemKey[]>(orderedKeys);
+  const [presentKeys, setPresentKeys] = useState<Set<string>>(() => new Set());
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    key: string;
+    position: DropPosition;
+  } | null>(null);
+
+  const localOrderRef = useRef<StatusItemKey[]>(orderedKeys);
+  const draggingKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    localOrderRef.current = orderedKeys;
+    setLocalOrder(orderedKeys);
+  }, [orderedKeys]);
+
+  const visibleKeys = useMemo(
+    () => localOrder.filter((key) => visibleItems[key] ?? true),
+    [localOrder, visibleItems],
+  );
+
+  const handlePresenceChange = useCallback((id: string, present: boolean) => {
+    setPresentKeys((current) => {
+      if (current.has(id) === present) return current;
+
+      const next = new Set(current);
+      if (present) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const lastPresentKey = useMemo(() => {
+    for (let index = visibleKeys.length - 1; index >= 0; index -= 1) {
+      if (presentKeys.has(visibleKeys[index])) return visibleKeys[index];
+    }
+
+    return null;
+  }, [visibleKeys, presentKeys]);
+
+  const hasSections = useMemo(
+    () => visibleKeys.some((key) => presentKeys.has(key)),
+    [visibleKeys, presentKeys],
+  );
+
+  const handleRowDragStart = useCallback((key: string) => {
+    draggingKeyRef.current = key;
+    setDraggingKey(key);
+  }, []);
+
+  const handleRowDragOver = useCallback(
+    (key: string, position: DropPosition) => {
+      if (draggingKeyRef.current === key) {
+        setDropTarget((current) => (current ? null : current));
+        return;
+      }
+
+      setDropTarget((current) =>
+        current?.key === key && current.position === position
+          ? current
+          : { key, position },
+      );
+    },
+    [],
+  );
+
+  const handleRowDrop = useCallback(
+    (key: string, position: DropPosition) => {
+      const from = draggingKeyRef.current;
+      draggingKeyRef.current = null;
+      setDraggingKey(null);
+      setDropTarget(null);
+
+      if (!from) return;
+
+      const next = moveStatusSection(
+        localOrderRef.current,
+        from,
+        key,
+        position,
+      );
+      if (next === localOrderRef.current) return;
+
+      localOrderRef.current = next;
+      setLocalOrder(next);
+      setOrder(next);
+    },
+    [setOrder],
+  );
+
+  const handleRowDragEnd = useCallback(() => {
+    draggingKeyRef.current = null;
+    setDraggingKey(null);
+    setDropTarget(null);
+  }, []);
+
+  return (
+    <>
+      <div className={cn('border-separator', hasSections && 'border-b')}>
+        <SessionStatus />
+      </div>
+
+      <div className={cn(draggingKey && 'select-none')}>
+        {visibleKeys.map((key) => (
+          <SortableStatusSection
+            key={key}
+            id={key}
+            dragging={draggingKey === key}
+            dropIndicator={dropTarget?.key === key ? dropTarget.position : null}
+            onDragEnd={handleRowDragEnd}
+            onDragOver={handleRowDragOver}
+            onDrop={handleRowDrop}
+            onDragStart={handleRowDragStart}
+            onPresenceChange={handlePresenceChange}
+            showBorder={presentKeys.has(key) && key !== lastPresentKey}
+          >
+            {renderStatusSection(key)}
+          </SortableStatusSection>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export const StatusPanel = React.memo(function StatusPanel() {
   const isOpen = useStatusPanelStore((state) => state.isOpen);
 
@@ -29,14 +189,7 @@ export const StatusPanel = React.memo(function StatusPanel() {
 
   return (
     <div className='border-separator bg-surface/30 backdrop-blur-sm h-full scrollbar-thin overflow-x-hidden overflow-y-auto border-l'>
-      <SessionStatus />
-      <ProjectStatus />
-      <SubagentStatus />
-      <TaskStatus />
-      <McpStatus />
-      <PinnedMessageStatus />
-      <ContextSources />
-      <ActivityStatus />
+      <StatusPanelSections />
     </div>
   );
 });
@@ -250,14 +403,7 @@ export const StatusPanelFloating = React.memo(function StatusPanelFloating() {
 
         {/* Scrollable Content Container */}
         <div className='min-h-0 flex-1 cursor-default scrollbar-thin overflow-x-hidden overflow-y-auto'>
-          <SessionStatus />
-          <ProjectStatus />
-          <SubagentStatus />
-          <TaskStatus />
-          <McpStatus />
-          <PinnedMessageStatus />
-          <ContextSources />
-          <ActivityStatus />
+          <StatusPanelSections />
         </div>
       </div>
     </div>

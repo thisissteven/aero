@@ -1,80 +1,21 @@
 import { Typography } from '@aero/ui';
 import { CircleTree, File } from '@gravity-ui/icons';
 import { useMemo } from 'react';
-import { useGitStatus } from '@/app/hooks/api/git';
-import { useSession } from '@/app/hooks/api/sessions';
+
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
+import {
+  useGitCurrentBranch,
+  useGitErrorCode,
+  useGitSummary,
+} from '@/app/hooks/api/git';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useWorkspacesKeys } from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
 import { getLastPathName } from '@/app/lib/file';
-import { useSessionId } from '@/app/providers/SessionIdProvider';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
 
-// ---------------------------------------------------------------------------
-// Shared shape for deriving a diff summary from the status endpoint
-// ---------------------------------------------------------------------------
-
-interface DiffStat {
-  path: string;
-  additions: number;
-  deletions: number;
-}
-
-interface DiffSummaryEntry {
-  path: string;
-  additions: number;
-  deletions: number;
-}
-
-interface GitStatusShape {
-  currentBranch?: string | null;
-  not_added?: string[];
-  diffStats?: {
-    staged?: Record<string, DiffStat>;
-    working?: Record<string, DiffStat>;
-  };
-}
-
-function deriveSummary(
-  status: GitStatusShape | null | undefined,
-): DiffSummaryEntry[] {
-  if (!status) return [];
-
-  const map = new Map<string, DiffSummaryEntry>();
-
-  const merge = (stat: DiffStat) => {
-    const existing = map.get(stat.path);
-    if (existing) {
-      existing.additions += stat.additions;
-      existing.deletions += stat.deletions;
-    } else {
-      map.set(stat.path, {
-        path: stat.path,
-        additions: stat.additions,
-        deletions: stat.deletions,
-      });
-    }
-  };
-
-  for (const bucket of [status.diffStats?.staged, status.diffStats?.working]) {
-    if (!bucket) continue;
-    for (const stat of Object.values(bucket)) merge(stat);
-  }
-
-  for (const untracked of status.not_added ?? []) {
-    if (!map.has(untracked)) {
-      map.set(untracked, { path: untracked, additions: 0, deletions: 0 });
-    }
-  }
-
-  return Array.from(map.values());
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function ProjectStatus() {
-  const isVisible = useStatusPanelStore((state) => state.visibleItems.mcp);
+  const isVisible = useStatusPanelStore((state) => state.visibleItems.project);
 
   if (!isVisible) return null;
 
@@ -82,47 +23,61 @@ export function ProjectStatus() {
 }
 
 export function ProjectStatusContent() {
-  const sessionId = useSessionId();
-  const { data: session } = useSession(undefined, sessionId);
+  const directory = useSessionDirectory();
 
-  if (!session) return null;
+  if (!directory) return null;
 
   return (
-    <div className='border-separator border-b p-3'>
-      <ProjectStatusHeader workspace={session.workspace} />
-      <CurrentBranch workspace={session.workspace} />
-      <FilesChanged workspace={session.workspace} />
+    <div className='p-3'>
+      <ProjectStatusHeader directory={directory} />
+      <ProjectStatusBody directory={directory} />
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Sub-views
-// ---------------------------------------------------------------------------
+function ProjectStatusBody({ directory }: { directory: string }) {
+  const { data: error } = useGitErrorCode(directory);
+  const { t } = useI18n();
 
-function ProjectStatusHeader({ workspace }: { workspace: string }) {
+  if (error?.code === 'INVALID_GIT_REPOSITORY') {
+    return (
+      <Typography type='body-xs' color='muted'>
+        {t.workspace.noGitRepository}
+      </Typography>
+    );
+  }
+
+  return (
+    <>
+      <CurrentBranch directory={directory} />
+      <FilesChanged directory={directory} />
+    </>
+  );
+}
+
+function ProjectStatusHeader({ directory }: { directory: string }) {
   const { data: keys } = useWorkspacesKeys();
   const { t } = useI18n();
 
-  const workspaceTitle = keys?.[workspace]?.name ?? getLastPathName(workspace);
+  const workspaceTitle = keys?.[directory]?.name ?? getLastPathName(directory);
 
   return (
-    <div className='mb-2 flex items-center justify-between gap-2'>
-      <Typography type='body-sm' className='text-foreground font-medium'>
-        {t.statusPanel.project}
-      </Typography>
-      <Typography type='body-xs' className='text-muted truncate'>
-        {workspaceTitle}
-      </Typography>
-    </div>
+    <StatusSectionHandle>
+      <div className='mb-2 flex items-center justify-between gap-2'>
+        <Typography type='body-sm' className='text-foreground font-medium'>
+          {t.statusPanel.project}
+        </Typography>
+        <Typography type='body-xs' className='text-muted truncate'>
+          {workspaceTitle}
+        </Typography>
+      </div>
+    </StatusSectionHandle>
   );
 }
 
-function CurrentBranch({ workspace }: { workspace: string }) {
-  const { data: statusData } = useGitStatus(workspace);
-
-  const branch =
-    (statusData as GitStatusShape | null | undefined)?.currentBranch ?? null;
+function CurrentBranch({ directory }: { directory: string }) {
+  const { data } = useGitCurrentBranch(directory);
+  const branch = data?.currentBranch ?? null;
 
   if (!branch) return null;
 
@@ -136,16 +91,13 @@ function CurrentBranch({ workspace }: { workspace: string }) {
   );
 }
 
-function FilesChanged({ workspace }: { workspace: string }) {
-  const { data: statusData } = useGitStatus(workspace);
+function FilesChanged({ directory }: { directory: string }) {
+  const { data } = useGitSummary(directory);
   const { t } = useI18n();
 
-  const summary = useMemo(
-    () => deriveSummary(statusData as GitStatusShape | null | undefined),
-    [statusData],
-  );
+  const summary = useMemo(() => data?.summary ?? [], [data]);
 
-  if (!statusData) return null;
+  if (!data) return null;
 
   const fileCount = summary.length;
   const totalAdditions = summary.reduce((acc, item) => acc + item.additions, 0);

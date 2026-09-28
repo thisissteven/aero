@@ -3,6 +3,7 @@ import { Check, LogoMcp, Power } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { Switch } from '@heroui/react';
 
+import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
 import { useConnectMCP, useDisconnectMCP, useMCPs } from '@/app/hooks/api/mcp';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
@@ -120,16 +121,18 @@ export function McpStatus() {
   if (!isVisible) return null;
 
   return (
-    <div className='border-separator border-b p-3'>
-      <div className='mb-2.5 flex items-center justify-between'>
-        <div className='flex items-center gap-1'>
-          <Icon data={LogoMcp} className='text-muted' size={14} />
-          <Typography type='body-sm' className='text-foreground font-medium'>
-            {t.statusPanel.mcpStatus}
-          </Typography>
+    <div className='p-3'>
+      <StatusSectionHandle>
+        <div className='mb-2.5 flex items-center justify-between'>
+          <div className='flex items-center gap-1'>
+            <Icon data={LogoMcp} className='text-muted' size={14} />
+            <Typography type='body-sm' className='text-foreground font-medium'>
+              {t.statusPanel.mcpStatus}
+            </Typography>
+          </div>
+          <McpAmount />
         </div>
-        <McpAmount />
-      </div>
+      </StatusSectionHandle>
       <McpServerList />
     </div>
   );

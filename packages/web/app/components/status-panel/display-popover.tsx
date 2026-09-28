@@ -1,6 +1,10 @@
 import { Popover } from '@aero/ui';
 import { Sliders } from '@gravity-ui/icons';
 import { Checkbox } from '@heroui/react';
+import { useMemo } from 'react';
+
+import { resolveStatusPanelOrder } from '@/app/components/status-panel/status-sections';
+import { useStatusPanelOrder } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
 import {
   type StatusItemKey,
@@ -9,22 +13,23 @@ import {
 
 export function DisplayPopover() {
   const visibleItems = useStatusPanelStore((state) => state.visibleItems);
-  const toggleItemVisibility = useStatusPanelStore(
-    (state) => state.toggleItemVisibility,
+  const setItemVisibility = useStatusPanelStore(
+    (state) => state.setItemVisibility,
   );
+  const { order } = useStatusPanelOrder();
   const { t } = useI18n();
 
-  const STATUS_ITEMS: { key: StatusItemKey; label: string }[] = [
-    { key: 'session', label: t.statusPanel.sessionStatus },
-    { key: 'project', label: t.statusPanel.projectStatus },
-    // { key: 'usage', label: 'Usage Status' },
-    { key: 'subagent', label: t.statusPanel.subagentStatus },
-    { key: 'task', label: t.statusPanel.taskStatus },
-    { key: 'mcp', label: t.statusPanel.mcpStatus },
-    { key: 'pinnedMessage', label: t.statusPanel.pinnedMessages },
-    { key: 'contextSources', label: t.statusPanel.contextSources },
-    { key: 'activity', label: t.statusPanel.activity },
-  ];
+  const orderedKeys = useMemo(() => resolveStatusPanelOrder(order), [order]);
+
+  const labelByKey: Record<StatusItemKey, string> = {
+    project: t.statusPanel.projectStatus,
+    subagent: t.statusPanel.subagentStatus,
+    task: t.statusPanel.taskStatus,
+    mcp: t.statusPanel.mcpStatus,
+    pinnedMessage: t.statusPanel.pinnedMessages,
+    contextSources: t.statusPanel.contextSources,
+    activity: t.statusPanel.activity,
+  };
 
   return (
     <Popover>
@@ -37,18 +42,18 @@ export function DisplayPopover() {
             {t.statusPanel.displayItems}
           </p>
 
-          {STATUS_ITEMS.map(({ key, label }) => (
+          {orderedKeys.map((key) => (
             <Checkbox
               key={key}
               isSelected={visibleItems[key] ?? true}
-              onChange={() => toggleItemVisibility(key)}
+              onChange={(isSelected) => setItemVisibility(key, isSelected)}
               variant='secondary'
             >
               <Checkbox.Content className='gap-2 text-sm'>
                 <Checkbox.Control>
                   <Checkbox.Indicator />
                 </Checkbox.Control>
-                {label}
+                {labelByKey[key]}
               </Checkbox.Content>
             </Checkbox>
           ))}
