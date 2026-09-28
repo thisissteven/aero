@@ -7,7 +7,10 @@ import {
   ActivitySummarySkeleton,
 } from '@/app/components/activity/activity-summary-content';
 import { StatusSectionHandle } from '@/app/components/status-panel/sortable-status-section';
-import { useActivitySummary } from '@/app/hooks/api/activity';
+import {
+  isStandaloneWorkspace,
+  useActivitySummary,
+} from '@/app/hooks/api/activity';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useStatusPanelStore } from '@/app/stores/status-panel-store';
@@ -18,7 +21,8 @@ export function ActivityStatus() {
   const { data, isPending } = useActivitySummary(directory);
   const { t } = useI18n();
 
-  if (!isVisible) return null;
+  if (!isVisible || isStandaloneWorkspace(directory)) return null;
+  if (data ? data.totalSessions === 0 : !isPending) return null;
 
   return (
     <div className='p-3'>
@@ -31,16 +35,16 @@ export function ActivityStatus() {
         </div>
       </StatusSectionHandle>
 
-      {isPending && !data ? (
-        <ActivitySummarySkeleton />
-      ) : data ? (
+      {data ? (
         <ActivitySummaryContent
           emphasizeStats={false}
           range='year'
           showWorkspaces={false}
           summary={data}
         />
-      ) : null}
+      ) : (
+        <ActivitySummarySkeleton />
+      )}
     </div>
   );
 }

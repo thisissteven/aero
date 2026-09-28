@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { apiError } from '@/app/hooks/i18n/api-errors';
 import { honoClient } from '@/app/lib';
@@ -10,6 +10,10 @@ export const activityKeys = {
   summary: (directory?: string) =>
     ['activity', 'summary', directory ?? 'all'] as const,
 };
+
+export function isStandaloneWorkspace(directory?: string) {
+  return Boolean(directory?.includes('.aero/workspaces'));
+}
 
 export function useActivitySummary(directory?: string) {
   return useQuery<ActivitySummary>({
@@ -27,5 +31,6 @@ export function useActivitySummary(directory?: string) {
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 }

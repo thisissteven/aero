@@ -2,7 +2,10 @@ import {
   ActivitySummaryContent,
   ActivitySummarySkeleton,
 } from '@/app/components/activity/activity-summary-content';
-import { useActivitySummary } from '@/app/hooks/api/activity';
+import {
+  isStandaloneWorkspace,
+  useActivitySummary,
+} from '@/app/hooks/api/activity';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
@@ -13,8 +16,8 @@ export function ActivitySummaryCard() {
   const { t } = useI18n();
   const { data, isPending } = useActivitySummary(directory);
 
-  if (isChatInputExpanded) return null;
-  if (!isPending && !data) return null;
+  if (isChatInputExpanded || isStandaloneWorkspace(directory)) return null;
+  if (data ? data.totalSessions === 0 : !isPending) return null;
 
   return (
     <div className='@container w-full max-w-[720px]'>
