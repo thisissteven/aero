@@ -10,11 +10,7 @@ import {
 } from './browser-store';
 import { BrowserTabs } from './browser-tabs';
 
-interface BrowserPanelProps {
-  onAttachToChat?: (text: string) => void;
-}
-
-export function BrowserPanel({ onAttachToChat }: BrowserPanelProps) {
+export function BrowserPanel() {
   const tabs = useBrowserTabs();
   const activeTabId = useActiveBrowserTabId();
   const { addTab } = useBrowserActions();
@@ -43,7 +39,6 @@ export function BrowserPanel({ onAttachToChat }: BrowserPanelProps) {
               key={tab.id}
               tabId={tab.id}
               active={tab.id === activeTabId}
-              onAttachToChat={onAttachToChat}
             />
           ))
         )}

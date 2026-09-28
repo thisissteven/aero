@@ -341,6 +341,7 @@ export function isBlockedExternalHost(hostname: string): boolean {
 export function rewritePreviewCspHeader(
   value: string,
   nonce: string,
+  previewOrigin?: string,
 ): string | null {
   if (!value) {
     return null;
@@ -377,6 +378,13 @@ export function rewritePreviewCspHeader(
     if (!directive.tokens.includes(nonceSource)) {
       directive.tokens.push(nonceSource);
     }
+
+    // The bridge loads assets (notably the snapDOM capture module) from the
+    // preview origin. CSP host-sources cannot express a path, but the preview
+    // origin only ever serves proxied content plus our reserved assets.
+    if (previewOrigin && !directive.tokens.includes(previewOrigin)) {
+      directive.tokens.push(previewOrigin);
+    }
   };
 
   const scriptSrc = byName.get('script-src');
@@ -402,6 +410,7 @@ export function rewritePreviewCspHeader(
             .slice(1)
             .filter((token) => token.toLowerCase() !== "'none'"),
           nonceSource,
+          ...(previewOrigin ? [previewOrigin] : []),
         ],
       });
     }

@@ -57,6 +57,15 @@ export function serializeContainer(root: Node): ComposerSegment[] {
 
     const el = node as HTMLElement;
 
+    if (el.tagName === 'BR') {
+      segments.push({
+        type: 'text',
+        text: '\n',
+      });
+
+      return;
+    }
+
     if (el.dataset.token === 'true') {
       segments.push({
         type: 'token',

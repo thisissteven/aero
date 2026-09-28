@@ -933,6 +933,10 @@ export const zh: BaseTranslation = {
     newTab: '新标签页',
     annotationContextCopied: '标注上下文已复制到剪贴板',
     failedToCopyAnnotationContext: '复制标注上下文失败',
+    annotationAdded: '标注已添加到对话',
+    annotations: '标注',
+    removeAnnotation: '移除标注',
+    removeImage: '移除截图',
     annotationsUnavailable:
       '此预览无法使用标注功能。该页面可能阻止了注入脚本的运行。',
     reload: '刷新',

@@ -189,12 +189,17 @@ export async function buildExternalParts(
   }
 
   for (const annotation of state.browserAnnotations) {
-    parts.push({
-      type: 'file',
-      mime: annotation.imageMime ?? 'image/png',
-      filename: 'browser-annotation.png',
-      url: annotation.imageUrl,
-    });
+    // `imageUrl` is a data URL and may be empty when the bridge could not
+    // capture (timeout/busy). The text context is still useful on its own.
+    if (annotation.imageUrl) {
+      parts.push({
+        type: 'file',
+        mime: annotation.imageMime ?? 'image/png',
+        filename: 'browser-annotation.png',
+        url: annotation.imageUrl,
+      });
+    }
+
     parts.push({
       type: 'text',
       text: annotation.text,

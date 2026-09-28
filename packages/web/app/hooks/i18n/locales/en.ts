@@ -970,6 +970,10 @@ export const en = {
     newTab: 'New Tab',
     annotationContextCopied: 'Annotation context copied to clipboard',
     failedToCopyAnnotationContext: 'Failed to copy annotation context',
+    annotationAdded: 'Annotation added to chat',
+    annotations: 'Annotations',
+    removeAnnotation: 'Remove annotation',
+    removeImage: 'Remove screenshot',
     annotationsUnavailable:
       'Annotations are unavailable for this preview. The page may be preventing injected scripts from running.',
     reload: 'Reload',

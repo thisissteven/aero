@@ -976,6 +976,10 @@ export const ja: BaseTranslation = {
     newTab: '新しいタブ',
     annotationContextCopied: '注釈コンテキストをクリップボードにコピーしました',
     failedToCopyAnnotationContext: '注釈コンテキストのコピーに失敗しました',
+    annotationAdded: '注釈をチャットに追加しました',
+    annotations: '注釈',
+    removeAnnotation: '注釈を削除',
+    removeImage: 'スクリーンショットを削除',
     annotationsUnavailable:
       'このプレビューでは注釈を利用できません。ページが挿入されたスクリプトの実行を妨げている可能性があります。',
     reload: '再読み込み',

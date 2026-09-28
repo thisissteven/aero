@@ -932,6 +932,10 @@ export const zhTW: BaseTranslation = {
     newTab: '新分頁',
     annotationContextCopied: '標註上下文已複製到剪貼簿',
     failedToCopyAnnotationContext: '無法複製標註上下文',
+    annotationAdded: '標註已加入對話',
+    annotations: '標註',
+    removeAnnotation: '移除標註',
+    removeImage: '移除截圖',
     annotationsUnavailable:
       '此預覽無法使用標註功能。該頁面可能阻止了注入指令碼執行。',
     reload: '重新載入',

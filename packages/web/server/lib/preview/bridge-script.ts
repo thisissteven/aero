@@ -1,9 +1,16 @@
 export function buildBridgeScript(
   targetOrigin: string,
-  _bridgeNonce: string,
-  _previewBasePath: string,
+  bridgeNonce: string,
+  previewBasePath: string,
 ): string {
   const serializedTargetOrigin = JSON.stringify(targetOrigin);
+
+  const normalizedBasePath = (previewBasePath || '').replace(/\/+$/, '');
+
+  // Same-origin to the iframe: served by the proxy itself, not the upstream.
+  const reservedModuleUrl = `${normalizedBasePath}/__aero_internal__/snapdom.mjs`;
+
+  const serializedReservedModuleUrl = JSON.stringify(reservedModuleUrl);
 
   const script = `
 (() => {
@@ -16,11 +23,16 @@ export function buildBridgeScript(
   const SOURCE = 'aero-preview-bridge';
   const VERSION = 1;
   const TARGET_ORIGIN = ${serializedTargetOrigin};
+  const RESERVED_MODULE_URL = ${serializedReservedModuleUrl};
+  const HISTORY_INDEX_KEY = '__aeroHistoryIndex';
 
   let inspectMode = false;
   let annotationMode = 'element';
 
   let lastHoverKey = '';
+
+  let currentSelection = null;
+  let capturing = false;
 
   let previewFrame = 0;
   let pendingPreview = null;
@@ -431,6 +443,12 @@ export function buildBridgeScript(
 
       lastHoverKey = '';
 
+      currentSelection = {
+        mode: 'element',
+        target,
+        bounds,
+      };
+
       post({
         type: 'select',
         target,
@@ -463,6 +481,7 @@ export function buildBridgeScript(
 
   const clearInteraction = () => {
     lastHoverKey = '';
+    currentSelection = null;
 
     clearPreview();
 
@@ -493,6 +512,300 @@ export function buildBridgeScript(
     }
 
     updateCursor();
+  };
+
+  /*
+   * ----------------------------------------------------------
+   * Capture (snapDOM, same-origin)
+   * ----------------------------------------------------------
+   */
+
+  const waitForPaint = () =>
+    new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+  const withTimeout = (promise, ms) =>
+    Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(resolve, ms)),
+    ]);
+
+  const waitForAssets = async () => {
+    try {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    } catch {}
+
+    const images = Array.from(document.images || []);
+
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete) {
+          return typeof img.decode === 'function'
+            ? img.decode().catch(() => {})
+            : Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+        });
+      }),
+    );
+  };
+
+  const resolveBackgroundColor = () => {
+    try {
+      const body = getComputedStyle(document.body).backgroundColor;
+
+      if (body && body !== 'rgba(0, 0, 0, 0)' && body !== 'transparent') {
+        return body;
+      }
+
+      const html = getComputedStyle(document.documentElement).backgroundColor;
+
+      if (html && html !== 'rgba(0, 0, 0, 0)' && html !== 'transparent') {
+        return html;
+      }
+    } catch {}
+
+    return '#ffffff';
+  };
+
+  /*
+   * Bounds are captured at selection time. Re-read the live element so the
+   * highlight still lands correctly if the page scrolled or reflowed between
+   * the click and the snapshot.
+   */
+  const resolveSelectionBounds = () => {
+    const selection = currentSelection;
+
+    if (!selection) {
+      return null;
+    }
+
+    const selector = selection.target && selection.target.selector;
+
+    if (selector) {
+      try {
+        const element = document.querySelector(selector);
+
+        if (element) {
+          const rect = element.getBoundingClientRect();
+
+          if (rect.width > 0 && rect.height > 0) {
+            return {
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+            };
+          }
+        }
+      } catch {}
+    }
+
+    return selection.bounds || null;
+  };
+
+  /*
+   * Draw the highlight as a real, fixed-position element before capturing so
+   * the browser positions it. Mapping bounds onto the raster afterwards drifts
+   * with scrollbar width / DPR rounding; letting the engine place it does not.
+   */
+  const buildHighlightOverlay = (bounds) => {
+    if (
+      !bounds ||
+      !Number.isFinite(bounds.x) ||
+      !Number.isFinite(bounds.y) ||
+      bounds.width <= 0 ||
+      bounds.height <= 0
+    ) {
+      return null;
+    }
+
+    const overlay = document.createElement('div');
+
+    overlay.setAttribute('data-aero-capture-highlight', '');
+
+    overlay.style.cssText = [
+      'position:fixed',
+      'left:' + bounds.x + 'px',
+      'top:' + bounds.y + 'px',
+      'width:' + bounds.width + 'px',
+      'height:' + bounds.height + 'px',
+      'border:2px solid rgb(59, 130, 246)',
+      'background:rgba(59, 130, 246, 0.15)',
+      'box-sizing:border-box',
+      'z-index:2147483647',
+      'pointer-events:none',
+    ].join(';');
+
+    return overlay;
+  };
+
+  const isCanvasBlank = (canvas) => {
+    try {
+      const probe = document.createElement('canvas');
+
+      probe.width = 24;
+      probe.height = 24;
+
+      const context = probe.getContext('2d');
+
+      if (!context) {
+        return false;
+      }
+
+      context.clearRect(0, 0, probe.width, probe.height);
+      context.drawImage(canvas, 0, 0, probe.width, probe.height);
+
+      const data = context.getImageData(0, 0, probe.width, probe.height).data;
+
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] !== 0) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const ensureBackground = (canvas) => {
+    try {
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        return;
+      }
+
+      const corner = context.getImageData(0, 0, 1, 1).data;
+
+      if (corner[3] === 0) {
+        context.save();
+        context.globalCompositeOperation = 'destination-over';
+        context.fillStyle = resolveBackgroundColor();
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+      }
+    } catch {}
+  };
+
+  const captureRoot = (snap, root) =>
+    snap.toCanvas(root, {
+      clip: 'viewport',
+      dpr: window.devicePixelRatio || 1,
+      embedFonts: true,
+      format: 'png',
+    });
+
+  const captureViewport = async (requestId) => {
+    if (capturing) {
+      post({ type: 'capture-result', requestId, error: 'capture-busy', ts: Date.now() });
+      return;
+    }
+
+    capturing = true;
+
+    const freeze = document.createElement('style');
+
+    freeze.textContent =
+      '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';
+
+    try {
+      const mod = await import(RESERVED_MODULE_URL);
+      const snap = mod.snapdom || mod.default;
+
+      if (!snap || typeof snap.toCanvas !== 'function') {
+        throw new Error('snapDOM unavailable');
+      }
+
+      document.head.appendChild(freeze);
+
+      if (typeof mod.preCache === 'function') {
+        try {
+          await mod.preCache(document);
+        } catch {}
+      }
+
+      await withTimeout(waitForAssets(), 2500);
+      await waitForPaint();
+
+      const highlight = buildHighlightOverlay(resolveSelectionBounds());
+
+      if (highlight) {
+        document.body.appendChild(highlight);
+      }
+
+      /*
+       * snapDOM occasionally returns a blank raster. Try the document root and
+       * the body, keep the first non-blank result, and fall back to the last
+       * attempt so callers still get an image.
+       */
+      let canvas = null;
+      let fallback = null;
+
+      try {
+        for (const root of [document.documentElement, document.body]) {
+          if (!root) {
+            continue;
+          }
+
+          const candidate = await captureRoot(snap, root);
+
+          if (!candidate) {
+            continue;
+          }
+
+          if (!fallback) {
+            fallback = candidate;
+          }
+
+          if (!isCanvasBlank(candidate)) {
+            canvas = candidate;
+            break;
+          }
+        }
+      } finally {
+        if (highlight) {
+          highlight.remove();
+        }
+      }
+
+      canvas = canvas || fallback;
+
+      if (!canvas) {
+        throw new Error('empty capture');
+      }
+
+      ensureBackground(canvas);
+
+      post({
+        type: 'capture-result',
+        requestId,
+        dataUrl: canvas.toDataURL('image/png'),
+        mime: 'image/png',
+        ts: Date.now(),
+      });
+    } catch (error) {
+      post({
+        type: 'capture-result',
+        requestId,
+        error: String((error && error.message) || error),
+        ts: Date.now(),
+      });
+    } finally {
+      try {
+        freeze.remove();
+      } catch {}
+
+      capturing = false;
+    }
   };
 
   /*
@@ -561,6 +874,11 @@ export function buildBridgeScript(
 
     if (data.type === 'history-forward') {
       window.history.forward();
+      return;
+    }
+
+    if (data.type === 'capture') {
+      void captureViewport(data.requestId);
     }
   });
 
@@ -598,8 +916,36 @@ export function buildBridgeScript(
    * ----------------------------------------------------------
    */
 
-  const historyEntries = [window.location.href];
   let historyIndex = 0;
+
+  const readStateIndex = (state) => {
+    if (
+      state &&
+      typeof state === 'object' &&
+      typeof state[HISTORY_INDEX_KEY] === 'number'
+    ) {
+      return state[HISTORY_INDEX_KEY];
+    }
+
+    return null;
+  };
+
+  const stampState = (state, index) => {
+    if (state == null) {
+      return { [HISTORY_INDEX_KEY]: index };
+    }
+
+    if (typeof state === 'object' && !Array.isArray(state)) {
+      return { ...state, [HISTORY_INDEX_KEY]: index };
+    }
+
+    return state;
+  };
+
+  const canGoBack = () => historyIndex > 0;
+
+  const canGoForward = () =>
+    historyIndex < (window.history.length || 1) - 1;
 
   const notifyNavigation = () => {
     post({
@@ -611,8 +957,8 @@ export function buildBridgeScript(
     post({
       type: 'history-state',
       url: window.location.href,
-      canGoBack: historyIndex > 0,
-      canGoForward: historyIndex < historyEntries.length - 1,
+      canGoBack: canGoBack(),
+      canGoForward: canGoForward(),
     });
   };
 
@@ -622,15 +968,42 @@ export function buildBridgeScript(
       window.history,
     );
 
+    /*
+     * Bootstrap the index from the entry's persisted state. Browser session
+     * history keeps history.state across reloads and back/forward, so this
+     * survives full document loads — the exact point where the previous
+     * synthetic array reset to zero and disabled the toolbar buttons.
+     *
+     * With no persisted state (a fresh anchor/location.assign entry) we
+     * assume we are at the newest entry, which is correct for normal forward
+     * navigation, then stamp it so it stays trackable.
+     */
+    const existingIndex = readStateIndex(window.history.state);
+
+    if (existingIndex !== null) {
+      historyIndex = existingIndex;
+    } else {
+      historyIndex = Math.max(0, (window.history.length || 1) - 1);
+
+      try {
+        nativeReplaceState(
+          stampState(window.history.state, historyIndex),
+          '',
+        );
+      } catch {}
+    }
+
     window.history.pushState = function (state, unused, url) {
-      const nextUrl =
-        url == null ? url : toPreviewUrl(String(url));
+      const nextUrl = url == null ? url : toPreviewUrl(String(url));
+      const nextIndex = historyIndex + 1;
 
-      const result = nativePushState(state, unused, nextUrl);
+      const result = nativePushState(
+        stampState(state, nextIndex),
+        unused,
+        nextUrl,
+      );
 
-      historyEntries.splice(historyIndex + 1);
-      historyEntries.push(window.location.href);
-      historyIndex = historyEntries.length - 1;
+      historyIndex = nextIndex;
 
       queueMicrotask(notifyNavigation);
 
@@ -638,34 +1011,35 @@ export function buildBridgeScript(
     };
 
     window.history.replaceState = function (state, unused, url) {
-      const nextUrl =
-        url == null ? url : toPreviewUrl(String(url));
+      const nextUrl = url == null ? url : toPreviewUrl(String(url));
 
-      const result = nativeReplaceState(state, unused, nextUrl);
-
-      historyEntries[historyIndex] = window.location.href;
+      const result = nativeReplaceState(
+        stampState(state, historyIndex),
+        unused,
+        nextUrl,
+      );
 
       queueMicrotask(notifyNavigation);
 
       return result;
     };
 
-    window.addEventListener('popstate', () => {
-      const current = window.location.href;
-      const existingIndex = historyEntries.indexOf(current);
+    window.addEventListener('popstate', (event) => {
+      const index = readStateIndex(event.state);
 
-      if (existingIndex >= 0) {
-        historyIndex = existingIndex;
+      if (index !== null) {
+        historyIndex = index;
       } else {
-        historyEntries.push(current);
-        historyIndex = historyEntries.length - 1;
+        historyIndex = Math.min(
+          historyIndex,
+          Math.max(0, (window.history.length || 1) - 1),
+        );
       }
 
       queueMicrotask(notifyNavigation);
     });
 
     window.addEventListener('hashchange', () => {
-      historyEntries[historyIndex] = window.location.href;
       queueMicrotask(notifyNavigation);
     });
   }
@@ -873,8 +1247,8 @@ export function buildBridgeScript(
     post({
       type: 'history-state',
       url: window.location.href,
-      canGoBack: historyIndex > 0,
-      canGoForward: historyIndex < historyEntries.length - 1,
+      canGoBack: canGoBack(),
+      canGoForward: canGoForward(),
     });
   };
 
@@ -886,5 +1260,5 @@ export function buildBridgeScript(
 })();
 `;
 
-  return `<script nonce="${_bridgeNonce}">${script}</script>`;
+  return `<script nonce="${bridgeNonce}">${script}</script>`;
 }

@@ -2,6 +2,7 @@
 
 import { cn } from '@aero/ui';
 import { useCallback, useEffect, useRef } from 'react';
+import { BrowserAnnotationsPanel } from '@/app/components/browser-annotations-panel';
 import { ChatQuotesPanel } from '@/app/components/chat-quotes-panel';
 import {
   ChatActivityIndicator,
@@ -106,6 +107,7 @@ export function ChatPage({
               </div>
             </OfflineWrapper>
             <FileAttachments />
+            <BrowserAnnotationsPanel />
             <div className='flex flex-wrap gap-2 has-[>*]:mb-2 mx-2'>
               <SessionDiff />
               <SessionTodos />

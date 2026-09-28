@@ -989,6 +989,10 @@ export const de: BaseTranslation = {
       'Annotierungskontext in die Zwischenablage kopiert',
     failedToCopyAnnotationContext:
       'Annotierungskontext konnte nicht kopiert werden',
+    annotationAdded: 'Anmerkung zum Chat hinzugefügt',
+    annotations: 'Anmerkungen',
+    removeAnnotation: 'Anmerkung entfernen',
+    removeImage: 'Screenshot entfernen',
     annotationsUnavailable:
       'Annotierungen sind für diese Vorschau nicht verfügbar. Die Seite blockiert möglicherweise injizierte Skripte.',
     reload: 'Neu laden',

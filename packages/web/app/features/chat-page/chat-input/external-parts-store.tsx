@@ -67,6 +67,11 @@ export interface ExternalPartsState {
     sessionId: string,
     annotation: Omit<BrowserAnnotationItem, 'id'>,
   ) => string;
+  updateBrowserAnnotation: (
+    sessionId: string,
+    id: string,
+    patch: Partial<Omit<BrowserAnnotationItem, 'id'>>,
+  ) => void;
   removeBrowserAnnotation: (sessionId: string, id: string) => void;
   clearBrowserAnnotations: (sessionId: string) => void;
 
@@ -227,6 +232,16 @@ export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
     );
     return id;
   },
+
+  updateBrowserAnnotation: (sessionId, id, patch) =>
+    set((state) =>
+      patchSession(state, sessionId, {
+        browserAnnotations: getExternalPartsSession(
+          state,
+          sessionId,
+        ).browserAnnotations.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+      }),
+    ),
 
   removeBrowserAnnotation: (sessionId, id) =>
     set((state) =>

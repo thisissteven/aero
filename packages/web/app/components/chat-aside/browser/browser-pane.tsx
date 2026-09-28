@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Button, cn, toast } from '@aero/ui';
+import { Button, cn, Spinner, toast } from '@aero/ui';
 import {
   ArrowLeft,
   ArrowRight,
@@ -26,28 +26,37 @@ import {
 } from '@/app/components/chat-aside/browser/browser-helpers';
 import { IconBtn } from '@/app/components/chat-aside/browser/icon-btn';
 import { LocalhostPorts } from '@/app/components/chat-aside/browser/localhost-ports';
+import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
 import { useI18n } from '@/app/hooks/i18n';
 import { honoClient } from '@/app/lib';
+import { useOptionalSessionId } from '@/app/providers/SessionIdProvider';
 
 import { useBrowserActions, useBrowserTab } from './browser-store';
 
 interface BrowserPaneProps {
   tabId: string;
   active: boolean;
-  onAttachToChat?: (text: string) => void;
 }
 
-export function BrowserPane({
-  tabId,
-  active,
-  onAttachToChat,
-}: BrowserPaneProps) {
+interface PendingCapture {
+  resolve: (result: { dataUrl: string; mime: string } | null) => void;
+  timeout: number;
+}
+
+export function BrowserPane({ tabId, active }: BrowserPaneProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const lastHoverTargetRef = useRef<PreviewSelection['target'] | null>(null);
   const bridgeReadyRef = useRef(false);
   const inspectAttemptRef = useRef(0);
+  const captureRequestsRef = useRef(new Map<string, PendingCapture>());
 
   const tab = useBrowserTab(tabId);
+  // New-session pages have no route session id yet; the composer stores its
+  // external parts under the literal `'undefined'` key in that case.
+  const sessionId = useOptionalSessionId() ?? 'undefined';
+  const addBrowserAnnotation = useExternalPartsStore(
+    (state) => state.addBrowserAnnotation,
+  );
   const { t } = useI18n();
 
   const {
@@ -61,6 +70,7 @@ export function BrowserPane({
     setHoverTarget,
     updateTab,
     setIframeHistoryState,
+    goToHistory,
   } = useBrowserActions();
 
   const [iframeSrc, setIframeSrc] = useState('');
@@ -70,6 +80,7 @@ export function BrowserPane({
     useState<PreviewSelectionPreview | null>(null);
   const [annotationNote, setAnnotationNote] = useState('');
   const [bridgeReady, setBridgeReady] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Proxy Target Resolution
@@ -271,6 +282,38 @@ export function BrowserPane({
     [postToFrame],
   );
 
+  /**
+   * Ask the bridge (inside the cross-origin iframe) to snapshot the visible
+   * viewport. Resolves with null on timeout or when the bridge is unavailable,
+   * so the annotation still works without an image.
+   */
+  const requestCapture = useCallback((): Promise<{
+    dataUrl: string;
+    mime: string;
+  } | null> => {
+    return new Promise((resolve) => {
+      const frameWindow = iframeRef.current?.contentWindow;
+
+      if (!frameWindow || !bridgeReadyRef.current) {
+        resolve(null);
+        return;
+      }
+
+      const requestId = `cap_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2)}`;
+
+      const timeout = window.setTimeout(() => {
+        captureRequestsRef.current.delete(requestId);
+        resolve(null);
+      }, 5000);
+
+      captureRequestsRef.current.set(requestId, { resolve, timeout });
+
+      postToFrame({ type: 'capture', requestId });
+    });
+  }, [postToFrame]);
+
   // ---------------------------------------------------------------------------
   // Selection & Annotation Management
   // ---------------------------------------------------------------------------
@@ -289,7 +332,7 @@ export function BrowserPane({
   }, [clearSelection, postInspectMode, setHoverTarget, setInspecting, tabId]);
 
   const createAnnotation = useCallback(async () => {
-    if (!tab || !pendingSelection) {
+    if (!tab || !pendingSelection || isCapturing) {
       return;
     }
 
@@ -318,37 +361,40 @@ export function BrowserPane({
       annotation,
     );
 
-    void navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        toast.success(t.browser.annotationContextCopied);
-      })
-      .catch((error) => {
-        console.error('[Agentation] Clipboard write failed', error);
-        toast.danger(t.browser.failedToCopyAnnotationContext);
+    setIsCapturing(true);
+
+    try {
+      // Capture before leaving inspect mode: the bridge highlights the
+      // selection it is currently tracking, and clearing inspect mode drops
+      // that state.
+      const capture = await requestCapture();
+
+      addBrowserAnnotation(sessionId, {
+        imageUrl: capture?.dataUrl ?? '',
+        imageMime: capture?.mime ?? 'image/png',
+        text,
+        pageUrl: tab.url,
+        pageTitle: tab.title,
       });
 
-    // const iframe = iframeRef.current;
-
-    // if (iframe) {
-    //   const blob = await captureIframeContent(iframe);
-    //   const url = URL.createObjectURL(blob);
-    //   window.open(url, '_blank');
-    // }
-
-    onAttachToChat?.(text);
-
-    clearSelection();
-    lastHoverTargetRef.current = null;
-    setHoverTarget(tabId, null);
-    setInspecting(tabId, false);
-    postInspectMode(false);
+      toast.success(t.browser.annotationAdded);
+    } finally {
+      setIsCapturing(false);
+      clearSelection();
+      lastHoverTargetRef.current = null;
+      setHoverTarget(tabId, null);
+      setInspecting(tabId, false);
+      postInspectMode(false);
+    }
   }, [
+    addBrowserAnnotation,
     annotationNote,
     clearSelection,
-    onAttachToChat,
+    isCapturing,
     pendingSelection,
     postInspectMode,
+    requestCapture,
+    sessionId,
     setHoverTarget,
     setInspecting,
     tab,
@@ -426,11 +472,19 @@ export function BrowserPane({
 
   // Cleanup on unmount
   useEffect(() => {
+    const captureRequests = captureRequestsRef.current;
+
     return () => {
       bridgeReadyRef.current = false;
       lastHoverTargetRef.current = null;
       setInspecting(tabId, false);
       setHoverTarget(tabId, null);
+
+      for (const pending of captureRequests.values()) {
+        window.clearTimeout(pending.timeout);
+        pending.resolve(null);
+      }
+      captureRequests.clear();
     };
   }, [setHoverTarget, setInspecting, tabId]);
 
@@ -474,13 +528,42 @@ export function BrowserPane({
   // ---------------------------------------------------------------------------
   // Navigation Controls
   // ---------------------------------------------------------------------------
+  /*
+   * Back/forward are driven entirely from this pane's own tab history and
+   * reload the iframe source. Previously they called the iframe's
+   * `window.history.back()`, which can fall through to the top-level browsing
+   * context (and therefore Aero's page history) when the frame has no entry
+   * of its own. Rebuilding the iframe src can never touch the parent history.
+   */
+  const canGoBack = (tab?.historyIndex ?? -1) > 0;
+  const canGoForward =
+    !!tab && tab.historyIndex >= 0 && tab.historyIndex < tab.history.length - 1;
+
   const goBackInFrame = useCallback(() => {
-    postToFrame({ type: 'history-back' });
-  }, [postToFrame]);
+    if (!tab) {
+      return;
+    }
+
+    const nextIndex = tab.historyIndex - 1;
+
+    if (nextIndex >= 0) {
+      setLoading(tabId, true);
+      goToHistory(tabId, nextIndex);
+    }
+  }, [goToHistory, setLoading, tab, tabId]);
 
   const goForwardInFrame = useCallback(() => {
-    postToFrame({ type: 'history-forward' });
-  }, [postToFrame]);
+    if (!tab) {
+      return;
+    }
+
+    const nextIndex = tab.historyIndex + 1;
+
+    if (nextIndex < tab.history.length) {
+      setLoading(tabId, true);
+      goToHistory(tabId, nextIndex);
+    }
+  }, [goToHistory, setLoading, tab, tabId]);
 
   const handleReload = useCallback(() => {
     if (!tab?.currentUrl) {
@@ -567,6 +650,29 @@ export function BrowserPane({
             canGoBack: data.canGoBack === true,
             canGoForward: data.canGoForward === true,
           });
+          break;
+        }
+
+        case 'capture-result': {
+          const requestId =
+            typeof data.requestId === 'string' ? data.requestId : '';
+          const pending = captureRequestsRef.current.get(requestId);
+
+          if (!pending) {
+            break;
+          }
+
+          captureRequestsRef.current.delete(requestId);
+          window.clearTimeout(pending.timeout);
+
+          if (data.dataUrl) {
+            pending.resolve({
+              dataUrl: data.dataUrl,
+              mime: data.mime ?? 'image/png',
+            });
+          } else {
+            pending.resolve(null);
+          }
           break;
         }
 
@@ -673,14 +779,14 @@ export function BrowserPane({
       {/* Navigation & Address Bar */}
       <div className='border-separator flex items-center gap-1 border-b px-2 py-1'>
         <IconBtn
-          disabled={!tab.canGoBack}
+          disabled={!canGoBack}
           onClick={goBackInFrame}
           title={t.common.back}
         >
           <Icon data={ArrowLeft} size={14} />
         </IconBtn>
         <IconBtn
-          disabled={!tab.canGoForward}
+          disabled={!canGoForward}
           onClick={goForwardInFrame}
           title={t.common.forward}
         >
@@ -847,9 +953,14 @@ export function BrowserPane({
                   type='button'
                   aria-label={t.selectionPopover.submitComment}
                   size='sm'
+                  isDisabled={isCapturing}
                   onPress={createAnnotation}
                 >
-                  <Paperclip />
+                  {isCapturing ? (
+                    <Spinner size='sm' color='current' />
+                  ) : (
+                    <Paperclip />
+                  )}
                 </Button>
               </div>
             )}

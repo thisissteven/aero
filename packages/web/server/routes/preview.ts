@@ -1,13 +1,13 @@
-import { Context, Hono } from 'hono';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Context, Hono } from 'hono';
 
 import { proxyRequest } from '../lib/preview/proxy';
 import { isBlockedExternalHost } from '../lib/preview/rewrite';
 import {
-  createLocalPreviewTarget,
-  createPreviewTarget,
+  getOrCreateLocalPreviewTarget,
+  getOrCreatePreviewTarget,
   getPreviewTarget,
 } from '../lib/preview/store';
 
@@ -138,7 +138,10 @@ const preview = new Hono().post('/targets', async (c) => {
       );
     }
 
-    const target = createLocalPreviewTarget(filePath, path.dirname(filePath));
+    const target = getOrCreateLocalPreviewTarget(
+      filePath,
+      path.dirname(filePath),
+    );
 
     const previewHost = `${target.id}.preview.localhost`;
 
@@ -188,7 +191,7 @@ const preview = new Hono().post('/targets', async (c) => {
     );
   }
 
-  const target = createPreviewTarget(url.origin);
+  const target = getOrCreatePreviewTarget(url.origin);
 
   const previewHost = `${target.id}.preview.localhost`;
 

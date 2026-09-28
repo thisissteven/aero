@@ -25,3 +25,10 @@ export const useSessionId = (): string => {
   }
   return context;
 };
+
+/**
+ * Non-throwing variant. Returns `undefined` when there is no session id
+ * (e.g. the new-session page) instead of throwing.
+ */
+export const useOptionalSessionId = (): string | undefined =>
+  useContext(SessionIdContext) ?? undefined;

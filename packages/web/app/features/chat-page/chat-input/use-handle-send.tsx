@@ -6,6 +6,7 @@ import {
 } from '@/app/components/smart-composer/components/composer-submit';
 import { AeroCommandName } from '@/app/components/smart-composer/custom-commands';
 import {
+  buildText,
   ComposerSegment,
   extractCommandPayload,
 } from '@/app/components/smart-composer/smart-composer-helpers';
@@ -119,7 +120,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
       const sendTextMessage = (texts: string[]) => {
         const mentionParts = buildComposerTokenParts(
           effectiveSegments as ComposerSegment[],
-        ).filter((part) => part.type === 'file' || part.type === 'agent');
+        );
 
         sendMessage({
           sessionId,
@@ -154,9 +155,21 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         } else if (isCommand) {
           const {
             command,
-            arguments: args,
+            arguments: rawArgs,
             isCustomCommand,
           } = extractCommandPayload(effectiveSegments);
+
+          // Custom commands build their message the same way a normal send
+          // does: the arguments keep the composer's original whitespace and
+          // include mention labels (file/agent/skill/snippet). The mention
+          // parts are appended by `sendTextMessage`.
+          const args = isCustomCommand
+            ? buildText(
+                (payload?.segments ?? []).filter(
+                  (segment) => segment !== effectiveSegments[0],
+                ) as ComposerSegment[],
+              )
+            : rawArgs;
 
           if (isCustomCommand) {
             switch (command as AeroCommandName) {

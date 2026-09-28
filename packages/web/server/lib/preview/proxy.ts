@@ -11,6 +11,7 @@ import {
   rewritePreviewCspHeader,
   rewritePreviewRedirectLocation,
 } from './rewrite';
+import { serveReservedPreviewAsset } from './snapdom-module';
 import type { PreviewTarget } from './store';
 
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -59,15 +60,18 @@ function filterRequestHeaders(request: Headers): Headers {
       lower === 'connection' ||
       lower === 'content-length' ||
       lower === 'transfer-encoding' ||
-      lower === 'referer' ||
-      lower === 'cookie' ||
-      lower === 'authorization'
+      lower === 'referer'
     ) {
       return;
     }
 
     result.set(key, value);
   });
+
+  // `cookie` and `authorization` intentionally pass through: the browser only
+  // holds them for the per-target preview origin, so they are the previewed
+  // app's own credentials (not Aero's) and are required for its sessions to
+  // work through the proxy.
 
   result.set('accept-encoding', 'identity');
 
@@ -87,6 +91,7 @@ function copyResponseHeaders(source: Headers): Headers {
       lower === 'connection' ||
       lower === 'keep-alive' ||
       lower === 'x-frame-options' ||
+      lower === 'set-cookie' ||
       lower === 'content-security-policy' ||
       lower === 'content-security-policy-report-only'
     ) {
@@ -95,6 +100,19 @@ function copyResponseHeaders(source: Headers): Headers {
 
     result.set(key, value);
   });
+
+  // `Headers.forEach` collapses multiple Set-Cookie headers into one, which
+  // breaks apps that rely on more than one cookie. `getSetCookie()` preserves
+  // them individually (undici/Node 20+).
+  const setCookies = (
+    source as Headers & { getSetCookie?: () => string[] }
+  ).getSetCookie?.();
+
+  if (setCookies && setCookies.length > 0) {
+    for (const cookie of setCookies) {
+      result.append('set-cookie', cookie);
+    }
+  }
 
   return result;
 }
@@ -116,8 +134,9 @@ function injectBridge(
   targetOrigin: string,
   previewOrigin: string,
   nonce: string,
+  proxyBasePath: string,
 ): string {
-  const bridge = buildBridgeScript(targetOrigin, nonce, previewOrigin);
+  const bridge = buildBridgeScript(targetOrigin, nonce, proxyBasePath);
 
   const head = html.match(/<head\b[^>]*>/i);
 
@@ -444,7 +463,9 @@ function stripLocalCspMeta(html: string): string {
 function injectLocalBridge(html: string, previewOrigin: string): string {
   const nonce = randomBytes(16).toString('base64');
 
-  const bridge = buildBridgeScript(previewOrigin, nonce, previewOrigin);
+  // Local files are always served from the dedicated preview host, so the
+  // reserved asset lives at the origin root (empty proxy base path).
+  const bridge = buildBridgeScript(previewOrigin, nonce, '');
 
   const sanitized = stripLocalCspMeta(html);
 
@@ -586,6 +607,16 @@ export async function proxyRequest(
   restPath: string,
 ): Promise<Response> {
   /*
+   * Assets served by Aero itself (e.g. the snapDOM capture module the bridge
+   * imports lazily). These never reach the upstream.
+   */
+  const reserved = await serveReservedPreviewAsset(restPath);
+
+  if (reserved) {
+    return reserved;
+  }
+
+  /*
    * Local filesystem preview.
    */
   if (target.kind === 'file') {
@@ -725,7 +756,11 @@ export async function proxyRequest(
     const originalCsp = response.headers.get('content-security-policy');
 
     if (originalCsp) {
-      const rewrittenCsp = rewritePreviewCspHeader(originalCsp, nonce);
+      const rewrittenCsp = rewritePreviewCspHeader(
+        originalCsp,
+        nonce,
+        previewOrigin,
+      );
 
       if (rewrittenCsp) {
         headers.set('content-security-policy', rewrittenCsp);
@@ -737,6 +772,7 @@ export async function proxyRequest(
       target.origin,
       previewOrigin,
       nonce,
+      proxyBasePath,
     );
 
     headers.delete('content-length');

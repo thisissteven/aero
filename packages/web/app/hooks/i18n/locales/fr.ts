@@ -1003,6 +1003,10 @@ export const fr: BaseTranslation = {
       'Contexte des annotations copié dans le presse-papiers',
     failedToCopyAnnotationContext:
       'Échec de la copie du contexte des annotations',
+    annotationAdded: 'Annotation ajoutée au chat',
+    annotations: 'Annotations',
+    removeAnnotation: 'Supprimer l’annotation',
+    removeImage: 'Supprimer la capture',
     annotationsUnavailable:
       'Les annotations ne sont pas disponibles pour cet aperçu. La page bloque peut-être l’exécution des scripts injectés.',
     reload: 'Recharger',

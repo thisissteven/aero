@@ -970,6 +970,10 @@ export const id: BaseTranslation = {
     newTab: 'Tab Baru',
     annotationContextCopied: 'Konteks anotasi disalin ke clipboard',
     failedToCopyAnnotationContext: 'Gagal menyalin konteks anotasi',
+    annotationAdded: 'Anotasi ditambahkan ke chat',
+    annotations: 'Anotasi',
+    removeAnnotation: 'Hapus anotasi',
+    removeImage: 'Hapus tangkapan layar',
     annotationsUnavailable:
       'Anotasi tidak tersedia untuk pratinjau ini. Halaman mungkin mencegah skrip yang disuntikkan dari berjalan.',
     reload: 'Muat ulang',

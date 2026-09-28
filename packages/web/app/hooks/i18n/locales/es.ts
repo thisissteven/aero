@@ -995,6 +995,10 @@ export const es: BaseTranslation = {
     annotationContextCopied: 'Contexto de la anotación copiado al portapapeles',
     failedToCopyAnnotationContext:
       'No se pudo copiar el contexto de la anotación',
+    annotationAdded: 'Anotación añadida al chat',
+    annotations: 'Anotaciones',
+    removeAnnotation: 'Eliminar anotación',
+    removeImage: 'Eliminar captura',
     annotationsUnavailable:
       'Las anotaciones no están disponibles para esta vista previa. Es posible que la página esté bloqueando la ejecución de los scripts inyectados.',
     reload: 'Recargar',

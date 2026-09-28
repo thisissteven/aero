@@ -1,4 +1,3 @@
-import { snapdom } from '@zumer/snapdom';
 import { useBrowserStore } from '@/app/components/chat-aside/browser/browser-store';
 
 export type PreviewAnnotationMode = 'element' | 'region' | 'draw';
@@ -48,7 +47,8 @@ export interface PreviewBridgeMessage {
     | 'select'
     | 'selection-preview'
     | 'navigate-preview'
-    | 'history-state';
+    | 'history-state'
+    | 'capture-result';
 
   url?: string;
   title?: string;
@@ -60,6 +60,11 @@ export interface PreviewBridgeMessage {
 
   canGoBack?: boolean;
   canGoForward?: boolean;
+
+  requestId?: string;
+  dataUrl?: string;
+  mime?: string;
+  error?: string;
 
   ts?: number;
 }
@@ -96,7 +101,10 @@ export function getBrowserProxyTargetKey(url: string): string {
       return `file:${parsed.href}`;
     }
 
-    return `${parsed.origin}${parsed.pathname}`;
+    // Key by origin only. The server keeps one stable preview origin per
+    // upstream origin, so different paths on the same site reuse it — which
+    // is what lets localStorage/sessionStorage/cookies survive navigation.
+    return parsed.origin;
   } catch {
     return url;
   }
@@ -265,36 +273,6 @@ export function formatAgentationContext(
   }
 
   return lines.join('\n');
-}
-
-export async function captureIframeContent(iframeEl: HTMLIFrameElement) {
-  const iframeDoc =
-    iframeEl.contentDocument || iframeEl.contentWindow?.document;
-  if (!iframeDoc) throw new Error('Cannot access iframe document');
-
-  // 1. Create temporary off-screen container in main window
-  const tempContainer = document.createElement('div');
-  tempContainer.style.position = 'absolute';
-  tempContainer.style.left = '-9999px';
-  tempContainer.style.top = '-9999px';
-  tempContainer.style.width = `${iframeEl.clientWidth}px`;
-
-  // 2. Clone internal HTML and styles into the container
-  tempContainer.innerHTML = iframeDoc.body.innerHTML;
-
-  // Copy styles from iframe head
-  const styles = iframeDoc.querySelectorAll('style, link[rel="stylesheet"]');
-  styles.forEach((style) => tempContainer.appendChild(style.cloneNode(true)));
-
-  document.body.appendChild(tempContainer);
-
-  // 3. Snapshot with snapdom
-  const blob = await snapdom.toBlob(tempContainer, { format: 'png' });
-
-  // 4. Clean up temporary node
-  document.body.removeChild(tempContainer);
-
-  return blob;
 }
 
 export function openUrl(url: string): string {
