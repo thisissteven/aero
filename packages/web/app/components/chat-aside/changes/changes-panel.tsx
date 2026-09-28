@@ -5,7 +5,6 @@ import {
   Chip,
   cn,
   IconButton,
-  Modal,
   Skeleton,
   TextArea,
   Tooltip,
@@ -14,14 +13,15 @@ import {
 import {
   ArrowRotateLeft,
   ArrowUpRightFromSquare,
+  ChevronRight,
   CircleInfo,
   CodeMerge,
-  Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useState } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
-import { GitDiffContent } from '@/app/components/chat-aside/git/git-diff-content';
+import { getPierreTheme } from '@/app/components/chat-aside/files/pierre-styles';
+import { CodeBlock } from '@/app/components/code-block/code-block';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
 import {
@@ -35,6 +35,7 @@ import {
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
+import { useTheme } from '@/app/providers';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 interface DiffStatEntry {
@@ -69,13 +70,29 @@ interface ChangeEntry {
   deletions: number;
 }
 
-interface DiffTarget {
-  path: string;
-  staged: boolean;
-  untracked: boolean;
-}
+type ChipColor = 'accent' | 'danger' | 'default' | 'success' | 'warning';
 
-type DiffMode = 'diff' | 'source';
+function changeBadge(
+  entry: ChangeEntry,
+  variant: 'staged' | 'working',
+): { letter: string; color: ChipColor } {
+  const code = (variant === 'staged' ? entry.index : entry.working) ?? ' ';
+  const letter =
+    entry.untracked || code === '?'
+      ? 'A'
+      : code.trim()
+        ? code[0].toUpperCase()
+        : 'M';
+  const color: ChipColor =
+    letter === 'A'
+      ? 'accent'
+      : letter === 'D'
+        ? 'danger'
+        : letter === 'M'
+          ? 'warning'
+          : 'default';
+  return { letter, color };
+}
 
 function mergeStats(status: GitStatusShape | null | undefined) {
   const merged = new Map<string, { additions: number; deletions: number }>();
@@ -161,7 +178,7 @@ export function ChangesPanel() {
 
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [diffTarget, setDiffTarget] = useState<DiffTarget | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!entries.length) return;
@@ -227,12 +244,8 @@ export function ChangesPanel() {
     openFileWhenReady(relative);
   };
 
-  const openDiff = (entry: ChangeEntry, variant: 'staged' | 'working') => {
-    setDiffTarget({
-      path: entry.path,
-      staged: variant === 'staged',
-      untracked: variant === 'working' && entry.untracked,
-    });
+  const toggleExpanded = (key: string) => {
+    setExpandedKey((prev) => (prev === key ? null : key));
   };
 
   if (!directory) {
@@ -290,6 +303,7 @@ export function ChangesPanel() {
 
         <div className='flex shrink-0 items-center gap-2'>
           <Checkbox
+            variant='secondary'
             isSelected={allSelected}
             isIndeterminate={selected.size > 0 && !allSelected}
             onChange={(isSelected) => {
@@ -338,20 +352,24 @@ export function ChangesPanel() {
           <div className='p-1'>
             <ChangeGroup
               variant='staged'
+              directory={directory}
               title={t.changesPanel.stagedChanges}
               entries={stagedEntries}
               selected={selected}
+              expandedKey={expandedKey}
               onToggle={toggle}
-              onOpen={openDiff}
+              onToggleExpanded={toggleExpanded}
               onOpenFile={openFileInEditor}
             />
             <ChangeGroup
               variant='working'
+              directory={directory}
               title={t.changesPanel.workingChanges}
               entries={workingEntries}
               selected={selected}
+              expandedKey={expandedKey}
               onToggle={toggle}
-              onOpen={openDiff}
+              onToggleExpanded={toggleExpanded}
               onOpenFile={openFileInEditor}
             />
           </div>
@@ -391,31 +409,29 @@ export function ChangesPanel() {
           </Button>
         </div>
       </div>
-
-      <ChangesDiffModal
-        directory={directory}
-        target={diffTarget}
-        onClose={() => setDiffTarget(null)}
-      />
     </div>
   );
 }
 
 function ChangeGroup({
   variant,
+  directory,
   title,
   entries,
   selected,
+  expandedKey,
   onToggle,
-  onOpen,
+  onToggleExpanded,
   onOpenFile,
 }: {
   variant: 'staged' | 'working';
+  directory: string;
   title: string;
   entries: ChangeEntry[];
   selected: Set<string>;
+  expandedKey: string | null;
   onToggle: (path: string) => void;
-  onOpen: (entry: ChangeEntry, variant: 'staged' | 'working') => void;
+  onToggleExpanded: (key: string) => void;
   onOpenFile: (path: string) => void;
 }) {
   const { t } = useI18n();
@@ -432,79 +448,103 @@ function ChangeGroup({
       <ul>
         {entries.map((entry) => {
           const isSelected = selected.has(entry.path);
-          const badge =
-            variant === 'staged'
-              ? t.changesPanel.staged
-              : entry.untracked
-                ? t.changesPanel.new
-                : t.changesPanel.modified;
-          const badgeColor =
-            variant === 'staged'
-              ? 'success'
-              : entry.untracked
-                ? 'accent'
-                : 'warning';
+          const entryKey = `${variant}:${entry.path}`;
+          const isExpanded = expandedKey === entryKey;
+          const { letter, color: badgeColor } = changeBadge(entry, variant);
 
           return (
-            <li
-              key={entry.path}
-              onClick={() => onOpen(entry, variant)}
-              className='group hover:bg-default/40 flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5'
-            >
-              <div onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  isSelected={isSelected}
-                  onChange={() => onToggle(entry.path)}
-                  aria-label={t.changesPanel.selectFile(entry.path)}
-                >
-                  <Checkbox.Content>
-                    <Checkbox.Control>
-                      <Checkbox.Indicator />
-                    </Checkbox.Control>
-                  </Checkbox.Content>
-                </Checkbox>
-              </div>
-
-              <FileTypeIcon filePath={entry.path} />
-
-              <div className='min-w-0 flex-1'>
-                <MiddleTruncatePath
-                  path={entry.path}
-                  className='text-muted text-xs'
-                  fileClassName='text-foreground text-xs'
+            <li key={entry.path} className='overflow-hidden'>
+              <div
+                role='button'
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                onClick={() => onToggleExpanded(entryKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggleExpanded(entryKey);
+                  }
+                }}
+                className={cn(
+                  'group flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 outline-none transition-colors duration-150',
+                  'focus-visible:ring-2 focus-visible:ring-accent active:bg-default/60',
+                  isExpanded ? 'bg-default/50' : 'hover:bg-default/40',
+                )}
+              >
+                <Icon
+                  data={ChevronRight}
+                  size={12}
+                  className={cn(
+                    'text-muted shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none',
+                    isExpanded && 'rotate-90',
+                  )}
                 />
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    variant='secondary'
+                    isSelected={isSelected}
+                    onChange={() => onToggle(entry.path)}
+                    aria-label={t.changesPanel.selectFile(entry.path)}
+                  >
+                    <Checkbox.Content>
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                    </Checkbox.Content>
+                  </Checkbox>
+                </div>
+
+                <FileTypeIcon filePath={entry.path} />
+
+                <div className='min-w-0 flex-1'>
+                  <MiddleTruncatePath
+                    path={entry.path}
+                    className='text-muted text-xs'
+                    fileClassName='text-foreground text-xs'
+                  />
+                </div>
+
+                <div className='flex shrink-0 items-center gap-1.5 text-xs tabular-nums'>
+                  {entry.additions > 0 && (
+                    <span className='text-success'>+{entry.additions}</span>
+                  )}
+                  {entry.deletions > 0 && (
+                    <span className='text-danger'>-{entry.deletions}</span>
+                  )}
+                  <Chip
+                    size='sm'
+                    className='text-xs'
+                    variant='soft'
+                    color={badgeColor}
+                  >
+                    {letter}
+                  </Chip>
+                </div>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Tooltip>
+                    <Tooltip.Trigger>
+                      <IconButton
+                        aria-label={t.toolCall.openInEditor}
+                        onPress={() => onOpenFile(entry.path)}
+                      >
+                        <Icon data={ArrowUpRightFromSquare} />
+                      </IconButton>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>{t.toolCall.openInEditor}</Tooltip.Content>
+                  </Tooltip>
+                </div>
               </div>
 
-              <div className='flex shrink-0 items-center gap-1.5 text-xs tabular-nums'>
-                {entry.additions > 0 && (
-                  <span className='text-success'>+{entry.additions}</span>
-                )}
-                {entry.deletions > 0 && (
-                  <span className='text-danger'>-{entry.deletions}</span>
-                )}
-                <Chip
-                  size='sm'
-                  className='text-xs'
-                  variant='soft'
-                  color={badgeColor}
-                >
-                  {badge}
-                </Chip>
-              </div>
-
-              <div onClick={(e) => e.stopPropagation()}>
-                <Tooltip>
-                  <Tooltip.Trigger>
-                    <IconButton
-                      aria-label={t.toolCall.openInEditor}
-                      onPress={() => onOpenFile(entry.path)}
-                    >
-                      <Icon data={ArrowUpRightFromSquare} />
-                    </IconButton>
-                  </Tooltip.Trigger>
-                  <Tooltip.Content>{t.toolCall.openInEditor}</Tooltip.Content>
-                </Tooltip>
-              </div>
+              {isExpanded && (
+                <ChangeDiffPanel
+                  directory={directory}
+                  entry={entry}
+                  variant={variant}
+                  onOpenFile={onOpenFile}
+                />
+              )}
             </li>
           );
         })}
@@ -513,147 +553,129 @@ function ChangeGroup({
   );
 }
 
-function ChangesDiffModal({
+function buildNewFilePatch(filePath: string, contents: string): string {
+  const body = contents.endsWith('\n') ? contents.slice(0, -1) : contents;
+  const header = [
+    `diff --git a/${filePath} b/${filePath}`,
+    'new file mode 100644',
+    '--- /dev/null',
+    `+++ b/${filePath}`,
+  ];
+
+  if (!body.length) return header.join('\n');
+
+  const lines = body.split('\n');
+  return [
+    ...header,
+    `@@ -0,0 +1,${lines.length} @@`,
+    lines.map((line) => `+${line}`).join('\n'),
+  ].join('\n');
+}
+
+const CHANGE_DIFF_UNSAFE_CSS = `
+:host {
+  --diffs-bg-separator-override: var(--default) !important;
+  --diffs-bg-context-override: transparent !important;
+  --diffs-fg-number-override: var(--muted) !important;
+}
+`;
+
+function ChangeDiffPanel({
   directory,
-  target,
-  onClose,
+  entry,
+  variant,
+  onOpenFile,
 }: {
   directory: string;
-  target: DiffTarget | null;
-  onClose: () => void;
+  entry: ChangeEntry;
+  variant: 'staged' | 'working';
+  onOpenFile: (path: string) => void;
 }) {
   const { t } = useI18n();
-  const path = target?.path;
-  const [mode, setMode] = useState<DiffMode>('diff');
-  const [staged, setStaged] = useState(false);
-
-  useEffect(() => {
-    if (!target) return;
-    setMode(target.untracked ? 'source' : 'diff');
-    setStaged(target.staged);
-  }, [target]);
+  const { resolvedTheme, colorTheme } = useTheme();
+  const staged = variant === 'staged';
+  const isNew = entry.untracked;
 
   const { data: diffData, isLoading: diffLoading } = useGitDiff(
     directory,
-    path,
+    entry.path,
     staged,
-    { enabled: Boolean(path) && mode === 'diff' },
+    { enabled: !isNew },
   );
   const { data: fileData, isLoading: fileLoading } = useGitFileDiff(
     directory,
-    path,
+    entry.path,
     staged,
-    { enabled: Boolean(path) && mode === 'source' },
+    { enabled: isNew },
   );
 
-  const diff = (diffData as { diff?: string } | null | undefined)?.diff;
-  const original =
-    (fileData as { original?: string } | null | undefined)?.original ?? '';
-  const modified =
-    (fileData as { modified?: string } | null | undefined)?.modified ?? '';
+  const patch = useMemo(() => {
+    if (isNew) {
+      const modified =
+        (fileData as { modified?: string } | null | undefined)?.modified ?? '';
+      return buildNewFilePatch(entry.path, modified);
+    }
+    return (diffData as { diff?: string } | null | undefined)?.diff ?? '';
+  }, [isNew, entry.path, fileData, diffData]);
 
-  return (
-    <Modal
-      isOpen={Boolean(target)}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog>
-            {({ close }) => (
-              <>
-                <Modal.Header className='flex items-center gap-2'>
-                  <FileTypeIcon filePath={path ?? ''} />
-                  <span className='min-w-0 flex-1 truncate font-mono text-sm'>
-                    {path}
-                  </span>
-                  <div className='flex shrink-0 items-center gap-1'>
-                    <Button
-                      size='sm'
-                      variant={mode === 'diff' ? 'secondary' : 'ghost'}
-                      onPress={() => setMode('diff')}
-                    >
-                      {t.changesPanel.diff}
-                    </Button>
-                    <Button
-                      size='sm'
-                      variant={mode === 'source' ? 'secondary' : 'ghost'}
-                      onPress={() => setMode('source')}
-                    >
-                      {t.changesPanel.source}
-                    </Button>
-                  </div>
-                </Modal.Header>
+  const pierreTheme = useMemo(() => getPierreTheme(colorTheme), [colorTheme]);
+  const loading = isNew ? fileLoading : diffLoading;
 
-                <Modal.Body>
-                  {mode === 'diff' ? (
-                    diffLoading ? (
-                      <Skeleton className='h-40 w-full rounded' />
-                    ) : (
-                      <GitDiffContent
-                        diff={diff}
-                        emptyLabel={t.changesPanel.noChangesToDisplay}
-                        className='max-h-[60vh]'
-                      />
-                    )
-                  ) : fileLoading ? (
-                    <Skeleton className='h-40 w-full rounded' />
-                  ) : (
-                    <div className='grid h-[50vh] grid-cols-1 gap-2 overflow-hidden sm:grid-cols-2'>
-                      <SourcePane
-                        label={t.changesPanel.original}
-                        content={original}
-                        emptyLabel={t.changesPanel.noChangesToDisplay}
-                      />
-                      <SourcePane
-                        label={t.common.current}
-                        content={modified}
-                        emptyLabel={t.changesPanel.noChangesToDisplay}
-                      />
-                    </div>
-                  )}
-                </Modal.Body>
-
-                <Modal.Footer>
-                  <Button size='sm' variant='ghost' onPress={close}>
-                    <Icon data={Xmark} size={14} />
-                    {t.common.close}
-                  </Button>
-                </Modal.Footer>
-              </>
-            )}
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
-}
-
-function SourcePane({
-  label,
-  content,
-  emptyLabel,
-}: {
-  label: string;
-  content: string;
-  emptyLabel: string;
-}) {
-  return (
-    <div className='border-separator flex min-h-0 flex-col overflow-hidden rounded-md border'>
-      <div className='border-separator text-muted shrink-0 border-b px-2 py-1 text-[10px] font-medium tracking-wide uppercase'>
-        {label}
-      </div>
-      {content ? (
-        <pre className='scrollbar-thin bg-default/40 min-h-0 flex-1 overflow-auto p-2 font-mono text-xs leading-relaxed whitespace-pre'>
-          {content}
-        </pre>
-      ) : (
-        <div className='text-muted flex min-h-24 flex-1 items-center justify-center p-4 text-center text-xs'>
-          {emptyLabel}
+  if (loading) {
+    return (
+      <div className='border-separator mt-1 mb-1.5 rounded-md border p-3'>
+        <div className='space-y-1.5'>
+          <Skeleton className='h-3.5 w-3/4 rounded' />
+          <Skeleton className='h-3.5 w-full rounded' />
+          <Skeleton className='h-3.5 w-2/3 rounded' />
         </div>
-      )}
+      </div>
+    );
+  }
+
+  if (!patch.trim()) {
+    return (
+      <div className='border-separator text-muted mt-1 mb-1.5 flex items-center justify-center rounded-md border py-8 text-xs'>
+        {t.changesPanel.noChangesToDisplay}
+      </div>
+    );
+  }
+
+  return (
+    <div className='animate-in fade-in-0 mt-1 mb-1.5 duration-150 ease-out motion-reduce:animate-none'>
+      <CodeBlock defaultViewMode='split' className='rounded-md'>
+        <CodeBlock.Header className='gap-2 pr-1 pl-2'>
+          <div className='flex min-w-0 items-center gap-2 text-xs'>
+            <FileTypeIcon filePath={entry.path} />
+            <MiddleTruncatePath
+              path={entry.path}
+              className='text-muted text-xs'
+              fileClassName='text-foreground text-xs'
+            />
+          </div>
+
+          <div className='flex shrink-0 items-center'>
+            <CodeBlock.ViewModeButton />
+            <CodeBlock.WrapButton />
+            <CodeBlock.CopyButton code={patch} />
+            <CodeBlock.OpenButton
+              aria-label={t.toolCall.openInEditor}
+              onClick={() => onOpenFile(entry.path)}
+            />
+          </div>
+        </CodeBlock.Header>
+
+        <CodeBlock.Code
+          code=''
+          variant='diff'
+          patch={patch}
+          theme={pierreTheme.light}
+          darkTheme={pierreTheme.dark}
+          themeType={resolvedTheme}
+          unsafeCSS={CHANGE_DIFF_UNSAFE_CSS}
+          style={{ maxHeight: '45vh' }}
+        />
+      </CodeBlock>
     </div>
   );
 }

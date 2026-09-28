@@ -1214,6 +1214,7 @@ export const es: BaseTranslation = {
     cannotPrompt: 'No se pueden enviar prompts a las sesiones de subagentes.',
     noSubagents: 'Todavía no hay subagentes',
     spawnedSubagents: 'Los subagentes creados aparecerán aquí.',
+    running: 'En ejecución',
   },
 
   terminal: {

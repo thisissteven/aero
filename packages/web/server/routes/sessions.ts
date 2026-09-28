@@ -174,6 +174,37 @@ async function resolveSession(c: AnyContext) {
   return { id, harness, session };
 }
 
+/**
+ * Collect a session id plus every descendant session id.
+ *
+ * Pending permissions/questions are only scoped to a workspace by the
+ * underlying harness, so routes use this to narrow a session's view to its
+ * own subtree (the session itself plus all subagents it spawned).
+ *
+ * A failed child lookup degrades gracefully to "no children" so a
+ * permissions/questions request never fails because of the tree walk.
+ */
+async function collectSubtreeSessionIds(
+  rootSessionId: string,
+  listChildren: (sessionId: string) => Promise<Array<{ id: string }>>,
+): Promise<Set<string>> {
+  const ids = new Set<string>([rootSessionId]);
+  const queue: string[] = [rootSessionId];
+
+  while (queue.length > 0) {
+    const current = queue.shift() as string;
+    const children = await listChildren(current).catch(() => []);
+
+    for (const child of children) {
+      if (ids.has(child.id)) continue;
+      ids.add(child.id);
+      queue.push(child.id);
+    }
+  }
+
+  return ids;
+}
+
 /** Shared SSE handler for `GET /:id/stream`. */
 async function streamSessionEvents(c: AnyContext) {
   const { id: sessionId } = c.req.valid('param') as { id: string };
@@ -321,24 +352,44 @@ const sessions = new Hono()
   )
 
   // GET /api/sessions/:id/permissions?harnessId=
+  // Scoped to the session's subtree (itself + spawned subagents).
   .get(
     '/:id/permissions',
     zValidator('param', idParamSchema),
     zValidator('query', harnessQuerySchema),
     async (c) => {
-      const { harness, session } = await resolveSession(c);
-      return c.json(await harness.listAwaitingPermissions(session.workspace));
+      const { id, harness, session } = await resolveSession(c);
+      const [subtree, pending] = await Promise.all([
+        collectSubtreeSessionIds(id, (sessionId) =>
+          harness.listSessionChildren(sessionId),
+        ),
+        harness.listAwaitingPermissions(session.workspace),
+      ]);
+
+      return c.json(
+        pending.filter((request) => subtree.has(request.sessionID)),
+      );
     },
   )
 
   // GET /api/sessions/:id/questions?harnessId=
+  // Scoped to the session's subtree (itself + spawned subagents).
   .get(
     '/:id/questions',
     zValidator('param', idParamSchema),
     zValidator('query', harnessQuerySchema),
     async (c) => {
-      const { harness, session } = await resolveSession(c);
-      return c.json(await harness.listQuestions(session.workspace));
+      const { id, harness, session } = await resolveSession(c);
+      const [subtree, pending] = await Promise.all([
+        collectSubtreeSessionIds(id, (sessionId) =>
+          harness.listSessionChildren(sessionId),
+        ),
+        harness.listQuestions(session.workspace),
+      ]);
+
+      return c.json(
+        pending.filter((request) => subtree.has(request.sessionID)),
+      );
     },
   )
 

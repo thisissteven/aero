@@ -6,13 +6,19 @@ import {
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
+  purgePermissionRequest,
   useReplyToPermission,
   useSessionPermissions,
 } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
+import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
+import {
+  AeroPermission,
+  AeroPermissionRequest,
+} from '@/server/services/harness/types';
 import { normalizePath } from '@/server/shared';
 
 export type EditToolNames =
@@ -24,43 +30,104 @@ export type WriteToolNames = 'write' | 'create' | 'file_write';
 export type ReadToolNames = 'read' | 'view' | 'file_read' | 'cat';
 export type BashToolNames = 'bash' | 'shell' | 'cmd' | 'terminal';
 
+type PermissionRequestEntry = AeroPermissionRequest[number];
+
+/**
+ * The store holds `AeroPermission` (event shape, camelCase `sessionId`,
+ * `tool.messageId`) while the REST list holds the SDK `PermissionRequest`
+ * (camelCase `sessionID`, `tool.messageID`). Normalize both so a request
+ * coming from either source renders and resolves identically.
+ */
+type NormalizedPermission = {
+  id: string;
+  sessionId: string;
+  permission: string;
+  patterns: string[];
+  metadata?: Record<string, unknown>;
+  always?: string[];
+  tool?: { messageId?: string; callID: string };
+};
+
+function normalizePermission(
+  entry: AeroPermission | PermissionRequestEntry,
+): NormalizedPermission {
+  const sessionId = 'sessionId' in entry ? entry.sessionId : entry.sessionID;
+
+  const tool = entry.tool
+    ? {
+        callID: entry.tool.callID,
+        messageId:
+          'messageID' in entry.tool
+            ? entry.tool.messageID
+            : entry.tool.messageId,
+      }
+    : undefined;
+
+  return {
+    id: entry.id,
+    sessionId,
+    permission: entry.permission,
+    patterns: entry.patterns ?? [],
+    metadata: entry.metadata,
+    always: entry.always,
+    tool,
+  };
+}
+
+/**
+ * A single permission can be mirrored in both the parent feed and a subagent
+ * feed at once. Guard replies by request id so the global Enter/Esc shortcuts
+ * (registered per mounted banner) can't fire the same reply twice.
+ */
+const inFlightPermissions = new Set<string>();
+
 export const ReplyToPermission = React.memo(() => {
   const activeSessionId = useSessionId();
   const { t } = useI18n();
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
-  // 1. Get latest permission from chat store
-  const storePermission = useSessionRuntime(activeSessionId, (runtime) => {
-    if (!runtime || !runtime.permissions || runtime.permissions.length === 0) {
-      return null;
-    }
+  // Keep polling while anything is streaming so a subagent's prompt reaches
+  // the parent view even though the parent's own stream never sees it.
+  const isAnySessionRunning = useChatStore(
+    (state) => state.runningSessions.length > 0,
+  );
 
-    return runtime.permissions[runtime.permissions.length - 1];
-  });
+  // 1. Store overlay for the active session (instant, event-driven).
+  const storePermissions = useSessionRuntime(
+    activeSessionId,
+    (runtime) => runtime.permissions,
+  );
 
-  // 2. Fetch server permissions for sync
-  const {
-    data: sessionPermissions = [],
-    isLoading: isPermissionsLoading,
-    refetch: refetchPermissions,
-  } = useSessionPermissions(undefined, activeSessionId ?? '');
+  // 2. Subtree-scoped source of truth (this session + its subagents).
+  const { data: sessionPermissions = [] } = useSessionPermissions(
+    undefined,
+    activeSessionId ?? '',
+    { refetchInterval: isAnySessionRunning ? 1500 : false },
+  );
 
   const { mutateAsync: reply, isPending: isPendingReply } =
     useReplyToPermission(undefined);
 
-  // 3. Resolve active permission request
-  const currentPermissionRequest = useMemo(() => {
-    if (storePermission) {
-      return storePermission;
+  // 3. A subagent's request is in both its own and its parent's subtree, so
+  //    both feeds render the same request from their respective lists.
+  const pool = useMemo(() => {
+    const byId = new Map<string, NormalizedPermission>();
+
+    for (const entry of sessionPermissions) {
+      const normalized = normalizePermission(entry);
+      byId.set(normalized.id, normalized);
     }
 
-    if (sessionPermissions.length > 0) {
-      return sessionPermissions[sessionPermissions.length - 1];
+    for (const entry of storePermissions) {
+      const normalized = normalizePermission(entry);
+      byId.set(normalized.id, normalized);
     }
 
-    return null;
-  }, [storePermission, sessionPermissions]);
+    return Array.from(byId.values());
+  }, [sessionPermissions, storePermissions]);
+
+  const currentPermissionRequest = pool.at(-1) ?? null;
 
   // Prevent flicker by retaining the request reference during exit animations
   const cachedPermissionRef = useRef(currentPermissionRequest);
@@ -72,34 +139,31 @@ export const ReplyToPermission = React.memo(() => {
     ? cachedPermissionRef.current
     : currentPermissionRequest;
 
-  // 4. Find matching tool call from store using callID
-  const targetToolCall = useSessionRuntime(activeSessionId, (runtime) => {
-    if (
-      !permissionRequest ||
-      !runtime ||
-      !runtime.turns ||
-      runtime.turns.length === 0
-    ) {
-      return null;
-    }
+  // 4. Find the matching tool call across ALL sessions (the request may
+  //    belong to a subagent whose turn lives in a different runtime).
+  const targetToolCall = useChatStore((state) => {
+    const request = currentPermissionRequest;
+    if (!request) return null;
 
-    const callID = permissionRequest?.tool?.callID ?? permissionRequest.id;
+    const callID = request.tool?.callID ?? request.id;
 
-    for (
-      let turnIndex = runtime.turns.length - 1;
-      turnIndex >= 0;
-      turnIndex--
-    ) {
-      const turn = runtime.turns[turnIndex];
+    for (const runtime of Object.values(state.sessions)) {
+      for (
+        let turnIndex = runtime.turns.length - 1;
+        turnIndex >= 0;
+        turnIndex--
+      ) {
+        const parts = runtime.turns[turnIndex].parts;
 
-      for (let partIndex = turn.parts.length - 1; partIndex >= 0; partIndex--) {
-        const part = turn.parts[partIndex];
+        for (let partIndex = parts.length - 1; partIndex >= 0; partIndex--) {
+          const part = parts[partIndex];
 
-        if (
-          part.type === 'tool' &&
-          (part.callID === callID || part.id === callID)
-        ) {
-          return part;
+          if (
+            part.type === 'tool' &&
+            (part.callID === callID || part.id === callID)
+          ) {
+            return part;
+          }
         }
       }
     }
@@ -107,7 +171,9 @@ export const ReplyToPermission = React.memo(() => {
     return null;
   });
 
-  const removePermission = useChatStore((s) => s.removePermission);
+  const removePermissionEverywhere = useChatStore(
+    (s) => s.removePermissionEverywhere,
+  );
 
   const handleReply = (replyValue: 'once' | 'always' | 'reject') => {
     if (isPendingReply || !permissionRequest || isExiting) {
@@ -116,24 +182,28 @@ export const ReplyToPermission = React.memo(() => {
 
     const isReject = replyValue === 'reject';
     const requestId = permissionRequest.id;
+    const sessionId = permissionRequest.sessionId || activeSessionId || '';
+
+    if (inFlightPermissions.has(requestId)) return;
+    inFlightPermissions.add(requestId);
 
     void execute({
       action: async () => {
-        await reply({
-          sessionId: activeSessionId,
-          requestId,
-          reply: replyValue,
-        });
+        try {
+          await reply({
+            sessionId,
+            requestId,
+            reply: replyValue,
+          });
 
-        // Server is now authoritative: if it no longer has this request,
-        // drop it from the store so a missed `permission.replied` event
-        // can't leave the banner stuck.
-        const { data: fresh } = await refetchPermissions();
-        if (fresh && !fresh.some((p) => p.id === requestId)) {
-          removePermission(activeSessionId, requestId);
+          // Clear it from every session runtime and every cached subtree
+          // list so the parent and subagent views update together.
+          removePermissionEverywhere(requestId);
+          purgePermissionRequest(queryClient, requestId);
+        } finally {
+          inFlightPermissions.delete(requestId);
         }
       },
-      refetch: refetchPermissions,
       messages: {
         loading: isReject
           ? t.permission.rejectingRequest
@@ -180,9 +250,7 @@ export const ReplyToPermission = React.memo(() => {
     },
   );
 
-  const shouldRender =
-    Boolean(permissionRequest) &&
-    (!isPermissionsLoading || Boolean(storePermission));
+  const shouldRender = Boolean(permissionRequest);
 
   if (!shouldRender && !isExiting) {
     return null;

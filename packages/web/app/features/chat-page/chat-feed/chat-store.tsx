@@ -6,7 +6,12 @@ import {
   type UsageExceeded,
 } from '@/app/components/message-view/lib';
 import { handleSessionUpdated } from '@/app/features/chat-page/chat-feed/event-handlers/session-updated';
-import { sessionKeys } from '@/app/hooks/api/sessions';
+import {
+  invalidatePermissionQueries,
+  invalidateQuestionQueries,
+  purgePermissionRequest,
+  sessionKeys,
+} from '@/app/hooks/api/sessions';
 import { queryClient } from '@/app/providers';
 import { useActiveSessionStore } from '@/app/stores/active-session-id';
 import {
@@ -138,6 +143,14 @@ interface ChatStore {
   removePermission: (sessionId: string, requestId: string) => void;
 
   removeQuestion: (sessionId: string, requestId: string) => void;
+
+  /**
+   * Remove a pending request from EVERY session runtime. A subagent request
+   * is mirrored across the parent and child views, so clearing it in one
+   * place must clear it everywhere.
+   */
+  removePermissionEverywhere: (requestId: string) => void;
+  removeQuestionEverywhere: (callId: string) => void;
 
   addUnreadSession: (sessionId: string, status: 'success' | 'error') => void;
   removeUnreadSession: (sessionId: string) => void;
@@ -1491,6 +1504,62 @@ export const useChatStore = create<ChatStore>()(
           });
         },
 
+        removePermissionEverywhere: (requestId) => {
+          set((state) => {
+            let changed = false;
+            const sessions = { ...state.sessions };
+
+            for (const [id, runtime] of Object.entries(sessions)) {
+              const permissions = runtime.permissions.filter(
+                (permission) => permission.id !== requestId,
+              );
+
+              if (permissions.length !== runtime.permissions.length) {
+                sessions[id] = { ...runtime, permissions };
+                changed = true;
+              }
+            }
+
+            if (!changed) return state;
+
+            return {
+              sessions,
+              activeSession:
+                state.activeSessionId && sessions[state.activeSessionId]
+                  ? sessions[state.activeSessionId]
+                  : state.activeSession,
+            };
+          });
+        },
+
+        removeQuestionEverywhere: (callId) => {
+          set((state) => {
+            let changed = false;
+            const sessions = { ...state.sessions };
+
+            for (const [id, runtime] of Object.entries(sessions)) {
+              const questions = runtime.questions.filter(
+                (question) => question.id !== callId,
+              );
+
+              if (questions.length !== runtime.questions.length) {
+                sessions[id] = { ...runtime, questions };
+                changed = true;
+              }
+            }
+
+            if (!changed) return state;
+
+            return {
+              sessions,
+              activeSession:
+                state.activeSessionId && sessions[state.activeSessionId]
+                  ? sessions[state.activeSessionId]
+                  : state.activeSession,
+            };
+          });
+        },
+
         addUnreadSession: (sessionId, status) => {
           set((state) => ({
             unreadSessions: [
@@ -1564,15 +1633,18 @@ export const useChatStore = create<ChatStore>()(
             }
 
             case 'permission.replied': {
-              set((state) => {
-                const current = getRuntime(state.sessions, event.sessionId);
-                const runtime = removePermissionFromRuntime(
-                  current,
-                  event.requestId,
-                );
+              /**
+               * The event is only delivered to the owning session's stream,
+               * but the request may be mirrored into other views (e.g. the
+               * parent feed showing a subagent's prompt). Clear every runtime
+               * and every cached scoped list so both views drop it.
+               */
+              useChatStore
+                .getState()
+                .removePermissionEverywhere(event.requestId);
 
-                return commitRuntime(state, event.sessionId, runtime);
-              });
+              purgePermissionRequest(queryClient, event.requestId);
+
               return;
             }
 
@@ -1589,6 +1661,9 @@ export const useChatStore = create<ChatStore>()(
 
                 return commitRuntime(state, event.sessionId, runtime);
               });
+
+              // Surface the prompt in every session view, not just this one.
+              invalidatePermissionQueries(queryClient);
 
               scrollToBottom(event, sessionId);
 
@@ -1632,6 +1707,12 @@ export const useChatStore = create<ChatStore>()(
                 event.part.type === 'tool' &&
                 event.part.toolName === 'question'
               ) {
+                // Questions have no dedicated event; the request appears
+                // (running) and disappears (answered/aborted) via the tool
+                // part, so refresh every cached subtree list to mirror it
+                // across the parent and subagent views.
+                invalidateQuestionQueries(queryClient);
+
                 scrollToBottom(event, sessionId);
               }
               return;

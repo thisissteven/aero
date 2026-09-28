@@ -1222,6 +1222,7 @@ export const fr: BaseTranslation = {
     cannotPrompt: 'Les sessions de subagents ne peuvent pas être sollicitées.',
     noSubagents: 'Aucun subagent pour le moment',
     spawnedSubagents: 'Les subagents lancés apparaîtront ici.',
+    running: 'En cours',
   },
 
   terminal: {

@@ -1,4 +1,8 @@
-import { AeroSessionSummary } from '@/server/services/harness/types';
+import {
+  AeroSessionSummary,
+  AeroWorkspaceSummary,
+} from '@/server/services/harness/types';
+import { dedupeWorktreesByDirectory } from '@/server/shared';
 
 export type SessionGroupKey = 'pinned' | 'today' | 'yesterday' | 'older';
 
@@ -57,4 +61,78 @@ export function groupSessionsByDay(
   }
 
   return groups.filter((group) => group.sessions.length > 0);
+}
+
+export interface WorkspaceSessionGroup {
+  /** Workspace id when resolved, otherwise the raw directory. */
+  key: string;
+  workspace?: AeroWorkspaceSummary;
+  directory: string;
+  sessions: AeroSessionSummary[];
+}
+
+/**
+ * Buckets sessions by the workspace they belong to. A session's `workspace` is
+ * a directory, which may be the workspace root or one of its worktrees, so both
+ * are indexed. Groups follow the workspace order passed in (the API already
+ * returns workspaces in user order); sessions whose directory can't be resolved
+ * to a known workspace are collected into fallback groups keyed by directory so
+ * nothing is dropped. Input order is preserved within each group.
+ */
+export function groupSessionsByWorkspace(
+  sessions: AeroSessionSummary[],
+  workspaces: AeroWorkspaceSummary[],
+): WorkspaceSessionGroup[] {
+  const directoryToWorkspace = new Map<string, AeroWorkspaceSummary>();
+
+  for (const workspace of workspaces) {
+    if (workspace.directory) {
+      directoryToWorkspace.set(workspace.directory, workspace);
+    }
+
+    for (const worktree of dedupeWorktreesByDirectory(workspace.worktrees)) {
+      if (worktree.directory) {
+        directoryToWorkspace.set(worktree.directory, workspace);
+      }
+    }
+  }
+
+  const groupsByKey = new Map<string, WorkspaceSessionGroup>();
+
+  for (const session of sessions) {
+    const workspace = directoryToWorkspace.get(session.workspace);
+    const key = workspace ? workspace.id : session.workspace;
+
+    let group = groupsByKey.get(key);
+
+    if (!group) {
+      group = {
+        key,
+        workspace,
+        directory: session.workspace,
+        sessions: [],
+      };
+      groupsByKey.set(key, group);
+    }
+
+    group.sessions.push(session);
+  }
+
+  const workspaceOrder = new Map<string, number>();
+  workspaces.forEach((workspace, index) => {
+    workspaceOrder.set(workspace.id, index);
+  });
+
+  return Array.from(groupsByKey.values()).sort((a, b) => {
+    const aIndex = a.workspace
+      ? (workspaceOrder.get(a.workspace.id) ?? Number.MAX_SAFE_INTEGER)
+      : Number.MAX_SAFE_INTEGER;
+    const bIndex = b.workspace
+      ? (workspaceOrder.get(b.workspace.id) ?? Number.MAX_SAFE_INTEGER)
+      : Number.MAX_SAFE_INTEGER;
+
+    if (aIndex !== bIndex) return aIndex - bIndex;
+
+    return a.directory.localeCompare(b.directory);
+  });
 }

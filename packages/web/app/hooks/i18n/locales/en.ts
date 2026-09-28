@@ -1184,6 +1184,7 @@ export const en = {
     cannotPrompt: 'Subagent sessions cannot be prompted.',
     noSubagents: 'No subagents yet',
     spawnedSubagents: 'Spawned subagents will appear here.',
+    running: 'Running',
   },
 
   terminal: {

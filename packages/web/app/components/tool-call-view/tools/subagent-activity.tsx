@@ -52,6 +52,7 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
             useSidePanelStore.getState().setActiveNavItem('side-chat');
             useSidePanelStore.getState().setIsOpen(true);
           }}
+          className='rounded-lg'
         >
           <Icon data={ArrowUpRightFromSquare} size={12} />
           {t.toolCall.openSubagent}

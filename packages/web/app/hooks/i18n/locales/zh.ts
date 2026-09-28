@@ -1144,6 +1144,7 @@ export const zh: BaseTranslation = {
     cannotPrompt: '子代理会话无法接收提示。',
     noSubagents: '暂无子代理',
     spawnedSubagents: '已创建的子代理将显示在这里。',
+    running: '运行中',
   },
 
   terminal: {

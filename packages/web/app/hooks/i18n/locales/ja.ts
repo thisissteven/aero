@@ -1191,6 +1191,7 @@ export const ja: BaseTranslation = {
     cannotPrompt: 'サブエージェントセッションにはプロンプトを入力できません。',
     noSubagents: 'サブエージェントはまだありません',
     spawnedSubagents: '起動したサブエージェントがここに表示されます。',
+    running: '実行中',
   },
 
   terminal: {

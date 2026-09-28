@@ -9,18 +9,58 @@ import { Icon } from '@gravity-ui/uikit';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { QuestionOption } from '@/app/components/tool-call-view/tools/tool-types';
 import {
-  type AeroQuestionRequest,
+  type AeroQuestion,
   useChatStore,
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
 import {
+  purgeQuestionRequest,
   useRejectQuestion,
   useReplyToQuestion,
   useSessionQuestions,
 } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useAnimatedAction } from '@/app/hooks/useAnimatedAction';
+import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
+import { AeroQuestions } from '@/server/services/harness/types';
+
+type QuestionRequestEntry = AeroQuestions[number];
+
+/**
+ * Normalized question request that can come from either the live store
+ * (event-driven, keyed by callID) or the workspace-wide REST list (SDK
+ * shape, keyed by the resolve id).
+ */
+type PendingQuestion = {
+  sessionID: string;
+  callID: string;
+  messageID: string;
+  questions: AeroQuestion[];
+  serverRequestId: string | null;
+};
+
+function adaptQuestion(entry: QuestionRequestEntry): PendingQuestion {
+  return {
+    sessionID: entry.sessionID,
+    callID: entry.tool?.callID ?? entry.id,
+    messageID: entry.tool?.messageID ?? '',
+    questions: entry.questions.map((question) => ({
+      question: question.question,
+      header: question.header,
+      multiple: question.multiple,
+      options: question.options,
+    })),
+    serverRequestId: entry.id,
+  };
+}
+
+/**
+ * A single question can be mirrored in both the parent feed and a subagent
+ * feed at once. Guard submissions by server request id so two mounted
+ * banners can't answer the same request twice.
+ */
+const inFlightQuestions = new Set<string>();
 
 export const ReplyToQuestion = React.memo(() => {
   const activeSessionId = useSessionId();
@@ -28,43 +68,68 @@ export const ReplyToQuestion = React.memo(() => {
 
   const { isExiting, execute } = useAnimatedAction({ animationDuration: 500 });
 
-  const isAwaitingQuestion = useChatStore((state) => {
-    if (!activeSessionId) return false;
-    return state.awaitingQuestions.includes(activeSessionId);
-  });
-
-  // ── Render source: store, keyed by callID. No network required. ────────
-  const storeQuestion = useSessionRuntime(
-    activeSessionId,
-    (runtime): AeroQuestionRequest | null => {
-      if (!runtime || runtime.questions.length === 0) return null;
-      return runtime.questions[runtime.questions.length - 1];
-    },
+  // Keep polling while anything is streaming so a subagent's question reaches
+  // the parent view even though the parent's own stream never sees it.
+  const isAnySessionRunning = useChatStore(
+    (state) => state.runningSessions.length > 0,
   );
 
-  const cachedRef = useRef(storeQuestion);
-  if (storeQuestion) cachedRef.current = storeQuestion;
-  const questionRequest = isExiting ? cachedRef.current : storeQuestion;
+  // ── Live store (active session), event-driven and instant. ─────────────
+  const storeQuestions = useSessionRuntime(
+    activeSessionId,
+    (runtime) => runtime.questions,
+  );
+
+  // ── Subtree-scoped source of truth (this session + its subagents). ─────
+  const { data: sessionQuestions = [], refetch: refetchQuestions } =
+    useSessionQuestions(undefined, activeSessionId ?? '', {
+      refetchInterval: isAnySessionRunning ? 1500 : false,
+    });
+
+  // A subagent's question is in both its own and its parent's subtree, so
+  // both feeds render the same question from their respective lists.
+  const pool = useMemo(() => {
+    const byCallId = new Map<string, PendingQuestion>();
+
+    for (const entry of sessionQuestions) {
+      const adapted = adaptQuestion(entry);
+      byCallId.set(adapted.callID, adapted);
+    }
+
+    for (const entry of storeQuestions) {
+      const existing = byCallId.get(entry.callID);
+
+      byCallId.set(entry.callID, {
+        sessionID: entry.sessionID,
+        callID: entry.callID,
+        messageID: entry.messageID,
+        questions: entry.questions,
+        serverRequestId: existing?.serverRequestId ?? null,
+      });
+    }
+
+    return Array.from(byCallId.values());
+  }, [sessionQuestions, storeQuestions]);
+
+  const currentQuestionRequest = pool.at(-1) ?? null;
+
+  const cachedRef = useRef(currentQuestionRequest);
+  if (currentQuestionRequest) cachedRef.current = currentQuestionRequest;
+  const questionRequest = isExiting
+    ? cachedRef.current
+    : currentQuestionRequest;
 
   const questions = questionRequest?.questions ?? [];
 
-  // ── Submit-identity resolver: que_... id via the REST list. ────────────
-  // Only needed at click-time; the banner paints before this resolves.
-  const { data: sessionQuestions = [], refetch: refetchQuestions } =
-    useSessionQuestions(undefined, activeSessionId);
-
-  // Fire one refetch the moment a question banner appears so the que_ id
-  // is warm by the time the user finishes answering.
-  useEffect(() => {
-    if (!isAwaitingQuestion || !questionRequest?.callID) return;
-    void refetchQuestions();
-  }, [isAwaitingQuestion, questionRequest?.callID, refetchQuestions]);
-
+  // Submit-identity resolver: que_... id via the REST list.
   const serverRequestId = useMemo(() => {
     if (!questionRequest) return null;
+    if (questionRequest.serverRequestId) return questionRequest.serverRequestId;
+
     const match = sessionQuestions.find(
-      (q) => q.tool?.callID === questionRequest.callID,
+      (q) => (q.tool?.callID ?? q.id) === questionRequest.callID,
     );
+
     return match?.id ?? null;
   }, [questionRequest, sessionQuestions]);
 
@@ -74,7 +139,9 @@ export const ReplyToQuestion = React.memo(() => {
   const { mutateAsync: reject, isPending: isPendingReject } =
     useRejectQuestion(undefined);
 
-  const removeQuestion = useChatStore((s) => s.removeQuestion);
+  const removeQuestionEverywhere = useChatStore(
+    (s) => s.removeQuestionEverywhere,
+  );
 
   const [answers, setAnswers] = useState<string[][]>([]);
   const [customAnswers, setCustomAnswers] = useState<string[]>([]);
@@ -92,14 +159,23 @@ export const ReplyToQuestion = React.memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionRequest?.callID]);
 
+  const hasQuestion = Boolean(questionRequest);
+
   useEffect(() => {
-    if (isAwaitingQuestion) return;
+    if (hasQuestion) return;
 
     setAnswers([]);
     setCustomAnswers([]);
     setCurrentQuestionIndex(0);
     setIsExpanded(true);
-  }, [isAwaitingQuestion]);
+  }, [hasQuestion]);
+
+  // Fire one refetch the moment a question banner appears so the que_ id
+  // is warm by the time the user finishes answering.
+  useEffect(() => {
+    if (!questionRequest?.callID) return;
+    void refetchQuestions();
+  }, [questionRequest?.callID, refetchQuestions]);
 
   const isSubmitting = isPendingReply || isPendingReject;
 
@@ -133,7 +209,6 @@ export const ReplyToQuestion = React.memo(() => {
     (normalizedAnswers[currentQuestionIndex]?.length ?? 0) > 0;
 
   const shouldRender =
-    isAwaitingQuestion &&
     Boolean(questionRequest) &&
     questions.length > 0 &&
     Boolean(currentQuestion);
@@ -199,18 +274,26 @@ export const ReplyToQuestion = React.memo(() => {
 
     const { sessionID, callID } = questionRequest;
 
+    if (inFlightQuestions.has(serverRequestId)) return;
+    inFlightQuestions.add(serverRequestId);
+
     void execute({
       action: async () => {
-        await reply({
-          sessionId: sessionID,
-          requestId: serverRequestId, // ← que_...
-          answers: normalizedAnswers,
-        });
-        // Drop the local entry keyed by callID; server owns the source of
-        // truth from here.
-        removeQuestion(sessionID, callID);
+        try {
+          await reply({
+            sessionId: sessionID,
+            requestId: serverRequestId, // ← que_...
+            answers: normalizedAnswers,
+          });
+
+          // Clear it from every session runtime and every cached subtree
+          // list so the parent and subagent views update together.
+          removeQuestionEverywhere(callID);
+          purgeQuestionRequest(queryClient, serverRequestId);
+        } finally {
+          inFlightQuestions.delete(serverRequestId);
+        }
       },
-      refetch: refetchQuestions,
       messages: {
         loading: t.question.submittingAnswers,
         success: t.question.answersSubmitted,
@@ -225,15 +308,23 @@ export const ReplyToQuestion = React.memo(() => {
 
     const { sessionID, callID } = questionRequest;
 
+    if (inFlightQuestions.has(serverRequestId)) return;
+    inFlightQuestions.add(serverRequestId);
+
     void execute({
       action: async () => {
-        await reject({
-          sessionId: sessionID,
-          requestId: serverRequestId, // ← que_...
-        });
-        removeQuestion(sessionID, callID);
+        try {
+          await reject({
+            sessionId: sessionID,
+            requestId: serverRequestId, // ← que_...
+          });
+
+          removeQuestionEverywhere(callID);
+          purgeQuestionRequest(queryClient, serverRequestId);
+        } finally {
+          inFlightQuestions.delete(serverRequestId);
+        }
       },
-      refetch: refetchQuestions,
       messages: {
         loading: t.question.rejectingQuestion,
         success: t.question.questionRejected,

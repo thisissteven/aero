@@ -1144,6 +1144,7 @@ export const zhTW: BaseTranslation = {
     cannotPrompt: '無法提示子代理工作階段。',
     noSubagents: '目前沒有子代理',
     spawnedSubagents: '建立的子代理會顯示在這裡。',
+    running: '執行中',
   },
 
   terminal: {

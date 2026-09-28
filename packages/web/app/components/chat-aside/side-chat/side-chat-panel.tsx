@@ -28,7 +28,21 @@ export function SideChatPanel() {
 
   return (
     <SessionIdProvider value={sessionId}>
-      {view === 'detail' ? <SideChatPage /> : <SubagentsList />}
+      {/* The list stays mounted while a subagent is open (just made invisible)
+          so its scroll position survives going back and forth. */}
+      <div className='relative'>
+        <div
+          aria-hidden={view === 'detail'}
+          className={cn(
+            view === 'detail' &&
+              'invisible pointer-events-none absolute inset-0 overflow-hidden',
+          )}
+        >
+          <SubagentsList />
+        </div>
+
+        {view === 'detail' && <SideChatPage />}
+      </div>
     </SessionIdProvider>
   );
 }

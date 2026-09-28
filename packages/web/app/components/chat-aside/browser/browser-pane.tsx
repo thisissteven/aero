@@ -777,7 +777,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
       }}
     >
       {/* Navigation & Address Bar */}
-      <div className='border-separator flex items-center gap-1 border-b px-2 py-1'>
+      <div className='border-separator flex items-center border-b px-1 py-1'>
         <IconBtn
           disabled={!canGoBack}
           onClick={goBackInFrame}
@@ -800,7 +800,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
           <Icon data={ArrowsRotateRight} size={14} />
         </IconBtn>
 
-        <form className='min-w-0 flex-1'>
+        <form className='min-w-0 flex-1 mx-1'>
           <input
             value={tab.draftUrl}
             onChange={(event) => setDraftUrl(tabId, event.target.value)}

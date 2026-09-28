@@ -56,6 +56,12 @@ export interface AeroSessionSummary {
   parentId?: string;
   sharedUrl?: string;
   workspace: string;
+  /**
+   * Live session status. Only populated on list responses that opt into status
+   * decoration (currently child-session lists) so the subagents UI can render an
+   * accurate working indicator without subscribing to every session's stream.
+   */
+  status?: AeroSessionStatus;
   createdAt: number;
   updatedAt: number;
   readOnly: boolean;

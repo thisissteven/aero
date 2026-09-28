@@ -2,6 +2,7 @@
 
 import { GET_ALL_LIMIT, PAGINATION_LIMIT } from '@/server/helper';
 import type {
+  AeroSessionStatus,
   AeroSessionSummary,
   HarnessAdapter,
   ListSessionsParams,
@@ -26,6 +27,65 @@ function decodeCursor(cursor?: string): number {
   } catch {
     return 0;
   }
+}
+
+/**
+ * Attaches live status to each session by asking its adapter for the status map
+ * of the session's workspace (the underlying harness reports status per
+ * workspace directory). Calls are batched per adapter + directory so a page
+ * only costs one status request per distinct workspace. Failures are ignored so
+ * a status outage never breaks listing.
+ */
+async function attachSessionStatus(
+  adapters: HarnessAdapter[],
+  sessions: AeroSessionSummary[],
+): Promise<void> {
+  if (sessions.length === 0) return;
+
+  const adapterById = new Map(adapters.map((adapter) => [adapter.id, adapter]));
+
+  const batches = new Map<
+    string,
+    {
+      adapter: HarnessAdapter;
+      directory: string;
+      sessions: AeroSessionSummary[];
+    }
+  >();
+
+  for (const session of sessions) {
+    const adapter = adapterById.get(session.harnessId);
+    if (!adapter || !session.workspace) continue;
+
+    const key = `${session.harnessId}::${session.workspace}`;
+    const batch = batches.get(key);
+
+    if (batch) {
+      batch.sessions.push(session);
+    } else {
+      batches.set(key, {
+        adapter,
+        directory: session.workspace,
+        sessions: [session],
+      });
+    }
+  }
+
+  await Promise.all(
+    Array.from(batches.values()).map(
+      async ({ adapter, directory, sessions }) => {
+        try {
+          const statusMap = await adapter.getSessionStatus(directory);
+          for (const session of sessions) {
+            const status = statusMap[session.id];
+            if (status) session.status = status as AeroSessionStatus;
+          }
+        } catch {
+          //
+        }
+      },
+    ),
+  );
 }
 
 /**
@@ -78,6 +138,12 @@ export async function listSessionsAcrossAdapters(
   const pageItems = allSessions.slice(offset, offset + limit);
   const hasMore = offset + limit < allSessions.length;
   const nextCursor = hasMore ? encodeCursor(offset + limit) : undefined;
+
+  // Child-session lists (the subagents UI) need live status to render the
+  // working indicator. Decorate only the current page to keep the cost bounded.
+  if (childSessionsOnly) {
+    await attachSessionStatus(adapters, pageItems);
+  }
 
   return {
     items: pageItems,

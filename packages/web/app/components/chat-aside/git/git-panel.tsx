@@ -607,7 +607,7 @@ function BranchesTab({
             return (
               <li
                 key={branch.name}
-                className='group hover:bg-default/40 grid grid-cols-[minmax(0,1fr)_4.5rem_1.75rem] items-center gap-0 rounded-md px-2 py-1.5 text-sm'
+                className='group hover:bg-default/40 grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-2 rounded-md px-2 py-1.5 text-sm'
               >
                 <div className='flex min-w-0 items-center gap-2'>
                   {branch.current ? (
@@ -1078,7 +1078,7 @@ function StashesTab({ directory }: { directory: string }) {
           {stashes.map((stash) => (
             <li
               key={stash.ref}
-              className='bg-default/40 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm'
+              className='bg-default/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm'
             >
               <div className='min-w-0 flex-1'>
                 <div className='truncate font-medium'>{stash.ref}</div>
@@ -1087,45 +1087,47 @@ function StashesTab({ directory }: { directory: string }) {
                 </div>
               </div>
 
-              <Tooltip>
-                <Tooltip.Trigger>
-                  <IconButton
-                    aria-label={t.gitPanel.applyStash}
-                    onPress={() =>
-                      run(apply, { ref: stash.ref }, t.gitPanel.applyStash)
-                    }
-                  >
-                    <Icon data={Check} />
-                  </IconButton>
-                </Tooltip.Trigger>
-                <Tooltip.Content>{t.gitPanel.apply}</Tooltip.Content>
-              </Tooltip>
-              <Tooltip>
-                <Tooltip.Trigger>
-                  <IconButton
-                    aria-label={t.gitPanel.popStash}
-                    onPress={() =>
-                      run(pop, { ref: stash.ref }, t.gitPanel.popStash)
-                    }
-                  >
-                    <Icon data={ArrowUp} />
-                  </IconButton>
-                </Tooltip.Trigger>
-                <Tooltip.Content>{t.gitPanel.pop}</Tooltip.Content>
-              </Tooltip>
-              <Tooltip>
-                <Tooltip.Trigger>
-                  <IconButton
-                    aria-label={t.gitPanel.dropStash}
-                    onPress={() =>
-                      run(drop, { ref: stash.ref }, t.gitPanel.dropStash)
-                    }
-                  >
-                    <Icon data={TrashBin} />
-                  </IconButton>
-                </Tooltip.Trigger>
-                <Tooltip.Content>{t.gitPanel.drop}</Tooltip.Content>
-              </Tooltip>
+              <div className='flex shrink-0 items-center gap-0.5'>
+                <Tooltip>
+                  <Tooltip.Trigger>
+                    <IconButton
+                      aria-label={t.gitPanel.applyStash}
+                      onPress={() =>
+                        run(apply, { ref: stash.ref }, t.gitPanel.applyStash)
+                      }
+                    >
+                      <Icon data={Check} />
+                    </IconButton>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>{t.gitPanel.apply}</Tooltip.Content>
+                </Tooltip>
+                <Tooltip>
+                  <Tooltip.Trigger>
+                    <IconButton
+                      aria-label={t.gitPanel.popStash}
+                      onPress={() =>
+                        run(pop, { ref: stash.ref }, t.gitPanel.popStash)
+                      }
+                    >
+                      <Icon data={ArrowUp} />
+                    </IconButton>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>{t.gitPanel.pop}</Tooltip.Content>
+                </Tooltip>
+                <Tooltip>
+                  <Tooltip.Trigger>
+                    <IconButton
+                      aria-label={t.gitPanel.dropStash}
+                      onPress={() =>
+                        run(drop, { ref: stash.ref }, t.gitPanel.dropStash)
+                      }
+                    >
+                      <Icon data={TrashBin} />
+                    </IconButton>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>{t.gitPanel.drop}</Tooltip.Content>
+                </Tooltip>
+              </div>
             </li>
           ))}
         </ul>
@@ -1362,7 +1364,7 @@ function RemotesTab({ directory }: { directory: string }) {
       {remotes.map((remote) => (
         <li
           key={remote.name}
-          className='bg-default/40 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm'
+          className='bg-default/40 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm'
         >
           <div className='min-w-0 flex-1'>
             <div className='font-medium'>{remote.name}</div>
@@ -1373,58 +1375,63 @@ function RemotesTab({ directory }: { directory: string }) {
             )}
           </div>
 
-          <Tooltip>
-            <Tooltip.Trigger>
-              <IconButton
-                aria-label={t.gitPanel.fetch}
-                isDisabled={fetch.isPending}
-                onPress={async () => {
-                  try {
-                    await fetch.mutateAsync({ directory, remote: remote.name });
-                    toast.success(
-                      t.gitPanel.operationComplete(t.gitPanel.fetch),
-                    );
-                  } catch (error) {
-                    toast.danger(
-                      error instanceof Error
-                        ? error.message
-                        : t.gitPanel.operationFailed(t.gitPanel.fetch),
-                    );
-                  }
-                }}
-              >
-                <Icon data={ArrowsRotateRight} />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{t.gitPanel.fetch}</Tooltip.Content>
-          </Tooltip>
+          <div className='flex shrink-0 items-center gap-0.5'>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <IconButton
+                  aria-label={t.gitPanel.fetch}
+                  isDisabled={fetch.isPending}
+                  onPress={async () => {
+                    try {
+                      await fetch.mutateAsync({
+                        directory,
+                        remote: remote.name,
+                      });
+                      toast.success(
+                        t.gitPanel.operationComplete(t.gitPanel.fetch),
+                      );
+                    } catch (error) {
+                      toast.danger(
+                        error instanceof Error
+                          ? error.message
+                          : t.gitPanel.operationFailed(t.gitPanel.fetch),
+                      );
+                    }
+                  }}
+                >
+                  <Icon data={ArrowsRotateRight} />
+                </IconButton>
+              </Tooltip.Trigger>
+              <Tooltip.Content>{t.gitPanel.fetch}</Tooltip.Content>
+            </Tooltip>
 
-          <Tooltip>
-            <Tooltip.Trigger>
-              <IconButton
-                aria-label={t.gitPanel.removeRemote}
-                isDisabled={removeRemote.isPending}
-                onPress={async () => {
-                  try {
-                    await removeRemote.mutateAsync({
-                      directory,
-                      remote: remote.name,
-                    });
-                    toast.success(t.gitPanel.removedRemote(remote.name));
-                  } catch (error) {
-                    toast.danger(
-                      error instanceof Error
-                        ? error.message
-                        : t.gitPanel.removeRemoteFailed,
-                    );
-                  }
-                }}
-              >
-                <Icon data={TrashBin} />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{t.gitPanel.removeRemote}</Tooltip.Content>
-          </Tooltip>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <IconButton
+                  aria-label={t.gitPanel.removeRemote}
+                  isDisabled={removeRemote.isPending}
+                  onPress={async () => {
+                    try {
+                      await removeRemote.mutateAsync({
+                        directory,
+                        remote: remote.name,
+                      });
+                      toast.success(t.gitPanel.removedRemote(remote.name));
+                    } catch (error) {
+                      toast.danger(
+                        error instanceof Error
+                          ? error.message
+                          : t.gitPanel.removeRemoteFailed,
+                      );
+                    }
+                  }}
+                >
+                  <Icon data={TrashBin} />
+                </IconButton>
+              </Tooltip.Trigger>
+              <Tooltip.Content>{t.gitPanel.removeRemote}</Tooltip.Content>
+            </Tooltip>
+          </div>
         </li>
       ))}
     </ul>

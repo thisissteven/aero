@@ -1205,6 +1205,7 @@ export const de: BaseTranslation = {
     cannotPrompt: 'Subagenten-Sitzungen können keine Eingabe erhalten.',
     noSubagents: 'Noch keine Subagenten',
     spawnedSubagents: 'Gestartete Subagenten erscheinen hier.',
+    running: 'Läuft',
   },
 
   terminal: {

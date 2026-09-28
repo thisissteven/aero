@@ -1184,6 +1184,7 @@ export const id: BaseTranslation = {
     cannotPrompt: 'Sesi subagen tidak dapat diberi prompt.',
     noSubagents: 'Belum ada subagen',
     spawnedSubagents: 'Subagen yang dibuat akan muncul di sini.',
+    running: 'Berjalan',
   },
 
   terminal: {

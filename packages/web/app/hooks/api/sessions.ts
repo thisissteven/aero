@@ -28,7 +28,9 @@ import { queryClient } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
 import {
   AeroPermissionReply,
+  AeroPermissionRequest,
   AeroQuestionAnswer,
+  AeroQuestions,
   AeroSessionSummary,
   ConversationRole,
   HarnessId,
@@ -148,6 +150,12 @@ interface UseSessionsOptions {
   archived?: boolean;
   childSessions?: boolean;
   childSessionsOnly?: boolean;
+  /**
+   * Poll interval for the list. Used by the subagents view to keep session
+   * status fresh while a child is busy (child status events are not delivered
+   * to the parent's stream, so polling is the live-update source).
+   */
+  refetchInterval?: number | false;
 }
 
 export function useSessions({
@@ -158,6 +166,7 @@ export function useSessions({
   archived,
   childSessions,
   childSessionsOnly,
+  refetchInterval,
 }: UseSessionsOptions = {}) {
   return useInfiniteQuery({
     queryKey: [
@@ -169,6 +178,7 @@ export function useSessions({
     ],
     initialPageParam: undefined as string | undefined,
     placeholderData: keepPreviousData,
+    refetchInterval,
     queryFn: async ({ pageParam }) => {
       const res = await $sessions.merged.$get({
         query: {
@@ -301,9 +311,21 @@ export function useSessionMessages(
   });
 }
 
+/**
+ * Pending permission/question endpoints are scoped server-side to the
+ * requested session's SUBTREE (the session plus every subagent it spawned),
+ * so a parent feed surfaces its subagents' prompts without leaking unrelated
+ * siblings in the same workspace.
+ *
+ * The lists are cached per session id. Because a subagent's request appears
+ * in both the parent's and the subagent's subtree, sync between the two feeds
+ * is achieved by (a) rendering both from these lists and (b) invalidating
+ * every cached list whenever a request is asked/answered.
+ */
 export function useSessionPermissions(
   harnessId: string | undefined,
   sessionId: string,
+  options?: { refetchInterval?: number | false },
 ) {
   return useQuery({
     queryKey: sessionKeys.permissions(harnessId, sessionId),
@@ -316,12 +338,14 @@ export function useSessionPermissions(
       return res.json();
     },
     enabled: !!sessionId,
+    refetchInterval: options?.refetchInterval,
   });
 }
 
 export function useSessionQuestions(
   harnessId: string | undefined,
   sessionId: string,
+  options?: { refetchInterval?: number | false },
 ) {
   return useQuery({
     queryKey: sessionKeys.questions(harnessId, sessionId),
@@ -334,7 +358,50 @@ export function useSessionQuestions(
       return res.json();
     },
     enabled: !!sessionId,
+    refetchInterval: options?.refetchInterval,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Pending-request cache sync
+//
+// Each cache entry holds a different subtree-scoped list, but a subagent's
+// request appears in both its own and its ancestors' lists, so a reply in one
+// session must purge/invalidate all of them.
+// ---------------------------------------------------------------------------
+
+const permissionQueryPredicate = (query: { queryKey: readonly unknown[] }) =>
+  query.queryKey.at(-1) === 'permissions';
+
+const questionQueryPredicate = (query: { queryKey: readonly unknown[] }) =>
+  query.queryKey.at(-1) === 'questions';
+
+export function invalidatePermissionQueries(qc: QueryClient) {
+  return qc.invalidateQueries({ predicate: permissionQueryPredicate });
+}
+
+export function invalidateQuestionQueries(qc: QueryClient) {
+  return qc.invalidateQueries({ predicate: questionQueryPredicate });
+}
+
+export function purgePermissionRequest(qc: QueryClient, requestId: string) {
+  qc.setQueriesData<AeroPermissionRequest>(
+    { predicate: permissionQueryPredicate },
+    (old) =>
+      Array.isArray(old) ? old.filter((entry) => entry.id !== requestId) : old,
+  );
+
+  void invalidatePermissionQueries(qc);
+}
+
+export function purgeQuestionRequest(qc: QueryClient, requestId: string) {
+  qc.setQueriesData<AeroQuestions>(
+    { predicate: questionQueryPredicate },
+    (old) =>
+      Array.isArray(old) ? old.filter((entry) => entry.id !== requestId) : old,
+  );
+
+  void invalidateQuestionQueries(qc);
 }
 
 export function useSessionContext(
