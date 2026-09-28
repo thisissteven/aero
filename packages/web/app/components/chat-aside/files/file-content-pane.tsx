@@ -112,6 +112,8 @@ export const FileContentPane = memo(function FileContentPane({
   }, [path]);
 
   const previewModeRef = useRef(new Map<string, boolean>());
+  // Per-path toggle for the custom PDF.js reader, session-scoped like preview.
+  const pdfReaderRef = useRef(new Map<string, boolean>());
 
   const wrapText = useFileViewerStore((s) => s.wrapText);
   const showLineNumbers = useFileViewerStore((s) => s.showLineNumbers);
@@ -243,6 +245,17 @@ export const FileContentPane = memo(function FileContentPane({
     if (!file) return;
     const current = previewModeRef.current.get(file.path) ?? true;
     previewModeRef.current.set(file.path, !current);
+    forceUpdate();
+  }, [file]);
+
+  const isPdf = mediaKind === 'pdf';
+  const pdfReader =
+    isPdf && file ? (pdfReaderRef.current.get(file.path) ?? false) : false;
+
+  const togglePdfReader = useCallback(() => {
+    if (!file) return;
+    const current = pdfReaderRef.current.get(file.path) ?? false;
+    pdfReaderRef.current.set(file.path, !current);
     forceUpdate();
   }, [file]);
 
@@ -443,7 +456,10 @@ export const FileContentPane = memo(function FileContentPane({
         isMarkdown={isMarkdown}
         previewMode={previewMode}
         isImage={isImage}
+        isPdf={isPdf}
+        pdfReader={pdfReader}
         onTogglePreview={togglePreview}
+        onTogglePdfReader={togglePdfReader}
         onCopy={() => void copyContent()}
         onSave={() => void save()}
         onRefresh={refreshFile}
@@ -468,6 +484,7 @@ export const FileContentPane = memo(function FileContentPane({
           currentContents={currentContents}
           isMarkdown={isMarkdown}
           previewMode={previewMode}
+          isPdfReader={pdfReader}
           viewerKey={viewerKey}
           layoutKey={layoutKey}
           renderKey={renderKey}

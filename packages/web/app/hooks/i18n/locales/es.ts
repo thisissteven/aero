@@ -1082,6 +1082,11 @@ export const es: BaseTranslation = {
     saveChanges: 'Guardar cambios',
     noUnsavedChanges: 'No hay cambios sin guardar',
     reloadFile: 'Recargar archivo',
+    openPdfReader: 'Abrir lector de PDF',
+    closePdfReader: 'Cerrar lector de PDF',
+    fitToWidth: 'Ajustar al ancho',
+    pageOf: (page: string, total: string) => `Página ${page} de ${total}`,
+    pdfLoadFailed: 'No se pudo cargar el PDF',
     selectFileToView: 'Selecciona un archivo para ver su contenido.',
     fileTooLarge:
       'El archivo es demasiado grande para obtener una vista previa.',

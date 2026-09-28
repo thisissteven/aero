@@ -5,6 +5,7 @@ import { getMediaKind } from '@/app/components/chat-aside/files/file-helpers';
 import { ImageZoomView } from '@/app/components/chat-aside/files/image-zoom-view';
 import { MarkdownPreview } from '@/app/components/chat-aside/files/markdown-preview';
 import { MediaPreview } from '@/app/components/chat-aside/files/media-preview';
+import { PdfReaderView } from '@/app/components/chat-aside/files/pdf-reader-view';
 import {
   type CachedFile,
   type FileEditorChangeEvent,
@@ -22,6 +23,8 @@ export interface FileViewerProps {
   currentContents: string;
   isMarkdown: boolean;
   previewMode: boolean;
+  /** True when a PDF should render in the custom PDF.js reader. */
+  isPdfReader: boolean;
   viewerKey: string;
   layoutKey: string;
   renderKey: string;
@@ -40,6 +43,7 @@ export const FileViewer = memo(function FileViewer({
   currentContents,
   isMarkdown,
   previewMode,
+  isPdfReader,
   viewerKey,
   layoutKey,
   renderKey,
@@ -53,6 +57,9 @@ export const FileViewer = memo(function FileViewer({
   if (mediaKind && mediaUrl) {
     if (mediaKind === 'image') {
       return <ImageZoomView src={mediaUrl} alt={fileName} />;
+    }
+    if (mediaKind === 'pdf' && isPdfReader) {
+      return <PdfReaderView src={mediaUrl} fileName={fileName} />;
     }
     return <MediaPreview kind={mediaKind} src={mediaUrl} fileName={fileName} />;
   }

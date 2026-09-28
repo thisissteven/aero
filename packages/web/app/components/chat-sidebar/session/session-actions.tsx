@@ -21,7 +21,6 @@ import {
   TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 
@@ -29,8 +28,6 @@ import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-st
 import { useWorkspaceStore } from '@/app/components/chat-sidebar/workspace/workspaces-store';
 import { CollapsibleActions } from '@/app/components/collapsible-actions';
 import {
-  SessionsPageResponse,
-  sessionKeys,
   useDeleteBulkSessions,
   useDeleteSession,
   useSessionMarkdown,
@@ -134,7 +131,6 @@ export function RecentsToggleEditModeButton() {
 }
 
 export function SelectSession({ sessionId }: { sessionId: string }) {
-  const queryClient = useQueryClient();
   const isShiftPressedRef = useRef(false);
 
   const isSelected = useRecentsSidebarStore((state) =>
@@ -143,26 +139,6 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
   const toggleSessionSelection = useRecentsSidebarStore(
     (state) => state.toggleSessionSelection,
   );
-
-  // Safely extract ordered IDs from TanStack Query infinite data cache
-  const getOrderedSessionIds = (): string[] => {
-    // Finds queries matching ['sessions', 'default'] prefix
-    const queries = queryClient.getQueriesData<
-      InfiniteData<SessionsPageResponse>
-    >({
-      queryKey: [...sessionKeys.merged(), undefined, undefined, undefined],
-      exact: true,
-    });
-
-    // Get the most recently updated query matching this key
-    const activeQuery = queries[queries.length - 1];
-    const data = activeQuery?.[1];
-
-    if (!data?.pages) return [];
-
-    // Directly map the pages to IDs
-    return data.pages.flatMap((page) => page.items.map((item) => item.id));
-  };
 
   // Capture shiftKey in CAPTURE phase before React Aria handles the event
   const handlePointerDownCapture = (e: React.PointerEvent) => {
@@ -175,14 +151,10 @@ export function SelectSession({ sessionId }: { sessionId: string }) {
 
   const handleSelectionChange = () => {
     const isShiftPressed = isShiftPressedRef.current;
-    isShiftPressedRef.current = false; // Reset ref state
+    isShiftPressedRef.current = false;
 
-    let orderedIds: string[] = [];
-    if (isShiftPressed) {
-      orderedIds = getOrderedSessionIds();
-    }
-
-    toggleSessionSelection(sessionId, isShiftPressed, orderedIds);
+    // Range order comes from the list's published rendered order (pinned first).
+    toggleSessionSelection(sessionId, isShiftPressed);
   };
 
   const { resolvedTheme } = useTheme();

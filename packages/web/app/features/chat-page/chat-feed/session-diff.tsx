@@ -5,7 +5,7 @@ import { memo, useMemo, useState } from 'react';
 import { openFileWhenReady } from '@/app/components/chat-aside/files/open-file-when-ready';
 import { FileTypeIcon } from '@/app/components/file-type-icon';
 import { MiddleTruncatePath } from '@/app/components/tool-call-view/middle-truncate-path';
-import { useGitStatus } from '@/app/hooks/api/git';
+import { useGitSummary } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useChatInputExpanded } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
@@ -19,74 +19,20 @@ interface DiffSummaryEntry {
   deletions: number;
 }
 
-interface DiffStat {
-  path: string;
-  additions: number;
-  deletions: number;
-}
-
-interface GitStatusData {
-  not_added?: string[];
-  diffStats?: {
-    staged?: Record<string, DiffStat>;
-    working?: Record<string, DiffStat>;
-  };
-}
-
-function deriveSummary(
-  status: GitStatusData | null | undefined,
-): DiffSummaryEntry[] {
-  if (!status) return [];
-
-  const map = new Map<string, DiffSummaryEntry>();
-
-  const mergeStat = (stat: DiffStat) => {
-    const existing = map.get(stat.path);
-    if (existing) {
-      existing.additions += stat.additions;
-      existing.deletions += stat.deletions;
-    } else {
-      map.set(stat.path, {
-        path: stat.path,
-        additions: stat.additions,
-        deletions: stat.deletions,
-      });
-    }
-  };
-
-  if (status.diffStats?.staged) {
-    for (const stat of Object.values(status.diffStats.staged)) {
-      mergeStat(stat);
-    }
-  }
-
-  if (status.diffStats?.working) {
-    for (const stat of Object.values(status.diffStats.working)) {
-      mergeStat(stat);
-    }
-  }
-
-  for (const untracked of status.not_added ?? []) {
-    if (!map.has(untracked)) {
-      map.set(untracked, { path: untracked, additions: 0, deletions: 0 });
-    }
-  }
-
-  return Array.from(map.values());
-}
-
 export const SessionDiff = memo(function SessionDiff() {
   const { t } = useI18n();
   const directory = useSessionDirectory();
-  const { data: statusData, isLoading } = useGitStatus(directory);
+  const { data: summaryData, isLoading } = useGitSummary(directory);
   const [isOpen, setIsOpen] = useState(false);
 
   const isChatInputExpanded = useChatInputExpanded();
   const isStatusPanelOpen = useStatusPanelStore((s) => s.isOpen);
 
   const summary = useMemo(
-    () => deriveSummary(statusData as GitStatusData | null | undefined),
-    [statusData],
+    () =>
+      (summaryData as { summary?: DiffSummaryEntry[] } | null | undefined)
+        ?.summary ?? [],
+    [summaryData],
   );
 
   if (
@@ -185,7 +131,7 @@ export const SessionDiff = memo(function SessionDiff() {
 
 function RefetchButton() {
   const directory = useSessionDirectory();
-  const { refetch } = useGitStatus(directory);
+  const { refetch } = useGitSummary(directory);
 
   const [isPending, setIsPending] = useState(false);
 

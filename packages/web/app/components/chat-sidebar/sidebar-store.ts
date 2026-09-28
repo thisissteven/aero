@@ -3,15 +3,20 @@ import { create, StateCreator } from 'zustand';
 type SidebarStore = {
   isEditMode: boolean;
   selectedSessionIds: string[];
+  /**
+   * Session IDs in the exact order they are rendered in the sidebar. Published
+   * by the list so shift + click range selection follows the visual order,
+   * including the hoisted pinned group.
+   */
+  orderedSessionIds: string[];
   lastSelectedId: string | null;
   toggleisEditMode: () => void;
-  batchAddSelectionSessions: (sessionIds: string[]) => void;
-  batchRemoveSelectionSessions: (sessionIds: string[]) => void;
-  toggleRangeSessions: (sessionIds: string[], select: boolean) => void;
+  setOrderedSessionIds: (sessionIds: string[]) => void;
   toggleSessionSelection: (
     sessionId: string,
     isShiftPressed: boolean,
-    orderedIds: string[],
+    /** Overrides the rendered order; defaults to the list's published order. */
+    orderedIds?: string[],
   ) => void;
   clearSelectedSessionIds: () => void;
 };
@@ -19,6 +24,7 @@ type SidebarStore = {
 const sidebarStoreSlice: StateCreator<SidebarStore> = (set) => ({
   isEditMode: false,
   selectedSessionIds: [],
+  orderedSessionIds: [],
   lastSelectedId: null,
 
   toggleisEditMode: () =>
@@ -28,35 +34,10 @@ const sidebarStoreSlice: StateCreator<SidebarStore> = (set) => ({
       lastSelectedId: null,
     })),
 
-  batchAddSelectionSessions: (sessionIds) =>
-    set(({ selectedSessionIds }) => ({
-      selectedSessionIds: Array.from(
-        new Set([...selectedSessionIds, ...sessionIds]),
-      ),
+  setOrderedSessionIds: (sessionIds) =>
+    set(() => ({
+      orderedSessionIds: sessionIds,
     })),
-
-  batchRemoveSelectionSessions: (sessionIds) =>
-    set(({ selectedSessionIds }) => ({
-      selectedSessionIds: selectedSessionIds.filter(
-        (id) => !sessionIds.includes(id),
-      ),
-    })),
-
-  toggleRangeSessions: (sessionIds, select) =>
-    set(({ selectedSessionIds }) => {
-      if (select) {
-        return {
-          selectedSessionIds: Array.from(
-            new Set([...selectedSessionIds, ...sessionIds]),
-          ),
-        };
-      }
-      return {
-        selectedSessionIds: selectedSessionIds.filter(
-          (id) => !sessionIds.includes(id),
-        ),
-      };
-    }),
 
   clearSelectedSessionIds: () =>
     set(() => ({
@@ -66,24 +47,25 @@ const sidebarStoreSlice: StateCreator<SidebarStore> = (set) => ({
 
   toggleSessionSelection: (sessionId, isShiftPressed, orderedIds) =>
     set((state) => {
-      const { selectedSessionIds, lastSelectedId } = state;
+      const { selectedSessionIds, orderedSessionIds, lastSelectedId } = state;
       const isCurrentlySelected = selectedSessionIds.includes(sessionId);
+      const order = orderedIds ?? orderedSessionIds;
 
       // 1. SHIFT + CLICK RANGE SELECTION
       if (
         isShiftPressed &&
         lastSelectedId &&
-        orderedIds.length > 0 &&
-        orderedIds.includes(lastSelectedId) &&
-        orderedIds.includes(sessionId)
+        order.length > 0 &&
+        order.includes(lastSelectedId) &&
+        order.includes(sessionId)
       ) {
-        const lastIndex = orderedIds.indexOf(lastSelectedId);
-        const currentIndex = orderedIds.indexOf(sessionId);
+        const lastIndex = order.indexOf(lastSelectedId);
+        const currentIndex = order.indexOf(sessionId);
 
         const start = Math.min(lastIndex, currentIndex);
         const end = Math.max(lastIndex, currentIndex);
 
-        const rangeIds = orderedIds.slice(start, end + 1);
+        const rangeIds = order.slice(start, end + 1);
         const shouldSelect = !isCurrentlySelected;
 
         const nextSelected = shouldSelect

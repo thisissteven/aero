@@ -11,6 +11,7 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 
 import { RecentsToggleEditModeButton } from '@/app/components/chat-sidebar/session/session-actions';
 import { ChatSidebarSessionItem } from '@/app/components/chat-sidebar/session/session-item';
+import { useRecentsSidebarStore } from '@/app/components/chat-sidebar/sidebar-store';
 import { useSessions } from '@/app/hooks/api/sessions';
 import { usePinnedSessions } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
@@ -115,6 +116,22 @@ export const RecentChats = memo(function Recents({
     () => groupSessionsByDay(sessions, { pinnedSessions }),
     [pinnedSessions, sessions],
   );
+
+  // Flatten the rendered groups (pinned first, then day buckets) so shift +
+  // click range selection in edit mode matches the visual order.
+  const orderedSessionIds = useMemo(
+    () =>
+      groups.flatMap((group) => group.sessions.map((session) => session.id)),
+    [groups],
+  );
+
+  const setOrderedSessionIds = useRecentsSidebarStore(
+    (state) => state.setOrderedSessionIds,
+  );
+
+  useEffect(() => {
+    setOrderedSessionIds(orderedSessionIds);
+  }, [orderedSessionIds, setOrderedSessionIds]);
 
   const groupLabels: Record<SessionGroup['key'], string> = {
     pinned: t.session.pinned,

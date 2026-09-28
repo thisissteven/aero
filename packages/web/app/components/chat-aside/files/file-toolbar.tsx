@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BookOpen,
   Eye,
   FloppyDisk,
   Hashtag,
@@ -36,7 +37,12 @@ export interface FileToolbarProps {
   previewMode: boolean;
   /** True for image files, which get zoom controls. */
   isImage: boolean;
+  /** True for PDF files, which get a reader-mode toggle. */
+  isPdf: boolean;
+  /** Current mode for PDF reader. Ignored when `isPdf` is false. */
+  pdfReader: boolean;
   onTogglePreview: () => void;
+  onTogglePdfReader: () => void;
   onCopy: () => void;
   onSave: () => void;
   onRefresh: () => void;
@@ -53,7 +59,10 @@ export const FileToolbar = memo(function FileToolbar({
   isMarkdown,
   previewMode,
   isImage,
+  isPdf,
+  pdfReader,
   onTogglePreview,
+  onTogglePdfReader,
   onCopy,
   onSave,
   onRefresh,
@@ -202,6 +211,20 @@ export const FileToolbar = memo(function FileToolbar({
             onClick={onSave}
           >
             <FloppyDisk className='size-3.5' />
+          </ToolbarButton>
+        )}
+
+        {isPdf && (
+          <ToolbarButton
+            label={
+              pdfReader
+                ? t.fileExplorer.closePdfReader
+                : t.fileExplorer.openPdfReader
+            }
+            active={pdfReader}
+            onClick={onTogglePdfReader}
+          >
+            <BookOpen className='size-3.5' />
           </ToolbarButton>
         )}
 

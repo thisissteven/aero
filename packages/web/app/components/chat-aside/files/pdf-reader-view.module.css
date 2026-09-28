@@ -1,0 +1,97 @@
+/* PDF reader surface. Only app theme tokens are used so the reader follows the
+   active color theme; page inversion is handled by a filter on the canvas. */
+
+.viewer {
+  position: relative;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--background);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.viewer::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.viewer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.viewer::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.viewer::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--foreground) 28%, transparent);
+}
+
+.viewer:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 100%;
+  padding: 20px;
+}
+
+.page {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 10px 30px rgba(0, 0, 0, 0.26);
+}
+
+.canvas {
+  display: block;
+}
+
+/* Invert the rendered page in dark mode. Lightness is capped slightly below 1
+   so text stays crisp instead of blowing out to pure black. */
+.pages[data-page-theme="dark"] .canvas {
+  filter: invert(0.93) hue-rotate(180deg);
+}
+
+.pages[data-page-theme="black"] .canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@starting-style {
+  .enter {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    transition: opacity 180ms ease;
+  }
+
+  @starting-style {
+    .enter {
+      transform: none;
+    }
+  }
+}
