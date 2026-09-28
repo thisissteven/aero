@@ -16,12 +16,14 @@ import type {
 } from 'pdfjs-dist';
 import {
   memo,
+  type SVGProps,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import styles from '@/app/components/chat-aside/files/pdf-reader-view.module.css';
 import { ToolbarButton } from '@/app/components/chat-aside/files/toolbar-button';
 import { useI18n } from '@/app/hooks/i18n';
@@ -72,6 +74,54 @@ interface ReaderFns {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+// Inline maximize/minimize glyphs, matching the DiagramFrame fullscreen
+// affordance used elsewhere in the app.
+const MaximizeIcon = memo(function MaximizeIcon(
+  props: SVGProps<SVGSVGElement>,
+) {
+  return (
+    <svg
+      fill='none'
+      height='16'
+      viewBox='0 0 16 16'
+      width='16'
+      xmlns='http://www.w3.org/2000/svg'
+      {...props}
+    >
+      <path
+        d='M6 2H2v4M10 2h4v4M14 10v4h-4M2 10h4v4'
+        stroke='currentColor'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        strokeWidth='1.3'
+      />
+    </svg>
+  );
+});
+
+const MinimizeIcon = memo(function MinimizeIcon(
+  props: SVGProps<SVGSVGElement>,
+) {
+  return (
+    <svg
+      fill='none'
+      height='16'
+      viewBox='0 0 16 16'
+      width='16'
+      xmlns='http://www.w3.org/2000/svg'
+      {...props}
+    >
+      <path
+        d='M2 6h4V2M14 6h-4V2M14 10h-4v4M2 10h4v4'
+        stroke='currentColor'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        strokeWidth='1.3'
+      />
+    </svg>
+  );
+});
+
 /**
  * A self-contained PDF.js reader. Renders pages to canvases lazily as they
  * approach the viewport, so large documents stay light, and inverts the page
@@ -97,6 +147,11 @@ export const PdfReaderView = memo(function PdfReaderView({
   const rafRef = useRef(0);
   const fnsRef = useRef<ReaderFns | null>(null);
   const pendingAnchorRef = useRef<{ idx: number; offset: number } | null>(null);
+  // Preserved across the fullscreen portal remount so toggling keeps the
+  // reader's zoom level, scroll position, and avoids a fresh fit.
+  const initializedRef = useRef(false);
+  const scrollTopRef = useRef(0);
+  const [mounted, setMounted] = useState(false);
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
     'loading',
@@ -105,10 +160,34 @@ export const PdfReaderView = memo(function PdfReaderView({
   const [scale, setScale] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageInput, setPageInput] = useState('1');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const pageInputFocused = useRef(false);
 
   const numPages = pageSizes.length;
   const invert = resolvedTheme === 'dark';
+
+  // `createPortal` needs a DOM target; don't touch it during SSR.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fullscreen: lock body scroll and let Escape exit, matching DiagramFrame.
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
 
   // ── Document loading ────────────────────────────────────────────────
   useEffect(() => {
@@ -120,6 +199,8 @@ export const PdfReaderView = memo(function PdfReaderView({
     setScale(1);
     scaleRef.current = 1;
     fitRef.current = true;
+    initializedRef.current = false;
+    scrollTopRef.current = 0;
     setCurrentPage(1);
     setPageInput('1');
 
@@ -386,6 +467,7 @@ export const PdfReaderView = memo(function PdfReaderView({
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = 0;
+        scrollTopRef.current = scroller.scrollTop;
         setCurrentPage(currentPageIndex() + 1);
       });
     };
@@ -405,12 +487,18 @@ export const PdfReaderView = memo(function PdfReaderView({
     scroller.addEventListener('wheel', onWheel, { passive: false });
     resizeObserver.observe(scroller);
 
-    fitWidth();
+    // First ready render fits to width; a fullscreen portal remount afterwards
+    // restores the previous zoom/scroll instead of refitting from the top.
+    const preserved = initializedRef.current;
+    initializedRef.current = true;
+    scroller.scrollTop = scrollTopRef.current;
+    if (!preserved || fitRef.current) fitWidth();
     renderVisible();
 
     return () => {
       observer.disconnect();
       observerRef.current = null;
+      scrollTopRef.current = scroller.scrollTop;
       scroller.removeEventListener('scroll', onScroll);
       scroller.removeEventListener('wheel', onWheel);
       resizeObserver.disconnect();
@@ -421,7 +509,7 @@ export const PdfReaderView = memo(function PdfReaderView({
       resetPages();
       fnsRef.current = null;
     };
-  }, [status, pageSizes]);
+  }, [status, pageSizes, isFullscreen]);
 
   // Re-render the currently visible pages whenever the zoom level changes.
   // Wrapper sizes come from React, so this must run after the DOM updates.
@@ -486,9 +574,26 @@ export const PdfReaderView = memo(function PdfReaderView({
 
   const ready = status === 'ready';
 
-  return (
-    <div className={cn('flex h-full min-h-0 w-full flex-col', styles.enter)}>
+  // Callback ref (not a plain ref): the fullscreen portal remounts the scroll
+  // container, so we restore the preserved scroll offset as soon as the new
+  // node commits, before paint, to avoid a jump to the top.
+  const attachScroller = useCallback((node: HTMLDivElement | null) => {
+    scrollRef.current = node;
+    if (node && initializedRef.current) node.scrollTop = scrollTopRef.current;
+  }, []);
+
+  const content = (
+    <>
       <div className='border-separator flex h-9 shrink-0 items-center gap-1 border-b px-2'>
+        {isFullscreen && (
+          <span
+            className='text-foreground mr-1 min-w-0 max-w-[40%] truncate text-xs font-medium'
+            title={fileName}
+          >
+            {fileName}
+          </span>
+        )}
+
         <ToolbarButton
           label={t.common.previous}
           onClick={() => fnsRef.current?.goToPage(currentPage - 1)}
@@ -575,17 +680,33 @@ export const PdfReaderView = memo(function PdfReaderView({
           >
             <ChevronsExpandHorizontal className='size-3.5' />
           </ToolbarButton>
+
+          <ToolbarButton
+            label={
+              isFullscreen
+                ? t.markdown.exitFullscreenAria
+                : t.markdown.fullscreenAria
+            }
+            active={isFullscreen}
+            onClick={() => setIsFullscreen((value) => !value)}
+          >
+            {isFullscreen ? (
+              <MinimizeIcon className='size-3.5' />
+            ) : (
+              <MaximizeIcon className='size-3.5' />
+            )}
+          </ToolbarButton>
         </div>
       </div>
 
       <div
-        ref={scrollRef}
+        ref={attachScroller}
         data-file-scroll-root
         tabIndex={0}
         role='document'
         aria-label={fileName}
         onKeyDown={handleKeyDown}
-        className={styles.viewer}
+        className={cn('min-h-0 flex-1', styles.viewer)}
       >
         {status === 'error' ? (
           <div className='text-danger flex h-full items-center justify-center p-6 text-center text-sm'>
@@ -621,6 +742,32 @@ export const PdfReaderView = memo(function PdfReaderView({
           </div>
         )}
       </div>
+    </>
+  );
+
+  // Portal on `document.body` so fullscreen escapes the file pane's
+  // `@container` containment (which would otherwise trap `position: fixed`)
+  // as well as any ancestor overflow or stacking context.
+  if (isFullscreen && mounted) {
+    return createPortal(
+      <div
+        className={cn(
+          'fixed inset-0 z-[100] flex min-h-0 flex-col bg-background',
+          styles.fullscreen,
+        )}
+        role='dialog'
+        aria-modal='true'
+        aria-label={fileName}
+      >
+        {content}
+      </div>,
+      document.body,
+    );
+  }
+
+  return (
+    <div className={cn('flex h-full min-h-0 w-full flex-col', styles.enter)}>
+      {content}
     </div>
   );
 });
