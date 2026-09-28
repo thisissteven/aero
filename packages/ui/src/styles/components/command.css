@@ -643,6 +643,10 @@
     }
   }
 
+  .command__item svg svg {
+    color: inherit;
+  }
+
   .command__item[data-focused="true"] {
     @apply bg-default/40;
   }

@@ -17,7 +17,10 @@ import {
   useChatStore,
   useSessionRuntime,
 } from '@/app/features/chat-page/chat-feed/chat-store';
-import { buildMessageParts } from '@/app/features/chat-page/chat-input/build-message-parts';
+import {
+  buildComposerTokenParts,
+  buildMessageParts,
+} from '@/app/features/chat-page/chat-input/build-message-parts';
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   getExternalPartsSession,
@@ -114,12 +117,19 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         effectiveSegments[0].token.type === 'command';
 
       const sendTextMessage = (texts: string[]) => {
+        const mentionParts = buildComposerTokenParts(
+          effectiveSegments as ComposerSegment[],
+        ).filter((part) => part.type === 'file' || part.type === 'agent');
+
         sendMessage({
           sessionId,
-          parts: texts.map((text) => ({
-            type: 'text',
-            text,
-          })),
+          parts: [
+            ...texts.map((text) => ({
+              type: 'text' as const,
+              text,
+            })),
+            ...mentionParts,
+          ],
           model: {
             modelId: selectedModel.model.id,
             providerId: selectedModel.providerId,
@@ -145,7 +155,6 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
           const {
             command,
             arguments: args,
-            parts,
             isCustomCommand,
           } = extractCommandPayload(effectiveSegments);
 
@@ -290,7 +299,6 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
             variant: selectedVariant,
             command,
             arguments: args,
-            parts,
             ...(isSteerMode ? { delivery: 'steer' as const } : {}),
           });
         } else {

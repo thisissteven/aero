@@ -3,10 +3,12 @@ import { FaceRobot } from '@gravity-ui/icons';
 import { memo } from 'react';
 
 import { BaseTool } from '@/app/components/tool-call-view/tools/base-tool';
+import { SubagentActivity } from '@/app/components/tool-call-view/tools/subagent-activity';
 import { SubagentPart } from '@/app/components/tool-call-view/tools/tool-types';
 import { useI18n } from '@/app/hooks/i18n';
 import { formatToolOutput } from '@/app/lib/file-icons/tool-helpers';
 import { SessionIdProvider } from '@/app/providers/SessionIdProvider';
+import { useKeepMountedStoreFeed } from '@/app/stores/keep-mounted';
 
 export const SubagentToolView = memo(
   ({
@@ -29,6 +31,12 @@ export const SubagentToolView = memo(
     const childSessionId = metadata?.sessionId;
 
     const rawOutput = formatToolOutput(output);
+
+    const isExpanded = useKeepMountedStoreFeed((state) =>
+      Boolean(state.ids[blockId]),
+    );
+
+    const hasChildSession = Boolean(childSessionId);
 
     const preview = (
       <div className='flex items-center gap-2 overflow-hidden'>
@@ -53,13 +61,18 @@ export const SubagentToolView = memo(
           icon={FaceRobot}
           title={t.toolCall.subagent}
           preview={preview}
-          codeTitle={title}
-          code={rawOutput || t.toolCall.noOutput}
+          codeTitle={hasChildSession ? undefined : title}
+          code={hasChildSession ? undefined : rawOutput || t.toolCall.noOutput}
           language='text'
-          copyText={rawOutput}
+          copyText={hasChildSession ? undefined : rawOutput}
           isStreaming={isStreaming}
+          forceEnabled={hasChildSession}
           useDuration
-        />
+        >
+          {childSessionId && isExpanded ? (
+            <SubagentActivity sessionId={childSessionId} />
+          ) : null}
+        </BaseTool>
       </SessionIdProvider>
     );
   },
