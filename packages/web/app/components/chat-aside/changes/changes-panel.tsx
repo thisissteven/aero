@@ -643,7 +643,7 @@ function ChangeDiffPanel({
 
   return (
     <div className='animate-in fade-in-0 mt-1 mb-1.5 duration-150 ease-out motion-reduce:animate-none'>
-      <CodeBlock defaultViewMode='split' className='rounded-md'>
+      <CodeBlock defaultViewMode='unified' className='rounded-md'>
         <CodeBlock.Header className='gap-2 pr-1 pl-2'>
           <div className='flex min-w-0 items-center gap-2 text-xs'>
             <FileTypeIcon filePath={entry.path} />

@@ -556,6 +556,7 @@ export const ja: BaseTranslation = {
     skillCount: (count: number) => `${count}件のスキル`,
     mcpServers: 'MCPサーバー',
     contextSources: 'コンテキストソース',
+    activity: 'アクティビティ',
     mcpStatus: 'MCPステータス',
     noMcpServersFound: 'MCPサーバーが見つかりません',
     toggleServer: (name: string) => `${name}サーバーの切り替え`,
@@ -1204,6 +1205,7 @@ export const ja: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'アクティビティの読み込みに失敗しました',
     failedToFetchCapabilities: '機能の取得に失敗しました',
     failedToFetchAgents: 'エージェントの取得に失敗しました',
     failedToFetchSkills: 'スキルの取得に失敗しました',
@@ -1291,5 +1293,24 @@ export const ja: BaseTranslation = {
     clear: 'クリア',
     clearLabel: 'クリア',
     close: '閉じる（Esc）',
+  },
+  activity: {
+    title: 'アクティビティ',
+    subtitle: '過去12か月のセッション',
+    sessions: 'セッション',
+    activeDays: 'アクティブ日数',
+    currentStreak: '現在の連続記録',
+    longestStreak: '最長連続記録',
+    workspaces: 'ワークスペース',
+    last7Days: '過去7日間',
+    busiestDay: '最も活発な日',
+    day: '日',
+    days: '日',
+    noActivity: 'まだアクティビティがありません',
+    less: '少',
+    more: '多',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'セッション' : 'セッション'}`,
+    onDate: (date: string) => `${date}`,
   },
 };

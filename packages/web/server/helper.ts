@@ -73,6 +73,9 @@ export const HARNESSES_CONFIG_PATH = normalizePath(
 export const CLAUDE_STORE_PATH = normalizePath(
   join(AERO_DIR, 'claude_sessions.json'),
 );
+export const ACTIVITY_SUMMARY_PATH = normalizePath(
+  join(AERO_DIR, 'activity-summary.json'),
+);
 
 export const PAGINATION_LIMIT = 10;
 export const GET_ALL_LIMIT = 1000000000;

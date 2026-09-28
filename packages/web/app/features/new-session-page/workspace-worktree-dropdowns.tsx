@@ -20,12 +20,7 @@ export function WorkspaceWorktreeDropdownWrapper({
   const isChat = state === 'chat';
 
   return (
-    <div
-      className={cn(
-        'mx-auto w-full max-w-[720px]',
-        isChat && isChatInputExpanded && 'mb-8',
-      )}
-    >
+    <div className='mx-auto w-full max-w-[720px]'>
       <FileAttachments />
       <BrowserAnnotationsPanel />
 
@@ -35,6 +30,7 @@ export function WorkspaceWorktreeDropdownWrapper({
           isChat && !sessionId
             ? 'translate-y-full opacity-0'
             : 'translate-y-0 opacity-100',
+          isChat && isChatInputExpanded && 'hidden',
         )}
         inert={isChat}
       >

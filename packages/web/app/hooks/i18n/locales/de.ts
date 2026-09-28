@@ -560,6 +560,7 @@ export const de: BaseTranslation = {
       `${count} ${count === 1 ? 'Skill' : 'Skills'}`,
     mcpServers: 'MCP-Server',
     contextSources: 'Kontextquellen',
+    activity: 'Aktivität',
     mcpStatus: 'MCP-Status',
     noMcpServersFound: 'Keine MCP-Server gefunden',
     toggleServer: (name: string) => `${name}-Server umschalten`,
@@ -1218,6 +1219,7 @@ export const de: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'Aktivität konnte nicht geladen werden',
     failedToFetchCapabilities: 'Capabilities konnten nicht abgerufen werden',
     failedToFetchAgents: 'Agenten konnten nicht abgerufen werden',
     failedToFetchSkills: 'Skills konnten nicht abgerufen werden',
@@ -1322,5 +1324,24 @@ export const de: BaseTranslation = {
     clear: 'Leeren',
     clearLabel: 'leeren',
     close: 'Schließen (Esc)',
+  },
+  activity: {
+    title: 'Aktivität',
+    subtitle: 'Deine Sitzungen der letzten zwölf Monate',
+    sessions: 'Sitzungen',
+    activeDays: 'Aktive Tage',
+    currentStreak: 'Aktuelle Serie',
+    longestStreak: 'Längste Serie',
+    workspaces: 'Arbeitsbereiche',
+    last7Days: 'Letzte 7 Tage',
+    busiestDay: 'Aktivster Tag',
+    day: 'Tag',
+    days: 'Tage',
+    noActivity: 'Noch keine Aktivität',
+    less: 'Weniger',
+    more: 'Mehr',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'Sitzung' : 'Sitzungen'}`,
+    onDate: (date: string) => `am ${date}`,
   },
 };

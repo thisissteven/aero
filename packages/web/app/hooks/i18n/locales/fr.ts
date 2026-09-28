@@ -566,6 +566,7 @@ export const fr: BaseTranslation = {
     skillCount: (count: number) => `${count} compétence${count > 1 ? 's' : ''}`,
     mcpServers: 'Serveurs MCP',
     contextSources: 'Sources de contexte',
+    activity: 'Activité',
     mcpStatus: 'État des serveurs MCP',
     noMcpServersFound: 'Aucun serveur MCP trouvé',
     toggleServer: (name: string) => `Activer ou désactiver le serveur ${name}`,
@@ -1235,6 +1236,7 @@ export const fr: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'Échec du chargement de l’activité',
     failedToFetchCapabilities: 'Échec de la récupération des capacités',
     failedToFetchAgents: 'Échec de la récupération des agents',
     failedToFetchSkills: 'Échec de la récupération des compétences',
@@ -1332,5 +1334,24 @@ export const fr: BaseTranslation = {
     clear: 'Effacer',
     clearLabel: 'effacer',
     close: 'Fermer (Esc)',
+  },
+  activity: {
+    title: 'Activité',
+    subtitle: 'Vos sessions des douze derniers mois',
+    sessions: 'Sessions',
+    activeDays: 'Jours actifs',
+    currentStreak: 'Série actuelle',
+    longestStreak: 'Plus longue série',
+    workspaces: 'Espaces de travail',
+    last7Days: '7 derniers jours',
+    busiestDay: 'Jour le plus actif',
+    day: 'jour',
+    days: 'jours',
+    noActivity: 'Aucune activité pour le moment',
+    less: 'Moins',
+    more: 'Plus',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'session' : 'sessions'}`,
+    onDate: (date: string) => `le ${date}`,
   },
 };

@@ -23,6 +23,7 @@ export function DisplayPopover() {
     { key: 'mcp', label: t.statusPanel.mcpStatus },
     { key: 'pinnedMessage', label: t.statusPanel.pinnedMessages },
     { key: 'contextSources', label: t.statusPanel.contextSources },
+    { key: 'activity', label: t.statusPanel.activity },
   ];
 
   return (

@@ -536,6 +536,7 @@ export const zhTW: BaseTranslation = {
     skillCount: (count: number) => `${count} 項技能`,
     mcpServers: 'MCP 伺服器',
     contextSources: '上下文來源',
+    activity: '活躍度',
     mcpStatus: 'MCP 狀態',
     noMcpServersFound: '找不到 MCP 伺服器',
     toggleServer: (name: string) => `切換 ${name} 伺服器`,
@@ -1157,6 +1158,7 @@ export const zhTW: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: '取得活躍度失敗',
     failedToFetchCapabilities: '無法取得功能列表',
     failedToFetchAgents: '無法取得代理程式列表',
     failedToFetchSkills: '無法取得技能列表',
@@ -1240,5 +1242,24 @@ export const zhTW: BaseTranslation = {
     clear: '清除',
     clearLabel: '清除',
     close: '關閉（Esc）',
+  },
+  activity: {
+    title: '活躍度',
+    subtitle: '你過去十二個月的工作階段',
+    sessions: '工作階段',
+    activeDays: '活躍天數',
+    currentStreak: '目前連續',
+    longestStreak: '最長連續',
+    workspaces: '工作區',
+    last7Days: '最近 7 天',
+    busiestDay: '最活躍的一天',
+    day: '天',
+    days: '天',
+    noActivity: '尚無活動',
+    less: '少',
+    more: '多',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? '個工作階段' : '個工作階段'}`,
+    onDate: (date: string) => `${date}`,
   },
 };

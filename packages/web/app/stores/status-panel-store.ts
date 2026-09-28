@@ -19,7 +19,8 @@ export type StatusItemKey =
   | 'task'
   | 'mcp'
   | 'pinnedMessage'
-  | 'contextSources';
+  | 'contextSources'
+  | 'activity';
 
 interface StatusPanelState {
   isOpen: boolean;
@@ -46,6 +47,7 @@ const DEFAULT_VISIBLE_ITEMS: Record<StatusItemKey, boolean> = {
   mcp: true,
   pinnedMessage: true,
   contextSources: true,
+  activity: true,
 };
 
 const DEFAULT_SIZE: Size = {

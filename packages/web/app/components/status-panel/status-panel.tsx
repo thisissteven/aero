@@ -2,6 +2,7 @@ import { Dots9 } from '@gravity-ui/icons';
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
+import { ActivityStatus } from '@/app/components/status-panel/activity-status';
 import { ContextSources } from '@/app/components/status-panel/context-sources';
 import { McpStatus } from '@/app/components/status-panel/mcp-status';
 import { PinnedMessageStatus } from '@/app/components/status-panel/pinned-message-status';
@@ -35,6 +36,7 @@ export const StatusPanel = React.memo(function StatusPanel() {
       <McpStatus />
       <PinnedMessageStatus />
       <ContextSources />
+      <ActivityStatus />
     </div>
   );
 });
@@ -255,6 +257,7 @@ export const StatusPanelFloating = React.memo(function StatusPanelFloating() {
           <McpStatus />
           <PinnedMessageStatus />
           <ContextSources />
+          <ActivityStatus />
         </div>
       </div>
     </div>

@@ -561,6 +561,7 @@ export const es: BaseTranslation = {
       `${count} ${count === 1 ? 'skill' : 'skills'}`,
     mcpServers: 'Servidores MCP',
     contextSources: 'Fuentes de contexto',
+    activity: 'Actividad',
     mcpStatus: 'Estado de MCP',
     noMcpServersFound: 'No se encontraron servidores MCP',
     toggleServer: (name: string) => `Alternar el servidor ${name}`,
@@ -1227,6 +1228,7 @@ export const es: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'No se pudo cargar la actividad',
     failedToFetchCapabilities: 'No se pudieron obtener las capacidades',
     failedToFetchAgents: 'No se pudieron obtener los agentes',
     failedToFetchSkills: 'No se pudieron obtener las skills',
@@ -1320,5 +1322,24 @@ export const es: BaseTranslation = {
     clear: 'Limpiar',
     clearLabel: 'limpiar',
     close: 'Cerrar (Esc)',
+  },
+  activity: {
+    title: 'Actividad',
+    subtitle: 'Tus sesiones de los últimos doce meses',
+    sessions: 'Sesiones',
+    activeDays: 'Días activos',
+    currentStreak: 'Racha actual',
+    longestStreak: 'Racha más larga',
+    workspaces: 'Espacios de trabajo',
+    last7Days: 'Últimos 7 días',
+    busiestDay: 'Día más activo',
+    day: 'día',
+    days: 'días',
+    noActivity: 'Aún no hay actividad',
+    less: 'Menos',
+    more: 'Más',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'sesión' : 'sesiones'}`,
+    onDate: (date: string) => `el ${date}`,
   },
 };

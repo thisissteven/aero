@@ -304,6 +304,26 @@ export const en = {
     buildSomethingFunSuffix: '',
   },
 
+  activity: {
+    title: 'Activity',
+    subtitle: 'Your sessions over the last year',
+    sessions: 'Sessions',
+    activeDays: 'Active days',
+    currentStreak: 'Current streak',
+    longestStreak: 'Longest streak',
+    workspaces: 'Workspaces',
+    last7Days: 'Last 7 days',
+    busiestDay: 'Busiest day',
+    day: 'day',
+    days: 'days',
+    noActivity: 'No activity yet',
+    less: 'Less',
+    more: 'More',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'session' : 'sessions'}`,
+    onDate: (date: string) => `on ${date}`,
+  },
+
   library: {
     subtitle: 'Saved prompts and reusable setups',
     description:
@@ -553,6 +573,7 @@ export const en = {
       `${count} ${count === 1 ? 'skill' : 'skills'}`,
     mcpServers: 'MCP servers',
     contextSources: 'Context sources',
+    activity: 'Activity',
     mcpStatus: 'MCP Status',
     noMcpServersFound: 'No MCP servers found',
     toggleServer: (name: string) => `Toggle ${name} server`,
@@ -1197,6 +1218,7 @@ export const en = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'Failed to fetch activity',
     failedToFetchCapabilities: 'Failed to fetch capabilities',
     failedToFetchAgents: 'Failed to fetch agents',
     failedToFetchSkills: 'Failed to fetch skills',

@@ -1,4 +1,6 @@
 import { cn, Tooltip, Typography } from '@aero/ui';
+import { useGitStatus } from '@/app/hooks/api/git';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { collapsibleNav, NavItemId } from '@/app/lib/constants';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
@@ -10,7 +12,13 @@ interface ChatAsideProps {
 
 export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
   const isSidePanelOpen = useSidePanelStore((state) => state.isOpen);
+  const directory = useSessionDirectory();
+  const { data: statusData } = useGitStatus(directory);
   const { t } = useI18n();
+
+  const ahead =
+    (statusData as { ahead?: number } | null | undefined)?.ahead ?? 0;
+
   if (!isSidePanelOpen) return null;
 
   return (
@@ -29,13 +37,24 @@ export function ChatAside({ activeItem, onSelect }: ChatAsideProps) {
                 <button
                   type='button'
                   onClick={() => onSelect(item.id)}
-                  className={`flex w-full items-center justify-center py-1.5 transition ${
-                    isActive
-                      ? 'text-accent opacity-100'
-                      : 'opacity-50 hover:opacity-80'
-                  }`}
+                  className='relative flex w-full items-center justify-center py-1.5'
                 >
-                  {item.icon}
+                  <span className='relative inline-flex'>
+                    <span
+                      className={`transition ${
+                        isActive
+                          ? 'text-accent opacity-100'
+                          : 'opacity-50 hover:opacity-80'
+                      }`}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.id === 'git' && ahead > 0 && (
+                      <span className='text-accent absolute -top-2 -right-2 z-10 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[10px] leading-none font-semibold'>
+                        {ahead > 99 ? '99+' : ahead}
+                      </span>
+                    )}
+                  </span>
                 </button>
               </Tooltip.Trigger>
 

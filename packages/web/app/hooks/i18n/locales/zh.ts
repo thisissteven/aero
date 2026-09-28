@@ -537,6 +537,7 @@ export const zh: BaseTranslation = {
     skillCount: (count: number) => `${count} 个技能`,
     mcpServers: 'MCP 服务器',
     contextSources: '上下文来源',
+    activity: '活跃度',
     mcpStatus: 'MCP 状态',
     noMcpServersFound: '未找到 MCP 服务器',
     toggleServer: (name: string) => `切换 ${name} 服务器`,
@@ -1157,6 +1158,7 @@ export const zh: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: '获取活跃度失败',
     failedToFetchCapabilities: '获取功能列表失败',
     failedToFetchAgents: '获取代理列表失败',
     failedToFetchSkills: '获取技能列表失败',
@@ -1240,5 +1242,24 @@ export const zh: BaseTranslation = {
     clear: '清空',
     clearLabel: '清空',
     close: '关闭（Esc）',
+  },
+  activity: {
+    title: '活跃度',
+    subtitle: '你过去十二个月的会话',
+    sessions: '会话',
+    activeDays: '活跃天数',
+    currentStreak: '当前连续',
+    longestStreak: '最长连续',
+    workspaces: '工作区',
+    last7Days: '最近 7 天',
+    busiestDay: '最活跃的一天',
+    day: '天',
+    days: '天',
+    noActivity: '暂无活动',
+    less: '少',
+    more: '多',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? '个会话' : '个会话'}`,
+    onDate: (date: string) => `${date}`,
   },
 };

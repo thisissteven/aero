@@ -6,6 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 import { opencodePool } from '@/server/adapters/opencode/pool';
 import { initProxyConfig } from '@/server/proxy-loader';
 
+import activityRoutes from './routes/activity';
 import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
 import discoveryRoutes from './routes/discovery';
@@ -32,6 +33,7 @@ initProxyConfig();
 
 const app = new Hono()
   .basePath('/api')
+  .route('/activity', activityRoutes)
   .route('/sessions', sessionRoutes)
   .route('/workspaces', workspaceRoutes)
   .route('/pool', poolRoutes)

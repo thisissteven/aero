@@ -551,6 +551,7 @@ export const id: BaseTranslation = {
     skillCount: (count: number) => `${count} skill`,
     mcpServers: 'Server MCP',
     contextSources: 'Sumber konteks',
+    activity: 'Aktivitas',
     mcpStatus: 'Status MCP',
     noMcpServersFound: 'Tidak ada server MCP yang ditemukan',
     toggleServer: (name: string) => `Buka/tutup server ${name}`,
@@ -1197,6 +1198,7 @@ export const id: BaseTranslation = {
   },
 
   apiErrors: {
+    failedToFetchActivity: 'Gagal memuat aktivitas',
     failedToFetchCapabilities: 'Gagal memuat kapabilitas',
     failedToFetchAgents: 'Gagal memuat agen',
     failedToFetchSkills: 'Gagal memuat skill',
@@ -1282,5 +1284,24 @@ export const id: BaseTranslation = {
     clear: 'Bersihkan',
     clearLabel: 'bersihkan',
     close: 'Tutup (Esc)',
+  },
+  activity: {
+    title: 'Aktivitas',
+    subtitle: 'Sesi Anda selama dua belas bulan terakhir',
+    sessions: 'Sesi',
+    activeDays: 'Hari aktif',
+    currentStreak: 'Rentetan saat ini',
+    longestStreak: 'Rentetan terpanjang',
+    workspaces: 'Ruang kerja',
+    last7Days: '7 hari terakhir',
+    busiestDay: 'Hari tersibuk',
+    day: 'hari',
+    days: 'hari',
+    noActivity: 'Belum ada aktivitas',
+    less: 'Sedikit',
+    more: 'Banyak',
+    sessionCount: (count: number) =>
+      `${count} ${count === 1 ? 'sesi' : 'sesi'}`,
+    onDate: (date: string) => `pada ${date}`,
   },
 };
