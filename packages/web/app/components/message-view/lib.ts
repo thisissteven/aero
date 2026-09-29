@@ -325,7 +325,14 @@ export function buildFlatConversationItems(
     for (let partIndex = 0; partIndex < partsLength; partIndex++) {
       const part = turn.parts[partIndex];
       const isLastPartInTurn = partIndex === partsLength - 1;
-      const isPartStreaming = isTurnStreaming && isLastPartInTurn;
+      // A tool can run alongside a sibling tool part that was appended after
+      // it (the model emits parallel tool calls in one step), so it is not
+      // necessarily the last part while it runs. Treat any running tool part
+      // as active so its live timer starts and keeps ticking until the part
+      // settles with a static duration.
+      const isRunningTool = part.type === 'tool' && part.status === 'running';
+      const isPartStreaming =
+        isTurnStreaming && (isLastPartInTurn || isRunningTool);
 
       if (
         part.type === 'text' &&

@@ -1163,13 +1163,13 @@ function WorktreesTab({ directory }: { directory: string }) {
               className='bg-default/40 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm'
             >
               <div className='min-w-0 flex-1'>
-                <div className='truncate font-mono text-xs'>{path}</div>
-                <div className='mt-1 flex items-center gap-2 text-xs'>
+                <div className='mt-1 space-y-2 text-xs'>
                   {wt.branch && (
                     <Chip size='sm' variant='soft' color='accent'>
                       {wt.branch}
                     </Chip>
                   )}
+                  <div className='ml-1 truncate font-mono text-xs'>{path}</div>
                   {wt.head && (
                     <span className='text-muted font-mono tabular-nums'>
                       {wt.head.slice(0, 7)}

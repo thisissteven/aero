@@ -438,6 +438,101 @@ export async function getRemotes(directory: string) {
   return client.getRemotes(true);
 }
 
+/**
+ * Resolves the URL a named remote points at. Returns null for a remote that
+ * does not exist, so callers can treat "no such remote" the same as "remote is
+ * not a GitHub URL" instead of handling a throw.
+ */
+export async function getRemoteUrl(
+  directory: string,
+  remoteName = 'origin',
+): Promise<string | null> {
+  const client = getGitClient(directory);
+  const url = await client
+    .getRemotes(true)
+    .then((remotes) => remotes.find((r) => r.name === remoteName)?.refs?.fetch)
+    .catch(() => null);
+  return url ?? null;
+}
+
+/**
+ * The upstream ref of the checked-out branch, e.g. `origin/feature/x`.
+ * Null when HEAD is detached or the branch has no upstream.
+ */
+export async function getTrackingBranch(
+  directory: string,
+): Promise<string | null> {
+  const status = await getGitClient(directory).status();
+  return status.tracking ?? null;
+}
+
+/**
+ * True when `sha` is reachable from the current HEAD. Used to decide whether a
+ * closed/merged PR actually belongs to this checkout, since branch names get
+ * reused across worktrees.
+ *
+ * `merge-base --is-ancestor` signals "no" via a non-zero exit code rather than
+ * output, so a throw here means the answer is false — the same as an unknown
+ * sha, which is also not an ancestor.
+ */
+export async function isAncestorOfHead(
+  directory: string,
+  sha: string,
+): Promise<boolean> {
+  const client = getGitClient(directory);
+  try {
+    await client.raw(['merge-base', '--is-ancestor', sha, 'HEAD']);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface CommitLogEntry {
+  sha: string;
+  subject: string;
+  body: string;
+  author: string;
+  date: string;
+}
+
+/**
+ * Commits in `base..head`, oldest first, formatted for prompt consumption.
+ * Returns an empty list when the range is invalid or empty so callers can
+ * render a "nothing to describe" state instead of failing.
+ */
+export async function getCommitLog(
+  directory: string,
+  options: { base: string; head: string; limit?: number },
+): Promise<CommitLogEntry[]> {
+  const client = getGitClient(directory);
+  const limit = options.limit ?? 100;
+  const raw = await client
+    .raw([
+      'log',
+      `--max-count=${limit}`,
+      '--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e',
+      `${options.base}..${options.head}`,
+    ])
+    .catch(() => '');
+
+  return raw
+    .split('\x1e')
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [sha, author, date, subject, body] = record.split('\x1f');
+      return {
+        sha: sha ?? '',
+        author: author ?? '',
+        date: date ?? '',
+        subject: subject ?? '',
+        body: (body ?? '').trim(),
+      };
+    })
+    .filter((entry) => entry.sha);
+}
+
 export async function removeRemote(
   directory: string,
   options: { remote: string },

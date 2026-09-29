@@ -20,6 +20,8 @@ import {
 } from '@/app/features/chat-page/chat-input/models/use-selected-model';
 import { useI18n } from '@/app/hooks/i18n';
 import { getModelKey, SearchableModel } from '@/app/lib/model';
+import { useProvidersStore } from '@/app/providers/settings/providers/providers-store';
+import { useSettingsModalStore } from '@/app/providers/settings/settings-store';
 
 import { useChatSettingsStore } from '../chat-settings-store';
 
@@ -39,6 +41,12 @@ export function ModelDropdown() {
   );
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const openSettingsModal = useSettingsModalStore((state) => state.openModal);
+  const setProvidersViewMode = useProvidersStore((state) => state.setViewMode);
+  const setProvidersMobilePanel = useProvidersStore(
+    (state) => state.setMobilePanel,
+  );
 
   const {
     searchableModels,
@@ -80,6 +88,13 @@ export function ModelDropdown() {
   const toggleFavorite = (event: React.MouseEvent, modelKey: string) => {
     event.stopPropagation();
     toggleFavoriteModel(modelKey);
+  };
+
+  const openConnectProvider = () => {
+    setProvidersViewMode('connect');
+    setProvidersMobilePanel('detail');
+    setIsOpen(false);
+    openSettingsModal('providers');
   };
 
   const items = buildModelVirtualItems(
@@ -125,7 +140,7 @@ export function ModelDropdown() {
           )}
 
           <div className='bg-surface text-overlay-foreground border border-separator rounded-xl flex w-80 flex-col overflow-hidden'>
-            <AddProviderRow />
+            <AddProviderRow onClick={openConnectProvider} />
 
             <Command>
               <Command.Dialog

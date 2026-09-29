@@ -239,13 +239,6 @@ function ActivityStats({
         label={t.activity.longestStreak}
         value={formatDays(summary.longestStreak)}
       />
-      {showWorkspaces && (
-        <Stat
-          emphasize={emphasizeStats}
-          label={t.activity.workspaces}
-          value={summary.workspaces}
-        />
-      )}
     </dl>
   );
 }
@@ -352,8 +345,8 @@ export function ActivitySummarySkeleton() {
       <div className='flex flex-col gap-4 @sm:flex-row @sm:items-center'>
         <div className='h-[68px] min-w-0 rounded-md bg-surface-secondary @sm:flex-1' />
         <div className='grid grid-cols-1 gap-x-4 gap-y-1.5 @min-[280px]:@max-[383px]:grid-cols-2 @sm:w-36 @sm:shrink-0 @sm:grid-cols-1'>
-          {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className='h-9 rounded bg-surface-secondary' />
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className='h-4 rounded bg-surface-secondary' />
           ))}
         </div>
       </div>

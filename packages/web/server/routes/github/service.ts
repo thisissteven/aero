@@ -1,35 +1,18 @@
-// github-service.ts
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Octokit } from '@octokit/rest';
+// github/service.ts
+//
+// Shared GitHub service layer: zod request schemas, the user summary helper,
+// check-run detail fetching, and the response shapes the routes return.
+
+import type { Octokit } from '@octokit/rest';
 import { z } from 'zod';
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const OPENCHAMBER_DATA_DIR = process.env.OPENCHAMBER_DATA_DIR
-  ? path.resolve(process.env.OPENCHAMBER_DATA_DIR)
-  : path.join(os.homedir(), '.config', 'openchamber');
-
-const STORAGE_DIR = OPENCHAMBER_DATA_DIR;
-const STORAGE_FILE = path.join(STORAGE_DIR, 'github-auth.json');
-const SETTINGS_FILE = path.join(OPENCHAMBER_DATA_DIR, 'settings.json');
-
-const DEFAULT_GITHUB_CLIENT_ID = 'Ov23lizomPOC3eFYo56r';
-const DEFAULT_GITHUB_SCOPES = 'repo read:org workflow read:user user:email';
-const GH_CLI_ACCOUNT_ID = 'gh-cli';
-
-const OCTOKIT_REQUEST_TIMEOUT_MS = 8_000;
-const ETAG_CACHE_MAX_ENTRIES = 300;
-
-const PR_STATUS_CACHE_TTL_MS = 90_000;
-const PR_STATUS_CACHE_MAX_ENTRIES = 200;
-const PR_STATUS_RESOLVE_TIMEOUT_MS = 12_000;
-
-const PR_CONTEXT_CACHE_TTL_MS = 30_000;
-const PR_CONTEXT_CACHE_MAX_ENTRIES = 50;
+import type { GitHubUser } from './auth';
+import {
+  type CheckRunSummary,
+  dedupeCheckRuns,
+  summarizeCheckRuns,
+} from './checks';
+import { noteIfGitHubRateLimit } from './rate-limit';
+import { isResourceUnavailable, normalizeText } from './repo';
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -60,598 +43,583 @@ export class GitHubRepoNotFoundError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Auth storage (auth.js equivalent)
+// Zod schemas
 // ---------------------------------------------------------------------------
 
-function ensureStorageDir() {
-  if (!fs.existsSync(STORAGE_DIR)) {
-    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+export const githubDirectorySchema = z.string().min(1);
+
+const booleanFromQuery = z
+  .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+  .transform((value) => value === true || value === 'true' || value === '1');
+
+export const githubDeviceFlowStartBodySchema = z.object({});
+export const githubDeviceFlowCompleteBodySchema = z.object({
+  deviceCode: z.string().min(1),
+});
+export const githubActivateBodySchema = z.object({
+  accountId: z.string().min(1),
+});
+export const githubGhCliBodySchema = z.object({
+  disabled: z.boolean(),
+});
+
+export const githubPrStatusQuerySchema = z.object({
+  directory: githubDirectorySchema,
+  branch: z.string().min(1),
+  remote: z.string().optional(),
+  force: booleanFromQuery.optional().default(false),
+});
+
+export const githubPrCreateBodySchema = z.object({
+  directory: githubDirectorySchema,
+  title: z.string().min(1),
+  head: z.string().min(1),
+  base: z.string().min(1),
+  body: z.string().optional(),
+  draft: z.boolean().optional(),
+  /** Target repo, e.g. `upstream` for a fork PR. */
+  remote: z.string().optional().default('origin'),
+  /** Repo the head branch lives on, when it differs from the target. */
+  headRemote: z.string().optional(),
+  /** Explicit target, used when upstream was auto-detected. */
+  targetRepo: z
+    .object({ owner: z.string().min(1), repo: z.string().min(1) })
+    .optional(),
+});
+
+export const githubPrNumberBodySchema = z.object({
+  directory: githubDirectorySchema,
+  number: z.number().int().positive(),
+});
+
+export const githubPrUpdateBodySchema = githubPrNumberBodySchema.extend({
+  title: z.string().min(1),
+  body: z.string().optional(),
+});
+
+export const githubPrMergeBodySchema = githubPrNumberBodySchema.extend({
+  method: z.enum(['merge', 'squash', 'rebase']).optional().default('merge'),
+});
+
+export const githubPrDescribeBodySchema = z.object({
+  directory: githubDirectorySchema,
+  base: z.string().optional(),
+  head: z.string().optional(),
+  model: z
+    .object({ providerId: z.string().min(1), modelId: z.string().min(1) })
+    .optional(),
+});
+
+export const githubUpstreamQuerySchema = z.object({
+  directory: githubDirectorySchema,
+});
+
+export const githubBranchesQuerySchema = z.object({
+  owner: z.string().min(1),
+  repo: z.string().min(1),
+});
+
+export const githubRepoListQuerySchema = z.object({
+  directory: githubDirectorySchema,
+  page: z.coerce.number().int().positive().optional().default(1),
+  query: z.string().optional(),
+});
+
+export const githubRepoItemQuerySchema = z.object({
+  directory: githubDirectorySchema,
+  number: z.coerce.number().int().positive(),
+  owner: z.string().optional(),
+  repo: z.string().optional(),
+  diff: booleanFromQuery.optional().default(false),
+  checkDetails: booleanFromQuery.optional().default(false),
+});
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+/** The authenticated user, with email resolved from the verified list. */
+export async function getGitHubUserSummary(
+  octokit: Octokit,
+): Promise<GitHubUser> {
+  const me = await octokit.rest.users.getAuthenticated();
+
+  let email = normalizeText(me.data.email) || null;
+  if (!email) {
+    // `users.getAuthenticated` returns null email when the profile keeps it
+    // private, but the token can still read the address list.
+    try {
+      const emails = await octokit.rest.users.listEmailsForAuthenticatedUser({
+        per_page: 100,
+      });
+      const list = Array.isArray(emails?.data) ? emails.data : [];
+      const primaryVerified = list.find(
+        (entry) => entry?.primary && entry?.verified && entry?.email,
+      );
+      const anyVerified = list.find((entry) => entry?.verified && entry?.email);
+      email = primaryVerified?.email || anyVerified?.email || null;
+    } catch {
+      // Scope may be missing; the rest of the summary is still useful.
+    }
   }
-}
-
-function readJsonFile<T>(filePath: string): T | null {
-  ensureStorageDir();
-  if (!fs.existsSync(filePath)) return null;
-  try {
-    const raw = fs.readFileSync(filePath, 'utf8').trim();
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    return parsed as T;
-  } catch (error) {
-    console.error(`Failed to read ${filePath}:`, error);
-    return null;
-  }
-}
-
-function writeJsonFile(filePath: string, payload: unknown) {
-  ensureStorageDir();
-  const tmpFile = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpFile, JSON.stringify(payload, null, 2), 'utf8');
-  try {
-    fs.chmodSync(tmpFile, 0o600);
-  } catch {
-    /* best-effort */
-  }
-  fs.renameSync(tmpFile, filePath);
-  try {
-    fs.chmodSync(filePath, 0o600);
-  } catch {
-    /* best-effort */
-  }
-}
-
-export interface GitHubUser {
-  login: string | null;
-  avatarUrl: string | null;
-  id: number | null;
-  name: string | null;
-  email: string | null;
-}
-
-export interface GitHubAuthEntry {
-  accessToken: string;
-  scope: string;
-  tokenType: string;
-  createdAt: number | null;
-  user: GitHubUser | null;
-  current: boolean;
-  accountId: string;
-}
-
-interface StoredAuthFile {
-  accounts?: Record<string, Omit<GitHubAuthEntry, 'current' | 'accountId'>>;
-  currentAccountId?: string | null;
-}
-
-function resolveAccountId({
-  user,
-  accessToken,
-  accountId,
-}: {
-  user?: GitHubUser | null;
-  accessToken?: string;
-  accountId?: string;
-}): string {
-  if (typeof accountId === 'string' && accountId.trim())
-    return accountId.trim();
-  if (user?.login?.trim()) return user.login.trim();
-  if (typeof user?.id === 'number') return String(user.id);
-  if (typeof accessToken === 'string' && accessToken.trim()) {
-    return `token:${accessToken.slice(0, 8)}`;
-  }
-  return '';
-}
-
-function normalizeAuthEntry(
-  entry: Partial<GitHubAuthEntry> | null | undefined,
-): Omit<GitHubAuthEntry, 'current' | 'accountId'> | null {
-  if (!entry || typeof entry !== 'object') return null;
-  const accessToken =
-    typeof entry.accessToken === 'string' ? entry.accessToken : '';
-  if (!accessToken) return null;
-
-  const user = entry.user
-    ? {
-        login: typeof entry.user.login === 'string' ? entry.user.login : null,
-        avatarUrl:
-          typeof entry.user.avatarUrl === 'string'
-            ? entry.user.avatarUrl
-            : null,
-        id: typeof entry.user.id === 'number' ? entry.user.id : null,
-        name: typeof entry.user.name === 'string' ? entry.user.name : null,
-        email: typeof entry.user.email === 'string' ? entry.user.email : null,
-      }
-    : null;
 
   return {
-    accessToken,
-    scope: typeof entry.scope === 'string' ? entry.scope : '',
-    tokenType: typeof entry.tokenType === 'string' ? entry.tokenType : 'bearer',
-    createdAt: typeof entry.createdAt === 'number' ? entry.createdAt : null,
-    user,
+    login: me.data.login,
+    id: me.data.id,
+    avatarUrl: me.data.avatar_url,
+    name: typeof me.data.name === 'string' ? me.data.name : null,
+    email,
   };
 }
 
-function readStoredAuth(): StoredAuthFile {
-  return readJsonFile<StoredAuthFile>(STORAGE_FILE) ?? {};
+export interface RepoRefResponse {
+  owner: string;
+  repo: string;
 }
 
-export function getGitHubAuth(): GitHubAuthEntry | null {
-  const stored = readStoredAuth();
-  const currentId = stored.currentAccountId ?? null;
-  if (!currentId || !stored.accounts?.[currentId]) return null;
-  const entry = normalizeAuthEntry(stored.accounts[currentId]);
-  if (!entry) return null;
+export interface AuthorResponse {
+  login: string;
+  id: number;
+  avatarUrl: string;
+}
+
+export function mapAuthor(user: unknown): AuthorResponse | null {
+  const entry = user as
+    | { login?: string; id?: number; avatar_url?: string }
+    | null
+    | undefined;
+  if (!entry || typeof entry.login !== 'string' || !entry.login) return null;
   return {
-    ...entry,
-    current: true,
-    accountId: currentId,
+    login: entry.login,
+    id: entry.id ?? 0,
+    avatarUrl: normalizeText(entry.avatar_url),
   };
 }
 
-export function getGitHubAuthAccounts(): GitHubAuthEntry[] {
-  const stored = readStoredAuth();
-  const currentId = stored.currentAccountId ?? null;
-  return Object.entries(stored.accounts ?? {})
-    .map(([accountId, entry]) => {
-      const normalized = normalizeAuthEntry(entry);
-      if (!normalized) return null;
-      return {
-        ...normalized,
-        current: accountId === currentId,
-        accountId,
-      };
-    })
-    .filter((e): e is GitHubAuthEntry => e !== null);
+export function mapLabel(
+  label: unknown,
+): { name: string; color?: string } | null {
+  if (typeof label === 'string') return null;
+  const entry = label as { name?: string; color?: string } | null | undefined;
+  const name = normalizeText(entry?.name);
+  if (!name) return null;
+  const color = typeof entry?.color === 'string' ? entry.color : undefined;
+  return color ? { name, color } : { name };
 }
 
-export function setGitHubAuth(params: {
-  accessToken: string;
-  scope?: string;
-  tokenType?: string;
-  user?: GitHubUser | null;
-  accountId?: string;
-}): GitHubAuthEntry {
-  const stored = readStoredAuth();
-  const normalized = normalizeAuthEntry(params);
-  if (!normalized) throw new Error('Invalid GitHub auth payload');
-  const accountId = resolveAccountId({
-    user: normalized.user,
-    accessToken: normalized.accessToken,
-    accountId: params.accountId,
-  });
-  stored.accounts = stored.accounts ?? {};
-  stored.accounts[accountId] = normalized;
-  stored.currentAccountId = accountId;
-  writeJsonFile(STORAGE_FILE, stored);
-  return { ...normalized, current: true, accountId };
+export function mapLabels(
+  labels: unknown,
+): Array<{ name: string; color?: string }> {
+  if (!Array.isArray(labels)) return [];
+  return labels
+    .map(mapLabel)
+    .filter(
+      (label): label is { name: string; color?: string } => label !== null,
+    );
 }
 
-export function activateGitHubAuth(accountId: string): GitHubAuthEntry | null {
-  const stored = readStoredAuth();
-  if (!stored.accounts?.[accountId]) return null;
-  stored.currentAccountId = accountId;
-  writeJsonFile(STORAGE_FILE, stored);
-  const normalized = normalizeAuthEntry(stored.accounts[accountId]);
-  return normalized ? { ...normalized, current: true, accountId } : null;
+export type PullRequestState = 'open' | 'closed' | 'merged';
+
+export function resolvePullRequestState(pr: {
+  state?: string;
+  merged?: boolean;
+  merged_at?: string | null;
+}): PullRequestState {
+  if (pr.merged || pr.merged_at) return 'merged';
+  return pr.state === 'closed' ? 'closed' : 'open';
 }
 
-export function clearGitHubAuth(): void {
-  const stored = readStoredAuth();
-  stored.currentAccountId = null;
-  writeJsonFile(STORAGE_FILE, stored);
-}
-
-export function getGitHubClientId(): string {
-  if (process.env.OPENCHAMBER_GITHUB_CLIENT_ID) {
-    return process.env.OPENCHAMBER_GITHUB_CLIENT_ID;
-  }
-  const settings = readJsonFile<{ githubClientId?: string }>(SETTINGS_FILE);
-  return settings?.githubClientId ?? DEFAULT_GITHUB_CLIENT_ID;
-}
-
-export function getGitHubScopes(): string {
-  if (process.env.OPENCHAMBER_GITHUB_SCOPES) {
-    return process.env.OPENCHAMBER_GITHUB_SCOPES;
-  }
-  const settings = readJsonFile<{ githubScopes?: string }>(SETTINGS_FILE);
-  return settings?.githubScopes ?? DEFAULT_GITHUB_SCOPES;
-}
-
-// ---------------------------------------------------------------------------
-// Device flow (device-flow.js equivalent)
-// ---------------------------------------------------------------------------
-
-const DEVICE_CODE_URL = 'https://github.com/login/device/code';
-const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
-const DEVICE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
-
-function encodeForm(params: Record<string, string | undefined>) {
-  const body = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value == null) continue;
-    body.set(key, String(value));
-  }
-  return body.toString();
-}
-
-async function postForm<T>(
-  url: string,
-  params: Record<string, string | undefined>,
-): Promise<T> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: encodeForm(params),
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message =
-      (payload as any)?.error_description ||
-      (payload as any)?.error ||
-      response.statusText;
-    const error = new Error(message || 'GitHub request failed');
-    (error as any).status = response.status;
-    (error as any).payload = payload;
-    throw error;
-  }
-  return payload as T;
-}
-
-export interface DeviceFlowStart {
-  device_code: string;
-  user_code: string;
-  verification_uri: string;
-  expires_in: number;
-  interval: number;
-}
-
-export interface DeviceFlowToken {
-  access_token?: string;
-  token_type?: string;
-  scope?: string;
-  error?: string;
-  error_description?: string;
-}
-
-export function startDeviceFlow(params: {
-  clientId?: string;
-  scope?: string;
-}): Promise<DeviceFlowStart> {
-  return postForm<DeviceFlowStart>(DEVICE_CODE_URL, {
-    client_id: params.clientId ?? getGitHubClientId(),
-    scope: params.scope ?? getGitHubScopes(),
-  });
-}
-
-export function exchangeDeviceCode(params: {
-  clientId?: string;
-  deviceCode: string;
-}): Promise<DeviceFlowToken> {
-  return postForm<DeviceFlowToken>(ACCESS_TOKEN_URL, {
-    client_id: params.clientId ?? getGitHubClientId(),
-    device_code: params.deviceCode,
-    grant_type: DEVICE_GRANT_TYPE,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Octokit factory (octokit.js equivalent)
-// ---------------------------------------------------------------------------
-
-const etagCache = new Map<
-  string,
-  { etag: string; body: ArrayBuffer; headers: Headers }
->();
-
-function rememberEtag(
-  key: string,
-  etag: string,
-  body: ArrayBuffer,
-  headers: Headers,
-) {
-  etagCache.delete(key);
-  etagCache.set(key, { etag, body, headers });
-  if (etagCache.size > ETAG_CACHE_MAX_ENTRIES) {
-    const oldest = etagCache.keys().next().value;
-    if (oldest !== undefined) etagCache.delete(oldest);
-  }
-}
-
-const nativeFetch = globalThis.fetch;
-
-const timeoutFetch: typeof fetch = Object.assign(
-  (url: URL | RequestInfo, options: RequestInit = {}) => {
-    if (options.signal) return nativeFetch(url, options);
-    return nativeFetch(url, {
-      ...options,
-      signal: AbortSignal.timeout(OCTOKIT_REQUEST_TIMEOUT_MS),
-    });
-  },
-  {
-    preconnect:
-      (nativeFetch as unknown as { preconnect?: (url: string) => void })
-        .preconnect ??
-      (() => {
-        //
-      }),
-  },
-) as typeof fetch;
-
-function createConditionalFetch(token: string): typeof fetch {
-  return Object.assign(
-    async (url: URL | RequestInfo, options: RequestInit = {}) => {
-      const method = (options.method || 'GET').toUpperCase();
-      if (method !== 'GET') return timeoutFetch(url, options);
-
-      const cacheKey = `${token}\n${String(url)}`;
-      const cached = etagCache.get(cacheKey);
-      const headers = { ...(options.headers as Record<string, string>) };
-      if (cached?.etag) headers['if-none-match'] = cached.etag;
-
-      const response = await timeoutFetch(url, { ...options, headers });
-
-      if (response.status === 304 && cached) {
-        rememberEtag(cacheKey, cached.etag, cached.body, cached.headers);
-        return new Response(cached.body, {
-          status: 200,
-          headers: cached.headers,
-        });
-      }
-
-      if (response.ok) {
-        const etag = response.headers.get('etag');
-        if (etag) {
-          const body = await response.arrayBuffer();
-          rememberEtag(cacheKey, etag, body, response.headers);
-          return new Response(body, {
-            status: response.status,
-            headers: response.headers,
-          });
-        }
-      }
-
-      return response;
-    },
-    {
-      preconnect:
-        (nativeFetch as unknown as { preconnect?: (url: string) => void })
-          .preconnect ??
-        (() => {
-          //
-        }),
-    },
-  ) as typeof fetch;
-}
-
-export function createOctokit(token: string): Octokit {
-  return new Octokit({
-    auth: token,
-    request: { fetch: createConditionalFetch(token) },
-  });
-}
-
-export function getOctokitOrNull(): Octokit | null {
-  const auth = getGitHubAuth();
-  const token = auth?.accessToken;
-  if (!token) return null;
-  return createOctokit(token);
-}
-
-// ---------------------------------------------------------------------------
-// Repo resolution (repo/index.js equivalent)
-// ---------------------------------------------------------------------------
-
-export interface ParsedGitHubRemote {
+export interface HeadRepoResponse {
   owner: string;
   repo: string;
   url: string;
+  cloneUrl: string;
+  sshUrl: string;
 }
 
-export function parseGitHubRemoteUrl(raw: string): ParsedGitHubRemote | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-
-  // git@github.com:owner/repo.git
-  const sshMatch = trimmed.match(/^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/);
-  if (sshMatch) {
-    return {
-      owner: sshMatch[1],
-      repo: sshMatch[2].replace(/\.git$/, ''),
-      url: trimmed,
-    };
-  }
-
-  // https://github.com/owner/repo.git
-  const httpsMatch = trimmed.match(
-    /^https?:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?$/,
-  );
-  if (httpsMatch) {
-    return {
-      owner: httpsMatch[1],
-      repo: httpsMatch[2].replace(/\.git$/, ''),
-      url: trimmed,
-    };
-  }
-
-  // ssh://git@github.com/owner/repo.git
-  const sshUrlMatch = trimmed.match(
-    /^ssh:\/\/git@github\.com\/([^/]+)\/(.+?)(?:\.git)?$/,
-  );
-  if (sshUrlMatch) {
-    return {
-      owner: sshUrlMatch[1],
-      repo: sshUrlMatch[2].replace(/\.git$/, ''),
-      url: trimmed,
-    };
-  }
-
-  return null;
-}
-
-export async function resolveGitHubRepoFromDirectory(
-  directory: string,
-  remoteName = 'origin',
-): Promise<{ owner: string; repo: string } | null> {
-  const { execSync } = await import('node:child_process');
-  try {
-    const remoteUrl = execSync(
-      `git -C "${directory}" remote get-url ${remoteName}`,
-      { encoding: 'utf8' },
-    ).trim();
-    const parsed = parseGitHubRemoteUrl(remoteUrl);
-    if (!parsed) return null;
-    return { owner: parsed.owner, repo: parsed.repo };
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Fork detection (repo/fork-detection.js equivalent)
-// ---------------------------------------------------------------------------
-
-export interface RepoNetworkEntry {
-  owner: string;
-  repo: string;
-}
-
-export async function resolveRepoNetwork(
-  octokit: Octokit,
-  directory: string,
-): Promise<RepoNetworkEntry[]> {
-  const repo = await resolveGitHubRepoFromDirectory(directory);
-  if (!repo) return [];
-
-  try {
-    const { data } = await octokit.rest.repos.get(repo);
-    const parent = data.parent;
-    const source = data.source;
-    const network: RepoNetworkEntry[] = [
-      { owner: data.owner.login, repo: data.name },
-    ];
-    if (parent) {
-      network.push({ owner: parent.owner.login, repo: parent.name });
-    }
-    if (source && source.full_name !== data.full_name) {
-      network.push({ owner: source.owner.login, repo: source.name });
-    }
-    return network;
-  } catch {
-    return [];
-  }
-}
-
-// ---------------------------------------------------------------------------
-// PR status (pr-status.js equivalent — simplified)
-// ---------------------------------------------------------------------------
-
-export interface CheckRunSummary {
-  state: 'success' | 'failure' | 'pending' | 'unknown';
-  total: number;
-  success: number;
-  failure: number;
-  pending: number;
-  inProgress: number;
-  queued: number;
-  startedAt?: string;
-}
-
-export function summarizeCheckRuns(
-  checkRuns: Array<{
-    status?: string | null;
-    conclusion?: string | null;
-    started_at?: string | null;
-    completed_at?: string | null;
-    app?: { id?: number; slug?: string } | null;
-    name?: string | null;
-    id?: number;
-  }>,
-): CheckRunSummary {
-  const counts = {
-    success: 0,
-    failure: 0,
-    pending: 0,
-    inProgress: 0,
-    queued: 0,
-  };
-  let startedAt: string | null = null;
-
-  for (const run of checkRuns) {
-    const status = run?.status ?? null;
-    const conclusion = run?.conclusion ?? null;
-
-    if (status === 'in_progress') {
-      counts.pending += 1;
-      counts.inProgress += 1;
-      const runStartedAt =
-        typeof run?.started_at === 'string' ? run.started_at : null;
-      if (runStartedAt && (!startedAt || runStartedAt < startedAt)) {
-        startedAt = runStartedAt;
+/**
+ * Null when the head repo is missing or deleted, which is what a PR from a
+ * deleted fork looks like.
+ */
+export function mapHeadRepo(pr: {
+  head?: { repo?: unknown } | null;
+}): HeadRepoResponse | null {
+  const repo = pr.head?.repo as
+    | {
+        name?: string;
+        html_url?: string;
+        clone_url?: string;
+        ssh_url?: string;
+        owner?: { login?: string };
       }
-      continue;
+    | null
+    | undefined;
+  const owner = normalizeText(repo?.owner?.login);
+  const name = normalizeText(repo?.name);
+  const url = normalizeText(repo?.html_url);
+  if (!owner || !name || !url) return null;
+  return {
+    owner,
+    repo: name,
+    url,
+    cloneUrl: normalizeText(repo?.clone_url),
+    sshUrl: normalizeText(repo?.ssh_url),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Check run details
+// ---------------------------------------------------------------------------
+
+export interface CheckRunStep {
+  name: string;
+  status?: string;
+  conclusion?: string | null;
+  number?: number;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface CheckRunJob {
+  runId: number;
+  jobId?: number;
+  url?: string;
+  name?: string;
+  workflowName?: string;
+  conclusion?: string | null;
+  steps?: CheckRunStep[];
+}
+
+export interface CheckRunAnnotation {
+  path?: string;
+  startLine?: number;
+  endLine?: number;
+  level?: string;
+  message: string;
+  title?: string;
+  rawDetails?: string;
+}
+
+export interface CheckRunDetail {
+  id: number;
+  name: string;
+  startedAt?: string;
+  completedAt?: string;
+  app?: { name?: string; slug?: string };
+  status: string;
+  conclusion: string | null;
+  detailsUrl?: string;
+  output?: { title?: string; summary?: string; text?: string };
+  job?: CheckRunJob;
+  annotations?: CheckRunAnnotation[];
+}
+
+interface RawCheckRun {
+  id?: number;
+  name?: string;
+  status?: string;
+  conclusion?: string | null;
+  started_at?: string;
+  completed_at?: string;
+  details_url?: string;
+  app?: { id?: number; slug?: string; name?: string };
+  output?: { title?: string; summary?: string; text?: string };
+}
+
+interface RawAnnotation {
+  path?: string;
+  start_line?: number;
+  end_line?: number;
+  annotation_level?: string | null;
+  message?: string | null;
+  title?: string | null;
+  raw_details?: string | null;
+}
+
+function parseRunId(detailsUrl: string | undefined): {
+  runId: number;
+  jobId?: number;
+} | null {
+  if (!detailsUrl) return null;
+  const match = detailsUrl.match(/\/actions\/runs\/(\d+)(?:\/job\/(\d+))?/);
+  if (!match) return null;
+  return {
+    runId: Number(match[1]),
+    jobId: match[2] ? Number(match[2]) : undefined,
+  };
+}
+
+function mapStep(
+  step: NonNullable<
+    NonNullable<
+      Awaited<
+        ReturnType<Octokit['rest']['actions']['listJobsForWorkflowRun']>
+      >['data']['jobs'][number]['steps']
+    >
+  >[number],
+): CheckRunStep {
+  return {
+    name: step.name ?? '',
+    status: step.status,
+    conclusion: step.conclusion ?? null,
+    number: step.number,
+    startedAt: step.started_at || undefined,
+    completedAt: step.completed_at || undefined,
+  };
+}
+
+async function fetchJobForRun(
+  octokit: Octokit,
+  repo: RepoRefResponse,
+  run: RawCheckRun,
+  parsed: { runId: number; jobId?: number },
+): Promise<CheckRunJob> {
+  const base: CheckRunJob = { runId: parsed.runId };
+
+  try {
+    const response = await octokit.rest.actions.listJobsForWorkflowRun({
+      owner: repo.owner,
+      repo: repo.repo,
+      run_id: parsed.runId,
+      per_page: 100,
+    });
+    const jobs = Array.isArray(response?.data?.jobs) ? response.data.jobs : [];
+
+    // The run's details_url points at a specific job when one exists; fall back
+    // to a name match, then to a bare stub so the UI can still link out.
+    const picked =
+      (parsed.jobId
+        ? jobs.find((job) => job.id === parsed.jobId)
+        : undefined) ??
+      jobs.find((job) => job.name === run.name) ??
+      null;
+
+    if (!picked) {
+      return {
+        ...base,
+        ...(parsed.jobId ? { jobId: parsed.jobId } : {}),
+        url: run.details_url,
+      };
     }
 
-    if (status === 'queued' || status === 'pending' || status === 'requested') {
-      counts.pending += 1;
-      counts.queued += 1;
-      continue;
-    }
+    return {
+      ...base,
+      jobId: picked.id,
+      url: normalizeText(picked.html_url) || run.details_url,
+      name: picked.name,
+      workflowName: picked.workflow_name || undefined,
+      conclusion: picked.conclusion ?? null,
+      steps: Array.isArray(picked.steps)
+        ? picked.steps.map(mapStep)
+        : undefined,
+    };
+  } catch {
+    return {
+      ...base,
+      ...(parsed.jobId ? { jobId: parsed.jobId } : {}),
+      url: run.details_url,
+    };
+  }
+}
 
-    if (!conclusion) {
-      counts.pending += 1;
-      continue;
-    }
+async function fetchAnnotationsForRun(
+  octokit: Octokit,
+  repo: RepoRefResponse,
+  runId: number,
+): Promise<CheckRunAnnotation[]> {
+  const collected: RawAnnotation[] = [];
 
-    if (
-      conclusion === 'success' ||
-      conclusion === 'neutral' ||
-      conclusion === 'skipped'
-    ) {
-      counts.success += 1;
-    } else {
-      counts.failure += 1;
+  // Cap at three pages; beyond that a run has produced far more noise than
+  // anyone reads in a side panel.
+  for (let page = 1; page <= 3; page++) {
+    let batch: RawAnnotation[];
+    try {
+      const response = await octokit.rest.checks.listAnnotations({
+        owner: repo.owner,
+        repo: repo.repo,
+        check_run_id: runId,
+        per_page: 50,
+        page,
+      });
+      batch = Array.isArray(response?.data)
+        ? (response.data as unknown as RawAnnotation[])
+        : [];
+    } catch {
+      break;
+    }
+    collected.push(...batch);
+    if (batch.length < 50) break;
+  }
+
+  return collected
+    .filter((annotation) => Boolean(annotation?.message))
+    .map((annotation) => ({
+      path: annotation.path || undefined,
+      startLine: annotation.start_line,
+      endLine: annotation.end_line,
+      level: annotation.annotation_level || undefined,
+      message: String(annotation.message ?? ''),
+      title: annotation.title || undefined,
+      rawDetails: annotation.raw_details || undefined,
+    }));
+}
+
+export interface CheckRunFetchResult {
+  checks: CheckRunSummary | null;
+  runs: CheckRunDetail[];
+}
+
+/**
+ * Fetches the check aggregate for a SHA, and optionally the per-run detail
+ * (job steps, failure annotations) the Checks tab renders.
+ */
+export async function fetchChecksForRef(
+  octokit: Octokit,
+  repo: RepoRefResponse,
+  ref: string,
+  { includeDetails = false }: { includeDetails?: boolean } = {},
+): Promise<CheckRunFetchResult> {
+  let rawRuns: RawCheckRun[] = [];
+
+  try {
+    const response = await octokit.rest.checks.listForRef({
+      owner: repo.owner,
+      repo: repo.repo,
+      ref,
+      per_page: 100,
+    });
+    rawRuns = dedupeCheckRuns(
+      (Array.isArray(response?.data?.check_runs)
+        ? response.data.check_runs
+        : []) as RawCheckRun[],
+    );
+  } catch (error) {
+    noteIfGitHubRateLimit(error);
+    // Fall through to commit statuses below.
+  }
+
+  if (rawRuns.length === 0) {
+    try {
+      const combined = await octokit.rest.repos.getCombinedStatusForRef({
+        owner: repo.owner,
+        repo: repo.repo,
+        ref,
+      });
+      const statuses = Array.isArray(combined?.data?.statuses)
+        ? combined.data.statuses
+        : [];
+      const { summarizeCombinedStatuses } = await import('./checks');
+      return { checks: summarizeCombinedStatuses(statuses), runs: [] };
+    } catch (error) {
+      noteIfGitHubRateLimit(error);
+      return { checks: null, runs: [] };
     }
   }
 
-  const total = counts.success + counts.failure + counts.pending;
-  const state: CheckRunSummary['state'] =
-    counts.failure > 0
-      ? 'failure'
-      : counts.pending > 0
-        ? 'pending'
-        : total > 0
-          ? 'success'
-          : 'unknown';
+  const checks = summarizeCheckRuns(rawRuns);
+
+  if (!includeDetails) {
+    return { checks, runs: rawRuns.map((run) => mapRunBasic(run)) };
+  }
+
+  const jobCache = new Map<number, CheckRunJob>();
+  const annotationCache = new Map<number, CheckRunAnnotation[]>();
+
+  const runs = await Promise.all(
+    rawRuns.map(async (run) => {
+      const detail: CheckRunDetail = mapRunBasic(run);
+      if (typeof run.id !== 'number') return detail;
+
+      const parsed = parseRunId(run.details_url);
+      if (parsed) {
+        if (!jobCache.has(parsed.runId)) {
+          jobCache.set(
+            parsed.runId,
+            await fetchJobForRun(octokit, repo, run, parsed),
+          );
+        }
+        detail.job = jobCache.get(parsed.runId);
+      }
+
+      const conclusion = (run.conclusion ?? '').toLowerCase();
+      const failed =
+        Boolean(conclusion) &&
+        !['success', 'neutral', 'skipped'].includes(conclusion);
+      if (failed && run.id > 0) {
+        if (!annotationCache.has(run.id)) {
+          annotationCache.set(
+            run.id,
+            await fetchAnnotationsForRun(octokit, repo, run.id),
+          );
+        }
+        const annotations = annotationCache.get(run.id);
+        if (annotations && annotations.length > 0) {
+          detail.annotations = annotations;
+        }
+      }
+
+      return detail;
+    }),
+  );
+
+  return { checks, runs };
+}
+
+function mapRunBasic(run: RawCheckRun): CheckRunDetail {
+  const output = run.output;
+  const hasOutput =
+    Boolean(output?.title) || Boolean(output?.summary) || Boolean(output?.text);
 
   return {
-    state,
-    total,
-    ...counts,
-    ...(startedAt ? { startedAt } : {}),
+    id: run.id ?? 0,
+    name: run.name ?? '',
+    startedAt: run.started_at || undefined,
+    completedAt: run.completed_at || undefined,
+    app:
+      run.app?.name || run.app?.slug
+        ? { name: run.app.name, slug: run.app.slug ?? undefined }
+        : undefined,
+    status: run.status ?? 'unknown',
+    conclusion: run.conclusion ?? null,
+    detailsUrl: run.details_url || undefined,
+    output: hasOutput
+      ? {
+          title: output?.title || undefined,
+          summary: output?.summary || undefined,
+          text: output?.text || undefined,
+        }
+      : undefined,
   };
 }
 
-export interface PrStatusResult {
-  found: boolean;
-  number?: number;
-  url?: string;
-  state?: string;
-  title?: string;
-  headRef?: string;
-  baseRef?: string;
-  mergeable?: boolean | null;
-  mergeableState?: string;
-  draft?: boolean;
-  checks?: CheckRunSummary;
-  repo?: { owner: string; repo: string };
+/**
+ * Fetches a repo's open PRs / issues, tolerating repos we cannot read.
+ * `headers` is Octokit's `ResponseHeaders`, whose values may be `string |
+ * number | undefined`, so the Link header is read defensively.
+ */
+export async function safeListForRepo<T>(
+  list: () => Promise<{ data: T[]; headers?: unknown }>,
+  label: string,
+): Promise<{ items: T[]; hasMore: boolean }> {
+  try {
+    const response = await list();
+    const link = normalizeText(
+      (response?.headers as { link?: unknown } | undefined)?.link,
+    );
+    return {
+      items: Array.isArray(response?.data) ? response.data : [],
+      hasMore: /rel="next"/.test(link),
+    };
+  } catch (error) {
+    if (isResourceUnavailable(error)) {
+      return { items: [], hasMore: false };
+    }
+    console.warn(`[github] failed to list ${label}:`, error);
+    return { items: [], hasMore: false };
+  }
 }
 
-async function withTimeout<T>(
+export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   label: string,
@@ -659,127 +627,15 @@ async function withTimeout<T>(
   let timer: NodeJS.Timeout;
   const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      const error = new Error(`${label} timed out after ${timeoutMs}ms`);
-      (error as any).code = 'ETIMEDOUT';
+      const error = new Error(
+        `${label} timed out after ${timeoutMs}ms`,
+      ) as Error & {
+        code?: string;
+      };
+      error.code = 'ETIMEDOUT';
       reject(error);
     }, timeoutMs);
     if (typeof timer.unref === 'function') timer.unref();
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
-
-const prStatusCache = new Map<
-  string,
-  { data: PrStatusResult; fetchedAt: number }
->();
-
-export async function resolveGitHubPrStatus(
-  octokit: Octokit,
-  directory: string,
-  branch: string,
-  remote?: string,
-): Promise<PrStatusResult> {
-  const cacheKey = `${directory}\n${branch}\n${remote ?? ''}`;
-  const cached = prStatusCache.get(cacheKey);
-  const now = Date.now();
-
-  if (cached && now - cached.fetchedAt < PR_STATUS_CACHE_TTL_MS) {
-    return cached.data;
-  }
-
-  const repo = await resolveGitHubRepoFromDirectory(directory, remote);
-  if (!repo) return { found: false };
-
-  try {
-    const result = await withTimeout(
-      (async (): Promise<PrStatusResult> => {
-        const { data: pulls } = await octokit.rest.pulls.list({
-          ...repo,
-          head: `${repo.owner}:${branch}`,
-          state: 'all',
-          per_page: 1,
-        });
-
-        if (!pulls.length) return { found: false };
-
-        const listItem = pulls[0];
-
-        // pulls.list omits mergeable — fetch the full PR to get it.
-        const { data: pr } = await octokit.rest.pulls.get({
-          ...repo,
-          pull_number: listItem.number,
-        });
-
-        const checks = await (async (): Promise<
-          CheckRunSummary | undefined
-        > => {
-          try {
-            const { data: checkRuns } = await octokit.rest.checks.listForRef({
-              ...repo,
-              ref: pr.head.sha,
-              per_page: 100,
-            });
-            return summarizeCheckRuns(checkRuns.check_runs);
-          } catch {
-            return undefined;
-          }
-        })();
-
-        return {
-          found: true,
-          number: pr.number,
-          url: pr.html_url,
-          state: pr.state,
-          title: pr.title,
-          headRef: pr.head.ref,
-          baseRef: pr.base.ref,
-          mergeable: pr.mergeable ?? null,
-          checks,
-          repo,
-        };
-      })(),
-      PR_STATUS_RESOLVE_TIMEOUT_MS,
-      'resolveGitHubPrStatus',
-    );
-
-    prStatusCache.set(cacheKey, { data: result, fetchedAt: now });
-    if (prStatusCache.size > PR_STATUS_CACHE_MAX_ENTRIES) {
-      const oldest = prStatusCache.keys().next().value;
-      if (oldest !== undefined) prStatusCache.delete(oldest);
-    }
-
-    return result;
-  } catch {
-    return { found: false };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Zod schemas
-// ---------------------------------------------------------------------------
-
-export const githubDirectorySchema = z.string().min(1);
-
-export const githubAuthStatusQuerySchema = z.object({
-  directory: githubDirectorySchema.optional(),
-});
-
-export const githubDeviceFlowStartBodySchema = z.object({
-  clientId: z.string().optional(),
-  scope: z.string().optional(),
-});
-
-export const githubDeviceFlowExchangeBodySchema = z.object({
-  clientId: z.string().optional(),
-  deviceCode: z.string().min(1),
-});
-
-export const githubActivateBodySchema = z.object({
-  accountId: z.string().min(1),
-});
-
-export const githubPrStatusQuerySchema = z.object({
-  directory: githubDirectorySchema,
-  branch: z.string().min(1),
-  remote: z.string().optional(),
-});

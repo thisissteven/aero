@@ -1199,6 +1199,121 @@ export const en = {
     passed: 'Passed',
     failed: 'Failed',
     pending: 'Pending',
+
+    // Account
+    account: 'Account',
+    switchAccount: 'Switch account',
+    accounts: 'Accounts',
+    useGhCli: 'Use GitHub CLI account',
+    useGhCliDescription: 'Use the account signed in to the `gh` command.',
+    ghCliUnavailable: 'No `gh` CLI account found',
+    ghCliEnabled: 'Using GitHub CLI',
+    switchAccountFailed: 'Failed to switch account',
+    pullRequests: 'Pull requests',
+    issues: 'Issues',
+
+    // Repository
+    repository: 'Repository',
+    noRepository:
+      'No GitHub repository is linked to this directory. Add a GitHub remote and refresh.',
+    forkOf: 'Fork of',
+    mergeUpstream: 'Merge upstream',
+    baseBranch: 'Base branch',
+    headBranch: 'Head branch',
+    loadingBranches: 'Loading branches…',
+    selectBranch: 'Select a branch',
+
+    // Create
+    createPullRequest: 'Create pull request',
+    creatingPullRequest: 'Creating pull request…',
+    createDescription:
+      'Opens a pull request from the current branch into the base branch.',
+    draft: 'Draft',
+    title: 'Title',
+    titlePlaceholder: 'A short, imperative summary',
+    body: 'Description',
+    bodyPlaceholder: 'What changed and why',
+    create: 'Create',
+    pullRequestCreated: (number: number) => `Opened pull request #${number}`,
+    createFailed: 'Failed to create pull request',
+    titleRequired: 'A title is required',
+
+    // AI generation
+    generateWithAi: 'Generate with AI',
+    generating: 'Generating…',
+    generateDescription:
+      'Writes a title and description from the branch commits.',
+    generatedSuccessfully: 'Description generated',
+    generateFailed: 'Failed to generate a description',
+
+    // Update
+    edit: 'Edit',
+    editTitle: 'Edit title and description',
+    save: 'Save',
+    cancel: 'Cancel',
+    updated: 'Pull request updated',
+    updateFailed: 'Failed to update pull request',
+
+    // Actions
+    merge: 'Merge',
+    mergePullRequest: 'Merge pull request',
+    mergeMethod: 'Merge method',
+    mergeCommit: 'Create a merge commit',
+    mergeSquash: 'Squash and merge',
+    mergeRebase: 'Rebase and merge',
+    merged: 'Pull request merged',
+    mergeBlocked: 'Pull request cannot be merged yet',
+    mergeFailed: 'Failed to merge pull request',
+    markReady: 'Mark ready for review',
+    markReadyFailed: 'Failed to mark ready for review',
+    mergedState: 'Merged',
+    closedState: 'Closed',
+    openState: 'Open',
+
+    // Tabs
+    overview: 'Overview',
+    checksTab: 'Checks',
+    files: 'Files',
+    conversation: 'Conversation',
+    noDescription: 'No description provided.',
+
+    // Checks
+    noChecks: 'No checks reported for this pull request.',
+    loadingChecks: 'Loading checks…',
+    allChecksPassed: 'All checks passed',
+    someChecksFailed: 'Some checks failed',
+    checksRunning: 'Checks are running',
+    checkDetails: 'Details',
+    noCheckDetails: 'No details reported.',
+    skipped: 'Skipped',
+    queued: 'Queued',
+    noChecksFound: 'No checks found',
+
+    // Files
+    noFilesChanged: 'No files changed.',
+    loadingFiles: 'Loading files…',
+    diffUnavailable: 'Diff unavailable for this file.',
+    fileStats: (additions: number, deletions: number) =>
+      `+${additions} −${deletions}`,
+    showDiff: 'Show diff',
+    hideDiff: 'Hide diff',
+
+    // Conversation
+    noComments: 'No comments yet.',
+    loadingComments: 'Loading comments…',
+    reviewCommentOn: (path: string) => `on ${path}`,
+    loadingMore: 'Load more',
+    endOfList: 'That is everything.',
+    noResults: 'No results',
+
+    // Issues
+    noIssues: 'No issues in this repository.',
+    noOpenIssues: 'No open issues.',
+    searchIssues: 'Search issues',
+    loadingIssues: 'Loading issues…',
+    openedBy: (login: string) => `opened by ${login}`,
+    issueAssignees: 'Assignees',
+    noAssignees: 'Unassigned',
   },
 
   sideChat: {

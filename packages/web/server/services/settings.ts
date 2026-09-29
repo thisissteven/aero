@@ -13,6 +13,14 @@ export const settingsSchema = z.object({
   pinnedSessions: z.array(z.string()),
   statusPanelOrder: z.array(z.string()),
 
+  // GitHub integration. Optional so an existing settings file stays valid;
+  // empty strings mean "not configured" and fall through to the built-in
+  // default in the GitHub service.
+  githubClientId: z.string().optional(),
+  githubScopes: z.string().optional(),
+  ghCliDisabled: z.boolean().optional(),
+  ghCliActive: z.boolean().optional(),
+
   // Future examples:
   // theme: z.enum(['light', 'dark', 'system']),
   // recentModels: z.array(z.string()),
@@ -40,6 +48,10 @@ export const DEFAULT_SETTINGS: AeroSettings = {
   hiddenModels: {},
   pinnedSessions: [],
   statusPanelOrder: [],
+  githubClientId: '',
+  githubScopes: '',
+  ghCliDisabled: false,
+  ghCliActive: false,
 };
 
 type SettingsObject = Record<string, unknown>;

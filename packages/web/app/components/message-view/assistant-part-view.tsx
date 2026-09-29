@@ -1,5 +1,6 @@
 // assistant-part-view.tsx
 
+import { cn } from '@aero/ui';
 import { memo } from 'react';
 import { Markdown } from '@/app/components/markdown/markdown';
 import { ReasoningBlock } from '@/app/components/message-view/reasoning-block';
@@ -12,16 +13,24 @@ export const AssistantPartView = memo(
     part,
     partIndex,
     isPartStreaming,
+    clampText = false,
   }: {
     turnId: string;
     part: AeroPart;
     partIndex: number;
     isPartStreaming: boolean;
+    /** Clamp markdown text parts to three lines (compact trace views). */
+    clampText?: boolean;
   }) {
     switch (part.type) {
       case 'text': {
         return (
-          <div className='relative py-1.5 px-0.5'>
+          <div
+            className={cn(
+              'relative py-1.5 px-0.5',
+              clampText && 'line-clamp-3',
+            )}
+          >
             <Markdown
               id={part.id}
               streaming={isPartStreaming}
@@ -68,6 +77,10 @@ export const AssistantPartView = memo(
     if (prev.isPartStreaming !== next.isPartStreaming) return false;
 
     // 3. Settled part → only re-render if identity props changed.
-    return prev.turnId === next.turnId && prev.partIndex === next.partIndex;
+    return (
+      prev.turnId === next.turnId &&
+      prev.partIndex === next.partIndex &&
+      prev.clampText === next.clampText
+    );
   },
 );

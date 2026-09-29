@@ -76,6 +76,7 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
               part={item.part}
               partIndex={item.partIndex}
               isPartStreaming={item.isPartStreaming}
+              clampText
             />
           ))}
         </div>
