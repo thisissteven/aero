@@ -56,6 +56,11 @@ export const gitKeys = {
     [...gitKeys.all(directory), 'stashes'] as const,
   remotes: (directory?: string) =>
     [...gitKeys.all(directory), 'remotes'] as const,
+
+  log: (directory?: string, limit = 50) =>
+    [...gitKeys.all(directory), 'log', limit] as const,
+  commitDiff: (directory?: string, sha?: string) =>
+    [...gitKeys.all(directory), 'commit-diff', sha ?? ''] as const,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -98,6 +103,11 @@ export type GitStashesResponse = InferResponseType<
 >;
 export type GitRemotesResponse = InferResponseType<
   typeof $git.remotes.$get,
+  200
+>;
+export type GitLogResponse = InferResponseType<typeof $git.log.$get, 200>;
+export type GitCommitDiffResponse = InferResponseType<
+  typeof $git.show.$get,
   200
 >;
 
@@ -368,6 +378,54 @@ export function useGitRemotes(
       return unwrap<GitRemotesResponse>(
         $git.remotes.$get({ query: { directory } }),
         'remotes',
+      );
+    },
+    ...options,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Query hooks — History
+// ---------------------------------------------------------------------------
+
+export function useGitLog(
+  directory?: string,
+  limit = 50,
+  options?: Omit<
+    UseQueryOptions<GitLogResponse | null, Error>,
+    'queryKey' | 'queryFn'
+  >,
+) {
+  return useQuery<GitLogResponse | null, Error>({
+    queryKey: gitKeys.log(directory, limit),
+    enabled: Boolean(directory),
+    queryFn: async () => {
+      if (!directory) return null;
+      return unwrap<GitLogResponse>(
+        $git.log.$get({ query: { directory, limit: String(limit) } }),
+        'log',
+      );
+    },
+    ...options,
+  });
+}
+
+export function useGitCommitDiff(
+  directory?: string,
+  sha?: string,
+  options?: Omit<
+    UseQueryOptions<GitCommitDiffResponse | null, Error>,
+    'queryKey' | 'queryFn'
+  >,
+) {
+  return useQuery<GitCommitDiffResponse | null, Error>({
+    queryKey: gitKeys.commitDiff(directory, sha),
+    enabled: Boolean(directory && sha),
+    queryFn: async () => {
+      if (!directory || !sha) return null;
+      return unwrap<GitCommitDiffResponse>(
+        $git.show.$get({ query: { directory, sha } }),
+        'show',
       );
     },
     ...options,

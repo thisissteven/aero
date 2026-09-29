@@ -1,9 +1,10 @@
 import { Button, ScrollShadow, Skeleton } from '@aero/ui';
 import { ArrowUpRightFromSquare } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
+import { useAutoScroll } from '@/app/components/markdown/use-auto-scroll';
 import { AssistantPartView } from '@/app/components/message-view/assistant-part-view';
 import type { FlatConversationVirtualItem } from '@/app/components/message-view/lib';
 import { useSessionRuntime } from '@/app/features/chat-page/chat-feed/chat-store';
@@ -25,6 +26,9 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
 
   const runtime = useSessionRuntime(sessionId, (state) => state);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const activity = useMemo(
     () =>
       runtime.flatItems
@@ -36,6 +40,14 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
   );
 
   const isLoading = isMessagesLoading || !runtime.hasHydrated;
+
+  // Keep the newest activity in view while the subagent streams. Only follows
+  // when the user is already parked near the bottom.
+  useAutoScroll({
+    scrollRef,
+    contentRef,
+    isStreaming: runtime.isStreaming,
+  });
 
   return (
     <div className='space-y-1.5'>
@@ -59,21 +71,24 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
         </Button>
       </div>
 
-      {isLoading && activity.length === 0 ? (
-        <div className='space-y-1.5 py-1'>
-          <Skeleton className='h-4 w-3/4 rounded' />
-          <Skeleton className='h-4 w-1/2 rounded' />
-          <Skeleton className='h-4 w-2/3 rounded' />
-        </div>
-      ) : activity.length === 0 ? (
-        <p className='text-muted py-1 text-xs'>{t.toolCall.noActivityYet}</p>
-      ) : (
-        <ScrollShadow
-          className='max-h-[40vh] scrollbar-thin overflow-x-hidden'
-          offset={2}
-        >
-          <div className='flex flex-col'>
-            {activity.map((item) => (
+      <ScrollShadow
+        ref={scrollRef}
+        className='max-h-[40vh] scrollbar-thin overflow-x-hidden'
+        offset={2}
+      >
+        <div ref={contentRef} className='flex flex-col'>
+          {isLoading && activity.length === 0 ? (
+            <div className='space-y-1.5 py-1'>
+              <Skeleton className='h-4 w-3/4 rounded' />
+              <Skeleton className='h-4 w-1/2 rounded' />
+              <Skeleton className='h-4 w-2/3 rounded' />
+            </div>
+          ) : activity.length === 0 ? (
+            <p className='text-muted py-1 text-xs'>
+              {t.toolCall.noActivityYet}
+            </p>
+          ) : (
+            activity.map((item) => (
               <AssistantPartView
                 key={item.id}
                 turnId={item.turnId}
@@ -81,10 +96,10 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
                 partIndex={item.partIndex}
                 isPartStreaming={item.isPartStreaming}
               />
-            ))}
-          </div>
-        </ScrollShadow>
-      )}
+            ))
+          )}
+        </div>
+      </ScrollShadow>
     </div>
   );
 }

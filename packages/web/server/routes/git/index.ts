@@ -15,6 +15,7 @@ import {
   checkoutBodySchema,
   commit,
   commitBodySchema,
+  commitShowQuerySchema,
   continueMerge,
   continueRebase,
   deleteBranch,
@@ -24,6 +25,8 @@ import {
   fetchBodySchema,
   fileDiffQuerySchema,
   getBranches,
+  getCommitDiff,
+  getCommitHistory,
   getDiffSummary,
   getFileDiff,
   getGitClient,
@@ -35,6 +38,7 @@ import {
   gitDirectoryQuerySchema,
   isGitRepository,
   listStashes,
+  logQuerySchema,
   merge,
   mergeBodySchema,
   pull,
@@ -216,6 +220,20 @@ const git = new Hono()
       files,
       stageFiles,
     });
+    return c.json(result);
+  })
+
+  // ----- History -----
+  .get('/log', zValidator('query', logQuerySchema), async (c) => {
+    const { directory: inputDirectory, limit } = c.req.valid('query');
+    const directory = await getGitDirectory(inputDirectory);
+    const commits = await getCommitHistory(directory, { limit });
+    return c.json({ commits });
+  })
+  .get('/show', zValidator('query', commitShowQuerySchema), async (c) => {
+    const { directory: inputDirectory, sha } = c.req.valid('query');
+    const directory = await getGitDirectory(inputDirectory);
+    const result = await getCommitDiff(directory, sha);
     return c.json(result);
   })
 

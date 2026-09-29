@@ -2,13 +2,20 @@
 //
 // Small presentational pieces shared by the pull request and issue views.
 
-import { Avatar, Chip, cn } from '@aero/ui';
-import { CircleCheck, CircleXmark, Clock } from '@gravity-ui/icons';
+import { Avatar, Chip, cn, ScrollShadow } from '@aero/ui';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleXmark,
+  Clock,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import type { ReactNode } from 'react';
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { Markdown } from '@/app/components/markdown/markdown';
+import { useI18n } from '@/app/hooks/i18n';
 import { formatCompactRelativeTime } from '@/app/lib';
 
 import type {
@@ -180,47 +187,136 @@ export function SectionTabs<T extends string>({
   ariaLabel: string;
   className?: string;
 }) {
+  const { t } = useI18n();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+  const [overflow, setOverflow] = useState({ left: false, right: false });
+
+  const scrollByPage = (direction: -1 | 1) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({
+      left: direction * Math.max(120, el.clientWidth * 0.6),
+      behavior: 'smooth',
+    });
+  };
+
+  // Scroll with the selection. When the newly active tab sits against an edge,
+  // scroll until its neighbour on that side is fully revealed (plus a small
+  // peek) so the strip always reads as scrollable in the direction of travel.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const button = activeRef.current;
+    if (!container || !button) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    const peek = 20;
+
+    const atLeft = buttonRect.left < containerRect.left + peek;
+    const atRight = buttonRect.right > containerRect.right - peek;
+
+    if (atLeft && !atRight) {
+      const prev = button.previousElementSibling as HTMLElement | null;
+      const edge = (prev ?? button).getBoundingClientRect();
+      container.scrollBy({
+        left: edge.left - containerRect.left - peek,
+        behavior: 'smooth',
+      });
+    } else if (atRight && !atLeft) {
+      const next = button.nextElementSibling as HTMLElement | null;
+      const edge = (next ?? button).getBoundingClientRect();
+      container.scrollBy({
+        left: edge.right - containerRect.right + peek,
+        behavior: 'smooth',
+      });
+    } else if (atLeft && atRight) {
+      // The active tab is wider than the viewport; just align its left edge.
+      container.scrollBy({
+        left: buttonRect.left - containerRect.left - peek,
+        behavior: 'smooth',
+      });
+    }
+  }, [active]);
+
   return (
     <div
-      role='tablist'
-      aria-label={ariaLabel}
       className={cn(
-        'border-separator flex shrink-0 items-center gap-0.5 border-b px-2',
+        'border-separator relative flex shrink-0 border-b',
         className,
       )}
     >
-      {tabs.map((tab) => {
-        const isActive = tab.id === active;
-        return (
-          <button
-            key={tab.id}
-            type='button'
-            role='tab'
-            aria-selected={isActive}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              'focus-visible:ring-accent relative rounded-sm px-2.5 py-2 text-xs outline-none transition-colors',
-              'focus-visible:ring-2',
-              isActive
-                ? 'text-foreground font-medium'
-                : 'text-muted hover:text-foreground',
-            )}
-          >
-            <span className='inline-flex items-center gap-1.5'>
-              {tab.label}
-              {typeof tab.count === 'number' && tab.count > 0 && (
-                <span className='text-muted tabular-nums'>{tab.count}</span>
-              )}
-            </span>
-            <span
+      <ScrollShadow
+        ref={scrollRef}
+        role='tablist'
+        aria-label={ariaLabel}
+        orientation='horizontal'
+        hideScrollBar
+        size={24}
+        onVisibilityChange={(visibility) =>
+          setOverflow({
+            left: visibility === 'left' || visibility === 'both',
+            right: visibility === 'right' || visibility === 'both',
+          })
+        }
+        className='flex min-w-0 flex-1 items-center gap-0.5 px-2 pb-px'
+      >
+        {tabs.map((tab) => {
+          const isActive = tab.id === active;
+          return (
+            <button
+              key={tab.id}
+              ref={isActive ? activeRef : undefined}
+              type='button'
+              role='tab'
+              aria-selected={isActive}
+              onClick={() => onChange(tab.id)}
               className={cn(
-                'bg-accent absolute inset-x-1.5 -bottom-px h-0.5 rounded-full transition-opacity duration-150 ease-out motion-reduce:transition-none',
-                isActive ? 'opacity-100' : 'opacity-0',
+                'focus-visible:ring-accent relative rounded-sm px-2.5 py-2 text-xs outline-none transition-colors',
+                'focus-visible:ring-2',
+                isActive
+                  ? 'text-foreground font-medium'
+                  : 'text-muted hover:text-foreground',
               )}
-            />
-          </button>
-        );
-      })}
+            >
+              <span className='inline-flex items-center gap-1.5'>
+                {tab.label}
+                {typeof tab.count === 'number' && tab.count > 0 && (
+                  <span className='text-muted tabular-nums'>{tab.count}</span>
+                )}
+              </span>
+              <span
+                className={cn(
+                  'bg-accent absolute inset-x-1.5 -bottom-px h-0.5 rounded-full transition-opacity duration-150 ease-out motion-reduce:transition-none',
+                  isActive ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+            </button>
+          );
+        })}
+      </ScrollShadow>
+
+      {overflow.left && (
+        <button
+          type='button'
+          aria-label={t.common.scrollTabsLeft}
+          onClick={() => scrollByPage(-1)}
+          className='text-muted hover:text-foreground absolute inset-y-0 left-0 z-10 flex w-6 items-center justify-center transition-colors'
+        >
+          <Icon data={ChevronLeft} size={14} />
+        </button>
+      )}
+
+      {overflow.right && (
+        <button
+          type='button'
+          aria-label={t.common.scrollTabsRight}
+          onClick={() => scrollByPage(1)}
+          className='text-muted hover:text-foreground absolute inset-y-0 right-0 z-10 flex w-6 items-center justify-center transition-colors'
+        >
+          <Icon data={ChevronRight} size={14} />
+        </button>
+      )}
     </div>
   );
 }

@@ -106,6 +106,16 @@ export const fileDiffQuerySchema = z.object({
   staged: optionalBooleanFromQuery,
 });
 
+export const logQuerySchema = z.object({
+  directory: gitDirectorySchema,
+  limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+});
+
+export const commitShowQuerySchema = z.object({
+  directory: gitDirectorySchema,
+  sha: z.string().min(1),
+});
+
 // ---------------------------------------------------------------------------
 // Zod schemas — body
 // ---------------------------------------------------------------------------
@@ -531,6 +541,48 @@ export async function getCommitLog(
       };
     })
     .filter((entry) => entry.sha);
+}
+
+/**
+ * The most recent commits reachable from HEAD, newest first. Used by the git
+ * panel's History tab. Returns an empty list for a repository with no commits
+ * so the UI can render an empty state instead of erroring.
+ */
+export async function getCommitHistory(
+  directory: string,
+  options: { limit?: number } = {},
+): Promise<CommitLogEntry[]> {
+  const client = getGitClient(directory);
+  const limit = options.limit ?? 50;
+  const log = await client.log({ maxCount: limit }).catch(() => null);
+  if (!log) return [];
+
+  return log.all
+    .map((entry) => ({
+      sha: entry.hash,
+      author: entry.author_name,
+      date: entry.date,
+      subject: entry.message,
+      body: (entry.body ?? '').trim(),
+    }))
+    .filter((entry) => entry.sha);
+}
+
+/**
+ * The patch introduced by a single commit. `git show` is used rather than a
+ * `<sha>^..<sha>` range so root commits (which have no parent) still produce
+ * their full patch. Merge commits show a combined diff; empty output is
+ * returned when git cannot resolve the commit.
+ */
+export async function getCommitDiff(
+  directory: string,
+  sha: string,
+): Promise<{ diff: string }> {
+  const client = getGitClient(directory);
+  const diff = await client
+    .raw(['show', '--no-ext-diff', '--format=', '--unified=3', sha])
+    .catch(() => '');
+  return { diff: diff.replace(/^\s+/, '') };
 }
 
 export async function removeRemote(
