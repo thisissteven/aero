@@ -12,6 +12,7 @@ import { ChangesPanel } from '@/app/components/chat-aside/changes/changes-panel'
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
 import { GitPanel } from '@/app/components/chat-aside/git/git-panel';
+import { ProjectNotesPanel } from '@/app/components/chat-aside/notes/project-notes-panel';
 import { PullRequestPanel } from '@/app/components/chat-aside/pr/pull-request-panel';
 import { SideChatPanel } from '@/app/components/chat-aside/side-chat/side-chat-panel';
 import { useSideChatStore } from '@/app/components/chat-aside/side-chat/side-chat-store';
@@ -101,6 +102,8 @@ export function ChatAsidePanel() {
               <PullRequestPanel />
             ) : activeNavItem === 'context' ? (
               <ContextPanel />
+            ) : activeNavItem === 'notes' ? (
+              <ProjectNotesPanel />
             ) : activeNavItem === 'files' ? (
               <FileExplorerPanel />
             ) : activeNavItem === 'side-chat' ? (

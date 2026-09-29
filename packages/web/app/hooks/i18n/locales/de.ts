@@ -1062,6 +1062,51 @@ export const de: BaseTranslation = {
     userPrefix: 'Benutzer:',
   },
 
+  notesPanel: {
+    openWorkspace:
+      'Öffne einen Arbeitsbereich, um Notizen, Todos und Pläne zu sehen.',
+    tabsAria: 'Abschnitte der Projektnotizen',
+    tabNotes: 'Notizen',
+    tabTodos: 'Todos',
+    tabPlans: 'Pläne',
+    notes: {
+      placeholder: 'Alles, woran du dich für dieses Projekt erinnern willst…',
+      saving: 'Speichern…',
+      saved: 'Gespeichert',
+    },
+    todos: {
+      addPlaceholder: 'Todo hinzufügen',
+      add: 'Todo hinzufügen',
+      empty: 'Noch keine Todos. Füge oben eines hinzu.',
+      clearCompleted: 'Erledigte löschen',
+      actions: 'Todo-Aktionen',
+      delete: 'Todo löschen',
+      dragHandle: 'Todo verschieben',
+      sendToCurrent: 'An aktuelle Sitzung senden',
+      sendToNew: 'Neue Sitzung starten',
+      sendToWorktree: 'Neue Worktree-Sitzung starten',
+      sent: 'An den Agenten gesendet',
+      sessionStarted: 'Neue Sitzung gestartet',
+      sendFailed: 'Todo konnte nicht gesendet werden',
+    },
+    plans: {
+      import: 'Plan importieren',
+      importHint: 'Importiere eine Markdown- oder Textdatei.',
+      importFailed: 'Plan konnte nicht importiert werden',
+      empty: 'Noch keine Pläne. Importiere einen, um zu starten.',
+      open: 'Öffnen',
+      delete: 'Löschen',
+      actions: 'Plan-Aktionen',
+      back: 'Zurück zu den Plänen',
+      deleteTitle: 'Plan löschen?',
+      deleteDescription: (title: string) =>
+        `"${title}" wird dauerhaft gelöscht.`,
+      deleted: 'Plan gelöscht',
+      deleteFailed: 'Plan konnte nicht gelöscht werden',
+      readFailed: 'Plan konnte nicht geöffnet werden',
+    },
+  },
+
   fileExplorer: {
     openWorkspace: 'Öffne einen Workspace, um dessen Dateien zu durchsuchen.',
     resizeAria: 'Größe des Dateiexplorers ändern',

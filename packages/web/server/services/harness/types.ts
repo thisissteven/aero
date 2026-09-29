@@ -229,6 +229,36 @@ export interface AeroTodo {
   priority: string;
 }
 
+/**
+ * Server-owned, per-workspace scratch space: free-form notes, a todo list, and
+ * saved plan documents. Stored under `~/.aero/project-context/<workspaceId>/`.
+ */
+export interface AeroProjectTodo {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+}
+
+export interface AeroProjectPlan {
+  id: string;
+  file: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AeroProjectContext {
+  notes: string;
+  todos: AeroProjectTodo[];
+  plans: AeroProjectPlan[];
+}
+
+export interface AeroProjectPlanContent {
+  plan: AeroProjectPlan;
+  content: string;
+}
+
 export type AeroQuestions = QuestionRequest[];
 export type AeroPermissionRequest = PermissionRequest[];
 

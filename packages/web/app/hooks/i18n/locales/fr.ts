@@ -1076,6 +1076,51 @@ export const fr: BaseTranslation = {
     userPrefix: 'Utilisateur :',
   },
 
+  notesPanel: {
+    openWorkspace:
+      'Ouvrez un espace de travail pour voir ses notes, tâches et plans.',
+    tabsAria: 'Sections des notes du projet',
+    tabNotes: 'Notes',
+    tabTodos: 'Tâches',
+    tabPlans: 'Plans',
+    notes: {
+      placeholder: 'Tout ce que vous voulez retenir sur ce projet…',
+      saving: 'Enregistrement…',
+      saved: 'Enregistré',
+    },
+    todos: {
+      addPlaceholder: 'Ajouter une tâche',
+      add: 'Ajouter une tâche',
+      empty: 'Aucune tâche pour le moment. Ajoutez-en une ci-dessus.',
+      clearCompleted: 'Effacer les terminées',
+      actions: 'Actions de la tâche',
+      delete: 'Supprimer la tâche',
+      dragHandle: 'Réorganiser la tâche',
+      sendToCurrent: 'Envoyer à la session actuelle',
+      sendToNew: 'Démarrer une nouvelle session',
+      sendToWorktree: 'Démarrer une nouvelle session worktree',
+      sent: "Envoyé à l'agent",
+      sessionStarted: 'Nouvelle session démarrée',
+      sendFailed: "Échec de l'envoi de la tâche",
+    },
+    plans: {
+      import: 'Importer un plan',
+      importHint: 'Importez un fichier Markdown ou texte.',
+      importFailed: "Échec de l'import du plan",
+      empty: 'Aucun plan pour le moment. Importez-en un pour commencer.',
+      open: 'Ouvrir',
+      delete: 'Supprimer',
+      actions: 'Actions du plan',
+      back: 'Retour aux plans',
+      deleteTitle: 'Supprimer le plan ?',
+      deleteDescription: (title: string) =>
+        `« ${title} » sera définitivement supprimé.`,
+      deleted: 'Plan supprimé',
+      deleteFailed: 'Échec de la suppression du plan',
+      readFailed: "Échec de l'ouverture du plan",
+    },
+  },
+
   fileExplorer: {
     openWorkspace: 'Ouvrez un espace de travail pour parcourir ses fichiers.',
     resizeAria: 'Redimensionner l’explorateur de fichiers',

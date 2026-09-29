@@ -59,6 +59,9 @@ export async function findAvailablePort(
 export const AERO_DIR = normalizePath(join(homedir(), '.aero'));
 
 export const SNIPPETS_PATH = join(AERO_DIR, 'snippets');
+export const PROJECT_CONTEXT_PATH = normalizePath(
+  join(AERO_DIR, 'project-context'),
+);
 export const SETTINGS_PATH = normalizePath(join(AERO_DIR, 'settings.json'));
 export const AERO_PLUGIN_PATH = normalizePath(
   join(AERO_DIR, 'agent-tool', 'aero-plugin.js'),

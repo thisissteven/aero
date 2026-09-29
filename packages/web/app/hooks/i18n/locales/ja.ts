@@ -1047,6 +1047,51 @@ export const ja: BaseTranslation = {
     userPrefix: 'ユーザー：',
   },
 
+  notesPanel: {
+    openWorkspace:
+      'ワークスペースを開くと、ノート・ToDo・プランを表示できます。',
+    tabsAria: 'プロジェクトノートのセクション',
+    tabNotes: 'ノート',
+    tabTodos: 'ToDo',
+    tabPlans: 'プラン',
+    notes: {
+      placeholder: 'このプロジェクトについて覚えておきたいこと…',
+      saving: '保存中…',
+      saved: '保存済み',
+    },
+    todos: {
+      addPlaceholder: 'ToDoを追加',
+      add: 'ToDoを追加',
+      empty: 'ToDoはまだありません。上で追加してください。',
+      clearCompleted: '完了済みを削除',
+      actions: 'ToDoの操作',
+      delete: 'ToDoを削除',
+      dragHandle: 'ToDoを並べ替え',
+      sendToCurrent: '現在のセッションに送信',
+      sendToNew: '新しいセッションを開始',
+      sendToWorktree: '新しいworktreeセッションを開始',
+      sent: 'エージェントに送信しました',
+      sessionStarted: '新しいセッションを開始しました',
+      sendFailed: 'ToDoの送信に失敗しました',
+    },
+    plans: {
+      import: 'プランをインポート',
+      importHint: 'Markdownまたはテキストファイルをインポートします。',
+      importFailed: 'プランのインポートに失敗しました',
+      empty: 'プランはまだありません。インポートして開始してください。',
+      open: '開く',
+      delete: '削除',
+      actions: 'プランの操作',
+      back: 'プラン一覧に戻る',
+      deleteTitle: 'プランを削除しますか？',
+      deleteDescription: (title: string) =>
+        `「${title}」は完全に削除されます。`,
+      deleted: 'プランを削除しました',
+      deleteFailed: 'プランの削除に失敗しました',
+      readFailed: 'プランを開けませんでした',
+    },
+  },
+
   fileExplorer: {
     openWorkspace: 'ワークスペースを開いてファイルを閲覧します。',
     resizeAria: 'ファイルエクスプローラーのサイズを変更',

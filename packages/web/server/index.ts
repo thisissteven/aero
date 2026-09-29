@@ -17,6 +17,7 @@ import githubRoutes from './routes/github/index';
 import mcpRoutes from './routes/mcp';
 import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
+import projectContextRoutes from './routes/project-context';
 import providerRoutes from './routes/providers';
 import sessionRoutes from './routes/sessions';
 import snippetRoutes from './routes/snippets';
@@ -50,7 +51,8 @@ const app = new Hono()
   .route('/folder-picker', folderPickerRoutes)
   .route('/discovery', discoveryRoutes)
   .route('/fs', fsRawRoutes)
-  .route('/snippets', snippetRoutes);
+  .route('/snippets', snippetRoutes)
+  .route('/project-context', projectContextRoutes);
 
 // Ensure the pool is initialized before any incoming API request proceeds
 let poolInitPromise: Promise<void> | null = null;

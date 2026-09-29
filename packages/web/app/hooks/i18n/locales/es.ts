@@ -1067,6 +1067,51 @@ export const es: BaseTranslation = {
     userPrefix: 'Usuario:',
   },
 
+  notesPanel: {
+    openWorkspace:
+      'Abre un espacio de trabajo para ver sus notas, tareas y planes.',
+    tabsAria: 'Secciones de notas del proyecto',
+    tabNotes: 'Notas',
+    tabTodos: 'Tareas',
+    tabPlans: 'Planes',
+    notes: {
+      placeholder: 'Todo lo que quieras recordar sobre este proyecto…',
+      saving: 'Guardando…',
+      saved: 'Guardado',
+    },
+    todos: {
+      addPlaceholder: 'Añadir una tarea',
+      add: 'Añadir tarea',
+      empty: 'Aún no hay tareas. Añade una arriba.',
+      clearCompleted: 'Borrar completadas',
+      actions: 'Acciones de la tarea',
+      delete: 'Eliminar tarea',
+      dragHandle: 'Reordenar tarea',
+      sendToCurrent: 'Enviar a la sesión actual',
+      sendToNew: 'Iniciar una nueva sesión',
+      sendToWorktree: 'Iniciar una nueva sesión de worktree',
+      sent: 'Enviado al agente',
+      sessionStarted: 'Nueva sesión iniciada',
+      sendFailed: 'No se pudo enviar la tarea',
+    },
+    plans: {
+      import: 'Importar plan',
+      importHint: 'Importa un archivo Markdown o de texto.',
+      importFailed: 'No se pudo importar el plan',
+      empty: 'Aún no hay planes. Importa uno para empezar.',
+      open: 'Abrir',
+      delete: 'Eliminar',
+      actions: 'Acciones del plan',
+      back: 'Volver a los planes',
+      deleteTitle: '¿Eliminar plan?',
+      deleteDescription: (title: string) =>
+        `"${title}" se eliminará permanentemente.`,
+      deleted: 'Plan eliminado',
+      deleteFailed: 'No se pudo eliminar el plan',
+      readFailed: 'No se pudo abrir el plan',
+    },
+  },
+
   fileExplorer: {
     openWorkspace: 'Abre un espacio de trabajo para explorar sus archivos.',
     resizeAria: 'Redimensionar explorador de archivos',
