@@ -381,7 +381,7 @@ export function ChangesPanel() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={t.changesPanel.commitMessage}
-          className='text-sm w-full scrollbar-thin rounded-md text-xs px-2'
+          className='text-sm w-full scrollbar-thin rounded-md text-xs px-2 resize-none'
           rows={3}
         />
 

@@ -1,0 +1,59 @@
+/* ==========================================================================
+   Select size variants
+   Mirrors `dropdown.css`: the Dropdown exposes `data-size='sm' | 'lg'`, so the
+   Select offers the same compact/large rhythm for its trigger and list.
+   ========================================================================== */
+
+.select--sm .select__trigger {
+  @apply min-h-6 gap-1.5 rounded-lg ps-2 pe-6 py-1 text-sm leading-tight;
+}
+
+.select--sm .select__indicator {
+  @apply end-1.5 size-3.5;
+}
+
+.select--sm .select__value {
+  @apply min-w-0 truncate text-sm leading-tight;
+}
+
+.select__popover--sm {
+  @apply text-sm;
+  border-radius: min(16px, var(--radius-xl));
+
+  [data-slot="list-box"] {
+    @apply p-1.25;
+
+    & > * + * {
+      @apply mt-0.5;
+    }
+  }
+
+  [data-slot="list-box-item"] {
+    @apply min-h-6 gap-1.5 rounded-lg px-2 py-1 text-sm leading-tight;
+  }
+}
+
+.select--lg .select__trigger {
+  @apply min-h-10 gap-2.5 rounded-xl px-3.5 py-2 text-base;
+}
+
+.select--lg .select__value {
+  @apply text-base;
+}
+
+.select__popover--lg {
+  @apply text-base;
+  border-radius: min(40px, var(--radius-4xl));
+
+  [data-slot="list-box"] {
+    @apply p-2;
+
+    & > * + * {
+      @apply mt-1.5;
+    }
+  }
+
+  [data-slot="list-box-item"] {
+    @apply min-h-10 gap-2.5 rounded-xl px-3.5 py-2 text-base;
+  }
+}

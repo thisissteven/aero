@@ -109,7 +109,7 @@ export function GitHubConnectCard({
   };
 
   return (
-    <div className='flex h-full items-center justify-center overflow-y-auto p-6'>
+    <div className='scrollbar-thin flex h-full items-center justify-center overflow-y-auto p-6'>
       <div className='border-separator bg-surface/60 w-full max-w-sm rounded-xl border p-5'>
         <div className='text-foreground mb-1 text-sm font-medium'>
           {t.pullRequest.connectGitHub}
@@ -134,6 +134,7 @@ export function GitHubConnectCard({
               <Button
                 size='sm'
                 variant='ghost'
+                className='rounded-lg'
                 isIconOnly
                 onPress={copyCode}
                 aria-label={t.pullRequest.copyCodeAria}
@@ -164,7 +165,7 @@ export function GitHubConnectCard({
             <Button
               size='sm'
               variant='ghost'
-              className='mt-2 w-full'
+              className='rounded-lg mt-2 w-full'
               onPress={() => setFlow(null)}
             >
               {t.common.cancel}
@@ -174,7 +175,7 @@ export function GitHubConnectCard({
           <>
             <Button
               variant='primary'
-              className='w-full'
+              className='w-full rounded-lg'
               onPress={handleStart}
               isPending={startMutation.isPending}
             >

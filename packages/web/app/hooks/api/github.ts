@@ -41,7 +41,12 @@ export const githubKeys = {
   prContext: (
     directory: string | undefined,
     number: number | undefined,
-    options?: { diff?: boolean; checkDetails?: boolean },
+    options?: {
+      diff?: boolean;
+      checkDetails?: boolean;
+      owner?: string;
+      repo?: string;
+    },
   ) =>
     [
       ...githubKeys.all(),
@@ -49,6 +54,8 @@ export const githubKeys = {
       'context',
       directory ?? '',
       String(number ?? ''),
+      options?.owner ?? '',
+      options?.repo ?? '',
       options?.diff ? 'diff' : '',
       options?.checkDetails ? 'details' : '',
     ] as const,
@@ -334,7 +341,11 @@ export function useGitHubPrStatus(
 export function useGitHubPullContext(
   directory: string | undefined,
   number: number | undefined,
-  options?: { diff?: boolean; checkDetails?: boolean } & {
+  options?: {
+    diff?: boolean;
+    checkDetails?: boolean;
+    owner?: string;
+    repo?: string;
     enabled?: boolean;
   },
 ) {
@@ -350,6 +361,8 @@ export function useGitHubPullContext(
             number: String(number),
             diff: options?.diff ? 'true' : 'false',
             checkDetails: options?.checkDetails ? 'true' : 'false',
+            ...(options?.owner ? { owner: options.owner } : {}),
+            ...(options?.repo ? { repo: options.repo } : {}),
           },
         }),
         'pull request',

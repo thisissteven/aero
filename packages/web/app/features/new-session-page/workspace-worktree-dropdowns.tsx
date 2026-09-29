@@ -1,6 +1,7 @@
 import { cn } from '@aero/ui';
 import { ReactNode } from 'react';
 import { BrowserAnnotationsPanel } from '@/app/components/browser-annotations-panel';
+import { GithubLinksPanel } from '@/app/components/github-links-panel';
 import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attachments/file-attachments';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { WorkspacesDropdown } from '@/app/features/new-session-page/workspaces-dropdown';
@@ -23,6 +24,7 @@ export function WorkspaceWorktreeDropdownWrapper({
     <div className='mx-auto w-full max-w-[720px]'>
       <FileAttachments />
       <BrowserAnnotationsPanel />
+      <GithubLinksPanel />
 
       <div
         className={cn(

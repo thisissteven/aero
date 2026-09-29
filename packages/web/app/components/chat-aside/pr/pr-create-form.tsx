@@ -1,14 +1,15 @@
 // app/components/chat-aside/pr/pr-create-form.tsx
 //
-// Shown when the current branch has no open pull request. Lets the user pick a
-// base branch, optionally write the description with AI, and open the PR.
+// Shown when the current branch has no open pull request. Lets the user pick
+// the head and base branches, optionally write the description with AI, and
+// open the PR.
 
 import {
   Button,
+  Input,
   Label,
   ListBox,
   Select,
-  Switch,
   TextArea,
   toast,
 } from '@aero/ui';
@@ -46,16 +47,28 @@ export function PrCreateForm({
     ? { owner: upstream!.owner, repo: upstream!.repo }
     : repo;
 
-  const { data: branchesData, isLoading: branchesLoading } = useGitHubBranches(
-    target.owner,
-    target.repo,
-  );
-  const branches = branchesData?.branches ?? [];
+  const { data: baseBranchesData, isLoading: baseBranchesLoading } =
+    useGitHubBranches(target.owner, target.repo);
+  const { data: headBranchesData, isLoading: headBranchesLoading } =
+    useGitHubBranches(repo.owner, repo.repo);
 
+  const branches = baseBranchesData?.branches ?? [];
+  const headBranches = headBranchesData?.branches ?? [];
+
+  // An unpushed current branch is still a valid head choice, so keep it listed
+  // even when the remote does not report it yet.
+  const headOptions = useMemo(
+    () =>
+      headBranches.includes(headBranch)
+        ? headBranches
+        : [headBranch, ...headBranches],
+    [headBranches, headBranch],
+  );
+
+  const [head, setHead] = useState(headBranch);
   const [base, setBase] = useState<string>('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [draft, setDraft] = useState(false);
 
   const describe = useGitHubDescribePr();
   const createPr = useGitHubCreatePr();
@@ -76,7 +89,7 @@ export function PrCreateForm({
       const result = await describe.mutateAsync({
         directory,
         base: base || undefined,
-        head: headBranch,
+        head,
       });
       setTitle(result.title);
       setBody(result.body);
@@ -93,15 +106,14 @@ export function PrCreateForm({
       toast.danger(t.pullRequest.titleRequired);
       return;
     }
-    if (!base) return;
+    if (!head || !base) return;
     try {
       const created = await createPr.mutateAsync({
         directory,
         title: title.trim(),
-        head: headBranch,
+        head,
         base,
         body: body.trim() || undefined,
-        draft,
         remote: isFork ? 'upstream' : 'origin',
         ...(isFork
           ? {
@@ -120,119 +132,149 @@ export function PrCreateForm({
   };
 
   return (
-    <div className='min-h-0 flex-1 overflow-y-auto p-3'>
-      <div className='mb-3 flex items-center gap-2'>
-        <code className='bg-default/60 rounded px-1.5 py-0.5 font-mono text-xs'>
-          {headBranch}
-        </code>
-        {base && (
-          <>
-            <span className='text-muted text-xs'>→</span>
-            <code className='bg-default/60 rounded px-1.5 py-0.5 font-mono text-xs'>
-              {isFork ? `${upstream!.owner}/` : ''}
-              {base}
-            </code>
-          </>
-        )}
-      </div>
-
-      <p className='text-muted mb-4 text-xs'>
-        {t.pullRequest.createDescription}
-        {isFork && (
-          <>
-            {' '}
-            <span className='text-accent'>
-              {t.pullRequest.forkOf} {upstream!.owner}/{upstream!.repo}
-            </span>
-          </>
-        )}
-      </p>
-
-      <div className='mb-3 flex flex-col gap-1.5'>
-        <Label>{t.pullRequest.baseBranch}</Label>
-        <Select
-          value={base || undefined}
-          onChange={(key) => setBase(String(key))}
-          placeholder={
-            branchesLoading
-              ? t.pullRequest.loadingBranches
-              : t.pullRequest.selectBranch
-          }
-          className='w-full'
-          isDisabled={branchesLoading}
-        >
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover className='rounded-xl'>
-            <ListBox>
-              {branches.map((branch) => (
-                <ListBox.Item key={branch} id={branch} className='rounded-lg'>
-                  <Label>{branch}</Label>
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </div>
-
-      <div className='mb-3 flex flex-col gap-1.5'>
-        <Label>{t.pullRequest.title}</Label>
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder={t.pullRequest.titlePlaceholder}
-          className='border-separator bg-default/30 text-foreground placeholder:text-muted focus:border-accent w-full rounded-md border px-2.5 py-1.5 text-sm outline-none'
-        />
-      </div>
-
-      <div className='mb-3 flex flex-col gap-1.5'>
-        <div className='flex items-center justify-between'>
-          <Label>{t.pullRequest.body}</Label>
-          <Button
-            size='sm'
-            variant='ghost'
-            className='h-6 gap-1 px-1.5 text-xs'
-            isPending={describe.isPending}
-            onPress={generate}
-          >
-            <Icon
-              data={describe.isPending ? Sparkles : MagicWand}
-              size={12}
-              className={describe.isPending ? 'animate-pulse' : undefined}
+    <div className='flex h-full min-h-0 flex-col'>
+      <div className='scrollbar-thin min-h-0 flex-1 overflow-y-auto p-3'>
+        <div className='mb-3 flex items-end gap-2'>
+          <div className='flex min-w-0 flex-1 flex-col gap-1.5'>
+            <Label>{t.pullRequest.headBranch}</Label>
+            <BranchSelect
+              label={t.pullRequest.headBranch}
+              value={head}
+              branches={headOptions}
+              isLoading={headBranchesLoading}
+              loadingLabel={t.pullRequest.loadingBranches}
+              placeholder={t.pullRequest.selectBranch}
+              onSelect={setHead}
             />
-            {describe.isPending
-              ? t.pullRequest.generating
-              : t.pullRequest.generateWithAi}
-          </Button>
+          </div>
+
+          <span className='text-muted pb-1.5 text-xs'>→</span>
+
+          <div className='flex min-w-0 flex-1 flex-col gap-1.5'>
+            <Label>{t.pullRequest.baseBranch}</Label>
+            <BranchSelect
+              label={t.pullRequest.baseBranch}
+              value={base}
+              branches={branches}
+              isLoading={baseBranchesLoading}
+              loadingLabel={t.pullRequest.loadingBranches}
+              placeholder={t.pullRequest.selectBranch}
+              onSelect={setBase}
+            />
+          </div>
         </div>
-        <TextArea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder={t.pullRequest.bodyPlaceholder}
-          className='scrollbar-thin min-h-32 w-full rounded-md text-sm'
-          rows={8}
-        />
+
+        <p className='text-muted mb-4 text-xs'>
+          {t.pullRequest.createDescription}
+          {isFork && (
+            <>
+              {' '}
+              <span className='text-accent'>
+                {t.pullRequest.forkOf} {upstream!.owner}/{upstream!.repo}
+              </span>
+            </>
+          )}
+        </p>
+
+        <div className='mb-3 flex flex-col gap-1.5'>
+          <Label>{t.pullRequest.title}</Label>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={t.pullRequest.titlePlaceholder}
+            className='h-8 w-full px-2.5 text-sm rounded-md'
+          />
+        </div>
+
+        <div className='mb-3 flex flex-col gap-1.5'>
+          <div className='flex items-center justify-between'>
+            <Label>{t.pullRequest.body}</Label>
+            <Button
+              size='sm'
+              variant='ghost'
+              className='h-6 gap-1 rounded-lg px-3 text-xs'
+              isPending={describe.isPending}
+              onPress={generate}
+            >
+              <Icon
+                data={describe.isPending ? Sparkles : MagicWand}
+                size={12}
+                className={describe.isPending ? 'animate-pulse' : undefined}
+              />
+              {describe.isPending
+                ? t.pullRequest.generating
+                : t.pullRequest.generateWithAi}
+            </Button>
+          </div>
+          <TextArea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder={t.pullRequest.bodyPlaceholder}
+            className='scrollbar-thin min-h-32 w-full resize-none rounded-md text-sm'
+            rows={8}
+          />
+        </div>
       </div>
 
-      <label className='mb-4 flex items-center gap-2'>
-        <Switch size='sm' isSelected={draft} onChange={setDraft} />
-        <span className='text-muted text-xs'>{t.pullRequest.draft}</span>
-      </label>
-
-      <Button
-        variant='primary'
-        className='w-full gap-1.5'
-        isDisabled={!title.trim() || !base}
-        isPending={createPr.isPending}
-        onPress={submit}
-      >
-        <Icon data={CodeMerge} size={14} />
-        {createPr.isPending
-          ? t.pullRequest.creatingPullRequest
-          : t.pullRequest.createPullRequest}
-      </Button>
+      <div className='border-separator shrink-0 border-t p-3'>
+        <Button
+          variant='primary'
+          className='w-full gap-1.5 rounded-lg'
+          isDisabled={!title.trim() || !base || !head}
+          isPending={createPr.isPending}
+          onPress={submit}
+        >
+          <Icon data={CodeMerge} size={14} />
+          {createPr.isPending
+            ? t.pullRequest.creatingPullRequest
+            : t.pullRequest.createPullRequest}
+        </Button>
+      </div>
     </div>
+  );
+}
+
+function BranchSelect({
+  label,
+  value,
+  branches,
+  isLoading,
+  loadingLabel,
+  placeholder,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  branches: string[];
+  isLoading?: boolean;
+  loadingLabel: string;
+  placeholder: string;
+  onSelect: (branch: string) => void;
+}) {
+  return (
+    <Select
+      size='sm'
+      aria-label={label}
+      value={value || undefined}
+      onChange={(key) => onSelect(String(key))}
+      placeholder={
+        isLoading && branches.length === 0 ? loadingLabel : placeholder
+      }
+      className='w-full'
+    >
+      <Select.Trigger>
+        <Select.Value />
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover className='rounded-lg'>
+        <ListBox>
+          {branches.map((branch) => (
+            <ListBox.Item key={branch} id={branch} className='rounded-md'>
+              <Label className='truncate'>{branch}</Label>
+            </ListBox.Item>
+          ))}
+        </ListBox>
+      </Select.Popover>
+    </Select>
   );
 }

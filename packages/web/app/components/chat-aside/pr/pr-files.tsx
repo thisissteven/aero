@@ -1,7 +1,7 @@
 // app/components/chat-aside/pr/pr-files.tsx
 
 import { Chip, cn, Skeleton } from '@aero/ui';
-import { ChevronDown, ChevronRight, FileCode } from '@gravity-ui/icons';
+import { ChevronRight, FileCode } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
 
@@ -71,9 +71,12 @@ function FileRow({ file }: { file: PullFile }) {
         className='hover:bg-default/40 flex w-full items-center gap-2 px-2.5 py-1.5 text-left'
       >
         <Icon
-          data={open ? ChevronDown : ChevronRight}
+          data={ChevronRight}
           size={12}
-          className='text-muted shrink-0'
+          className={cn(
+            'text-muted shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none',
+            open && 'rotate-90',
+          )}
         />
         <Chip
           size='sm'

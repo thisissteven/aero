@@ -156,3 +156,71 @@ export function SectionEmpty({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+export interface SectionTab<T extends string> {
+  id: T;
+  label: string;
+  count?: number;
+}
+
+/**
+ * Underline tab bar matching the git panel's sections. Kept local instead of
+ * the HeroUI `Tabs` so every aside panel shares one tab rhythm.
+ */
+export function SectionTabs<T extends string>({
+  tabs,
+  active,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  tabs: ReadonlyArray<SectionTab<T>>;
+  active: T;
+  onChange: (id: T) => void;
+  ariaLabel: string;
+  className?: string;
+}) {
+  return (
+    <div
+      role='tablist'
+      aria-label={ariaLabel}
+      className={cn(
+        'border-separator flex shrink-0 items-center gap-0.5 border-b px-2',
+        className,
+      )}
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            type='button'
+            role='tab'
+            aria-selected={isActive}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'focus-visible:ring-accent relative rounded-sm px-2.5 py-2 text-xs outline-none transition-colors',
+              'focus-visible:ring-2',
+              isActive
+                ? 'text-foreground font-medium'
+                : 'text-muted hover:text-foreground',
+            )}
+          >
+            <span className='inline-flex items-center gap-1.5'>
+              {tab.label}
+              {typeof tab.count === 'number' && tab.count > 0 && (
+                <span className='text-muted tabular-nums'>{tab.count}</span>
+              )}
+            </span>
+            <span
+              className={cn(
+                'bg-accent absolute inset-x-1.5 -bottom-px h-0.5 rounded-full transition-opacity duration-150 ease-out motion-reduce:transition-none',
+                isActive ? 'opacity-100' : 'opacity-0',
+              )}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}

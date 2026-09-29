@@ -469,6 +469,10 @@ export const en = {
     attachFiles: 'Attach files',
     linkGithubIssue: 'Link GitHub issue',
     linkGithubPr: 'Link GitHub pull request',
+    searchGithubLinks: 'Search by number or title',
+    noGithubLinksFound: 'No results found',
+    linkedGithub: 'Linked GitHub',
+    removeGithubLink: 'Remove link',
     thinkingVariants: 'Thinking Variants',
     defaultVariant: 'Default',
     searchVariants: 'Search variants...',
@@ -1210,6 +1214,9 @@ export const en = {
     ghCliEnabled: 'Using GitHub CLI',
     switchAccountFailed: 'Failed to switch account',
     pullRequests: 'Pull requests',
+    branchTab: 'This branch',
+    searchPullRequests: 'Search pull requests',
+    noOpenPullRequests: 'No open pull requests.',
     issues: 'Issues',
 
     // Repository

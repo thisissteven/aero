@@ -1,6 +1,6 @@
 // app/components/chat-aside/pr/issues-panel.tsx
 
-import { Button, Skeleton } from '@aero/ui';
+import { Button, Input, Skeleton } from '@aero/ui';
 import { ArrowLeft, ArrowUpRightFromSquare, Comment } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useState } from 'react';
@@ -62,15 +62,15 @@ export function IssuesPanel({ directory }: { directory: string }) {
   return (
     <div className='flex h-full min-h-0 flex-col'>
       <div className='border-separator border-b p-2'>
-        <input
+        <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t.pullRequest.searchIssues}
-          className='border-separator bg-default/30 text-foreground placeholder:text-muted focus:border-accent w-full rounded-md border px-2.5 py-1.5 text-xs outline-none'
+          className='h-7 w-full px-2 text-xs rounded-md'
         />
       </div>
 
-      <div className='min-h-0 flex-1 overflow-y-auto p-2'>
+      <div className='scrollbar-thin min-h-0 flex-1 overflow-y-auto p-2'>
         {isLoading && issues.length === 0 ? (
           <div className='space-y-2'>
             <Skeleton className='h-12 w-full rounded-lg' />
@@ -97,6 +97,7 @@ export function IssuesPanel({ directory }: { directory: string }) {
           <Button
             size='sm'
             variant='ghost'
+            className='rounded-lg'
             isDisabled={page <= 1}
             onPress={() => setPage((value) => Math.max(1, value - 1))}
           >
@@ -106,6 +107,7 @@ export function IssuesPanel({ directory }: { directory: string }) {
           <Button
             size='sm'
             variant='ghost'
+            className='rounded-lg'
             isDisabled={!data?.hasMore}
             onPress={() => setPage((value) => value + 1)}
           >
@@ -179,6 +181,7 @@ function IssueDetail({
         <Button
           size='sm'
           variant='ghost'
+          className='rounded-lg'
           isIconOnly
           onPress={onBack}
           aria-label={t.common.back}
@@ -206,7 +209,7 @@ function IssueDetail({
         )}
       </div>
 
-      <div className='min-h-0 flex-1 overflow-y-auto p-3'>
+      <div className='scrollbar-thin min-h-0 flex-1 overflow-y-auto p-3'>
         {issueQuery.isLoading || !issue ? (
           <div className='space-y-2'>
             <Skeleton className='h-20 w-full rounded-lg' />

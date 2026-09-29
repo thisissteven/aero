@@ -3,7 +3,15 @@
 // The open-pull-request view: header with actions, and the Overview / Checks /
 // Files / Conversation tabs.
 
-import { Button, Chip, Dropdown, Label, Tabs, TextArea, toast } from '@aero/ui';
+import {
+  Button,
+  Chip,
+  Dropdown,
+  Input,
+  Label,
+  TextArea,
+  toast,
+} from '@aero/ui';
 import {
   ArrowUpRightFromSquare,
   CodeMerge,
@@ -28,6 +36,7 @@ import {
   AvatarBadge,
   ChecksChip,
   MarkdownBlock,
+  SectionTabs,
   StateChip,
   TimeAgo,
 } from './shared';
@@ -59,6 +68,8 @@ export function PrView({
   const context = useGitHubPullContext(directory, pr.number, {
     checkDetails: tab === 'checks',
     enabled: true,
+    owner: pr.sourceRepo?.owner,
+    repo: pr.sourceRepo?.repo,
   });
   const contextData = context.data as GitHubPullContext | null | undefined;
   const mergeMutation = useGitHubMergePr();
@@ -147,7 +158,7 @@ export function PrView({
           <Button
             size='sm'
             variant='secondary'
-            className='gap-1.5'
+            className='gap-1.5 rounded-lg'
             onPress={() => setEditing((value) => !value)}
           >
             <Icon data={Pencil} size={12} />
@@ -158,6 +169,7 @@ export function PrView({
             <Button
               size='sm'
               variant='secondary'
+              className='rounded-lg'
               isPending={readyMutation.isPending}
               onPress={markReady}
             >
@@ -174,7 +186,7 @@ export function PrView({
                 <Button
                   size='sm'
                   variant='primary'
-                  className='gap-1.5'
+                  className='gap-1.5 rounded-lg'
                   isPending={mergeMutation.isPending}
                 >
                   <Icon data={CodeMerge} size={12} />
@@ -231,41 +243,31 @@ export function PrView({
         />
       ) : (
         <>
-          <Tabs
-            selectedKey={tab}
-            onSelectionChange={(key) => setTab(key as typeof tab)}
-            className='border-separator shrink-0 border-b px-1'
-          >
-            <Tabs.ListContainer>
-              <Tabs.List aria-label={t.pullRequest.overview}>
-                <Tabs.Tab id='overview'>
-                  {t.pullRequest.overview}
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id='checks'>
-                  {t.pullRequest.checksTab}
-                  {checks && checks.total > 0 ? ` (${checks.total})` : ''}
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id='files'>
-                  {t.pullRequest.files}
-                  {contextData?.files?.length
-                    ? ` (${contextData.files.length})`
-                    : ''}
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id='conversation'>
-                  {t.pullRequest.conversation}
-                  {reviewCount + commentCount > 0
-                    ? ` (${reviewCount + commentCount})`
-                    : ''}
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-              </Tabs.List>
-            </Tabs.ListContainer>
-          </Tabs>
+          <SectionTabs
+            ariaLabel={t.pullRequest.overview}
+            active={tab}
+            onChange={setTab}
+            tabs={[
+              { id: 'overview', label: t.pullRequest.overview },
+              {
+                id: 'checks',
+                label: t.pullRequest.checksTab,
+                count: checks?.total,
+              },
+              {
+                id: 'files',
+                label: t.pullRequest.files,
+                count: contextData?.files?.length,
+              },
+              {
+                id: 'conversation',
+                label: t.pullRequest.conversation,
+                count: reviewCount + commentCount,
+              },
+            ]}
+          />
 
-          <div className='min-h-0 flex-1 overflow-y-auto'>
+          <div className='scrollbar-thin min-h-0 flex-1 overflow-y-auto'>
             {tab === 'overview' && (
               <OverviewTab
                 body={pr.body}
@@ -445,31 +447,37 @@ function EditForm({
   };
 
   return (
-    <div className='min-h-0 flex-1 space-y-3 overflow-y-auto p-3'>
+    <div className='scrollbar-thin min-h-0 flex-1 space-y-3 overflow-y-auto p-3'>
       <div className='flex items-center justify-between'>
         <span className='text-sm font-medium'>{t.pullRequest.editTitle}</span>
       </div>
-      <input
+      <Input
         value={title}
         onChange={(event) => setTitle(event.target.value)}
-        className='border-separator bg-default/30 text-foreground focus:border-accent w-full rounded-md border px-2.5 py-1.5 text-sm outline-none'
+        className='h-8 w-full px-2.5 text-sm rounded-md'
       />
       <TextArea
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        className='scrollbar-thin min-h-40 w-full rounded-md text-sm'
+        className='scrollbar-thin min-h-40 w-full resize-none rounded-md text-sm'
         rows={12}
       />
       <div className='flex items-center gap-2'>
         <Button
           size='sm'
           variant='primary'
+          className='rounded-lg'
           isPending={updateMutation.isPending}
           onPress={save}
         >
           {t.pullRequest.save}
         </Button>
-        <Button size='sm' variant='ghost' onPress={onCancel}>
+        <Button
+          size='sm'
+          variant='ghost'
+          className='rounded-lg'
+          onPress={onCancel}
+        >
           {t.pullRequest.cancel}
         </Button>
       </div>

@@ -88,6 +88,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         externalState.fileAttachments.length === 0 &&
         externalState.chatQuotes.length === 0 &&
         externalState.browserAnnotations.length === 0 &&
+        externalState.githubLinks.length === 0 &&
         externalState.subtask === null
       );
 

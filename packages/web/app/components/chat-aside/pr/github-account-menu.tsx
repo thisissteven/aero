@@ -49,20 +49,22 @@ export function GitHubAccountMenu({
     <Dropdown size='sm'>
       <Dropdown.Trigger
         aria-label={t.pullRequest.account}
-        className='flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-default/50'
+        className='hover:bg-default/50 max-w-full rounded-lg px-1.5 py-1 transition-colors'
       >
-        <Avatar size='sm'>
-          <Avatar.Image
-            src={user?.avatarUrl ?? undefined}
-            alt={displayName(user)}
-          />
-          <Avatar.Fallback>
-            {displayName(user).slice(0, 2).toUpperCase()}
-          </Avatar.Fallback>
-        </Avatar>
-        <span className='text-foreground hidden truncate text-xs font-medium sm:inline'>
-          {displayName(user)}
-        </span>
+        <div className='flex items-center gap-1.5'>
+          <Avatar size='sm' className='size-6 shrink-0'>
+            <Avatar.Image
+              src={user?.avatarUrl ?? undefined}
+              alt={displayName(user)}
+            />
+            <Avatar.Fallback>
+              {displayName(user).slice(0, 2).toUpperCase()}
+            </Avatar.Fallback>
+          </Avatar>
+          <span className='text-foreground min-w-0 truncate text-xs font-medium whitespace-nowrap'>
+            {displayName(user)}
+          </span>
+        </div>
       </Dropdown.Trigger>
       <Dropdown.Popover className='w-56' placement='bottom end'>
         <Dropdown.Menu aria-label={t.pullRequest.accounts}>

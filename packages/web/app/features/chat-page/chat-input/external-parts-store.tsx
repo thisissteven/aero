@@ -37,11 +37,23 @@ export interface PendingSubtask {
   command?: string;
 }
 
+export type GithubLinkKind = 'issue' | 'pull-request';
+
+export interface GithubLinkItem {
+  id: string;
+  kind: GithubLinkKind;
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+}
+
 /** State carried for a single chat session. */
 export interface SessionExternalPartsState {
   fileAttachments: ExternalFileAttachment[];
   chatQuotes: ChatQuoteItem[];
   browserAnnotations: BrowserAnnotationItem[];
+  githubLinks: GithubLinkItem[];
   subtask: PendingSubtask | null;
 }
 
@@ -74,6 +86,13 @@ export interface ExternalPartsState {
   ) => void;
   removeBrowserAnnotation: (sessionId: string, id: string) => void;
   clearBrowserAnnotations: (sessionId: string) => void;
+
+  addGithubLink: (
+    sessionId: string,
+    link: Omit<GithubLinkItem, 'id'>,
+  ) => string;
+  removeGithubLink: (sessionId: string, id: string) => void;
+  clearGithubLinks: (sessionId: string) => void;
 
   setSubtask: (sessionId: string, subtask: PendingSubtask | null) => void;
 
@@ -108,6 +127,7 @@ export const EMPTY_EXTERNAL_PARTS_SESSION: SessionExternalPartsState = {
   fileAttachments: [],
   chatQuotes: [],
   browserAnnotations: [],
+  githubLinks: [],
   subtask: null,
 };
 
@@ -256,6 +276,32 @@ export const useExternalPartsStore = create<ExternalPartsState>((set, get) => ({
   clearBrowserAnnotations: (sessionId) =>
     set((state) => patchSession(state, sessionId, { browserAnnotations: [] })),
 
+  addGithubLink: (sessionId, link) => {
+    const id = generateId();
+    set((state) =>
+      patchSession(state, sessionId, {
+        githubLinks: [
+          ...getExternalPartsSession(state, sessionId).githubLinks,
+          { ...link, id },
+        ],
+      }),
+    );
+    return id;
+  },
+
+  removeGithubLink: (sessionId, id) =>
+    set((state) =>
+      patchSession(state, sessionId, {
+        githubLinks: getExternalPartsSession(
+          state,
+          sessionId,
+        ).githubLinks.filter((link) => link.id !== id),
+      }),
+    ),
+
+  clearGithubLinks: (sessionId) =>
+    set((state) => patchSession(state, sessionId, { githubLinks: [] })),
+
   setSubtask: (sessionId, subtask) =>
     set((state) => patchSession(state, sessionId, { subtask })),
 
@@ -289,6 +335,7 @@ export const externalPartsSelectors = {
       s.fileAttachments.length === 0 &&
       s.chatQuotes.length === 0 &&
       s.browserAnnotations.length === 0 &&
+      s.githubLinks.length === 0 &&
       s.subtask === null
     );
   },

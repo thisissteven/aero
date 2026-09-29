@@ -1,11 +1,7 @@
 // app/components/chat-aside/pr/pr-checks.tsx
 
 import { Chip, cn, Skeleton } from '@aero/ui';
-import {
-  ArrowUpRightFromSquare,
-  ChevronDown,
-  ChevronRight,
-} from '@gravity-ui/icons';
+import { ArrowUpRightFromSquare, ChevronRight } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useState } from 'react';
 
@@ -76,15 +72,15 @@ function CheckRunRow({ run }: { run: CheckRunDetail }) {
           hasDetail && 'hover:bg-default/40',
         )}
       >
-        {hasDetail ? (
-          <Icon
-            data={open ? ChevronDown : ChevronRight}
-            size={12}
-            className='text-muted shrink-0'
-          />
-        ) : (
-          <span className='w-3 shrink-0' />
-        )}
+        <Icon
+          data={ChevronRight}
+          size={12}
+          className={cn(
+            'text-muted shrink-0 transition-transform duration-150 ease-out motion-reduce:transition-none',
+            open && 'rotate-90',
+            !hasDetail && 'opacity-0',
+          )}
+        />
         <CheckStatusIcon conclusion={run.conclusion} />
         <span className='min-w-0 flex-1 truncate text-xs font-medium'>
           {run.name}

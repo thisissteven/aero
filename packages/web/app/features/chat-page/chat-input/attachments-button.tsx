@@ -2,12 +2,13 @@ import { cn, Dropdown, IconButton, Label } from '@aero/ui';
 import { CircleTree, File, LogoGithub, Paperclip } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
+import { GithubLinkPicker } from '@/app/components/chat-aside/pr/github-link-picker';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { useGlobalModalStore } from '@/app/providers';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
-import { useExternalPartsStore } from './external-parts-store';
+import { GithubLinkKind, useExternalPartsStore } from './external-parts-store';
 
 export function AttachmentsButton() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +23,21 @@ export function AttachmentsButton() {
   const addFileAttachments = useExternalPartsStore(
     (state) => state.addFileAttachments,
   );
+
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const openGithubPicker = (kind: GithubLinkKind) => {
+    if (!directory) return;
+    openModal({
+      children: (
+        <GithubLinkPicker
+          directory={directory}
+          sessionId={sessionId || 'undefined'}
+          kind={kind}
+        />
+      ),
+    });
+  };
 
   return (
     <>
@@ -52,12 +68,12 @@ export function AttachmentsButton() {
           <Dropdown.Menu aria-label={t.chatInput.attachmentActionsAria}>
             <FileAttachments inputRef={inputRef} />
             <LinkGithubIssue
-              directory={directory}
               isDisabled={invalidGitRepo}
+              onSelect={() => openGithubPicker('issue')}
             />
             <LinkGithubPullRequest
-              directory={directory}
               isDisabled={invalidGitRepo}
+              onSelect={() => openGithubPicker('pull-request')}
             />
           </Dropdown.Menu>
         </Dropdown.Popover>
@@ -82,17 +98,16 @@ function FileAttachments({
 }
 
 function LinkGithubIssue({
-  directory,
   isDisabled,
+  onSelect,
 }: {
-  directory?: string;
   isDisabled: boolean;
+  onSelect: () => void;
 }) {
-  const _openModal = useGlobalModalStore((state) => state.openModal);
   const { t } = useI18n();
 
   return (
-    <Dropdown.Item className='gap-1' isDisabled={isDisabled}>
+    <Dropdown.Item className='gap-1' isDisabled={isDisabled} onPress={onSelect}>
       <Icon
         size={14}
         data={LogoGithub}
@@ -104,17 +119,16 @@ function LinkGithubIssue({
 }
 
 function LinkGithubPullRequest({
-  directory,
   isDisabled,
+  onSelect,
 }: {
-  directory?: string;
   isDisabled: boolean;
+  onSelect: () => void;
 }) {
-  const _openModal = useGlobalModalStore((state) => state.openModal);
   const { t } = useI18n();
 
   return (
-    <Dropdown.Item className='gap-1' isDisabled={isDisabled}>
+    <Dropdown.Item className='gap-1' isDisabled={isDisabled} onPress={onSelect}>
       <Icon
         size={14}
         data={CircleTree}

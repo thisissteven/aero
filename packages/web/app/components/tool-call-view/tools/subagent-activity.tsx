@@ -1,4 +1,4 @@
-import { Button, Skeleton } from '@aero/ui';
+import { Button, ScrollShadow, Skeleton } from '@aero/ui';
 import { ArrowUpRightFromSquare } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useMemo } from 'react';
@@ -68,18 +68,22 @@ export function SubagentActivity({ sessionId }: { sessionId: string }) {
       ) : activity.length === 0 ? (
         <p className='text-muted py-1 text-xs'>{t.toolCall.noActivityYet}</p>
       ) : (
-        <div className='flex flex-col'>
-          {activity.map((item) => (
-            <AssistantPartView
-              key={item.id}
-              turnId={item.turnId}
-              part={item.part}
-              partIndex={item.partIndex}
-              isPartStreaming={item.isPartStreaming}
-              clampText
-            />
-          ))}
-        </div>
+        <ScrollShadow
+          className='max-h-[40vh] scrollbar-thin overflow-x-hidden'
+          offset={2}
+        >
+          <div className='flex flex-col'>
+            {activity.map((item) => (
+              <AssistantPartView
+                key={item.id}
+                turnId={item.turnId}
+                part={item.part}
+                partIndex={item.partIndex}
+                isPartStreaming={item.isPartStreaming}
+              />
+            ))}
+          </div>
+        </ScrollShadow>
       )}
     </div>
   );

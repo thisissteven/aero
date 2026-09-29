@@ -5,6 +5,7 @@ import type {
 } from '@/app/components/smart-composer/smart-composer-helpers';
 import {
   ChatQuoteItem,
+  GithubLinkItem,
   SessionExternalPartsState,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
 
@@ -133,6 +134,11 @@ function formatChatQuote(quote: ChatQuoteItem) {
   return comment ? `${quoted}\n\n${comment}` : quoted;
 }
 
+function formatGithubLink(link: GithubLinkItem) {
+  const label = link.kind === 'pull-request' ? 'Pull request' : 'Issue';
+  return `[${label} #${link.number}: ${link.title}](${link.url})`;
+}
+
 /**
  * Blob URLs are browser-scoped and rejected by opencode's URL validator
  * (http/https/data only). Data URLs travel with the request and are
@@ -153,12 +159,17 @@ function fileToDataUrl(file: File): Promise<string> {
  *   1. file attachments
  *   2. chat quotes (one text part each)
  *   3. browser annotations (image + text)
- *   4. subtask (at most one)
+ *   4. linked GitHub issues / pull requests
+ *   5. subtask (at most one)
  */
 export async function buildExternalParts(
   state: Pick<
     SessionExternalPartsState,
-    'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
+    | 'fileAttachments'
+    | 'chatQuotes'
+    | 'browserAnnotations'
+    | 'githubLinks'
+    | 'subtask'
   >,
 ): Promise<AeroPartUserMessage[]> {
   const parts: AeroPartUserMessage[] = [];
@@ -211,6 +222,21 @@ export async function buildExternalParts(
     });
   }
 
+  for (const link of state.githubLinks) {
+    parts.push({
+      type: 'text',
+      text: formatGithubLink(link),
+      metadata: {
+        kind:
+          link.kind === 'pull-request' ? 'github-pull-request' : 'github-issue',
+        number: link.number,
+        title: link.title,
+        url: link.url,
+        state: link.state,
+      },
+    });
+  }
+
   if (state.subtask) {
     parts.push({ type: 'subtask', ...state.subtask });
   }
@@ -231,7 +257,11 @@ export async function buildMessageParts(
   segments: ComposerSegment[],
   external: Pick<
     SessionExternalPartsState,
-    'fileAttachments' | 'chatQuotes' | 'browserAnnotations' | 'subtask'
+    | 'fileAttachments'
+    | 'chatQuotes'
+    | 'browserAnnotations'
+    | 'githubLinks'
+    | 'subtask'
   >,
 ): Promise<AeroPartUserMessage[]> {
   const parts: AeroPartUserMessage[] = [];
