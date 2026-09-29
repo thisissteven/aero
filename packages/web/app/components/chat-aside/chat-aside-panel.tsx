@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 
 import { BrowserPanel } from '@/app/components/chat-aside/browser/browser-panel';
 import { ChangesPanel } from '@/app/components/chat-aside/changes/changes-panel';
+import { DiffViewProvider } from '@/app/components/chat-aside/changes/diff-view';
 import { ContextPanel } from '@/app/components/chat-aside/context/context-panel';
 import { FileExplorerPanel } from '@/app/components/chat-aside/files/file-explorer-panel';
 import { GitPanel } from '@/app/components/chat-aside/git/git-panel';
@@ -90,31 +91,33 @@ export function ChatAsidePanel() {
           </div>
 
           <div className='relative min-h-0 overflow-hidden'>
-            {activeNavItem === 'terminal' ? (
-              <TerminalPanel />
-            ) : activeNavItem === 'browser' ? (
-              <BrowserPanel />
-            ) : activeNavItem === 'git' ? (
-              <GitPanel />
-            ) : activeNavItem === 'changes' ? (
-              <ChangesPanel />
-            ) : activeNavItem === 'pr' ? (
-              <PullRequestPanel />
-            ) : activeNavItem === 'context' ? (
-              <ContextPanel />
-            ) : activeNavItem === 'notes' ? (
-              <ProjectNotesPanel />
-            ) : activeNavItem === 'files' ? (
-              <FileExplorerPanel />
-            ) : activeNavItem === 'side-chat' ? (
-              <SideChatPanel />
-            ) : (
-              <div className='text-muted flex h-full items-center justify-center p-6 text-center text-sm'>
-                {t.devMisc.contentBody(
-                  activeNavData ? t.nav[activeNavData.labelKey] : '',
-                )}
-              </div>
-            )}
+            <DiffViewProvider>
+              {activeNavItem === 'terminal' ? (
+                <TerminalPanel />
+              ) : activeNavItem === 'browser' ? (
+                <BrowserPanel />
+              ) : activeNavItem === 'git' ? (
+                <GitPanel />
+              ) : activeNavItem === 'changes' ? (
+                <ChangesPanel />
+              ) : activeNavItem === 'pr' ? (
+                <PullRequestPanel />
+              ) : activeNavItem === 'context' ? (
+                <ContextPanel />
+              ) : activeNavItem === 'notes' ? (
+                <ProjectNotesPanel />
+              ) : activeNavItem === 'files' ? (
+                <FileExplorerPanel />
+              ) : activeNavItem === 'side-chat' ? (
+                <SideChatPanel />
+              ) : (
+                <div className='text-muted flex h-full items-center justify-center p-6 text-center text-sm'>
+                  {t.devMisc.contentBody(
+                    activeNavData ? t.nav[activeNavData.labelKey] : '',
+                  )}
+                </div>
+              )}
+            </DiffViewProvider>
           </div>
         </aside>
       </Resizable.Panel>

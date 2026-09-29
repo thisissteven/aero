@@ -201,42 +201,27 @@ export function SectionTabs<T extends string>({
     });
   };
 
-  // Scroll with the selection. When the newly active tab sits against an edge,
-  // scroll until its neighbour on that side is fully revealed (plus a small
-  // peek) so the strip always reads as scrollable in the direction of travel.
+  // Scroll with the selection: centre the newly active tab so the tabs on
+  // either side come into view. `scrollTo` clamps at both ends, so the first
+  // and last tabs settle against the edges instead of overshooting.
   useEffect(() => {
     const container = scrollRef.current;
     const button = activeRef.current;
     if (!container || !button) return;
+    if (container.scrollWidth <= container.clientWidth) return;
 
     const containerRect = container.getBoundingClientRect();
     const buttonRect = button.getBoundingClientRect();
-    const peek = 20;
+    const buttonCenter =
+      buttonRect.left -
+      containerRect.left +
+      container.scrollLeft +
+      buttonRect.width / 2;
 
-    const atLeft = buttonRect.left < containerRect.left + peek;
-    const atRight = buttonRect.right > containerRect.right - peek;
-
-    if (atLeft && !atRight) {
-      const prev = button.previousElementSibling as HTMLElement | null;
-      const edge = (prev ?? button).getBoundingClientRect();
-      container.scrollBy({
-        left: edge.left - containerRect.left - peek,
-        behavior: 'smooth',
-      });
-    } else if (atRight && !atLeft) {
-      const next = button.nextElementSibling as HTMLElement | null;
-      const edge = (next ?? button).getBoundingClientRect();
-      container.scrollBy({
-        left: edge.right - containerRect.right + peek,
-        behavior: 'smooth',
-      });
-    } else if (atLeft && atRight) {
-      // The active tab is wider than the viewport; just align its left edge.
-      container.scrollBy({
-        left: buttonRect.left - containerRect.left - peek,
-        behavior: 'smooth',
-      });
-    }
+    container.scrollTo({
+      left: buttonCenter - container.clientWidth / 2,
+      behavior: 'smooth',
+    });
   }, [active]);
 
   return (
@@ -259,7 +244,7 @@ export function SectionTabs<T extends string>({
             right: visibility === 'right' || visibility === 'both',
           })
         }
-        className='flex min-w-0 flex-1 items-center gap-0.5 px-2 pb-px'
+        className='flex min-w-0 flex-1 items-center gap-0.5 px-2'
       >
         {tabs.map((tab) => {
           const isActive = tab.id === active;
@@ -287,7 +272,7 @@ export function SectionTabs<T extends string>({
               </span>
               <span
                 className={cn(
-                  'bg-accent absolute inset-x-1.5 -bottom-px h-0.5 rounded-full transition-opacity duration-150 ease-out motion-reduce:transition-none',
+                  'bg-accent absolute inset-x-1.5 bottom-0 h-0.5 rounded-full transition-opacity duration-150 ease-out motion-reduce:transition-none',
                   isActive ? 'opacity-100' : 'opacity-0',
                 )}
               />

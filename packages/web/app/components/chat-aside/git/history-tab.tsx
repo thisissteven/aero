@@ -1,27 +1,42 @@
 // app/components/chat-aside/git/history-tab.tsx
-import { Button, IconButton, Modal, Skeleton, Tooltip } from '@aero/ui';
-import { CodeCommit, Copy } from '@gravity-ui/icons';
+import { IconButton, Modal, Skeleton, Tooltip } from '@aero/ui';
+import { CodeCommit, Copy, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { DiffWorkbench } from '@/app/components/chat-aside/changes/diff-workbench';
 import { useGitCommitDiff, useGitLog } from '@/app/hooks/api/git';
 import { useI18n } from '@/app/hooks/i18n';
 import { formatCompactRelativeTime } from '@/app/lib';
 import { toastPromise } from '@/app/lib/toast';
 
-import { GitDiffContent } from './git-diff-content';
 import { EmptyState, ListSkeleton } from './shared';
 import type { CommitHistoryEntry } from './types';
 
 export function HistoryTab({ directory }: { directory: string }) {
   const { t } = useI18n();
-  const [limit, setLimit] = useState(50);
   const [selected, setSelected] = useState<CommitHistoryEntry | null>(null);
-  const { data, isLoading, isFetching } = useGitLog(directory, limit);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useGitLog(directory);
 
-  const commits =
-    (data as { commits?: CommitHistoryEntry[] } | null | undefined)?.commits ??
-    [];
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Infinite scroll: fetch the next page once the sentinel nears the viewport.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void fetchNextPage();
+      },
+      { rootMargin: '160px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const commits = data?.pages.flatMap((page) => page.commits ?? []) ?? [];
 
   if (isLoading) return <ListSkeleton />;
 
@@ -66,16 +81,10 @@ export function HistoryTab({ directory }: { directory: string }) {
         </ul>
       )}
 
-      {commits.length >= limit && limit < 500 && (
-        <Button
-          size='sm'
-          variant='ghost'
-          onPress={() => setLimit((value) => Math.min(value + 50, 500))}
-          isPending={isFetching}
-          className='mt-1 h-7 text-xs'
-        >
-          {t.gitPanel.loadMore}
-        </Button>
+      {hasNextPage && (
+        <div ref={sentinelRef} className='flex items-center justify-center p-2'>
+          {isFetchingNextPage && <Skeleton className='h-7 w-3/4 rounded' />}
+        </div>
       )}
 
       <CommitDetailModal
@@ -119,34 +128,44 @@ function CommitDetailModal({
     >
       <Modal.Backdrop>
         <Modal.Container>
-          <Modal.Dialog>
+          <Modal.Dialog className='bg-surface text-foreground my-auto flex h-[92dvh] w-full max-w-[1500px] flex-col gap-0 overflow-hidden rounded-xl p-0 sm:h-[85vh]'>
             {({ close }) => (
               <>
-                <Modal.Header className='flex items-center gap-2'>
+                <div className='border-separator flex shrink-0 items-center gap-2 border-b px-2 py-2.5'>
                   <Icon
                     data={CodeCommit}
                     size={14}
                     className='text-accent shrink-0'
                   />
-                  <span className='min-w-0 flex-1 truncate text-sm'>
+                  <span className='min-w-0 flex-1 truncate text-sm font-medium'>
                     {commit?.subject}
                   </span>
-                  <Tooltip>
-                    <Tooltip.Trigger>
-                      <IconButton
-                        aria-label={t.gitPanel.copyHash}
-                        onPress={handleCopyHash}
-                      >
-                        <Icon data={Copy} />
-                      </IconButton>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>{t.gitPanel.copyHash}</Tooltip.Content>
-                  </Tooltip>
-                </Modal.Header>
+                  <div className='flex shrink-0 items-center gap-0'>
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton
+                          aria-label={t.gitPanel.copyHash}
+                          onPress={handleCopyHash}
+                        >
+                          <Icon data={Copy} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>{t.gitPanel.copyHash}</Tooltip.Content>
+                    </Tooltip>
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <IconButton aria-label={t.common.close} onPress={close}>
+                          <Icon data={Xmark} />
+                        </IconButton>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>{t.common.close}</Tooltip.Content>
+                    </Tooltip>
+                  </div>
+                </div>
 
-                <Modal.Body>
-                  <div className='text-muted mb-3 flex min-w-0 items-center gap-1.5 text-xs'>
-                    <span className='font-mono tabular-nums'>
+                <div className='border-separator flex shrink-0 flex-col gap-1 border-b px-3 py-2'>
+                  <div className='text-muted flex min-w-0 items-center gap-1.5 text-xs'>
+                    <span className='tabular-nums'>
                       {commit?.sha.slice(0, 7)}
                     </span>
                     <span aria-hidden className='shrink-0'>
@@ -162,27 +181,18 @@ function CommitDetailModal({
                   </div>
 
                   {commit?.body && (
-                    <p className='text-muted mb-3 text-sm whitespace-pre-wrap'>
+                    <p
+                      className='text-muted line-clamp-2 text-xs whitespace-pre-wrap'
+                      title={commit.body}
+                    >
                       {commit.body}
                     </p>
                   )}
+                </div>
 
-                  {isLoading ? (
-                    <Skeleton className='h-40 w-full rounded' />
-                  ) : (
-                    <GitDiffContent
-                      diff={diff}
-                      emptyLabel={t.changesPanel.noChangesToDisplay}
-                      className='max-h-[60vh]'
-                    />
-                  )}
-                </Modal.Body>
-
-                <Modal.Footer>
-                  <Button size='sm' variant='ghost' onPress={close}>
-                    {t.common.close}
-                  </Button>
-                </Modal.Footer>
+                <div className='min-h-0 flex-1 overflow-hidden'>
+                  <DiffWorkbench patch={diff} isLoading={isLoading} />
+                </div>
               </>
             )}
           </Modal.Dialog>

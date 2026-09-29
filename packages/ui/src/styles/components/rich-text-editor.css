@@ -59,7 +59,7 @@
   }
 
   @media (hover: hover) {
-    .rich-text-editor:not([data-disabled='true'])
+    .rich-text-editor:not([data-disabled="true"])
       .rich-text-editor__shell:hover {
       border-color: var(--field-border-hover);
     }
@@ -102,10 +102,11 @@
 
   .rich-text-editor__toolbar-button {
     flex-shrink: 0;
+    border-radius: calc(var(--radius) * 1);
   }
 
-  .rich-text-editor__toolbar-button[data-active='true'],
-  .rich-text-editor__toolbar-button[data-selected='true'] {
+  .rich-text-editor__toolbar-button[data-active="true"],
+  .rich-text-editor__toolbar-button[data-selected="true"] {
     background-color: var(--accent-soft);
     color: var(--accent);
   }
@@ -218,8 +219,8 @@
       Menlo,
       Monaco,
       Consolas,
-      'Liberation Mono',
-      'Courier New',
+      "Liberation Mono",
+      "Courier New",
       monospace
     );
     color: var(--foreground);
@@ -237,8 +238,8 @@
       Menlo,
       Monaco,
       Consolas,
-      'Liberation Mono',
-      'Courier New',
+      "Liberation Mono",
+      "Courier New",
       monospace
     );
     font-size: var(--text-sm, 0.875rem);
@@ -358,7 +359,7 @@
   }
 
   .rich-text-editor__suggestion-menu-item:focus-visible,
-  .rich-text-editor__suggestion-menu-item[data-focus-visible='true'] {
+  .rich-text-editor__suggestion-menu-item[data-focus-visible="true"] {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0
       calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow:
@@ -383,7 +384,7 @@
     }
   }
 
-  .rich-text-editor__suggestion-menu-item[data-selected='true'] {
+  .rich-text-editor__suggestion-menu-item[data-selected="true"] {
     background-color: var(--default);
   }
 
@@ -399,7 +400,7 @@
     display: flex;
   }
 
-  .rich-text-editor__suggestion-menu-item[data-selected='true']
+  .rich-text-editor__suggestion-menu-item[data-selected="true"]
     .rich-text-editor__suggestion-menu-icon {
     background-color: var(--overlay);
     color: var(--foreground);
@@ -485,7 +486,7 @@
       var(--tw-numeric-fraction,);
   }
 
-  .rich-text-editor__character-count[data-over-limit='true'] {
+  .rich-text-editor__character-count[data-over-limit="true"] {
     color: var(--danger);
   }
 
@@ -523,20 +524,20 @@
     display: flex;
   }
 
-  .rich-text-editor[data-disabled='true'] {
+  .rich-text-editor[data-disabled="true"] {
     opacity: 0.6;
   }
 
-  .rich-text-editor[data-disabled='true'] .rich-text-editor__shell {
+  .rich-text-editor[data-disabled="true"] .rich-text-editor__shell {
     cursor: not-allowed;
   }
 
-  .rich-text-editor:not([data-disabled='true']) .rich-text-editor__shell {
+  .rich-text-editor:not([data-disabled="true"]) .rich-text-editor__shell {
     cursor: text;
   }
 
-  .rich-text-editor:not([data-disabled='true']) .rich-text-editor__toolbar,
-  .rich-text-editor:not([data-disabled='true']) .rich-text-editor__footer {
+  .rich-text-editor:not([data-disabled="true"]) .rich-text-editor__toolbar,
+  .rich-text-editor:not([data-disabled="true"]) .rich-text-editor__footer {
     cursor: default;
   }
 
@@ -548,132 +549,132 @@
 }
 
 @property --tw-border-style {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: solid;
 }
 
 @property --tw-leading {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-font-weight {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-tracking {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-inset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-shadow-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-shadow-alpha {
-  syntax: '<percentage>';
+  syntax: "<percentage>";
   inherits: false;
   initial-value: 100%;
 }
 
 @property --tw-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-inset-ring-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-inset-ring-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-ring-inset {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-ring-offset-width {
-  syntax: '<length>';
+  syntax: "<length>";
   inherits: false;
   initial-value: 0;
 }
 
 @property --tw-ring-offset-color {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: #fff;
 }
 
 @property --tw-ring-offset-shadow {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
 }
 
 @property --tw-ordinal {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-slashed-zero {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-numeric-figure {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-numeric-spacing {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-numeric-fraction {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
 }
 
 @property --tw-outline-style {
-  syntax: '*';
+  syntax: "*";
   inherits: false;
   initial-value: solid;
 }

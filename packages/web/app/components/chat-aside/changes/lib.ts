@@ -2,12 +2,139 @@
 //
 // Pure helpers for deriving change entries and rendering new-file patches.
 
+import { GIT_DIFF_FILE_BREAK_REGEX } from '@pierre/diffs';
+
 import type {
   ChangeEntry,
   ChipColor,
   DiffStatEntry,
   GitStatusShape,
 } from './types';
+
+const GIT_DIFF_HEADER =
+  /^diff --git (?:"a\/(.+?)"|a\/(.+?)) (?:"b\/(.+?)"|b\/(.+?))$/;
+
+export type PatchFileStatus = 'added' | 'modified' | 'deleted' | 'renamed';
+
+export interface PatchFile {
+  path: string;
+  patch: string;
+  status: PatchFileStatus;
+  additions: number;
+  deletions: number;
+  /** Total line count, used to size lazy-loading placeholders. */
+  lines: number;
+}
+
+function readStatus(chunk: string): PatchFileStatus {
+  if (/^new file mode /m.test(chunk) || /^--- \/dev\/null$/m.test(chunk)) {
+    return 'added';
+  }
+  if (
+    /^deleted file mode /m.test(chunk) ||
+    /^\+\+\+ \/dev\/null$/m.test(chunk)
+  ) {
+    return 'deleted';
+  }
+  if (/^rename (from|to) /m.test(chunk)) return 'renamed';
+  return 'modified';
+}
+
+function readStats(chunk: string): {
+  additions: number;
+  deletions: number;
+  lines: number;
+} {
+  const lines = chunk.split('\n');
+  let additions = 0;
+  let deletions = 0;
+  for (const line of lines) {
+    if (line.startsWith('+') && !line.startsWith('+++')) additions += 1;
+    else if (line.startsWith('-') && !line.startsWith('---')) deletions += 1;
+  }
+  return { additions, deletions, lines: lines.length };
+}
+
+/**
+ * Splits a multi-file git patch (e.g. `git show` or a range diff) into one
+ * entry per file so each can be rendered with the same block used by the
+ * changes panel. Uses Pierre's own file-boundary matcher to stay consistent
+ * with how the diffs are parsed downstream.
+ */
+export function splitPatchByFile(patch: string): PatchFile[] {
+  if (!patch.trim()) return [];
+
+  return patch
+    .split(GIT_DIFF_FILE_BREAK_REGEX)
+    .map((chunk) => chunk.replace(/^\n+/, ''))
+    .filter((chunk) => chunk.startsWith('diff --git '))
+    .map((chunk) => {
+      const header = chunk.slice(0, chunk.indexOf('\n'));
+      const match = GIT_DIFF_HEADER.exec(header);
+      const filePath =
+        match?.[3] ?? match?.[4] ?? match?.[1] ?? match?.[2] ?? '';
+      return {
+        path: filePath,
+        patch: chunk,
+        status: readStatus(chunk),
+        ...readStats(chunk),
+      };
+    })
+    .filter((file) => file.path);
+}
+
+export interface PatchTreeNode {
+  /** Display name of the file or directory. */
+  name: string;
+  /** Full path for files, directory path for directories. */
+  path: string;
+  type: 'dir' | 'file';
+  children: PatchTreeNode[];
+  file?: PatchFile;
+}
+
+/**
+ * Builds a directory tree from a flat patch file list so the sidebar can show
+ * nested folders, mirroring the shape of the repository.
+ */
+export function buildFileTree(files: PatchFile[]): PatchTreeNode[] {
+  const root: PatchTreeNode = {
+    name: '',
+    path: '',
+    type: 'dir',
+    children: [],
+  };
+
+  for (const file of files) {
+    const segments = file.path.split('/').filter(Boolean);
+    let cursor = root;
+    segments.forEach((segment, index) => {
+      const isFile = index === segments.length - 1;
+      const path = segments.slice(0, index + 1).join('/');
+      let node = cursor.children.find(
+        (child) =>
+          child.name === segment && child.type === (isFile ? 'file' : 'dir'),
+      );
+      if (!node) {
+        node = {
+          name: segment,
+          path,
+          type: isFile ? 'file' : 'dir',
+          children: [],
+          ...(isFile ? { file } : {}),
+        };
+        cursor.children.push(node);
+      }
+      cursor = node;
+    });
+  }
+
+  // Deliberately keep insertion order: git emits patches in path order, so the
+  // flattened tree stays in the same order as the diff sections. Sorting here
+  // (directories first) desyncs the two and makes the tree jump around when the
+  // active file changes.
+  return root.children;
+}
 
 export function changeBadge(
   entry: ChangeEntry,

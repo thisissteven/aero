@@ -108,7 +108,8 @@ export const fileDiffQuerySchema = z.object({
 
 export const logQuerySchema = z.object({
   directory: gitDirectorySchema,
-  limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+  skip: z.coerce.number().int().min(0).optional().default(0),
 });
 
 export const commitShowQuerySchema = z.object({
@@ -544,27 +545,41 @@ export async function getCommitLog(
 }
 
 /**
- * The most recent commits reachable from HEAD, newest first. Used by the git
- * panel's History tab. Returns an empty list for a repository with no commits
- * so the UI can render an empty state instead of erroring.
+ * A page of commits reachable from HEAD, newest first. Used by the git panel's
+ * History tab for infinite scroll: `skip` moves the window deeper into the
+ * history. Returns an empty list for a repository with no commits so the UI can
+ * render an empty state instead of erroring.
  */
 export async function getCommitHistory(
   directory: string,
-  options: { limit?: number } = {},
+  options: { limit?: number; skip?: number } = {},
 ): Promise<CommitLogEntry[]> {
   const client = getGitClient(directory);
   const limit = options.limit ?? 50;
-  const log = await client.log({ maxCount: limit }).catch(() => null);
-  if (!log) return [];
+  const skip = options.skip ?? 0;
+  const raw = await client
+    .raw([
+      'log',
+      `--max-count=${limit}`,
+      `--skip=${skip}`,
+      '--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e',
+    ])
+    .catch(() => '');
 
-  return log.all
-    .map((entry) => ({
-      sha: entry.hash,
-      author: entry.author_name,
-      date: entry.date,
-      subject: entry.message,
-      body: (entry.body ?? '').trim(),
-    }))
+  return raw
+    .split('\x1e')
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [sha, author, date, subject, body] = record.split('\x1f');
+      return {
+        sha: sha ?? '',
+        author: author ?? '',
+        date: date ?? '',
+        subject: subject ?? '',
+        body: (body ?? '').trim(),
+      };
+    })
     .filter((entry) => entry.sha);
 }
 

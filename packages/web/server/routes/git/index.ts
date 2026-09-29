@@ -225,9 +225,9 @@ const git = new Hono()
 
   // ----- History -----
   .get('/log', zValidator('query', logQuerySchema), async (c) => {
-    const { directory: inputDirectory, limit } = c.req.valid('query');
+    const { directory: inputDirectory, limit, skip } = c.req.valid('query');
     const directory = await getGitDirectory(inputDirectory);
-    const commits = await getCommitHistory(directory, { limit });
+    const commits = await getCommitHistory(directory, { limit, skip });
     return c.json({ commits });
   })
   .get('/show', zValidator('query', commitShowQuerySchema), async (c) => {

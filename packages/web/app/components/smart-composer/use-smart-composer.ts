@@ -19,9 +19,17 @@ import {
 
 interface UseSmartComposerOptions {
   editorRef: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Store key. Defaults to the active chat session, but other surfaces (e.g.
+   * a task composer) can namespace their own draft state.
+   */
+  composerKey?: string;
 }
 
-export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
+export function useSmartComposer({
+  editorRef,
+  composerKey,
+}: UseSmartComposerOptions) {
   const setSegments = useComposerStore((state) => state.setSegments);
 
   const setMode = useComposerStore((state) => state.setMode);
@@ -36,7 +44,9 @@ export function useSmartComposer({ editorRef }: UseSmartComposerOptions) {
 
   const redo = useComposerStore((state) => state.redo);
 
-  const sessionId = useSessionId();
+  const contextSessionId = useSessionId();
+
+  const sessionId = composerKey ?? contextSessionId;
 
   const captureSnapshot = useCallback(
     (modeOverride?: ComposerMode) => {

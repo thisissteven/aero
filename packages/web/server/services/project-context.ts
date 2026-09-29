@@ -26,23 +26,55 @@ import { join } from 'node:path';
 import { PROJECT_CONTEXT_PATH } from '@/server/helper';
 
 import type {
+  AeroComposerSegment,
+  AeroComposerTokenType,
   AeroProjectContext,
+  AeroProjectNote,
   AeroProjectPlan,
   AeroProjectPlanContent,
+  AeroProjectQueueMessage,
   AeroProjectTodo,
+  AeroProjectTodoPriority,
+  AeroProjectTodoStatus,
 } from './harness/types';
 
 const WORKSPACE_ID_RE = /^[a-zA-Z0-9._:-]+$/;
 
-const MAX_NOTES_LENGTH = 200_000;
+const TODO_STATUSES: readonly AeroProjectTodoStatus[] = [
+  'backlog',
+  'active',
+  'done',
+];
+const TODO_PRIORITIES: readonly AeroProjectTodoPriority[] = [
+  'low',
+  'medium',
+  'high',
+];
+const DEFAULT_TODO_PRIORITY: AeroProjectTodoPriority = 'medium';
+
+const COMPOSER_TOKEN_TYPES: readonly AeroComposerTokenType[] = [
+  'agent',
+  'command',
+  'file',
+  'skill',
+  'snippet',
+];
+const COMPOSER_TOKEN_TRIGGERS = ['@', '/', '#'] as const;
+
+const MAX_NOTES = 100;
+const MAX_NOTE_TITLE = 200;
+const MAX_NOTE_BODY = 100_000;
 const MAX_TODOS = 500;
+const MAX_QUEUE = 200;
 const MAX_PLANS = 200;
 const MAX_TODO_TEXT_LENGTH = 2_000;
+const MAX_COMPOSER_SEGMENTS = 200;
 const MAX_PLAN_BYTES = 1_000_000;
 
 const EMPTY_CONTEXT: AeroProjectContext = {
-  notes: '',
+  notes: [],
   todos: [],
+  queue: [],
   plans: [],
 };
 
@@ -77,19 +109,145 @@ function clampString(value: unknown, max: number): string {
 // Sanitization — a malformed entry is dropped, never fatal to the whole read.
 // ---------------------------------------------------------------------------
 
+function emptySegments(text: string): AeroComposerSegment[] {
+  return text ? [{ type: 'text', text }] : [];
+}
+
+function textFromSegments(segments: AeroComposerSegment[]): string {
+  return segments
+    .map((segment) =>
+      segment.type === 'text'
+        ? segment.text
+        : segment.token.label || segment.token.value,
+    )
+    .join('')
+    .trim();
+}
+
+function sanitizeComposerSegment(value: unknown): AeroComposerSegment | null {
+  if (!isObjectRecord(value)) return null;
+
+  if (value.type === 'text') {
+    if (typeof value.text !== 'string') return null;
+    return {
+      type: 'text',
+      text: clampString(value.text, MAX_TODO_TEXT_LENGTH),
+    };
+  }
+
+  if (value.type === 'token' && isObjectRecord(value.token)) {
+    const token = value.token;
+    if (typeof token.id !== 'string' || !token.id) return null;
+
+    const type = COMPOSER_TOKEN_TYPES.includes(
+      token.type as AeroComposerTokenType,
+    )
+      ? (token.type as AeroComposerTokenType)
+      : 'snippet';
+    const trigger = (COMPOSER_TOKEN_TRIGGERS as readonly string[]).includes(
+      token.trigger as string,
+    )
+      ? (token.trigger as (typeof COMPOSER_TOKEN_TRIGGERS)[number])
+      : '@';
+
+    return {
+      type: 'token',
+      token: {
+        id: token.id,
+        type,
+        label: clampString(token.label, 500),
+        value: clampString(token.value, 1_000),
+        trigger,
+      },
+    };
+  }
+
+  return null;
+}
+
+function sanitizeComposerSegments(value: unknown): AeroComposerSegment[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(sanitizeComposerSegment)
+    .filter((segment): segment is AeroComposerSegment => segment !== null)
+    .slice(0, MAX_COMPOSER_SEGMENTS);
+}
+
 function sanitizeTodo(value: unknown): AeroProjectTodo | null {
   if (!isObjectRecord(value)) return null;
   if (typeof value.id !== 'string' || !value.id) return null;
   if (typeof value.text !== 'string') return null;
 
+  // Status and priority were added after the first release. A missing status
+  // falls back to the legacy `completed` flag so existing scratch space reads
+  // back as a done/backlog task instead of being dropped.
+  const status = TODO_STATUSES.includes(value.status as AeroProjectTodoStatus)
+    ? (value.status as AeroProjectTodoStatus)
+    : value.completed === true
+      ? 'done'
+      : 'backlog';
+  const priority = TODO_PRIORITIES.includes(
+    value.priority as AeroProjectTodoPriority,
+  )
+    ? (value.priority as AeroProjectTodoPriority)
+    : DEFAULT_TODO_PRIORITY;
+
   return {
     id: value.id,
     text: clampString(value.text, MAX_TODO_TEXT_LENGTH),
-    completed: value.completed === true,
+    status,
+    priority,
     createdAt:
       typeof value.createdAt === 'number' && Number.isFinite(value.createdAt)
         ? value.createdAt
         : Date.now(),
+  };
+}
+
+function sanitizeQueueMessage(value: unknown): AeroProjectQueueMessage | null {
+  if (!isObjectRecord(value)) return null;
+  if (typeof value.id !== 'string' || !value.id) return null;
+
+  let segments = sanitizeComposerSegments(value.segments);
+  if (segments.length === 0 && typeof value.text === 'string' && value.text) {
+    segments = emptySegments(clampString(value.text, MAX_TODO_TEXT_LENGTH));
+  }
+  if (segments.length === 0) return null;
+
+  const text =
+    typeof value.text === 'string' && value.text
+      ? clampString(value.text, MAX_TODO_TEXT_LENGTH)
+      : textFromSegments(segments);
+
+  return {
+    id: value.id,
+    text,
+    segments,
+    createdAt:
+      typeof value.createdAt === 'number' && Number.isFinite(value.createdAt)
+        ? value.createdAt
+        : Date.now(),
+  };
+}
+
+function sanitizeNote(value: unknown): AeroProjectNote | null {
+  if (!isObjectRecord(value)) return null;
+  if (typeof value.id !== 'string' || !value.id) return null;
+
+  const createdAt =
+    typeof value.createdAt === 'number' && Number.isFinite(value.createdAt)
+      ? value.createdAt
+      : Date.now();
+
+  return {
+    id: value.id,
+    title: clampString(value.title, MAX_NOTE_TITLE),
+    body: clampString(value.body, MAX_NOTE_BODY),
+    createdAt,
+    updatedAt:
+      typeof value.updatedAt === 'number' && Number.isFinite(value.updatedAt)
+        ? value.updatedAt
+        : createdAt,
   };
 }
 
@@ -122,11 +280,41 @@ function sanitizePlan(value: unknown): AeroProjectPlan | null {
 function sanitizeContext(value: unknown): AeroProjectContext {
   if (!isObjectRecord(value)) return { ...EMPTY_CONTEXT };
 
+  // Notes used to be a single string. Migrate it into one untitled note so
+  // existing scratch space is not lost when the multi-note model lands.
+  const notes: AeroProjectNote[] = Array.isArray(value.notes)
+    ? value.notes
+        .map(sanitizeNote)
+        .filter((note): note is AeroProjectNote => note !== null)
+        .slice(0, MAX_NOTES)
+    : typeof value.notes === 'string' && value.notes.trim()
+      ? [
+          {
+            // Deterministic id so repeated reads of a not-yet-migrated file
+            // resolve to the same note (a random id would 404 on first save).
+            id: 'legacy-notes',
+            title: 'Notes',
+            body: clampString(value.notes, MAX_NOTE_BODY),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+        ]
+      : [];
+
   const todos = Array.isArray(value.todos)
     ? value.todos
         .map(sanitizeTodo)
         .filter((todo): todo is AeroProjectTodo => todo !== null)
         .slice(0, MAX_TODOS)
+    : [];
+
+  const queue = Array.isArray(value.queue)
+    ? value.queue
+        .map(sanitizeQueueMessage)
+        .filter(
+          (message): message is AeroProjectQueueMessage => message !== null,
+        )
+        .slice(0, MAX_QUEUE)
     : [];
 
   const plans = Array.isArray(value.plans)
@@ -136,11 +324,7 @@ function sanitizeContext(value: unknown): AeroProjectContext {
         .slice(0, MAX_PLANS)
     : [];
 
-  return {
-    notes: clampString(value.notes, MAX_NOTES_LENGTH),
-    todos,
-    plans,
-  };
+  return { notes, todos, queue, plans };
 }
 
 // ---------------------------------------------------------------------------
@@ -204,17 +388,77 @@ function withLock<T>(workspaceId: string, task: () => Promise<T>): Promise<T> {
 // Mutators
 // ---------------------------------------------------------------------------
 
-export async function saveNotes(
+export async function createNote(
   workspaceId: string,
-  notes: unknown,
-): Promise<AeroProjectContext> {
+  input: { title?: unknown; body?: unknown },
+): Promise<{ note: AeroProjectNote; context: AeroProjectContext }> {
   assertValidWorkspaceId(workspaceId);
 
   return withLock(workspaceId, async () => {
     const context = await readContext(workspaceId);
-    context.notes = clampString(notes, MAX_NOTES_LENGTH);
+
+    if (context.notes.length >= MAX_NOTES) {
+      throw new Error(`A workspace can hold at most ${MAX_NOTES} notes`);
+    }
+
+    const now = Date.now();
+    const note: AeroProjectNote = {
+      id: randomUUID(),
+      title: clampString(input.title, MAX_NOTE_TITLE),
+      body: clampString(input.body, MAX_NOTE_BODY),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    context.notes = [note, ...context.notes];
+    await writeContext(workspaceId, context);
+
+    return { note, context };
+  });
+}
+
+export async function saveNote(
+  workspaceId: string,
+  noteId: string,
+  input: { title?: unknown; body?: unknown },
+): Promise<AeroProjectContext | null> {
+  assertValidWorkspaceId(workspaceId);
+
+  return withLock(workspaceId, async () => {
+    const context = await readContext(workspaceId);
+    const note = context.notes.find((entry) => entry.id === noteId);
+    if (!note) return null;
+
+    if (input.title !== undefined) {
+      note.title = clampString(input.title, MAX_NOTE_TITLE);
+    }
+    if (input.body !== undefined) {
+      note.body = clampString(input.body, MAX_NOTE_BODY);
+    }
+    note.updatedAt = Date.now();
+
     await writeContext(workspaceId, context);
     return context;
+  });
+}
+
+export async function deleteNote(
+  workspaceId: string,
+  noteId: string,
+): Promise<{ deleted: boolean; context: AeroProjectContext }> {
+  assertValidWorkspaceId(workspaceId);
+
+  return withLock(workspaceId, async () => {
+    const context = await readContext(workspaceId);
+    const next = context.notes.filter((entry) => entry.id !== noteId);
+
+    if (next.length === context.notes.length) {
+      return { deleted: false, context };
+    }
+
+    context.notes = next;
+    await writeContext(workspaceId, context);
+    return { deleted: true, context };
   });
 }
 
@@ -240,6 +484,33 @@ export async function saveTodos(
   return withLock(workspaceId, async () => {
     const context = await readContext(workspaceId);
     context.todos = sanitized;
+    await writeContext(workspaceId, context);
+    return context;
+  });
+}
+
+export async function saveQueue(
+  workspaceId: string,
+  queue: unknown,
+): Promise<AeroProjectContext> {
+  assertValidWorkspaceId(workspaceId);
+
+  if (!Array.isArray(queue)) {
+    throw new Error('queue must be an array');
+  }
+
+  const sanitized = queue
+    .map(sanitizeQueueMessage)
+    .filter((message): message is AeroProjectQueueMessage => message !== null)
+    .slice(0, MAX_QUEUE);
+
+  if (sanitized.length !== queue.length) {
+    throw new Error('queue must be an array of queued messages');
+  }
+
+  return withLock(workspaceId, async () => {
+    const context = await readContext(workspaceId);
+    context.queue = sanitized;
     await writeContext(workspaceId, context);
     return context;
   });

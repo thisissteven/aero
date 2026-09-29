@@ -7,19 +7,21 @@ import { useState } from 'react';
 
 import { NotesTab } from '@/app/components/chat-aside/notes/notes-tab';
 import { PlansTab } from '@/app/components/chat-aside/notes/plans-tab';
-import { TodosTab } from '@/app/components/chat-aside/notes/todos-tab';
+import { QueueTab } from '@/app/components/chat-aside/notes/queue-tab';
+import { TasksTab } from '@/app/components/chat-aside/notes/tasks-tab';
 import { SectionTabs } from '@/app/components/chat-aside/pr/shared';
 import { useProjectContext } from '@/app/hooks/api/project-context';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useWorkspace } from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
 
-type NotesSection = 'notes' | 'todos' | 'plans';
+type NotesSection = 'notes' | 'tasks' | 'queue' | 'plans';
 
 /**
- * Per-workspace scratch space: free-form notes, a todo list, and saved plans.
- * The workspace is resolved from the active session's directory so every
- * worktree session shares the same context as its parent project.
+ * Per-workspace scratch space: rich-text notes, a task list with a kanban
+ * board, a message queue, and saved plans. The workspace is resolved from the
+ * active session's directory so every worktree session shares the same context
+ * as its parent project.
  */
 export function ProjectNotesPanel() {
   const { t } = useI18n();
@@ -58,11 +60,20 @@ export function ProjectNotesPanel() {
         active={section}
         onChange={setSection}
         tabs={[
-          { id: 'notes', label: t.notesPanel.tabNotes },
           {
-            id: 'todos',
-            label: t.notesPanel.tabTodos,
+            id: 'notes',
+            label: t.notesPanel.tabNotes,
+            count: context.notes.length,
+          },
+          {
+            id: 'tasks',
+            label: t.notesPanel.tabTasks,
             count: context.todos.length,
+          },
+          {
+            id: 'queue',
+            label: t.notesPanel.tabQueue,
+            count: context.queue.length,
           },
           {
             id: 'plans',
@@ -79,12 +90,19 @@ export function ProjectNotesPanel() {
             workspaceId={workspaceId}
             notes={context.notes}
           />
-        ) : section === 'todos' ? (
-          <TodosTab
+        ) : section === 'tasks' ? (
+          <TasksTab
             key={workspaceId}
             workspaceId={workspaceId}
             workspaceDirectory={workspace.directory}
             todos={context.todos}
+          />
+        ) : section === 'queue' ? (
+          <QueueTab
+            key={workspaceId}
+            workspaceId={workspaceId}
+            workspaceDirectory={workspace.directory}
+            queue={context.queue}
           />
         ) : (
           <PlansTab

@@ -17,7 +17,7 @@ export function ChangeGroup({
   title,
   entries,
   selected,
-  expandedKey,
+  expandedKeys,
   onToggle,
   onToggleExpanded,
   onOpenFile,
@@ -27,7 +27,7 @@ export function ChangeGroup({
   title: string;
   entries: ChangeEntry[];
   selected: Set<string>;
-  expandedKey: string | null;
+  expandedKeys: Set<string>;
   onToggle: (path: string) => void;
   onToggleExpanded: (key: string) => void;
   onOpenFile: (path: string) => void;
@@ -47,7 +47,7 @@ export function ChangeGroup({
         {entries.map((entry) => {
           const isSelected = selected.has(entry.path);
           const entryKey = `${variant}:${entry.path}`;
-          const isExpanded = expandedKey === entryKey;
+          const isExpanded = expandedKeys.has(entryKey);
           const { letter, color: badgeColor } = changeBadge(entry, variant);
 
           return (

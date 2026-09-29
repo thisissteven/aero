@@ -24,6 +24,10 @@ export interface CaretRect {
 
 interface UseComposerPaletteOptions {
   editorRef: React.RefObject<HTMLDivElement | null>;
+  /** Store key. Defaults to the active chat session. */
+  composerKey?: string;
+  /** Resolve mentions against this directory instead of the session workspace. */
+  directory?: string;
 }
 
 function getEditableTextBeforeCaret(editor: HTMLElement) {
@@ -238,8 +242,14 @@ function getCaretRect(editor: HTMLElement): CaretRect | null {
   };
 }
 
-export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
-  const sessionId = useSessionId();
+export function useComposerPalette({
+  editorRef,
+  composerKey,
+  directory: directoryOverride,
+}: UseComposerPaletteOptions) {
+  const contextSessionId = useSessionId();
+
+  const sessionId = composerKey ?? contextSessionId;
 
   const { t } = useI18n();
 
@@ -265,7 +275,10 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   // from the keyboard rather than from a hover.
   const ignoreHoverRef = useRef(false);
 
-  const { data: session } = useSession(undefined, sessionId);
+  const { data: session } = useSession(
+    undefined,
+    directoryOverride ? '' : contextSessionId,
+  );
 
   const isFileTrigger = activeTrigger?.char === '@';
   const fileTriggerQueryLength = isFileTrigger ? activeTrigger.query.length : 0;
@@ -276,7 +289,8 @@ export function useComposerPalette({ editorRef }: UseComposerPaletteOptions) {
   );
 
   const directory =
-    !sessionId && isWorkMode ? selectedDirectory : session?.workspace;
+    directoryOverride ??
+    (!contextSessionId && isWorkMode ? selectedDirectory : session?.workspace);
 
   const debouncedQuery = useDebounce(activeTrigger?.query, 200);
 

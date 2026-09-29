@@ -229,15 +229,61 @@ export interface AeroTodo {
   priority: string;
 }
 
+/** Board column a project task lives in. */
+export type AeroProjectTodoStatus = 'backlog' | 'active' | 'done';
+
+/** How urgent a project task is. */
+export type AeroProjectTodoPriority = 'low' | 'medium' | 'high';
+
+/** Token kinds the smart composer can insert. */
+export type AeroComposerTokenType =
+  | 'agent'
+  | 'command'
+  | 'file'
+  | 'skill'
+  | 'snippet';
+
 /**
- * Server-owned, per-workspace scratch space: free-form notes, a todo list, and
- * saved plan documents. Stored under `~/.aero/project-context/<workspaceId>/`.
+ * The smart composer's segment list. Stored verbatim so mentions, slash
+ * commands, skills and snippets survive a round-trip instead of being
+ * flattened to text. `text` on the owning record is a derived projection.
  */
+export type AeroComposerSegment =
+  | { type: 'text'; text: string }
+  | {
+      type: 'token';
+      token: {
+        id: string;
+        type: AeroComposerTokenType;
+        label: string;
+        value: string;
+        trigger: '@' | '/' | '#';
+      };
+    };
+
 export interface AeroProjectTodo {
   id: string;
   text: string;
-  completed: boolean;
+  status: AeroProjectTodoStatus;
+  priority: AeroProjectTodoPriority;
   createdAt: number;
+}
+
+/** A message queued with the smart composer, ready to dispatch later. */
+export interface AeroProjectQueueMessage {
+  id: string;
+  text: string;
+  segments: AeroComposerSegment[];
+  createdAt: number;
+}
+
+/** A rich-text note. `body` is the editor document serialized as JSON. */
+export interface AeroProjectNote {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface AeroProjectPlan {
@@ -248,9 +294,14 @@ export interface AeroProjectPlan {
   updatedAt: number;
 }
 
+/**
+ * Server-owned, per-workspace scratch space: rich-text notes, a task list, and
+ * saved plan documents. Stored under `~/.aero/project-context/<workspaceId>/`.
+ */
 export interface AeroProjectContext {
-  notes: string;
+  notes: AeroProjectNote[];
   todos: AeroProjectTodo[];
+  queue: AeroProjectQueueMessage[];
   plans: AeroProjectPlan[];
 }
 

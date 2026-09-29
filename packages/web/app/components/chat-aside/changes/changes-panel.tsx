@@ -9,7 +9,13 @@ import {
   Tooltip,
   toast,
 } from '@aero/ui';
-import { ArrowRotateLeft, CircleInfo, CodeMerge } from '@gravity-ui/icons';
+import {
+  ArrowRotateLeft,
+  ChevronsCollapseVertical,
+  ChevronsExpandVertical,
+  CircleInfo,
+  CodeMerge,
+} from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -53,7 +59,7 @@ export function ChangesPanel() {
 
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!entries.length) return;
@@ -73,6 +79,11 @@ export function ChangesPanel() {
   const workingEntries = entries.filter(
     (entry) => entry.untracked || entry.working !== ' ',
   );
+
+  const entryKeys = [
+    ...stagedEntries.map((entry) => `staged:${entry.path}`),
+    ...workingEntries.map((entry) => `working:${entry.path}`),
+  ];
 
   const totalAdditions = entries.reduce((a, e) => a + e.additions, 0);
   const totalDeletions = entries.reduce((a, e) => a + e.deletions, 0);
@@ -120,7 +131,20 @@ export function ChangesPanel() {
   };
 
   const toggleExpanded = (key: string) => {
-    setExpandedKey((prev) => (prev === key ? null : key));
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleExpandAll = () => {
+    setExpandedKeys((prev) => {
+      const allOpen =
+        entryKeys.length > 0 && entryKeys.every((key) => prev.has(key));
+      return allOpen ? new Set() : new Set(entryKeys);
+    });
   };
 
   if (!directory) {
@@ -156,6 +180,8 @@ export function ChangesPanel() {
   }
 
   const allSelected = entries.length > 0 && selected.size === entries.length;
+  const allExpanded =
+    entryKeys.length > 0 && entryKeys.every((key) => expandedKeys.has(key));
 
   return (
     <div className='flex h-full min-h-0 flex-col overflow-hidden'>
@@ -204,6 +230,32 @@ export function ChangesPanel() {
           <Tooltip>
             <Tooltip.Trigger>
               <IconButton
+                aria-label={
+                  allExpanded
+                    ? t.changesPanel.collapseAll
+                    : t.changesPanel.expandAll
+                }
+                isDisabled={!entries.length}
+                onPress={toggleExpandAll}
+              >
+                <Icon
+                  data={
+                    allExpanded
+                      ? ChevronsCollapseVertical
+                      : ChevronsExpandVertical
+                  }
+                />
+              </IconButton>
+            </Tooltip.Trigger>
+            <Tooltip.Content>
+              {allExpanded
+                ? t.changesPanel.collapseAll
+                : t.changesPanel.expandAll}
+            </Tooltip.Content>
+          </Tooltip>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <IconButton
                 aria-label={t.changesPanel.refresh}
                 onPress={() => refetch()}
               >
@@ -231,7 +283,7 @@ export function ChangesPanel() {
               title={t.changesPanel.stagedChanges}
               entries={stagedEntries}
               selected={selected}
-              expandedKey={expandedKey}
+              expandedKeys={expandedKeys}
               onToggle={toggle}
               onToggleExpanded={toggleExpanded}
               onOpenFile={openFileInEditor}
@@ -242,7 +294,7 @@ export function ChangesPanel() {
               title={t.changesPanel.workingChanges}
               entries={workingEntries}
               selected={selected}
-              expandedKey={expandedKey}
+              expandedKeys={expandedKeys}
               onToggle={toggle}
               onToggleExpanded={toggleExpanded}
               onOpenFile={openFileInEditor}

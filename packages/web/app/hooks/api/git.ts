@@ -2,6 +2,7 @@
 import {
   type UseMutationOptions,
   type UseQueryOptions,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -57,8 +58,7 @@ export const gitKeys = {
   remotes: (directory?: string) =>
     [...gitKeys.all(directory), 'remotes'] as const,
 
-  log: (directory?: string, limit = 50) =>
-    [...gitKeys.all(directory), 'log', limit] as const,
+  log: (directory?: string) => [...gitKeys.all(directory), 'log'] as const,
   commitDiff: (directory?: string, sha?: string) =>
     [...gitKeys.all(directory), 'commit-diff', sha ?? ''] as const,
 } as const;
@@ -388,25 +388,31 @@ export function useGitRemotes(
 // Query hooks — History
 // ---------------------------------------------------------------------------
 
-export function useGitLog(
-  directory?: string,
-  limit = 50,
-  options?: Omit<
-    UseQueryOptions<GitLogResponse | null, Error>,
-    'queryKey' | 'queryFn'
-  >,
-) {
-  return useQuery<GitLogResponse | null, Error>({
-    queryKey: gitKeys.log(directory, limit),
+export const GIT_LOG_PAGE_SIZE = 50;
+
+export function useGitLog(directory?: string) {
+  return useInfiniteQuery({
+    queryKey: gitKeys.log(directory),
     enabled: Boolean(directory),
-    queryFn: async () => {
-      if (!directory) return null;
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      if (!directory) throw new Error('No directory');
       return unwrap<GitLogResponse>(
-        $git.log.$get({ query: { directory, limit: String(limit) } }),
+        $git.log.$get({
+          query: {
+            directory,
+            limit: String(GIT_LOG_PAGE_SIZE),
+            skip: String(pageParam),
+          },
+        }),
         'log',
       );
     },
-    ...options,
+    getNextPageParam: (lastPage, allPages) => {
+      const count = lastPage.commits?.length ?? 0;
+      if (count < GIT_LOG_PAGE_SIZE) return undefined;
+      return allPages.length * GIT_LOG_PAGE_SIZE;
+    },
   });
 }
 

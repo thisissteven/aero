@@ -31,6 +31,7 @@ export function useSendTodoToAgent() {
       target: SendTodoTarget;
       sessionId?: string;
       workspaceDirectory: string;
+      failureMessage?: string;
     }) => {
       const { text, target, sessionId, workspaceDirectory } = options;
       const { selectedModel, selectedAgent, selectedVariant } =
@@ -85,7 +86,7 @@ export function useSendTodoToAgent() {
         useChatStore.getState().addRunningSession(session.id);
         navigate({ to: `/sessions/${session.id}` });
       } catch {
-        toast.danger(t.notesPanel.todos.sendFailed);
+        toast.danger(options.failureMessage ?? t.notesPanel.tasks.sendFailed);
       }
     },
     [t, navigate, sendMessage, createSession, createWorktree],

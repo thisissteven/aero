@@ -97,6 +97,8 @@ interface CodeBlockContextValue {
   setViewMode: (mode: ViewMode) => void;
   themeType: ThemeType;
   setThemeType: (mode: ThemeType) => void;
+  /** Let the block grow to its natural height and defer scrolling to an ancestor. */
+  fitContent: boolean;
 }
 
 const CodeBlockContext = createContext<CodeBlockContextValue>({
@@ -112,6 +114,7 @@ const CodeBlockContext = createContext<CodeBlockContextValue>({
   setThemeType: () => {
     //
   },
+  fitContent: false,
 });
 
 const useCodeBlock = (): CodeBlockContextValue => useContext(CodeBlockContext);
@@ -123,6 +126,10 @@ interface CodeBlockRootProps extends ComponentPropsWithRef<'div'> {
   defaultWrap?: boolean;
   defaultViewMode?: ViewMode;
   defaultThemeType?: ThemeType;
+  fitContent?: boolean;
+  /** Controlled view mode. When provided the internal state is ignored. */
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
 function CodeBlockRoot({
@@ -131,22 +138,37 @@ function CodeBlockRoot({
   defaultWrap = true,
   defaultViewMode = 'unified',
   defaultThemeType = 'light',
+  fitContent = false,
+  viewMode: viewModeProp,
+  onViewModeChange,
   ...props
 }: CodeBlockRootProps): ReactElement {
   const [wrap, setWrap] = useState(defaultWrap);
-  const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
-  const [themeType, setThemeType] = useState<ThemeType>(defaultThemeType);
+  const [internalViewMode, setInternalViewMode] = useState(defaultViewMode);
+  const [themeType, setThemeType] = useState(defaultThemeType);
+
+  const viewMode = viewModeProp ?? internalViewMode;
+  const setViewMode = onViewModeChange ?? setInternalViewMode;
 
   const value = useMemo<CodeBlockContextValue>(
-    () => ({ wrap, setWrap, viewMode, setViewMode, themeType, setThemeType }),
-    [wrap, viewMode, themeType],
+    () => ({
+      wrap,
+      setWrap,
+      viewMode,
+      setViewMode,
+      themeType,
+      setThemeType,
+      fitContent,
+    }),
+    [wrap, viewMode, setViewMode, themeType, fitContent],
   );
 
   return (
     <CodeBlockContext.Provider value={value}>
       <div
         className={cn(
-          'group/code-block w-full min-w-0 overflow-hidden rounded-lg',
+          'group/code-block w-full min-w-0 rounded-lg',
+          fitContent ? 'overflow-visible' : 'overflow-hidden',
           'border border-separator',
           'text-[13px] text-foreground',
           className,
@@ -249,6 +271,7 @@ const CodeBlockCode = memo(function CodeBlockCode({
     wrap,
     viewMode: contextViewMode,
     themeType: contextThemeType,
+    fitContent,
   } = useCodeBlock();
 
   const viewMode = viewModeProp ?? contextViewMode;
@@ -302,15 +325,19 @@ const CodeBlockCode = memo(function CodeBlockCode({
   return (
     <div
       className={cn(
-        'min-w-0 scrollbar-thin',
-        'overflow-y-auto',
-        wrap ? 'overflow-x-hidden' : 'overflow-x-auto',
+        'min-w-0',
+        fitContent
+          ? 'overflow-visible'
+          : cn(
+              'scrollbar-thin overflow-y-auto',
+              wrap ? 'overflow-x-hidden' : 'overflow-x-auto',
+            ),
         '[&_pre]:!bg-transparent',
       )}
       data-line-numbers={showLineNumbers || undefined}
       data-slot='code-block-code'
       data-variant={variant}
-      style={{ maxHeight: '40vh', ...style }}
+      style={fitContent ? style : { maxHeight: '40vh', ...style }}
       {...props}
     >
       {content}
@@ -346,6 +373,7 @@ const CodeBlockDiff = memo(function CodeBlockDiff({
     wrap,
     viewMode: contextViewMode,
     themeType: contextThemeType,
+    fitContent,
   } = useCodeBlock();
 
   const viewMode = viewModeProp ?? contextViewMode;
@@ -357,10 +385,14 @@ const CodeBlockDiff = memo(function CodeBlockDiff({
 
   return (
     <div
-      className={cn('min-w-0 [&_pre]:!bg-transparent')}
+      className={cn(
+        'min-w-0',
+        fitContent && 'overflow-visible',
+        '[&_pre]:!bg-transparent',
+      )}
       data-slot='code-block-code'
       data-variant='diff'
-      style={{ maxHeight: '40vh', ...style }}
+      style={fitContent ? style : { maxHeight: '40vh', ...style }}
       {...props}
     >
       <PatchDiff

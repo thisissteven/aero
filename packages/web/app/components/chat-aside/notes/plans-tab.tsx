@@ -71,7 +71,7 @@ export function PlansTab({
           variant='ghost'
           onPress={() => fileInputRef.current?.click()}
           isPending={createPlan.isPending}
-          className='h-7 shrink-0 rounded-md text-xs'
+          className='h-7 shrink-0 rounded-lg text-xs'
         >
           <Icon data={ArrowUpFromSquare} />
           {t.notesPanel.plans.import}
@@ -126,12 +126,18 @@ export function PlansTab({
                       : null}
                   </Modal.Body>
                   <Modal.Footer>
-                    <Button size='sm' variant='ghost' onPress={close}>
+                    <Button
+                      size='sm'
+                      variant='ghost'
+                      className='rounded-lg'
+                      onPress={close}
+                    >
                       {t.common.cancel}
                     </Button>
                     <Button
                       size='sm'
                       variant='danger'
+                      className='rounded-lg'
                       isPending={deletePlan.isPending}
                       onPress={async () => {
                         if (!pendingDelete) return;

@@ -8,7 +8,6 @@ import {
   Label,
   Modal,
   Separator,
-  Skeleton,
   TextField,
   Tooltip,
 } from '@aero/ui';
@@ -20,10 +19,12 @@ import {
   EllipsisVertical,
   Plus,
   TrashBin,
+  Xmark,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useEffect, useState } from 'react';
 
+import { DiffWorkbench } from '@/app/components/chat-aside/changes/diff-workbench';
 import {
   useGitBranches,
   useGitCheckout,
@@ -36,7 +37,6 @@ import {
 import { useI18n } from '@/app/hooks/i18n';
 import { toastPromise } from '@/app/lib/toast';
 
-import { GitDiffContent } from './git-diff-content';
 import { EmptyState, ListSkeleton, OptionCheckbox } from './shared';
 import type { GitBranch, Operation, Remote } from './types';
 
@@ -508,33 +508,31 @@ function RangeDiffModal({
     >
       <Modal.Backdrop>
         <Modal.Container>
-          <Modal.Dialog>
+          <Modal.Dialog className='bg-surface text-foreground my-auto flex h-[92dvh] w-full max-w-[1500px] flex-col gap-0 overflow-hidden rounded-xl p-0 sm:h-[85vh]'>
             {({ close }) => (
               <>
-                <Modal.Header className='flex items-center gap-2'>
-                  <Icon data={CodeCompare} size={14} className='text-accent' />
-                  <span className='min-w-0 truncate font-mono text-sm'>
+                <div className='border-separator flex shrink-0 items-center gap-2 border-b px-2 py-2.5'>
+                  <Icon
+                    data={CodeCompare}
+                    size={14}
+                    className='text-accent shrink-0'
+                  />
+                  <span className='min-w-0 flex-1 truncate text-sm'>
                     {base} → {head}
                   </span>
-                </Modal.Header>
+                  <Tooltip>
+                    <Tooltip.Trigger>
+                      <IconButton aria-label={t.common.close} onPress={close}>
+                        <Icon data={Xmark} />
+                      </IconButton>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>{t.common.close}</Tooltip.Content>
+                  </Tooltip>
+                </div>
 
-                <Modal.Body>
-                  {isLoading ? (
-                    <Skeleton className='h-40 w-full rounded' />
-                  ) : (
-                    <GitDiffContent
-                      diff={diff}
-                      emptyLabel={t.changesPanel.noChangesToDisplay}
-                      className='max-h-[60vh]'
-                    />
-                  )}
-                </Modal.Body>
-
-                <Modal.Footer>
-                  <Button size='sm' variant='ghost' onPress={close}>
-                    {t.common.close}
-                  </Button>
-                </Modal.Footer>
+                <div className='min-h-0 flex-1 overflow-hidden'>
+                  <DiffWorkbench patch={diff} isLoading={isLoading} />
+                </div>
               </>
             )}
           </Modal.Dialog>

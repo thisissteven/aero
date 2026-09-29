@@ -64,7 +64,10 @@ export type RichTextEditorCommand =
   | 'strike'
   | 'underline';
 export type RichTextEditorAction =
-  'clearContent' | 'clearFormatting' | 'redo' | 'undo';
+  | 'clearContent'
+  | 'clearFormatting'
+  | 'redo'
+  | 'undo';
 
 export interface RichTextEditorValueChangeDetails {
   characterCount: number;
@@ -120,10 +123,8 @@ function details(editor: Editor): RichTextEditorValueChangeDetails {
   };
 }
 
-export interface RichTextEditorRootProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'defaultValue' | 'onChange'
-> {
+export interface RichTextEditorRootProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'defaultValue' | 'onChange'> {
   defaultValue?: JSONContent;
   editorOptions?: Partial<EditorOptions>;
   extensions?: Extensions;
@@ -433,7 +434,10 @@ const withEditorTooltip = (
   tooltip: ReactNode | undefined,
 ): ReactElement =>
   tooltip ? (
-    <Tooltip delay={0}>
+    // `shouldSkipAnimation` skips react-aria's warmup enter/exit animation
+    // when moving across adjacent toolbar buttons, which otherwise reads as
+    // laggy for a control users sweep through constantly.
+    <Tooltip closeDelay={0} delay={0} shouldSkipAnimation>
       <Tooltip.Trigger>{trigger}</Tooltip.Trigger>
       <Tooltip.Content>{tooltip}</Tooltip.Content>
     </Tooltip>
@@ -441,10 +445,8 @@ const withEditorTooltip = (
     trigger
   );
 
-export interface RichTextEditorToggleButtonProps extends Omit<
-  ComponentProps<typeof ToggleButton>,
-  'isSelected'
-> {
+export interface RichTextEditorToggleButtonProps
+  extends Omit<ComponentProps<typeof ToggleButton>, 'isSelected'> {
   command: RichTextEditorCommand;
   tooltip?: ReactNode;
 }
@@ -499,9 +501,8 @@ function RichTextEditorToggleButton({
   );
 }
 
-export interface RichTextEditorActionButtonProps extends ComponentProps<
-  typeof Button
-> {
+export interface RichTextEditorActionButtonProps
+  extends ComponentProps<typeof Button> {
   action: RichTextEditorAction;
   tooltip?: ReactNode;
 }
@@ -573,10 +574,8 @@ function RichTextEditorActionButton({
   );
 }
 
-export interface RichTextEditorCommandButtonProps extends Omit<
-  ComponentProps<typeof Button>,
-  'isDisabled'
-> {
+export interface RichTextEditorCommandButtonProps
+  extends Omit<ComponentProps<typeof Button>, 'isDisabled'> {
   isActive?: boolean | ((editor: Editor) => boolean);
   isDisabled?: boolean | ((editor: Editor) => boolean);
   onCommand: (editor: Editor) => boolean | void;
@@ -655,10 +654,8 @@ function RichTextEditorContent({
   );
 }
 
-export interface RichTextEditorBubbleMenuProps extends Omit<
-  ComponentProps<typeof BubbleMenu>,
-  'editor'
-> {
+export interface RichTextEditorBubbleMenuProps
+  extends Omit<ComponentProps<typeof BubbleMenu>, 'editor'> {
   toolbarProps?: ComponentProps<typeof Toolbar>;
 }
 function RichTextEditorBubbleMenu({
@@ -706,10 +703,8 @@ function RichTextEditorBubbleMenu({
     </BubbleMenu>
   ) : null;
 }
-export interface RichTextEditorFloatingMenuProps extends Omit<
-  ComponentProps<typeof FloatingMenu>,
-  'editor'
-> {
+export interface RichTextEditorFloatingMenuProps
+  extends Omit<ComponentProps<typeof FloatingMenu>, 'editor'> {
   toolbarProps?: ComponentProps<typeof Toolbar>;
 }
 function RichTextEditorFloatingMenu({
@@ -759,10 +754,8 @@ function RichTextEditorFloatingMenu({
   ) : null;
 }
 
-export interface RichTextEditorCharacterCountProps extends Omit<
-  ComponentPropsWithRef<'span'>,
-  'children'
-> {
+export interface RichTextEditorCharacterCountProps
+  extends Omit<ComponentPropsWithRef<'span'>, 'children'> {
   children?:
     | ReactNode
     | ((stats: {
@@ -1083,10 +1076,8 @@ export interface RichTextEditorSuggestionRenderProps {
   setSelectedIndex: (index: number) => void;
   text: string;
 }
-export interface RichTextEditorSuggestionMenuProps extends Omit<
-  ComponentPropsWithRef<'div'>,
-  'children' | 'onSelect'
-> {
+export interface RichTextEditorSuggestionMenuProps
+  extends Omit<ComponentPropsWithRef<'div'>, 'children' | 'onSelect'> {
   allowedPrefixes?: null | string[];
   allowSpaces?: boolean;
   char?: string;
@@ -1095,7 +1086,8 @@ export interface RichTextEditorSuggestionMenuProps extends Omit<
     editor: Editor;
     query: string;
   }) =>
-    RichTextEditorSuggestionItem[] | Promise<RichTextEditorSuggestionItem[]>;
+    | RichTextEditorSuggestionItem[]
+    | Promise<RichTextEditorSuggestionItem[]>;
   maxHeight?: number;
   onSelect?: (props: {
     editor: Editor;

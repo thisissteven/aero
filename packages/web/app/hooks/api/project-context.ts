@@ -10,11 +10,13 @@ import { useOptimisticMutation } from '@/app/hooks/useOptimisticMutation';
 import { honoClient } from '@/app/lib';
 import type {
   AeroProjectContext,
+  AeroProjectQueueMessage,
   AeroProjectTodo,
 } from '@/server/services/harness/types';
 
 const $projectContext = honoClient.api['project-context'];
 const $workspaceContext = $projectContext[':workspaceId'];
+const $note = $workspaceContext.notes[':noteId'];
 const $plan = $workspaceContext.plans[':planId'];
 
 export const projectContextKeys = {
@@ -48,25 +50,70 @@ export function useProjectContext(workspaceId?: string) {
   });
 }
 
-/**
- * Autosaving notes. The network call is debounced per workspace so a burst of
- * keystrokes collapses into one request, while the query cache updates on every
- * change to keep the UI instant.
- */
-export function useSaveProjectNotes(workspaceId?: string) {
-  return useOptimisticMutation<AeroProjectContext, string>({
-    queryKey: () => projectContextKeys.all(workspaceId),
-    mutationFn: async (notes) => {
-      const res = await $workspaceContext.notes.$put({
+export function useCreateProjectNote(workspaceId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { title?: string; body?: string }) => {
+      const res = await $workspaceContext.notes.$post({
         param: { workspaceId: workspaceId! },
-        json: { notes },
+        json: input,
       });
-      if (!res.ok) throw new Error('Failed to save notes');
+      if (!res.ok) throw new Error('Failed to create note');
       return res.json();
     },
-    optimisticUpdate: (current, notes) =>
-      current ? { ...current, notes } : current,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: projectContextKeys.all(workspaceId) });
+    },
+  });
+}
+
+/**
+ * Autosaving a single note. The network call is debounced per workspace so a
+ * burst of keystrokes collapses into one request, while the query cache updates
+ * on every change to keep the UI instant.
+ */
+export function useSaveProjectNote(workspaceId?: string, noteId?: string) {
+  return useOptimisticMutation<
+    AeroProjectContext,
+    { title?: string; body?: string }
+  >({
+    queryKey: () => projectContextKeys.all(workspaceId),
+    mutationFn: async (input) => {
+      const res = await $note.$put({
+        param: { workspaceId: workspaceId!, noteId: noteId! },
+        json: input,
+      });
+      if (!res.ok) throw new Error('Failed to save note');
+      return res.json();
+    },
+    optimisticUpdate: (current, input) =>
+      current
+        ? {
+            ...current,
+            notes: current.notes.map((note) =>
+              note.id === noteId
+                ? { ...note, ...input, updatedAt: Date.now() }
+                : note,
+            ),
+          }
+        : current,
     debounceMs: 500,
+  });
+}
+
+export function useDeleteProjectNote(workspaceId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (noteId: string) => {
+      const res = await $note.$delete({
+        param: { workspaceId: workspaceId!, noteId },
+      });
+      if (!res.ok) throw new Error('Failed to delete note');
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: projectContextKeys.all(workspaceId) });
+    },
   });
 }
 
@@ -83,6 +130,23 @@ export function useSaveProjectTodos(workspaceId?: string) {
     },
     optimisticUpdate: (current, todos) =>
       current ? { ...current, todos } : current,
+    debounceMs: 300,
+  });
+}
+
+export function useSaveProjectQueue(workspaceId?: string) {
+  return useOptimisticMutation<AeroProjectContext, AeroProjectQueueMessage[]>({
+    queryKey: () => projectContextKeys.all(workspaceId),
+    mutationFn: async (queue) => {
+      const res = await $workspaceContext.queue.$put({
+        param: { workspaceId: workspaceId! },
+        json: { queue },
+      });
+      if (!res.ok) throw new Error('Failed to save queue');
+      return res.json();
+    },
+    optimisticUpdate: (current, queue) =>
+      current ? { ...current, queue } : current,
     debounceMs: 300,
   });
 }

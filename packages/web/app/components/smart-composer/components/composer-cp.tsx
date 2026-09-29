@@ -30,6 +30,53 @@ interface CommandPaletteProps {
 
 const GROUPS = ['AGENTS', 'FILES', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
 
+interface ContainingBlock {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
+
+/**
+ * The viewport coordinates a `position: fixed` element is actually resolved
+ * against. Normally that is the viewport, but an ancestor with a `transform`
+ * (e.g. an animated modal dialog) becomes the containing block instead, which
+ * otherwise throws the palette off by that ancestor's offset.
+ */
+function getContainingBlock(element: HTMLElement): ContainingBlock {
+  let node = element.parentElement;
+
+  while (node) {
+    const style = window.getComputedStyle(node);
+
+    if (
+      style.transform !== 'none' ||
+      style.filter !== 'none' ||
+      style.perspective !== 'none' ||
+      style.willChange.includes('transform') ||
+      style.contain.includes('paint') ||
+      style.contain.includes('layout')
+    ) {
+      const rect = node.getBoundingClientRect();
+      return {
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+      };
+    }
+
+    node = node.parentElement;
+  }
+
+  return {
+    height: window.innerHeight,
+    left: 0,
+    top: 0,
+    width: window.innerWidth,
+  };
+}
+
 export function ComposerCommandPalette({
   open,
   results,
@@ -101,25 +148,33 @@ export function ComposerCommandPalette({
     const gap = 6;
     const margin = 8;
 
-    const spaceBelow = window.innerHeight - caretRect.bottom - margin;
-    const spaceAbove = caretRect.top - margin;
+    const block = getContainingBlock(palette);
+
+    // Coordinates are relative to the containing block, since `fixed` is
+    // resolved against it when an ancestor is transformed.
+    const caretTop = caretRect.top - block.top;
+    const caretBottom = caretRect.bottom - block.top;
+    const caretLeft = caretRect.left - block.left;
+
+    const spaceBelow = block.top + block.height - caretRect.bottom - margin;
+    const spaceAbove = caretRect.top - block.top - margin;
 
     let top: number;
 
     if (spaceAbove >= height + gap) {
-      top = caretRect.top - height - gap;
+      top = caretTop - height - gap;
     } else if (spaceBelow >= height + gap) {
-      top = caretRect.bottom + gap;
+      top = caretBottom + gap;
     } else {
       top = Math.max(
         margin,
-        Math.min(caretRect.bottom + gap, window.innerHeight - height - margin),
+        Math.min(caretBottom + gap, block.height - height - margin),
       );
     }
 
     const left = Math.max(
       margin,
-      Math.min(caretRect.left, window.innerWidth - width - margin),
+      Math.min(caretLeft, block.width - width - margin),
     );
 
     palette.style.top = `${top}px`;
