@@ -246,6 +246,7 @@ export const es: BaseTranslation = {
     worktreeActions: (name: string) => `Acciones de ${name}`,
     noDefaultModelSelected: 'No hay ningún modelo predeterminado seleccionado',
     newProject: 'proyecto nuevo',
+    newProjectFromGitHub: 'proyecto nuevo desde GitHub',
     chooseProject: 'Elegir proyecto',
     selectWorkspaceAria: 'Selecciona un espacio de trabajo para trabajar en él',
     listOfWorkspacesAria: 'Lista de espacios de trabajo',
@@ -870,6 +871,33 @@ export const es: BaseTranslation = {
     type: 'Tipo',
     newFolderName: 'Nombre de la carpeta nueva...',
     fileFolder: 'Carpeta de archivos',
+  },
+
+  githubRepoPicker: {
+    title: 'Añadir desde GitHub',
+    repositoriesTab: 'Repositorios',
+    urlTab: 'Pegar URL',
+    searchRepositories: 'Buscar repositorios...',
+    noRepositories: 'No se encontraron repositorios.',
+    loadFailed: 'No se pudieron cargar los repositorios.',
+    privateRepo: 'Privado',
+    urlLabel: 'URL del repositorio',
+    urlPlaceholder: 'https://github.com/usuario/repositorio',
+    urlHint: 'Pega una URL de GitHub o usa el formato usuario/repositorio.',
+    invalidUrl:
+      'Introduce una URL de repositorio de GitHub válida o usuario/repositorio.',
+    continue: 'Continuar',
+    cloneInto: 'Clonar en',
+    changeFolder: 'Cambiar',
+    noFolderSelected: 'Ninguna carpeta seleccionada',
+    fullHistory: 'Historial completo',
+    fullHistoryDescription:
+      'Clonar todos los commits en lugar de una copia superficial',
+    submodules: 'Incluir submódulos',
+    submodulesDescription: 'Inicializar y actualizar los submódulos anidados',
+    clone: 'Clonar',
+    cloning: 'Clonando...',
+    cloneFailed: 'No se pudo clonar el repositorio.',
   },
 
   selectionPopover: {

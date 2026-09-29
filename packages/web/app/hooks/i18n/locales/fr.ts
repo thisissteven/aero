@@ -252,6 +252,7 @@ export const fr: BaseTranslation = {
     worktreeActions: (name: string) => `Actions pour ${name}`,
     noDefaultModelSelected: 'Aucun modèle par défaut sélectionné',
     newProject: 'nouveau projet',
+    newProjectFromGitHub: 'nouveau projet depuis GitHub',
     chooseProject: 'Choisir un projet',
     selectWorkspaceAria: 'Sélectionnez un espace de travail',
     listOfWorkspacesAria: 'Liste des espaces de travail',
@@ -876,6 +877,34 @@ export const fr: BaseTranslation = {
     type: 'Type',
     newFolderName: 'Nom du nouveau dossier...',
     fileFolder: 'Dossier de fichiers',
+  },
+
+  githubRepoPicker: {
+    title: 'Ajouter depuis GitHub',
+    repositoriesTab: 'Dépôts',
+    urlTab: 'Coller l’URL',
+    searchRepositories: 'Rechercher des dépôts...',
+    noRepositories: 'Aucun dépôt trouvé.',
+    loadFailed: 'Échec du chargement des dépôts.',
+    privateRepo: 'Privé',
+    urlLabel: 'URL du dépôt',
+    urlPlaceholder: 'https://github.com/proprietaire/depot',
+    urlHint: 'Collez une URL GitHub ou utilisez le format proprietaire/depot.',
+    invalidUrl:
+      'Saisissez une URL de dépôt GitHub valide ou proprietaire/depot.',
+    continue: 'Continuer',
+    cloneInto: 'Cloner dans',
+    changeFolder: 'Modifier',
+    noFolderSelected: 'Aucun dossier sélectionné',
+    fullHistory: 'Historique complet',
+    fullHistoryDescription:
+      'Cloner tous les commits au lieu d’une copie superficielle',
+    submodules: 'Inclure les sous-modules',
+    submodulesDescription:
+      'Initialiser et mettre à jour les sous-modules imbriqués',
+    clone: 'Cloner',
+    cloning: 'Clonage...',
+    cloneFailed: 'Échec du clonage du dépôt.',
   },
 
   selectionPopover: {

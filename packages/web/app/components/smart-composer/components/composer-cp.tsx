@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { CommandPaletteItem } from '@/app/components/smart-composer/components/composer-cp-item';
 import type { CaretRect } from '@/app/components/smart-composer/use-composer-palette';
@@ -26,6 +27,12 @@ interface CommandPaletteProps {
   onHover: (index: number) => void;
   onHoverReset: () => void;
   close: () => void;
+  /**
+   * Portal the palette into this element (e.g. the enclosing modal dialog) so
+   * it renders above the dialog's content and stays within its focus/dismiss
+   * scope. Defaults to rendering inline.
+   */
+  portalTarget?: HTMLElement | null;
 }
 
 const GROUPS = ['AGENTS', 'FILES', 'COMMANDS', 'SKILLS', 'SNIPPETS'] as const;
@@ -52,6 +59,7 @@ function getContainingBlock(element: HTMLElement): ContainingBlock {
     if (
       style.transform !== 'none' ||
       style.filter !== 'none' ||
+      style.backdropFilter !== 'none' ||
       style.perspective !== 'none' ||
       style.willChange.includes('transform') ||
       style.contain.includes('paint') ||
@@ -87,6 +95,7 @@ export function ComposerCommandPalette({
   onHover,
   onHoverReset,
   close,
+  portalTarget,
 }: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement | null>(null);
   const { t } = useI18n();
@@ -312,7 +321,7 @@ export function ComposerCommandPalette({
     SNIPPETS: t.composer.snippets,
   };
 
-  return (
+  const palette = (
     <div
       ref={paletteRef}
       className={cn(
@@ -398,4 +407,6 @@ export function ComposerCommandPalette({
       </div>
     </div>
   );
+
+  return portalTarget ? createPortal(palette, portalTarget) : palette;
 }

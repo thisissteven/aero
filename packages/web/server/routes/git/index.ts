@@ -3,16 +3,20 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { parseWorktreePorcelainBrief } from '@/server/helper';
 import {
+  CloneFailedError,
   DirectoryNotFoundError,
   InvalidGitRepositoryError,
   NestedRepositoryError,
   PathNotFoundError,
+  TargetDirectoryExistsError,
   UntrackedDirectoryError,
 } from './errors';
 import {
   abortMerge,
   abortRebase,
   checkoutBodySchema,
+  cloneBodySchema,
+  cloneRepository,
   commit,
   commitBodySchema,
   commitShowQuerySchema,
@@ -74,6 +78,12 @@ const git = new Hono()
     }
     if (err instanceof UntrackedDirectoryError) {
       return c.json({ code: err.code, message: err.message }, 422);
+    }
+    if (err instanceof TargetDirectoryExistsError) {
+      return c.json({ code: err.code, message: err.message }, 409);
+    }
+    if (err instanceof CloneFailedError) {
+      return c.json({ code: err.code, message: err.message }, 400);
     }
     console.error('[git]', err);
     return c.json(
@@ -355,6 +365,13 @@ const git = new Hono()
       return c.json(result);
     },
   )
+
+  // ----- Clone -----
+  .post('/clone', zValidator('json', cloneBodySchema), async (c) => {
+    const options = c.req.valid('json');
+    const result = await cloneRepository(options);
+    return c.json(result);
+  })
 
   // ----- Rebase -----
   .post(

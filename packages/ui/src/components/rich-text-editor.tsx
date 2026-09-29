@@ -932,7 +932,6 @@ function LinkPopoverContent({
       placement={props.placement ?? 'bottom start'}
       {...props}
     >
-      <Popover.Arrow />
       <Popover.Dialog
         className='rich-text-editor__link-popover-content'
         data-slot='rich-text-editor-link-popover-content'
@@ -975,6 +974,7 @@ function LinkApplyButton({
   return (
     <Button
       {...props}
+      className={cn('h-7 rounded-lg text-xs', props.className)}
       data-slot='rich-text-editor-link-apply-button'
       isDisabled={Boolean(isDisabled || props.isDisabled || !href.trim())}
       size={props.size ?? 'sm'}
@@ -1002,6 +1002,7 @@ function LinkUnsetButton({
   return (
     <Button
       {...props}
+      className={cn('h-7 rounded-lg text-xs', props.className)}
       data-slot='rich-text-editor-link-unset-button'
       isDisabled={Boolean(isDisabled || props.isDisabled || !isActive)}
       size={props.size ?? 'sm'}

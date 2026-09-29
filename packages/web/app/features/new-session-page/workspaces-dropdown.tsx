@@ -1,9 +1,10 @@
 import { Dropdown, Label, Separator, Spinner } from '@aero/ui';
-import { Check, Plus } from '@gravity-ui/icons';
+import { Check, LogoGithub, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useRef } from 'react';
 import { WorkspaceIcon } from '@/app/components/chat-sidebar/workspace/workspace-icon';
 import { FolderPicker } from '@/app/components/folder-picker';
+import { GitHubRepoPicker } from '@/app/components/github-repo-picker';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import {
   useCreateWorkspace,
@@ -43,6 +44,21 @@ export function WorkspacesDropdown() {
 
   const openModal = useGlobalModalStore((state) => state.openModal);
 
+  const selectDirectory = (path: string) => {
+    setSelectedWorkspace({
+      id: path,
+      name: getLastPathName(path),
+      directory: normalizePath(path),
+      worktrees: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    createWorkspace({
+      name: getLastPathName(path),
+      directory: normalizePath(path),
+    });
+  };
+
   if (!workspaces || workspaces.length === 0) return null;
 
   return (
@@ -65,29 +81,22 @@ export function WorkspacesDropdown() {
           <Dropdown.Item
             onPress={() => {
               openModal({
-                children: (
-                  <FolderPicker
-                    onSelect={(path) => {
-                      setSelectedWorkspace({
-                        id: path,
-                        name: getLastPathName(path),
-                        directory: normalizePath(path),
-                        worktrees: [],
-                        createdAt: Date.now(),
-                        updatedAt: Date.now(),
-                      });
-                      createWorkspace({
-                        name: getLastPathName(path),
-                        directory: normalizePath(path),
-                      });
-                    }}
-                  />
-                ),
+                children: <FolderPicker onSelect={selectDirectory} />,
               });
             }}
           >
             <Icon size={14} data={Plus} className='shrink-0' />
             <Label>{t.workspace.newProject}</Label>
+          </Dropdown.Item>
+          <Dropdown.Item
+            onPress={() => {
+              openModal({
+                children: <GitHubRepoPicker onSelect={selectDirectory} />,
+              });
+            }}
+          >
+            <Icon size={14} data={LogoGithub} className='shrink-0' />
+            <Label>{t.workspace.newProjectFromGitHub}</Label>
           </Dropdown.Item>
         </Dropdown.Menu>
         <Separator className='!ms-0 !w-[calc(100%+8px)] -translate-x-1' />

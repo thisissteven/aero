@@ -8,6 +8,8 @@ export const gitErrorCodeSchema = z.enum([
   'PATH_NOT_FOUND',
   'NESTED_REPOSITORY',
   'UNTRACKED_DIRECTORY',
+  'TARGET_EXISTS',
+  'CLONE_FAILED',
 ]);
 
 export type GitErrorCode = z.infer<typeof gitErrorCodeSchema>;
@@ -49,5 +51,25 @@ export class UntrackedDirectoryError extends Error {
   constructor(public readonly path: string) {
     super(`Path is an untracked directory: ${path}`);
     this.name = 'UntrackedDirectoryError';
+  }
+}
+
+export class TargetDirectoryExistsError extends Error {
+  readonly code = 'TARGET_EXISTS' as const;
+  constructor(public readonly path: string) {
+    super(`Target directory already exists: ${path}`);
+    this.name = 'TargetDirectoryExistsError';
+  }
+}
+
+/**
+ * A `git clone` that failed for any reason except the target already existing.
+ * The message is pre-sanitized by the service so credentials never leak.
+ */
+export class CloneFailedError extends Error {
+  readonly code = 'CLONE_FAILED' as const;
+  constructor(message: string) {
+    super(message || 'Failed to clone repository');
+    this.name = 'CloneFailedError';
   }
 }

@@ -67,9 +67,11 @@ import {
   githubRepoItemQuerySchema,
   githubRepoListQuerySchema,
   githubUpstreamQuerySchema,
+  githubUserReposQuerySchema,
   mapAuthor,
   mapHeadRepo,
   mapLabels,
+  mapUserRepo,
   type RepoRefResponse,
   resolvePullRequestState,
   safeListForRepo,
@@ -516,6 +518,57 @@ const github = new Hono()
         throw new GitHubAuthInvalidError();
       }
       throw error;
+    }
+  })
+
+  // ----- Repos: list the authenticated account's repositories -----
+  // Powers the "add project from GitHub" browser. Disconnected is a normal
+  // state (`connected: false`) so the client can render a connect prompt.
+  .get('/repos', zValidator('query', githubUserReposQuerySchema), async (c) => {
+    const { page, perPage, search } = c.req.valid('query');
+    const octokit = await getOctokitOrNull();
+    if (!octokit) {
+      return c.json({ connected: false, repos: [], page, hasMore: false });
+    }
+
+    const query = normalizeText(search);
+
+    try {
+      if (query) {
+        const login = await resolveAuthLogin(octokit);
+        const qualifier = login ? `user:${login}` : '';
+        const result = await octokit.rest.search.repos({
+          q: `${qualifier} ${query}`.trim(),
+          per_page: perPage,
+          page,
+        });
+        const totalCount = result.data.total_count ?? 0;
+        const items = Array.isArray(result.data.items) ? result.data.items : [];
+        return c.json({
+          connected: true,
+          repos: items.map(mapUserRepo),
+          page,
+          hasMore: (page - 1) * perPage + items.length < totalCount,
+        });
+      }
+
+      const response = await octokit.rest.repos.listForAuthenticatedUser({
+        affiliation: 'owner,collaborator,organization_member',
+        sort: 'updated',
+        per_page: perPage,
+        page,
+      });
+      const items = Array.isArray(response.data) ? response.data : [];
+      return c.json({
+        connected: true,
+        repos: items.map(mapUserRepo),
+        page,
+        hasMore: items.length === perPage,
+      });
+    } catch (error) {
+      noteIfGitHubRateLimit(error);
+      console.error('[github] failed to list repositories:', error);
+      return c.json({ connected: true, repos: [], page, hasMore: false });
     }
   })
 

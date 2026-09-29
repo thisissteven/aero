@@ -71,6 +71,7 @@ export type CommitInput = InferRequestType<typeof $git.commit.$post>['json'];
 export type CheckoutInput = InferRequestType<
   typeof $git.checkout.$post
 >['json'];
+export type CloneRepoInput = InferRequestType<typeof $git.clone.$post>['json'];
 export type DiffQuery = InferRequestType<typeof $git.diff.$get>['query'];
 export type FileDiffQuery = InferRequestType<
   (typeof $git)['file-diff']['$get']
@@ -120,6 +121,8 @@ export type GitSummaryResponse = InferResponseType<
   typeof $git.summary.$get,
   200
 >;
+
+export type CloneRepoResponse = InferResponseType<typeof $git.clone.$post, 200>;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -492,6 +495,37 @@ export function useGitCheckout() {
     (json: CheckoutInput) => unwrap($git.checkout.$post({ json }), 'checkout'),
     (json) => json.directory,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Mutation hooks — Clone
+// ---------------------------------------------------------------------------
+
+/**
+ * Clones a repository to a new directory. There is no existing git query to
+ * invalidate, so this skips the shared `useGitMutation` factory and surfaces
+ * the server's own failure message (target exists, auth, bad URL).
+ */
+export function useGitCloneRepo() {
+  return useMutation<CloneRepoResponse, Error, CloneRepoInput>({
+    mutationFn: async (json) => {
+      const res = await $git.clone.$post({ json });
+      if (!res.ok) {
+        const message = await res
+          .json()
+          .then((value: unknown) =>
+            typeof (value as { message?: unknown })?.message === 'string'
+              ? (value as { message: string }).message
+              : null,
+          )
+          .catch(() => null);
+        throw new Error(
+          message ?? apiError('gitRequestFailed', 'clone', res.status),
+        );
+      }
+      return res.json() as Promise<CloneRepoResponse>;
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------

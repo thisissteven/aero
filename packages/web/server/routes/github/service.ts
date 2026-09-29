@@ -134,6 +134,12 @@ export const githubRepoItemQuerySchema = z.object({
   checkDetails: booleanFromQuery.optional().default(false),
 });
 
+export const githubUserReposQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional().default(1),
+  perPage: z.coerce.number().int().min(1).max(100).optional().default(50),
+  search: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
@@ -264,6 +270,67 @@ export function mapHeadRepo(pr: {
     url,
     cloneUrl: normalizeText(repo?.clone_url),
     sshUrl: normalizeText(repo?.ssh_url),
+  };
+}
+
+export interface GitHubUserRepo {
+  id: number;
+  owner: string;
+  name: string;
+  fullName: string;
+  private: boolean;
+  description: string | null;
+  defaultBranch: string;
+  cloneUrl: string;
+  sshUrl: string;
+  htmlUrl: string;
+  language: string | null;
+  updatedAt: string | null;
+  fork: boolean;
+}
+
+/**
+ * Shapes one entry of `repos.listForAuthenticatedUser` / `search.repos` into
+ * the flat record the repo picker renders. Unknown fields degrade to empty
+ * strings rather than throwing, matching the other `map*` helpers here.
+ */
+export function mapUserRepo(repo: unknown): GitHubUserRepo {
+  const entry = repo as
+    | {
+        id?: number;
+        name?: string;
+        full_name?: string;
+        private?: boolean;
+        description?: string | null;
+        default_branch?: string;
+        clone_url?: string;
+        ssh_url?: string;
+        html_url?: string;
+        language?: string | null;
+        updated_at?: string | null;
+        fork?: boolean;
+        owner?: { login?: string };
+      }
+    | null
+    | undefined;
+
+  const fullName = normalizeText(entry?.full_name);
+  const [ownerFromFullName, nameFromFullName] = fullName.split('/');
+
+  return {
+    id: entry?.id ?? 0,
+    owner: normalizeText(entry?.owner?.login) || ownerFromFullName || '',
+    name: normalizeText(entry?.name) || nameFromFullName || '',
+    fullName,
+    private: Boolean(entry?.private),
+    description: normalizeText(entry?.description) || null,
+    defaultBranch: normalizeText(entry?.default_branch) || 'main',
+    cloneUrl: normalizeText(entry?.clone_url),
+    sshUrl: normalizeText(entry?.ssh_url),
+    htmlUrl: normalizeText(entry?.html_url),
+    language: normalizeText(entry?.language) || null,
+    updatedAt: typeof entry?.updated_at === 'string' ? entry.updated_at : null,
+    fork: Boolean(entry?.fork),
   };
 }
 

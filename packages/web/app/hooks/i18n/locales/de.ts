@@ -246,6 +246,7 @@ export const de: BaseTranslation = {
     worktreeActions: (name: string) => `Aktionen für ${name}`,
     noDefaultModelSelected: 'Kein Standardmodell ausgewählt',
     newProject: 'neues Projekt',
+    newProjectFromGitHub: 'neues Projekt von GitHub',
     chooseProject: 'Projekt auswählen',
     selectWorkspaceAria: 'Workspace zum Arbeiten auswählen',
     listOfWorkspacesAria: 'Liste der Workspaces',
@@ -862,6 +863,34 @@ export const de: BaseTranslation = {
     type: 'Typ',
     newFolderName: 'Name des neuen Ordners...',
     fileFolder: 'Dateiodner',
+  },
+
+  githubRepoPicker: {
+    title: 'Von GitHub hinzufügen',
+    repositoriesTab: 'Repositories',
+    urlTab: 'URL einfügen',
+    searchRepositories: 'Repositories suchen...',
+    noRepositories: 'Keine Repositories gefunden.',
+    loadFailed: 'Repositories konnten nicht geladen werden.',
+    privateRepo: 'Privat',
+    urlLabel: 'Repository-URL',
+    urlPlaceholder: 'https://github.com/eigentuemer/repository',
+    urlHint:
+      'Füge eine GitHub-URL ein oder nutze die Kurzform eigentuemer/repository.',
+    invalidUrl:
+      'Gib eine gültige GitHub-Repository-URL oder eigentuemer/repository ein.',
+    continue: 'Weiter',
+    cloneInto: 'Klonen nach',
+    changeFolder: 'Ändern',
+    noFolderSelected: 'Kein Ordner ausgewählt',
+    fullHistory: 'Vollständige Historie',
+    fullHistoryDescription: 'Alle Commits statt einer flachen Kopie klonen',
+    submodules: 'Submodule einschließen',
+    submodulesDescription:
+      'Verschachtelte Submodule initialisieren und aktualisieren',
+    clone: 'Klonen',
+    cloning: 'Wird geklont...',
+    cloneFailed: 'Repository konnte nicht geklont werden.',
   },
 
   selectionPopover: {

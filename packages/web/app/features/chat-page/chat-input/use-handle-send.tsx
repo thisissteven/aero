@@ -11,6 +11,7 @@ import {
   extractCommandPayload,
 } from '@/app/components/smart-composer/smart-composer-helpers';
 import {
+  type ComposerMode,
   getComposerSession,
   useComposerStore,
 } from '@/app/components/smart-composer/smart-composer-store';
@@ -25,6 +26,7 @@ import {
 import { useChatSettingsStore } from '@/app/features/chat-page/chat-input/chat-settings-store';
 import {
   getExternalPartsSession,
+  type SessionExternalPartsState,
   useExternalPartsStore,
 } from '@/app/features/chat-page/chat-input/external-parts-store';
 import {
@@ -45,61 +47,61 @@ import {
 import { queryClient } from '@/app/providers';
 import { sessionStreamManager } from '@/app/services/session-stream-manager';
 
-export function useHandleSend(sessionId: string, isSteerMode: boolean) {
+/**
+ * `blocked` means nothing was attempted (no model / stream unavailable) and
+ * the caller should keep its draft; `failed` means a send was attempted and
+ * failed; `sent` succeeded.
+ */
+export type ComposerDispatchResult = 'sent' | 'failed' | 'blocked';
+
+export interface ComposerDispatchInput {
+  sessionId: string;
+  segments: ComposerSegment[];
+  text: string;
+  mode: ComposerMode;
+  externalState: Pick<
+    SessionExternalPartsState,
+    | 'fileAttachments'
+    | 'chatQuotes'
+    | 'browserAnnotations'
+    | 'githubLinks'
+    | 'subtask'
+  >;
+  isSteerMode: boolean;
+}
+
+/**
+ * The actual composer dispatch: commands, shell, token expansion and mentions.
+ * Extracted from `useHandleSend` so other persisted surfaces (the message
+ * queue) send through the exact same path.
+ */
+export function useComposerDispatch() {
   const { t } = useI18n();
   const { mutate: sendMessage } = useSendMessage(undefined);
   const { mutate: sendShellCommand } = useSendShellCommand(undefined);
   const { mutate: sendCommand } = useSendCommand(undefined);
 
-  const status = useSessionRuntime(sessionId, (runtime) => runtime.status.type);
-  const isPending = status !== 'idle' && !isSteerMode;
-
-  const handleSend = useCallback(
-    async (sessionId: string, fromNewChat?: boolean) => {
-      const resolvedSessionId = fromNewChat ? 'undefined' : sessionId;
-      composerSubmitBefore(resolvedSessionId);
-
-      const composerState = getComposerSession(
-        useComposerStore.getState(),
-        resolvedSessionId,
-      );
-
-      const payload = composerState.payload;
-      // Compute segments and steer detection up front — sendTextMessage needs isSteer
-      const segments = (payload?.segments ?? []).filter(
-        (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
-      );
-      const text =
-        payload?.text
-          .trim()
-          .replace(/^\/steer\b\s*/, '')
-          .trim() ?? '';
-      const externalState = getExternalPartsSession(
-        useExternalPartsStore.getState(),
-        resolvedSessionId,
-      );
-
+  return useCallback(
+    async ({
+      sessionId,
+      segments,
+      text,
+      mode,
+      externalState,
+      isSteerMode,
+    }: ComposerDispatchInput): Promise<ComposerDispatchResult> => {
       const { selectedModel, selectedAgent, selectedVariant } =
         useChatSettingsStore.getState();
 
-      const hasComposerContent = (segments.length ?? 0) > 0;
-
-      const hasExternalContent = !(
-        externalState.fileAttachments.length === 0 &&
-        externalState.chatQuotes.length === 0 &&
-        externalState.browserAnnotations.length === 0 &&
-        externalState.githubLinks.length === 0 &&
-        externalState.subtask === null
-      );
-
-      if (
-        (!hasComposerContent && !hasExternalContent) ||
-        isPending ||
-        !sessionId ||
-        !selectedModel
-      ) {
-        return;
+      if (!selectedModel) {
+        toast.danger(t.chatInput.failedToSendMessage);
+        return 'blocked';
       }
+
+      const model = {
+        modelId: selectedModel.model.id,
+        providerId: selectedModel.providerId,
+      };
 
       try {
         await sessionStreamManager.ensure({
@@ -108,12 +110,12 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         });
       } catch {
         toast.danger(t.chatInput.failedToConnectStream);
-        return;
+        return 'blocked';
       }
 
       const effectiveSegments = isSteerMode ? segments.slice(1) : segments;
 
-      const isShellMode = composerState.mode === 'shell';
+      const isShellMode = mode === 'shell';
       const isCommand =
         effectiveSegments[0]?.type === 'token' &&
         effectiveSegments[0].token.type === 'command';
@@ -132,10 +134,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
             })),
             ...mentionParts,
           ],
-          model: {
-            modelId: selectedModel.model.id,
-            providerId: selectedModel.providerId,
-          },
+          model,
           agent: selectedAgent?.name,
           variant: selectedVariant,
           ...(isSteerMode ? { delivery: 'steer' as const } : {}),
@@ -146,10 +145,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         if (isShellMode && !isSteerMode) {
           sendShellCommand({
             sessionId,
-            model: {
-              modelId: selectedModel.model.id,
-              providerId: selectedModel.providerId,
-            },
+            model,
             agent: selectedAgent?.name,
             command: text,
           });
@@ -166,7 +162,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
           // parts are appended by `sendTextMessage`.
           const args = isCustomCommand
             ? buildText(
-                (payload?.segments ?? []).filter(
+                segments.filter(
                   (segment) => segment !== effectiveSegments[0],
                 ) as ComposerSegment[],
               )
@@ -198,13 +194,13 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   );
                 }
 
-                return;
+                return 'sent';
               }
               case 'redo': {
                 const revertedMessages =
                   useChatStore.getState().activeSession.revertedMessages;
 
-                if (revertedMessages.length === 0) return;
+                if (revertedMessages.length === 0) return 'sent';
 
                 if (revertedMessages.length === 1) {
                   restoreAllMessagesToast(
@@ -230,15 +226,15 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   );
                 }
 
-                return;
+                return 'sent';
               }
 
               case 'btw':
-                return;
+                return 'sent';
               case 'timeline':
-                return;
+                return 'sent';
               case 'handoff-review':
-                return;
+                return 'sent';
 
               case 'compact': {
                 compactSession({
@@ -248,7 +244,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   providerId: selectedModel.providerId,
                   errorMessage: t.toolCommand.failedToCompact,
                 });
-                return;
+                return 'sent';
               }
 
               case 'catch-up':
@@ -256,53 +252,53 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
                   t.promptTemplates.catchUpIntro,
                   ...(args ? [t.promptTemplates.catchUpFocus(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'craft-goal': {
                 sendTextMessage([
                   t.promptTemplates.craftGoalIntro,
                   ...(args ? [t.promptTemplates.craftGoalIdea(args)] : []),
                 ]);
-                return;
+                return 'sent';
               }
               case 'debug':
                 sendTextMessage([
                   t.promptTemplates.debugIntro,
                   ...(args ? [t.promptTemplates.debugEncounter(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'explore':
                 sendTextMessage([
                   t.promptTemplates.exploreIntro,
                   ...(args ? [t.promptTemplates.exploreFocus(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'plan-feature':
                 sendTextMessage([
                   t.promptTemplates.planFeatureIntro,
                   ...(args ? [t.promptTemplates.planFeatureIdea(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'schedule-task':
                 sendTextMessage([
                   t.promptTemplates.scheduleIntro,
                   ...(args ? [t.promptTemplates.scheduleDetail(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'summary':
                 sendTextMessage([
                   t.promptTemplates.summaryIntro,
                   ...(args ? [t.promptTemplates.summaryFocus(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'weigh':
                 sendTextMessage([
                   t.promptTemplates.weighIntro,
                   ...(args ? [t.promptTemplates.weighDetail(args)] : []),
                 ]);
-                return;
+                return 'sent';
               case 'workspace-review':
                 sendTextMessage([t.promptTemplates.workspaceReviewIntro]);
-                return;
+                return 'sent';
             }
           }
 
@@ -325,10 +321,7 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
           sendMessage({
             sessionId,
             parts,
-            model: {
-              modelId: selectedModel.model.id,
-              providerId: selectedModel.providerId,
-            },
+            model,
             agent: selectedAgent?.name,
             variant: selectedVariant,
             ...(isSteerMode ? { delivery: 'steer' as const } : {}),
@@ -336,12 +329,83 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
         }
       } catch {
         toast.danger(t.chatInput.failedToSendMessage);
-      } finally {
-        composerSubmitAfter(resolvedSessionId);
-        useExternalPartsStore.getState().reset(resolvedSessionId);
+        return 'failed';
       }
+
+      return 'sent';
     },
-    [isPending, sendMessage, sendShellCommand, sendCommand, isSteerMode, t],
+    [sendCommand, sendMessage, sendShellCommand, t],
+  );
+}
+
+export function useHandleSend(sessionId: string, isSteerMode: boolean) {
+  const dispatch = useComposerDispatch();
+
+  const status = useSessionRuntime(sessionId, (runtime) => runtime.status.type);
+  const isPending = status !== 'idle' && !isSteerMode;
+
+  const handleSend = useCallback(
+    async (sessionId: string, fromNewChat?: boolean) => {
+      const resolvedSessionId = fromNewChat ? 'undefined' : sessionId;
+      composerSubmitBefore(resolvedSessionId);
+
+      const composerState = getComposerSession(
+        useComposerStore.getState(),
+        resolvedSessionId,
+      );
+
+      const payload = composerState.payload;
+      // Compute segments and steer detection up front — sendTextMessage needs isSteer
+      const segments = (payload?.segments ?? []).filter(
+        (segment) => segment.type !== 'text' || segment.text.trim().length > 0,
+      );
+      const text =
+        payload?.text
+          .trim()
+          .replace(/^\/steer\b\s*/, '')
+          .trim() ?? '';
+      const externalState = getExternalPartsSession(
+        useExternalPartsStore.getState(),
+        resolvedSessionId,
+      );
+
+      const { selectedModel } = useChatSettingsStore.getState();
+
+      const hasComposerContent = (segments.length ?? 0) > 0;
+
+      const hasExternalContent = !(
+        externalState.fileAttachments.length === 0 &&
+        externalState.chatQuotes.length === 0 &&
+        externalState.browserAnnotations.length === 0 &&
+        externalState.githubLinks.length === 0 &&
+        externalState.subtask === null
+      );
+
+      if (
+        (!hasComposerContent && !hasExternalContent) ||
+        isPending ||
+        !sessionId ||
+        !selectedModel
+      ) {
+        return;
+      }
+
+      const result = await dispatch({
+        sessionId,
+        segments: segments as ComposerSegment[],
+        text,
+        mode: composerState.mode,
+        externalState,
+        isSteerMode,
+      });
+
+      // Nothing was attempted (no model / stream down) — keep the draft.
+      if (result === 'blocked') return;
+
+      composerSubmitAfter(resolvedSessionId);
+      useExternalPartsStore.getState().reset(resolvedSessionId);
+    },
+    [dispatch, isPending, isSteerMode],
   );
 
   return { handleSend, isPending };

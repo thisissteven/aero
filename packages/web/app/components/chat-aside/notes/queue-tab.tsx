@@ -9,10 +9,8 @@ import { ComposerContent } from '@/app/components/chat-aside/notes/composer-cont
 import { composerTextFromSegments } from '@/app/components/chat-aside/notes/composer-segments';
 import { MessageActionsMenu } from '@/app/components/chat-aside/notes/message-actions-menu';
 import { MessageEditorDialog } from '@/app/components/chat-aside/notes/message-editor-dialog';
-import {
-  type SendTodoTarget,
-  useSendTodoToAgent,
-} from '@/app/components/chat-aside/notes/send-todo';
+import { useSendQueuedMessage } from '@/app/components/chat-aside/notes/send-queued-message';
+import type { SendTodoTarget } from '@/app/components/chat-aside/notes/send-todo';
 import type { ComposerSegment } from '@/app/components/smart-composer/smart-composer-helpers';
 import { useSaveProjectQueue } from '@/app/hooks/api/project-context';
 import { useI18n } from '@/app/hooks/i18n';
@@ -34,7 +32,7 @@ export function QueueTab({
 }) {
   const { t } = useI18n();
   const sessionId = useOptionalSessionId();
-  const sendTodo = useSendTodoToAgent();
+  const sendQueuedMessage = useSendQueuedMessage();
   const save = useSaveProjectQueue(workspaceId);
 
   const [editor, setEditor] = useState<{
@@ -45,13 +43,16 @@ export function QueueTab({
 
   const update = (next: AeroProjectQueueMessage[]) => save.mutate(next);
 
-  const handleSend = (target: SendTodoTarget, text: string) =>
-    sendTodo({
-      text,
+  const handleSend = (
+    target: SendTodoTarget,
+    message: AeroProjectQueueMessage,
+  ) =>
+    sendQueuedMessage({
+      segments: message.segments,
+      text: message.text,
       target,
       sessionId,
       workspaceDirectory,
-      failureMessage: t.notesPanel.queue.sendFailed,
     });
 
   const submitEditor = (segments: ComposerSegment[]) => {
@@ -110,7 +111,7 @@ export function QueueTab({
                 canSendToCurrent={canSendToCurrent}
                 triggerClassName='opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100'
                 onEdit={() => setEditor({ message })}
-                onSend={(target) => handleSend(target, message.text)}
+                onSend={(target) => handleSend(target, message)}
                 onDelete={() =>
                   update(queue.filter((entry) => entry.id !== message.id))
                 }

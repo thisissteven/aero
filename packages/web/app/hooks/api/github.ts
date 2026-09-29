@@ -2,6 +2,7 @@
 import {
   type UseMutationOptions,
   type UseQueryOptions,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,9 @@ export const githubKeys = {
 
   authStatus: () => [...githubKeys.all(), 'auth', 'status'] as const,
   me: () => [...githubKeys.all(), 'me'] as const,
+
+  repos: (search?: string) =>
+    [...githubKeys.all(), 'repos', search ?? ''] as const,
 
   prStatus: (directory?: string, branch?: string, remote?: string) =>
     [
@@ -167,6 +171,9 @@ export type BranchesQuery = InferRequestType<
 export type UpstreamQuery = InferRequestType<
   (typeof $github)['repo']['upstream']['$get']
 >['query'];
+export type UserReposQuery = InferRequestType<
+  (typeof $github)['repos']['$get']
+>['query'];
 
 export type GitHubAuthStatusResponse = InferResponseType<
   (typeof $github)['auth']['status']['$get'],
@@ -220,6 +227,14 @@ export type GitHubIssueCommentsResponse = InferResponseType<
   (typeof $github)['issues']['comments']['$get'],
   200
 >;
+export type GitHubUserReposResponse = InferResponseType<
+  (typeof $github)['repos']['$get'],
+  200
+>;
+export type GitHubUserRepo = Extract<
+  GitHubUserReposResponse,
+  { connected: true }
+>['repos'][number];
 export type GitHubPrDescriptionResponse = {
   title: string;
   body: string;
@@ -376,6 +391,31 @@ export function useGitHubPullContext(
 // ---------------------------------------------------------------------------
 // Query hooks — Repos
 // ---------------------------------------------------------------------------
+
+/**
+ * The authenticated account's repositories, newest-updated first, with an
+ * optional server-side search. Only enabled once the caller knows GitHub is
+ * connected; a disconnected server answers `connected: false`.
+ */
+export function useGitHubRepos(
+  search?: string,
+  options?: { enabled?: boolean },
+) {
+  return useInfiniteQuery({
+    queryKey: githubKeys.repos(search),
+    initialPageParam: 1,
+    enabled: options?.enabled !== false,
+    queryFn: async ({ pageParam }) =>
+      unwrap<GitHubUserReposResponse>(
+        $github.repos.$get({
+          query: { page: String(pageParam), search: search || undefined },
+        }),
+        'repositories',
+      ),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
+  });
+}
 
 export function useGitHubBranches(
   owner?: string,

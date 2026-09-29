@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, cn } from '@aero/ui';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ComposerCommandPalette } from '@/app/components/smart-composer/components/composer-cp';
 import { replaceEditorContent } from '@/app/components/smart-composer/smart-composer-dom';
@@ -42,6 +42,9 @@ export function MessageComposer({
     () => `message-composer:${crypto.randomUUID()}`,
     [],
   );
+  // Render the palette inside the enclosing modal dialog so it stacks above
+  // the dialog content and stays within its focus/dismiss scope.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   const composer = useSmartComposer({ editorRef, composerKey });
   const palette = useComposerPalette({ editorRef, composerKey, directory });
@@ -49,6 +52,11 @@ export function MessageComposer({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
+
+    setPortalTarget(
+      editor.closest<HTMLElement>('[data-slot="modal-dialog"]') ??
+        document.body,
+    );
 
     replaceEditorContent(editor, defaultValue ?? []);
     composer.initialize();
@@ -181,6 +189,7 @@ export function MessageComposer({
         onHover={palette.setHoverIndex}
         onHoverReset={palette.clearHoverSuppression}
         scrollIndex={palette.scrollIndex}
+        portalTarget={portalTarget}
       />
     </div>
   );

@@ -2,7 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import simpleGit, { type SimpleGit } from 'simple-git';
 import { z } from 'zod';
-import { DirectoryNotFoundError, InvalidGitRepositoryError } from './errors';
+import { getGitHubAuth } from '../github/auth';
+import {
+  CloneFailedError,
+  DirectoryNotFoundError,
+  InvalidGitRepositoryError,
+  TargetDirectoryExistsError,
+} from './errors';
 
 // ---------------------------------------------------------------------------
 // Git client management
@@ -185,6 +191,13 @@ export const mergeBodySchema = z.object({
   fastForwardOnly: z.boolean().optional(),
 });
 
+export const cloneBodySchema = z.object({
+  url: z.string().min(1, 'Repository URL is required'),
+  targetDir: z.string().min(1, 'Target directory is required'),
+  full: z.boolean().optional().default(false),
+  submodules: z.boolean().optional().default(false),
+});
+
 // ---------------------------------------------------------------------------
 // Inferred option types (consumed by the service functions below)
 // ---------------------------------------------------------------------------
@@ -194,6 +207,7 @@ export type PushOptions = z.infer<typeof pushBodySchema>;
 export type FetchOptions = z.infer<typeof fetchBodySchema>;
 export type RebaseOptions = z.infer<typeof rebaseBodySchema>;
 export type MergeOptions = z.infer<typeof mergeBodySchema>;
+export type CloneOptions = z.infer<typeof cloneBodySchema>;
 
 // ---------------------------------------------------------------------------
 // Service functions
@@ -694,4 +708,85 @@ export async function getDiffSummary(
   }
 
   return Array.from(summary.values());
+}
+
+// ---------------------------------------------------------------------------
+// Clone
+// ---------------------------------------------------------------------------
+
+/**
+ * Rebuilds an https clone URL with the token embedded, but only when the
+ * remote is github.com over https. Anything else (ssh, other hosts) is left
+ * untouched so we never attach credentials to a host that did not ask for
+ * them.
+ */
+function withGitHubCredentials(url: string, token: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
+      return url;
+    }
+    parsed.username = 'x-access-token';
+    parsed.password = token;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/** Removes a secret from a message so a failed clone can't leak a token. */
+function scrubSecret(message: string, secret?: string): string {
+  if (!secret) return message;
+  return message.split(secret).join('***');
+}
+
+/**
+ * Clones a repository into `targetDir`. The parent directory must exist and
+ * the target must not — the client computes `<parent>/<repo>` and we refuse to
+ * write over whatever is already there.
+ *
+ * Private GitHub repos are supported by embedding the active token; public
+ * repos clone fine while disconnected.
+ */
+export async function cloneRepository(
+  options: CloneOptions,
+): Promise<{ path: string }> {
+  const targetDir = normalizePath(options.targetDir);
+  const parentDir = path.dirname(targetDir);
+
+  if (!fs.existsSync(parentDir) || !fs.statSync(parentDir).isDirectory()) {
+    throw new DirectoryNotFoundError(parentDir);
+  }
+  if (fs.existsSync(targetDir)) {
+    throw new TargetDirectoryExistsError(targetDir);
+  }
+
+  const token = getGitHubAuth()?.accessToken;
+  const cloneUrl = token
+    ? withGitHubCredentials(options.url, token)
+    : options.url;
+
+  const args: string[] = [];
+  if (!options.full) args.push('--depth=1');
+  if (options.submodules) args.push('--recurse-submodules');
+
+  try {
+    // A private repo without credentials would otherwise prompt (or pop a GUI
+    // credential dialog) and hang the request; fail fast instead.
+    await simpleGit(gitOptions)
+      .env({
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+        GCM_INTERACTIVE: 'never',
+      })
+      .clone(cloneUrl, targetDir, args);
+  } catch (error) {
+    const message = scrubSecret(
+      (error as { message?: string })?.message ?? '',
+      token,
+    );
+    throw new CloneFailedError(message);
+  }
+
+  return { path: targetDir };
 }
