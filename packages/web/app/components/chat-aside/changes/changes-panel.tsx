@@ -35,6 +35,7 @@ import {
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
 import { useI18n } from '@/app/hooks/i18n';
 import { toWorkspaceRelative } from '@/app/lib/file';
+import { toastPromise } from '@/app/lib/toast';
 import { useTheme } from '@/app/providers';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
@@ -218,22 +219,22 @@ export function ChangesPanel() {
       return;
     }
 
-    try {
-      await commitMutation.mutateAsync({
+    const ok = await toastPromise(
+      commitMutation.mutateAsync({
         directory,
         message: message.trim(),
         ...(addAll ? { addAll: true } : { files: Array.from(selected) }),
-      });
-      toast.success(t.changesPanel.commitCreated);
+      }),
+      {
+        loading: t.changesPanel.commit,
+        success: t.changesPanel.commitCreated,
+        error: (error) => error.message || t.changesPanel.failedToCreateCommit,
+      },
+    );
+    if (ok) {
       setMessage('');
       setSelected(new Set());
       refetch();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.changesPanel.failedToCreateCommit,
-      );
     }
   };
 

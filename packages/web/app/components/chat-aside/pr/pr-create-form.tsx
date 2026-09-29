@@ -24,6 +24,7 @@ import {
   useGitHubUpstream,
 } from '@/app/hooks/api/github';
 import { useI18n } from '@/app/hooks/i18n';
+import { toastPromise } from '@/app/lib/toast';
 
 import type { RepoRef } from './types';
 
@@ -85,20 +86,20 @@ export function PrCreateForm({
   }, [base, defaultBase]);
 
   const generate = async () => {
-    try {
-      const result = await describe.mutateAsync({
-        directory,
-        base: base || undefined,
-        head,
-      });
-      setTitle(result.title);
-      setBody(result.body);
-      toast.success(t.pullRequest.generatedSuccessfully);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.pullRequest.generateFailed,
-      );
-    }
+    const described = describe.mutateAsync({
+      directory,
+      base: base || undefined,
+      head,
+    });
+    const ok = await toastPromise(described, {
+      loading: t.pullRequest.generating,
+      success: t.pullRequest.generatedSuccessfully,
+      error: (error) => error.message || t.pullRequest.generateFailed,
+    });
+    if (!ok) return;
+    const result = await described;
+    setTitle(result.title);
+    setBody(result.body);
   };
 
   const submit = async () => {
@@ -107,8 +108,8 @@ export function PrCreateForm({
       return;
     }
     if (!head || !base) return;
-    try {
-      const created = await createPr.mutateAsync({
+    const ok = await toastPromise(
+      createPr.mutateAsync({
         directory,
         title: title.trim(),
         head,
@@ -121,14 +122,14 @@ export function PrCreateForm({
               targetRepo: { owner: upstream!.owner, repo: upstream!.repo },
             }
           : {}),
-      });
-      toast.success(t.pullRequest.pullRequestCreated(created.number));
-      onCreated();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.pullRequest.createFailed,
-      );
-    }
+      }),
+      {
+        loading: t.pullRequest.creatingPullRequest,
+        success: (created) => t.pullRequest.pullRequestCreated(created.number),
+        error: (error) => error.message || t.pullRequest.createFailed,
+      },
+    );
+    if (ok) onCreated();
   };
 
   return (

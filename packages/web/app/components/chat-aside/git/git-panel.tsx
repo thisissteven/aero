@@ -13,7 +13,6 @@ import {
   Skeleton,
   TextField,
   Tooltip,
-  toast,
 } from '@aero/ui';
 import {
   ArrowDown,
@@ -35,6 +34,7 @@ import { Icon } from '@gravity-ui/uikit';
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { type ComponentProps, useEffect, useState } from 'react';
 
+import { OpenIsolatedWorkspace } from '@/app/components/chat-sidebar/session/session-actions';
 import {
   gitKeys,
   useGitBranches,
@@ -64,9 +64,11 @@ import {
   useGitWorktrees,
 } from '@/app/hooks/api/git';
 import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useWorkspace } from '@/app/hooks/api/workspaces';
 import { useDeleteWorktree } from '@/app/hooks/api/worktree';
 import { useI18n } from '@/app/hooks/i18n';
 import { getLastPathName } from '@/app/lib/file';
+import { toastPromise } from '@/app/lib/toast';
 import { useSidePanelStore } from '@/app/stores/side-panel-store';
 
 import { GitDiffContent } from './git-diff-content';
@@ -176,21 +178,15 @@ function BranchHeader({ directory }: { directory: string }) {
 
   const busy = pull.isPending || push.isPending || fetch.isPending;
 
-  const run = async (
+  const run = (
     mutation: { mutateAsync: (input: any) => Promise<unknown> },
     label: string,
-  ) => {
-    try {
-      await mutation.mutateAsync({ directory });
-      toast.success(t.gitPanel.operationComplete(label));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.operationFailed(label),
-      );
-    }
-  };
+  ) =>
+    toastPromise(mutation.mutateAsync({ directory }), {
+      loading: label,
+      success: t.gitPanel.operationComplete(label),
+      error: (error) => error.message || t.gitPanel.operationFailed(label),
+    });
 
   return (
     <div className='border-separator shrink-0 border-b px-3 py-2'>
@@ -365,38 +361,34 @@ function GitTabs({ directory }: { directory: string }) {
 
   const handleAbort = async () => {
     if (!operation) return;
-    try {
-      await (operation === 'merge' ? abortMerge : abortRebase).mutateAsync({
+    await toastPromise(
+      (operation === 'merge' ? abortMerge : abortRebase).mutateAsync({
         directory,
-      });
-      toast.success(t.gitPanel.operationComplete(t.gitPanel.abort));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.operationFailed(t.gitPanel.abort),
-      );
-    } finally {
-      setOperation(null);
-    }
+      }),
+      {
+        loading: t.gitPanel.abort,
+        success: t.gitPanel.operationComplete(t.gitPanel.abort),
+        error: (error) =>
+          error.message || t.gitPanel.operationFailed(t.gitPanel.abort),
+      },
+    );
+    setOperation(null);
   };
 
   const handleContinue = async () => {
     if (!operation) return;
-    try {
-      await (operation === 'merge'
-        ? continueMerge
-        : continueRebase
-      ).mutateAsync({ directory });
-      toast.success(t.gitPanel.operationComplete(t.common.continue));
-      setOperation(null);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.operationFailed(t.common.continue),
-      );
-    }
+    const ok = await toastPromise(
+      (operation === 'merge' ? continueMerge : continueRebase).mutateAsync({
+        directory,
+      }),
+      {
+        loading: t.common.continue,
+        success: t.gitPanel.operationComplete(t.common.continue),
+        error: (error) =>
+          error.message || t.gitPanel.operationFailed(t.common.continue),
+      },
+    );
+    if (ok) setOperation(null);
   };
 
   return (
@@ -513,58 +505,51 @@ function BranchesTab({
 
   const handleCheckout = async (name: string) => {
     if (checkout.isPending) return;
-    try {
-      await checkout.mutateAsync({ directory, target: name });
-      toast.success(t.gitPanel.switchedToBranch(name));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.gitPanel.checkoutFailed,
-      );
-    }
+    await toastPromise(checkout.mutateAsync({ directory, target: name }), {
+      loading: t.gitPanel.checkout,
+      success: t.gitPanel.switchedToBranch(name),
+      error: (error) => error.message || t.gitPanel.checkoutFailed,
+    });
   };
 
   const handleMerge = async (name: string) => {
-    try {
-      await merge.mutateAsync({ directory, branch: name });
-      toast.success(t.gitPanel.operationComplete(t.gitPanel.merge));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.gitPanel.mergeFailed,
-      );
-      onOperation('merge');
-    }
+    const ok = await toastPromise(
+      merge.mutateAsync({ directory, branch: name }),
+      {
+        loading: t.gitPanel.merge,
+        success: t.gitPanel.operationComplete(t.gitPanel.merge),
+        error: (error) => error.message || t.gitPanel.mergeFailed,
+      },
+    );
+    if (!ok) onOperation('merge');
   };
 
   const handleRebase = async (name: string) => {
-    try {
-      await rebase.mutateAsync({ directory, upstream: name });
-      toast.success(t.gitPanel.operationComplete(t.gitPanel.rebase));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.gitPanel.rebaseFailed,
-      );
-      onOperation('rebase');
-    }
+    const ok = await toastPromise(
+      rebase.mutateAsync({ directory, upstream: name }),
+      {
+        loading: t.gitPanel.rebase,
+        success: t.gitPanel.operationComplete(t.gitPanel.rebase),
+        error: (error) => error.message || t.gitPanel.rebaseFailed,
+      },
+    );
+    if (!ok) onOperation('rebase');
   };
 
   const handleCreate = async () => {
     const target = newName.trim();
     if (!target) return;
-    try {
-      await checkout.mutateAsync({
-        directory,
-        target,
-        createBranch: true,
-      });
-      toast.success(t.gitPanel.createdBranch(target));
+    const ok = await toastPromise(
+      checkout.mutateAsync({ directory, target, createBranch: true }),
+      {
+        loading: t.gitPanel.createBranch,
+        success: t.gitPanel.createdBranch(target),
+        error: (error) => error.message || t.gitPanel.branchCreationFailed,
+      },
+    );
+    if (ok) {
       setNewName('');
       setCreateOpen(false);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.branchCreationFailed,
-      );
     }
   };
 
@@ -865,22 +850,22 @@ function DeleteBranchModal({
 
   const handleDelete = async () => {
     if (!target) return;
-    try {
-      await deleteBranch.mutateAsync({
+    const ok = await toastPromise(
+      deleteBranch.mutateAsync({
         directory,
         branch: target.branch,
         force: true,
         deleteLocal,
         deleteRemote,
         remote: deleteRemote ? remote.trim() || 'origin' : undefined,
-      });
-      toast.success(t.gitPanel.branchDeleted(target.display));
-      onClose();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.gitPanel.deleteBranchFailed,
-      );
-    }
+      }),
+      {
+        loading: t.gitPanel.deleteBranch,
+        success: t.gitPanel.branchDeleted(target.display),
+        error: (error) => error.message || t.gitPanel.deleteBranchFailed,
+      },
+    );
+    if (ok) onClose();
   };
 
   return (
@@ -1025,22 +1010,16 @@ function StashesTab({ directory }: { directory: string }) {
   const stashes =
     (data as { stashes?: Stash[] } | null | undefined)?.stashes ?? [];
 
-  const run = async (
+  const run = (
     mutation: { mutateAsync: (input: any) => Promise<unknown> },
     input: Record<string, unknown>,
     label: string,
-  ) => {
-    try {
-      await mutation.mutateAsync({ directory, ...input });
-      toast.success(t.gitPanel.operationComplete(label));
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.operationFailed(label),
-      );
-    }
-  };
+  ) =>
+    toastPromise(mutation.mutateAsync({ directory, ...input }), {
+      loading: label,
+      success: t.gitPanel.operationComplete(label),
+      error: (error) => error.message || t.gitPanel.operationFailed(label),
+    });
 
   if (isLoading) return <ListSkeleton />;
 
@@ -1139,6 +1118,8 @@ function StashesTab({ directory }: { directory: string }) {
 function WorktreesTab({ directory }: { directory: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGitWorktrees(directory);
+  const { data: remotesData } = useGitRemotes(directory);
+  const { data: workspace } = useWorkspace(directory);
   const [deleteTarget, setDeleteTarget] = useState<Worktree | null>(null);
 
   if (isLoading) return <ListSkeleton />;
@@ -1147,6 +1128,20 @@ function WorktreesTab({ directory }: { directory: string }) {
     ? (data as Worktree[])
     : ((data as { worktrees?: Worktree[] } | null | undefined)?.worktrees ??
       []);
+
+  const remoteNames = (
+    Array.isArray(remotesData) ? (remotesData as Remote[]) : []
+  ).map((remote) => remote.name);
+  const remote = remoteNames.includes('origin')
+    ? 'origin'
+    : (remoteNames[0] ?? 'origin');
+
+  // "Open workspace" should reveal the workspace that owns this worktree, not
+  // the worktree's own checkout directory.
+  const workspaceDirectory =
+    workspace?.directory ??
+    worktrees.find((wt) => wt.isMain)?.directory ??
+    directory;
 
   if (!worktrees.length) return <EmptyState label={t.gitPanel.noWorktrees} />;
 
@@ -1178,33 +1173,16 @@ function WorktreesTab({ directory }: { directory: string }) {
                 </div>
               </div>
 
-              {!wt.isMain && (
-                <Dropdown size='sm'>
-                  <IconButton aria-label={t.workspace.worktreeActions(name)}>
-                    <Icon data={EllipsisVertical} />
-                  </IconButton>
-                  <Dropdown.Popover placement='bottom end'>
-                    <Dropdown.Menu
-                      onAction={(key) => {
-                        if (key === 'delete') setDeleteTarget(wt);
-                      }}
-                    >
-                      <Dropdown.Item
-                        id='delete'
-                        variant='danger'
-                        textValue={t.gitPanel.deleteWorktree}
-                      >
-                        <Icon
-                          data={TrashBin}
-                          className='text-danger-soft-foreground'
-                        />
-                        <Label className='text-danger-soft-foreground! font-medium'>
-                          {t.gitPanel.deleteWorktree}
-                        </Label>
-                      </Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown.Popover>
-                </Dropdown>
+              {path && (
+                <WorktreeActionsMenu
+                  name={name}
+                  path={path}
+                  branch={wt.branch ?? null}
+                  remote={remote}
+                  isMain={Boolean(wt.isMain)}
+                  workspaceDirectory={workspaceDirectory}
+                  onDelete={() => setDeleteTarget(wt)}
+                />
               )}
             </li>
           );
@@ -1217,6 +1195,111 @@ function WorktreesTab({ directory }: { directory: string }) {
         onClose={() => setDeleteTarget(null)}
       />
     </>
+  );
+}
+
+function WorktreeActionsMenu({
+  name,
+  path,
+  branch,
+  remote,
+  isMain,
+  workspaceDirectory,
+  onDelete,
+}: {
+  name: string;
+  path: string;
+  branch: string | null;
+  remote: string;
+  isMain: boolean;
+  workspaceDirectory: string;
+  onDelete: () => void;
+}) {
+  const { t } = useI18n();
+  const push = useGitPush();
+  const pull = useGitPull();
+  const fetch = useGitFetch();
+
+  const busy = push.isPending || pull.isPending || fetch.isPending;
+
+  const run = (
+    mutation: { mutateAsync: (input: any) => Promise<unknown> },
+    input: Record<string, unknown>,
+    label: string,
+  ) =>
+    toastPromise(mutation.mutateAsync({ directory: path, ...input }), {
+      loading: label,
+      success: t.gitPanel.operationComplete(label),
+      error: (error) => error.message || t.gitPanel.operationFailed(label),
+    });
+
+  return (
+    <Dropdown size='sm'>
+      <IconButton aria-label={t.workspace.worktreeActions(name)}>
+        <Icon data={EllipsisVertical} />
+      </IconButton>
+      <Dropdown.Popover placement='bottom end'>
+        <Dropdown.Menu aria-label={t.workspace.worktreeActions(name)}>
+          <OpenIsolatedWorkspace directory={workspaceDirectory} />
+
+          {branch && (
+            <>
+              <Dropdown.Item
+                className='gap-1'
+                isDisabled={busy}
+                onPress={() =>
+                  run(
+                    push,
+                    { branch, remote, setUpstream: true },
+                    t.gitPanel.push,
+                  )
+                }
+              >
+                <Icon size={14} data={ArrowUp} />
+                <Label>{t.gitPanel.push}</Label>
+              </Dropdown.Item>
+              <Dropdown.Item
+                className='gap-1'
+                isDisabled={busy}
+                onPress={() => run(pull, { branch, remote }, t.gitPanel.pull)}
+              >
+                <Icon size={14} data={ArrowDown} />
+                <Label>{t.gitPanel.pull}</Label>
+              </Dropdown.Item>
+            </>
+          )}
+
+          <Dropdown.Item
+            className='gap-1'
+            isDisabled={busy}
+            onPress={() => run(fetch, { remote }, t.gitPanel.fetch)}
+          >
+            <Icon size={14} data={ArrowsRotateRight} />
+            <Label>{t.gitPanel.fetch}</Label>
+          </Dropdown.Item>
+
+          {!isMain && (
+            <>
+              <Separator />
+              <Dropdown.Item
+                className='gap-1'
+                variant='danger'
+                onPress={onDelete}
+              >
+                <Icon
+                  size={14}
+                  data={TrashBin}
+                  className='text-danger-soft-foreground'
+                />
+                <Label className='text-danger-soft-foreground! font-medium'>
+                  {t.gitPanel.deleteWorktree}
+                </Label>
+              </Dropdown.Item>
+            </>
+          )}
+        </Dropdown.Menu>
+      </Dropdown.Popover>
+    </Dropdown>
   );
 }
 
@@ -1252,8 +1335,8 @@ function DeleteWorktreeModal({
 
   const handleDelete = async () => {
     if (!worktree?.directory) return;
-    try {
-      await deleteWorktree.mutateAsync({
+    const ok = await toastPromise(
+      deleteWorktree.mutateAsync({
         directory,
         worktreeDirectory: worktree.directory,
         force: true,
@@ -1264,16 +1347,14 @@ function DeleteWorktreeModal({
           alsoDeleteBranch && deleteRemote
             ? remote.trim() || 'origin'
             : undefined,
-      });
-      toast.success(t.workspace.worktreeDeleted);
-      onClose();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.gitPanel.deleteWorktreeFailed,
-      );
-    }
+      }),
+      {
+        loading: t.workspace.deleteWorktree,
+        success: t.workspace.worktreeDeleted,
+        error: (error) => error.message || t.gitPanel.deleteWorktreeFailed,
+      },
+    );
+    if (ok) onClose();
   };
 
   return (
@@ -1381,23 +1462,18 @@ function RemotesTab({ directory }: { directory: string }) {
                 <IconButton
                   aria-label={t.gitPanel.fetch}
                   isDisabled={fetch.isPending}
-                  onPress={async () => {
-                    try {
-                      await fetch.mutateAsync({
-                        directory,
-                        remote: remote.name,
-                      });
-                      toast.success(
-                        t.gitPanel.operationComplete(t.gitPanel.fetch),
-                      );
-                    } catch (error) {
-                      toast.danger(
-                        error instanceof Error
-                          ? error.message
-                          : t.gitPanel.operationFailed(t.gitPanel.fetch),
-                      );
-                    }
-                  }}
+                  onPress={() =>
+                    toastPromise(
+                      fetch.mutateAsync({ directory, remote: remote.name }),
+                      {
+                        loading: t.gitPanel.fetch,
+                        success: t.gitPanel.operationComplete(t.gitPanel.fetch),
+                        error: (error) =>
+                          error.message ||
+                          t.gitPanel.operationFailed(t.gitPanel.fetch),
+                      },
+                    )
+                  }
                 >
                   <Icon data={ArrowsRotateRight} />
                 </IconButton>
@@ -1410,21 +1486,20 @@ function RemotesTab({ directory }: { directory: string }) {
                 <IconButton
                   aria-label={t.gitPanel.removeRemote}
                   isDisabled={removeRemote.isPending}
-                  onPress={async () => {
-                    try {
-                      await removeRemote.mutateAsync({
+                  onPress={() =>
+                    toastPromise(
+                      removeRemote.mutateAsync({
                         directory,
                         remote: remote.name,
-                      });
-                      toast.success(t.gitPanel.removedRemote(remote.name));
-                    } catch (error) {
-                      toast.danger(
-                        error instanceof Error
-                          ? error.message
-                          : t.gitPanel.removeRemoteFailed,
-                      );
-                    }
-                  }}
+                      }),
+                      {
+                        loading: t.gitPanel.removeRemote,
+                        success: t.gitPanel.removedRemote(remote.name),
+                        error: (error) =>
+                          error.message || t.gitPanel.removeRemoteFailed,
+                      },
+                    )
+                  }
                 >
                   <Icon data={TrashBin} />
                 </IconButton>

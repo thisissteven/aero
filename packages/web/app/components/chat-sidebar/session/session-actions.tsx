@@ -114,6 +114,7 @@ export function RecentsToggleEditModeButton() {
         </Button>
         <Button
           variant='outline'
+          className='backdrop-blur-sm'
           onPress={() => {
             const sessionIds =
               useRecentsSidebarStore.getState().selectedSessionIds;
@@ -519,7 +520,7 @@ export function DeleteBulkSessionsConfirmationModal({
         <p>{t.session.deleteMany(sessionIds.length)}</p>
       </Modal.Body>
       <Modal.Footer>
-        <Button slot='close' variant='tertiary'>
+        <Button slot='close' variant='tertiary' size='sm'>
           {t.common.cancel}
         </Button>
         <Button
@@ -537,6 +538,7 @@ export function DeleteBulkSessionsConfirmationModal({
             });
           }}
           variant='danger'
+          size='sm'
         >
           {t.common.delete}
         </Button>
@@ -572,7 +574,7 @@ function DeleteSessionConfirmationModal({
         </p>
       </Modal.Body>
       <Modal.Footer>
-        <Button slot='close' variant='tertiary'>
+        <Button slot='close' variant='tertiary' size='sm'>
           {t.common.cancel}
         </Button>
         <Button
@@ -590,6 +592,7 @@ function DeleteSessionConfirmationModal({
             });
           }}
           variant='danger'
+          size='sm'
         >
           {t.common.delete}
         </Button>

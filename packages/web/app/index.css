@@ -17,12 +17,20 @@
     @apply opacity-70 dark:opacity-30;
   }
 
+  .button {
+    @apply rounded-lg;
+  }
+
   .kbd {
     @apply bg-default/60! backdrop-blur-sm;
   }
 
   .tooltip {
     @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
+  }
+
+  .modal__dialog {
+    @apply rounded-xl;
   }
 
   .input--secondary {

@@ -9,8 +9,10 @@ export const SMART_COMPOSER_PLACEHOLDER =
 export function ComposerPlaceholder() {
   const sessionId = useSessionId();
   const { t } = useI18n();
-  const isEmpty = useComposerStore(
-    (state) => getComposerSession(state, sessionId).segments.length === 0,
+  const isEmpty = useComposerStore((state) =>
+    getComposerSession(state, sessionId).segments.every(
+      (segment) => segment.type === 'text' && segment.text.trim().length === 0,
+    ),
   );
   const mode = useComposerStore(
     (state) => getComposerSession(state, sessionId).mode,

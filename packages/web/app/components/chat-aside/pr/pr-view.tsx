@@ -28,6 +28,7 @@ import {
   useGitHubUpdatePr,
 } from '@/app/hooks/api/github';
 import { useI18n } from '@/app/hooks/i18n';
+import { toastPromise } from '@/app/lib/toast';
 
 import { PrChecks } from './pr-checks';
 import { PrConversation } from './pr-conversation';
@@ -81,35 +82,34 @@ export function PrView({
   const commentCount = contextData?.issueComments?.length ?? 0;
 
   const merge = async (method: MergeMethod) => {
-    try {
-      const result = await mergeMutation.mutateAsync({
+    const ok = await toastPromise(
+      mergeMutation.mutateAsync({
         directory,
         number: pr.number,
         method,
-      });
-      if (result.merged === false) {
-        toast.warning(result.message || t.pullRequest.mergeBlocked);
-      } else {
-        toast.success(t.pullRequest.merged);
-      }
-      onChanged();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.pullRequest.mergeFailed,
-      );
-    }
+      }),
+      {
+        loading: t.pullRequest.merge,
+        success: (result) =>
+          result.merged === false
+            ? result.message || t.pullRequest.mergeBlocked
+            : t.pullRequest.merged,
+        error: (error) => error.message || t.pullRequest.mergeFailed,
+      },
+    );
+    if (ok) onChanged();
   };
 
   const markReady = async () => {
-    try {
-      await readyMutation.mutateAsync({ directory, number: pr.number });
-      toast.success(t.pullRequest.markReady);
-      onChanged();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.pullRequest.markReadyFailed,
-      );
-    }
+    const ok = await toastPromise(
+      readyMutation.mutateAsync({ directory, number: pr.number }),
+      {
+        loading: t.pullRequest.markReady,
+        success: t.pullRequest.markReady,
+        error: (error) => error.message || t.pullRequest.markReadyFailed,
+      },
+    );
+    if (ok) onChanged();
   };
 
   const canMerge = status.canMerge !== false && pr.state === 'open';
@@ -430,20 +430,20 @@ function EditForm({
       toast.danger(t.pullRequest.titleRequired);
       return;
     }
-    try {
-      await updateMutation.mutateAsync({
+    const ok = await toastPromise(
+      updateMutation.mutateAsync({
         directory,
         number,
         title: title.trim(),
         body: body.trim() || undefined,
-      });
-      toast.success(t.pullRequest.updated);
-      onDone();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.pullRequest.updateFailed,
-      );
-    }
+      }),
+      {
+        loading: t.pullRequest.save,
+        success: t.pullRequest.updated,
+        error: (error) => error.message || t.pullRequest.updateFailed,
+      },
+    );
+    if (ok) onDone();
   };
 
   return (

@@ -16,6 +16,7 @@ import {
   useGitHubStartDeviceFlow,
 } from '@/app/hooks/api/github';
 import { useI18n } from '@/app/hooks/i18n';
+import { toastPromise } from '@/app/lib/toast';
 import type { DeviceFlowStart, GitHubAccount, GitHubAuthStatus } from './types';
 import { displayName } from './util';
 
@@ -74,38 +75,34 @@ export function GitHubConnectCard({
   }, [flow, exchangeMutation, onConnected, t]);
 
   const handleStart = async () => {
-    try {
-      setFlow((await startMutation.mutateAsync({})) as DeviceFlowStart);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.pullRequest.failedToStartGithubLogin,
-      );
-    }
+    const started = startMutation.mutateAsync({});
+    const ok = await toastPromise(started, {
+      loading: t.pullRequest.connectWithGitHub,
+      success: t.pullRequest.authorizeDevice,
+      error: (error) => error.message || t.pullRequest.failedToStartGithubLogin,
+    });
+    if (ok) setFlow((await started) as DeviceFlowStart);
   };
 
-  const copyCode = async () => {
+  const copyCode = () => {
     if (!flow) return;
-    try {
-      await navigator.clipboard.writeText(flow.userCode);
-      toast.success(t.pullRequest.codeCopied);
-    } catch {
-      toast.danger(t.pullRequest.copyFailed);
-    }
+    void toastPromise(navigator.clipboard.writeText(flow.userCode), {
+      loading: t.pullRequest.copyCodeAria,
+      success: t.pullRequest.codeCopied,
+      error: () => t.pullRequest.copyFailed,
+    });
   };
 
   const useAccount = async (account: GitHubAccount) => {
-    try {
-      await activateMutation.mutateAsync({ accountId: account.id });
-      onConnected();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.pullRequest.switchAccountFailed,
-      );
-    }
+    const ok = await toastPromise(
+      activateMutation.mutateAsync({ accountId: account.id }),
+      {
+        loading: t.pullRequest.switchAccount,
+        success: t.pullRequest.connectedToGitHub,
+        error: (error) => error.message || t.pullRequest.switchAccountFailed,
+      },
+    );
+    if (ok) onConnected();
   };
 
   return (

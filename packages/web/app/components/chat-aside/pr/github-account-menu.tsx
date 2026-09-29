@@ -3,7 +3,7 @@
 // Header account switcher. Lists every account Aero can use (including the
 // `gh` CLI one) and lets the user disable the CLI fallback entirely.
 
-import { Avatar, Dropdown, Label, Separator, toast } from '@aero/ui';
+import { Avatar, Dropdown, Label, Separator } from '@aero/ui';
 import { ArrowRotateLeft, Check, Xmark } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 
@@ -13,6 +13,7 @@ import {
   useGitHubSetGhCli,
 } from '@/app/hooks/api/github';
 import { useI18n } from '@/app/hooks/i18n';
+import { toastPromise } from '@/app/lib/toast';
 import type { GitHubAuthStatus } from './types';
 import { displayName } from './util';
 
@@ -32,17 +33,16 @@ export function GitHubAccountMenu({
   const ghCli = auth.ghCli;
   const user = auth.user ?? null;
 
-  const run = async (action: () => Promise<unknown>) => {
-    try {
-      await action();
-      onChanged();
-    } catch (error) {
-      toast.danger(
-        error instanceof Error
-          ? error.message
-          : t.pullRequest.switchAccountFailed,
-      );
-    }
+  const run = async (
+    action: () => Promise<unknown>,
+    options: { loading: string; success: string; failed: string },
+  ) => {
+    const ok = await toastPromise(action(), {
+      loading: options.loading,
+      success: options.success,
+      error: (error) => error.message || options.failed,
+    });
+    if (ok) onChanged();
   };
 
   return (
@@ -75,8 +75,13 @@ export function GitHubAccountMenu({
               textValue={displayName(account.user)}
               isDisabled={account.current}
               onPress={() =>
-                void run(() =>
-                  activateMutation.mutateAsync({ accountId: account.id }),
+                void run(
+                  () => activateMutation.mutateAsync({ accountId: account.id }),
+                  {
+                    loading: t.pullRequest.switchAccount,
+                    success: t.pullRequest.connectedToGitHub,
+                    failed: t.pullRequest.switchAccountFailed,
+                  },
                 )
               }
             >
@@ -104,8 +109,16 @@ export function GitHubAccountMenu({
                 id='toggle-gh-cli'
                 textValue={t.pullRequest.useGhCli}
                 onPress={() =>
-                  void run(() =>
-                    ghCliMutation.mutateAsync({ disabled: !ghCli.disabled }),
+                  void run(
+                    () =>
+                      ghCliMutation.mutateAsync({ disabled: !ghCli.disabled }),
+                    {
+                      loading: t.pullRequest.switchAccount,
+                      success: ghCli.disabled
+                        ? t.pullRequest.ghCliEnabled
+                        : t.pullRequest.useGhCli,
+                      failed: t.pullRequest.switchAccountFailed,
+                    },
                   )
                 }
               >
@@ -128,19 +141,13 @@ export function GitHubAccountMenu({
             id='disconnect'
             variant='danger'
             textValue={t.pullRequest.disconnect}
-            onPress={async () => {
-              try {
-                await disconnect.mutateAsync();
-                toast.success(t.pullRequest.disconnected);
-                onChanged();
-              } catch (error) {
-                toast.danger(
-                  error instanceof Error
-                    ? error.message
-                    : t.pullRequest.disconnectFailed,
-                );
-              }
-            }}
+            onPress={() =>
+              run(() => disconnect.mutateAsync(), {
+                loading: t.pullRequest.disconnect,
+                success: t.pullRequest.disconnected,
+                failed: t.pullRequest.disconnectFailed,
+              })
+            }
           >
             <Label>{t.pullRequest.disconnect}</Label>
           </Dropdown.Item>

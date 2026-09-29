@@ -1,3 +1,4 @@
+import { useIsomorphicLayoutEffect } from '@aero/ui';
 import React, {
   Children,
   cloneElement,
@@ -13,8 +14,6 @@ import React, {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-
-import { useIsomorphicLayoutEffect } from '@aero/ui';
 
 import { useKeyPress } from '@/app/hooks/useKeyPress';
 import { useOnClickOutside } from '@/app/hooks/useOnClickOutside';
@@ -298,7 +297,7 @@ export function CollapsibleActions({
         }
 
         .speed-dial-circle {
-          fill: var(--surface, #181818);
+          fill: transparent;
           transform-origin: 300px 300px;
           /* Default state: disembunyikan & kuncinya dikecilkan biar ga bocor keluar trigger */
           transform: translate(0, 0) scale(0);
@@ -321,7 +320,7 @@ export function CollapsibleActions({
         }
 
         .speed-dial-circle-center {
-          fill: var(--surface, #181818);
+          fill: transparent;
           transform-origin: 300px 300px;
           transform: scale(0);
           opacity: 0;
