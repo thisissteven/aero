@@ -14,16 +14,12 @@ interface AppearanceState {
   controlsStyle: ControlsStyle;
 
   language: string;
-  timeFormat: string;
-  weekStartsOn: string;
 
   setLightTheme: (theme: ColorTheme) => void;
   setDarkTheme: (theme: ColorTheme) => void;
   setControlsPosition: (position: ControlsPosition) => void;
   setControlsStyle: (style: ControlsStyle) => void;
   setLanguage: (language: string) => void;
-  setTimeFormat: (format: string) => void;
-  setWeekStartsOn: (day: string) => void;
 }
 
 export const useAppearanceStore = create<AppearanceState>()(
@@ -34,16 +30,12 @@ export const useAppearanceStore = create<AppearanceState>()(
       controlsPosition: 'right',
       controlsStyle: 'classic',
       language: 'en',
-      timeFormat: 'auto',
-      weekStartsOn: 'auto',
 
       setLightTheme: (lightTheme) => set({ lightTheme }),
       setDarkTheme: (darkTheme) => set({ darkTheme }),
       setControlsPosition: (controlsPosition) => set({ controlsPosition }),
       setControlsStyle: (controlsStyle) => set({ controlsStyle }),
       setLanguage: (language) => set({ language }),
-      setTimeFormat: (timeFormat) => set({ timeFormat }),
-      setWeekStartsOn: (weekStartsOn) => set({ weekStartsOn }),
     }),
     {
       name: 'aero-appearance-settings',

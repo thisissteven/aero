@@ -402,6 +402,12 @@ export function useHandleSend(sessionId: string, isSteerMode: boolean) {
       // Nothing was attempted (no model / stream down) — keep the draft.
       if (result === 'blocked') return;
 
+      // The server consumes the goal-mode arm flag when a prompt is sent, so
+      // refresh the cached flag for the composer target button.
+      void queryClient.invalidateQueries({
+        queryKey: ['config', 'settings', 'goalMode'],
+      });
+
       composerSubmitAfter(resolvedSessionId);
       useExternalPartsStore.getState().reset(resolvedSessionId);
     },

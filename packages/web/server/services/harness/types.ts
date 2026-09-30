@@ -599,6 +599,21 @@ export interface SendSyntheticMessageInput {
   agent?: string;
 }
 
+/**
+ * One-shot text generation on a specific provider/model, used by background
+ * features (goal progress audit). Implementations run it out of band — the
+ * opencode adapter creates a throwaway child session, prompts it, reads the
+ * reply and deletes it — so it never touches the audited session's history.
+ */
+export interface GenerateTextInput {
+  providerID: string;
+  modelID: string;
+  prompt: string;
+  directory: string;
+  parentSessionID?: string;
+  system?: string;
+}
+
 export interface CreateWorkspaceInput {
   name?: string;
   directory: string;
@@ -813,6 +828,12 @@ export interface HarnessAdapter {
     input: SendSyntheticMessageInput,
     directory: string,
   ): Promise<void>;
+
+  /**
+   * Optional. Background one-shot text generation on a given model. Adapters
+   * that cannot run one out of band omit it; callers degrade gracefully.
+   */
+  generateText?(input: GenerateTextInput): Promise<string>;
 
   listAgents(directory?: string): Promise<AeroAgent[]>;
   listAgentsCompact(directory?: string): Promise<AeroAgentCompact[]>;

@@ -4,6 +4,7 @@ import type {
   SessionV2Info as SDKSessionV2Info,
   Session as SessionV2,
 } from '@opencode-ai/sdk/v2';
+import type { AeroGoalPayload } from '@/server/services/goal/types';
 import { ConversationRole } from '@/server/services/harness/types';
 
 export type ContextObligatoryMessage = {
@@ -16,6 +17,7 @@ export interface AeroSessionMetadata {
   selected_model?: string;
   context_obligatory_messages?: ContextObligatoryMessage[];
   context_obligatory_last_compaction_message_id?: string;
+  goal?: AeroGoalPayload;
 }
 
 export interface SessionMetadata {

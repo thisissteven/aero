@@ -162,6 +162,7 @@
         "@homebridge/node-pty-prebuilt-multiarch": "^0.14.1",
         "@hono/zod-validator": "^0.9.0",
         "@hookform/resolvers": "^5.7.1",
+        "@internationalized/date": "catalog:",
         "@lydell/node-pty": "^1.2.0-beta.15",
         "@octokit/rest": "^22.0.1",
         "@openai/codex-sdk": "^0.147.0",

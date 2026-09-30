@@ -30,6 +30,7 @@ import { useI18n } from '@/app/hooks/i18n';
 import { BaseTranslation } from '@/app/hooks/i18n/locales/translations';
 import { useWindowSize } from '@/app/hooks/useWindowSize';
 import { AppearanceView } from '@/app/providers/settings/appearance/appearance-view';
+import { ChatView } from '@/app/providers/settings/chat/chat-view';
 import { GeneralView } from '@/app/providers/settings/general/general-view';
 import { ProvidersView } from '@/app/providers/settings/providers/providers-view';
 import { ReloadOpencode } from '@/app/providers/settings/reload-opencode';
@@ -252,6 +253,7 @@ export function SettingsModal() {
     if (activeTab === 'appearance') return <AppearanceView />;
     if (activeTab === 'providers') return <ProvidersView />;
     if (activeTab === 'snippets') return <SnippetsView />;
+    if (activeTab === 'chat') return <ChatView />;
     return (
       <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
         {t.settings.contentFor(activeTab.replace('-', ' '))}{' '}

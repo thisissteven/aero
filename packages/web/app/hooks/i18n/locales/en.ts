@@ -491,6 +491,59 @@ export const en = {
     goalMode: 'Goal mode',
   },
 
+  sessionGoal: {
+    button: {
+      armAria: 'Goal mode: the next message starts a goal',
+      disarmAria: 'Goal mode armed: tap to disarm',
+      manageAria: 'Manage session goal',
+    },
+    row: {
+      aria: 'Session goal',
+      evaluating: 'Evaluating…',
+    },
+    status: {
+      active: 'Active',
+      paused: 'Paused',
+      blocked: 'Blocked',
+      budgetLimited: 'Budget reached',
+      complete: 'Complete',
+    },
+    usage: {
+      tokens: (used: string) => `${used} tokens`,
+      tokensWithBudget: (used: string, budget: string) =>
+        `${used} / ${budget} tokens`,
+      turns: (turns: number) => `${turns} auto-continues`,
+    },
+    action: {
+      start: 'Start goal',
+      save: 'Save',
+      cancel: 'Cancel',
+      clear: 'Clear goal',
+      pause: 'Pause',
+      resume: 'Resume',
+    },
+    dialog: {
+      titleCreate: 'Start a goal',
+      titleManage: 'Session goal',
+      objectiveLabel: 'Objective',
+      objectivePlaceholder: 'Describe what “done” means for this session…',
+      budgetLabel: 'Token budget',
+      evaluationModelLabel: 'Checked by',
+    },
+    toast: {
+      actionFailed: 'Goal action failed',
+    },
+  },
+
+  settingsChat: {
+    title: 'Chat',
+    subtitle: 'Composer and session behavior.',
+    goalSection: 'Goal mode',
+    goalEnabled: 'Enable goal mode',
+    goalDescription:
+      'When enabled, a session can be given a goal. The server keeps working toward it across turns, checking progress after each one, until the goal is complete, blocked, or out of budget.',
+  },
+
   modelPicker: {
     selectModel: 'Select model',
     searchModelsOrProviders: 'Search models or providers',
@@ -1004,7 +1057,7 @@ export const en = {
     editorPromptPlaceholder: 'Summarize repository changes since yesterday.',
     editorProvider: 'Provider',
     editorModel: 'Model',
-    editorVariant: 'Reasoning',
+    editorVariant: 'Variant',
     editorVariantDefault: 'Default',
     editorAgent: 'Agent',
     editorAgentDefault: 'Default agent',

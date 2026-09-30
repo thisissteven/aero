@@ -365,6 +365,7 @@ function SnippetEditor({
         <Label>{t.settingsSnippets.description}</Label>
         <Input
           value={draft.description}
+          variant='secondary'
           placeholder={t.settingsSnippets.descriptionPlaceholder}
           onChange={(event) =>
             onChange({ ...draft, description: event.target.value })

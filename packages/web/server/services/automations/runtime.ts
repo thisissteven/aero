@@ -14,6 +14,11 @@
 import cronParser from 'cron-parser';
 
 import { GET_ALL_LIMIT } from '@/server/helper';
+import { sessionGoalRuntime } from '@/server/services/goal/runtime';
+import {
+  buildGoalIntroText,
+  createSessionGoal,
+} from '@/server/services/goal/store';
 import { getActiveAdapter } from '@/server/services/harness/registry';
 import { getSessionEventHub } from '@/server/services/sessions/session-event-hub';
 import { expandMessageParts } from '@/server/services/sessions/session-message-part';
@@ -616,9 +621,22 @@ export function createAutomationsRuntime() {
           //
         }
       }
+      // Goal mode: the scheduled task's prompt becomes the objective and the
+      // server-owned goal loop takes over from here.
+      let goalIntro: string | null = null;
       if (task.execution.goalEnabled) {
         try {
-          await updateSetting(['goalMode', sessionId], true);
+          const goal = await createSessionGoal({
+            harness,
+            sessionId,
+            directory,
+            objective: task.execution.prompt,
+            tokenBudget: task.execution.goalTokenBudget ?? null,
+          });
+          if (goal) {
+            goalIntro = buildGoalIntroText(goal.tokenBudget);
+            void sessionGoalRuntime.notifyGoalChanged(sessionId);
+          }
         } catch {
           //
         }
@@ -647,11 +665,17 @@ export function createAutomationsRuntime() {
           directory,
         );
       } else {
-        const parts = await expandMessageParts(
+        const baseParts = await expandMessageParts(
           [{ type: 'text', text: task.execution.prompt }],
           directory,
           harness,
         );
+        const parts = goalIntro
+          ? [
+              ...baseParts,
+              { type: 'text', text: goalIntro, synthetic: true } as never,
+            ]
+          : baseParts;
         harness.sendMessage(
           sessionId,
           {

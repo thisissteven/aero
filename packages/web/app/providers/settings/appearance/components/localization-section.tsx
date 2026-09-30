@@ -1,9 +1,9 @@
 // components/localization-section.tsx
 import { Label, ListBox, Select, Typography } from '@aero/ui';
 
+import { useSetting, useUpdateSetting } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
 import { SupportedLanguage } from '@/app/hooks/i18n/locales/translations';
-import { useAppearanceStore } from '../appearance-store';
 
 const LANGUAGES: { id: SupportedLanguage; label: string }[] = [
   { id: 'en', label: 'English' },
@@ -71,13 +71,20 @@ function LanguageSelect() {
 
 function TimeFormatSelect() {
   const { t } = useI18n();
-  const timeFormat = useAppearanceStore((s) => s.timeFormat);
-  const setTimeFormat = useAppearanceStore((s) => s.setTimeFormat);
+  const { data } = useSetting(['timeFormat']);
+  const update = useUpdateSetting();
+  const timeFormat = data?.value ?? 'auto';
 
   return (
     <Select
       value={timeFormat}
-      onChange={(key) => setTimeFormat(key as string)}
+      onChange={(key) => {
+        if (!key) return;
+        update.mutate({
+          path: ['timeFormat'],
+          value: key as 'auto' | '12h' | '24h',
+        });
+      }}
       className='flex w-[220px] flex-col gap-2'
     >
       <Label>{t.settingsAppearance.timeFormat}</Label>
@@ -104,13 +111,20 @@ function TimeFormatSelect() {
 
 function WeekStartsOnSelect() {
   const { t } = useI18n();
-  const weekStartsOn = useAppearanceStore((s) => s.weekStartsOn);
-  const setWeekStartsOn = useAppearanceStore((s) => s.setWeekStartsOn);
+  const { data } = useSetting(['weekStartsOn']);
+  const update = useUpdateSetting();
+  const weekStartsOn = data?.value ?? 'auto';
 
   return (
     <Select
       value={weekStartsOn}
-      onChange={(key) => setWeekStartsOn(key as string)}
+      onChange={(key) => {
+        if (!key) return;
+        update.mutate({
+          path: ['weekStartsOn'],
+          value: key as 'auto' | 'sunday' | 'monday' | 'saturday',
+        });
+      }}
       className='flex w-[220px] flex-col gap-2'
     >
       <Label>{t.settingsAppearance.weekStartsOn}</Label>

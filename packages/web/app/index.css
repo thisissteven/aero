@@ -10,6 +10,17 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  :where(
+    [class*="overflow-auto"],
+    [class*="overflow-y-auto"],
+    [class*="overflow-x-auto"],
+    [class*="overflow-scroll"],
+    [class*="overflow-y-scroll"],
+    [class*="overflow-x-scroll"]
+  ) {
+    @apply scrollbar-thin;
+  }
 }
 
 @layer components {
@@ -33,10 +44,17 @@
     @apply rounded-xl;
   }
 
+  .date-input-group,
   .select__trigger,
   .input,
   .textarea {
     @apply rounded-lg;
+  }
+
+  .select--secondary .select__trigger,
+  .input--secondary,
+  .textarea--secondary {
+    @apply bg-surface-secondary!;
   }
 
   .select__popover {

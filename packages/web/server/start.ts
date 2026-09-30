@@ -19,6 +19,7 @@ import {
   type WsLikeSocket,
 } from './lib/terminal/pty-session';
 import { automationsRuntime } from './services/automations/runtime';
+import { sessionGoalRuntime } from './services/goal/runtime';
 
 process.on('uncaughtException', (err: any) => {
   if (
@@ -345,6 +346,15 @@ try {
   console.error('[start] Failed to start automations scheduler:', err);
 }
 
+// Start the session-goal control loop. It subscribes to the global event hub
+// so goals keep running while no UI is connected.
+try {
+  await sessionGoalRuntime.start();
+  console.log('[start] Session goal runtime started');
+} catch (err) {
+  console.error('[start] Failed to start session goal runtime:', err);
+}
+
 const DESIRED_PORT = Number(process.env.PORT) || 3000;
 
 const server = await listenWithRetry(DESIRED_PORT);
@@ -359,6 +369,7 @@ const shutdown = async (signal: string) => {
   server.stop(true);
   try {
     automationsRuntime.stop();
+    sessionGoalRuntime.stop();
     await opencodePool.shutdown();
     console.log('[start] OpenCode pool shutdown cleanly.');
   } catch (err) {

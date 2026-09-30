@@ -83,10 +83,19 @@ function delay(ms: number, signal?: AbortSignal): Promise<boolean> {
   });
 }
 
+type GlobalEventListener = (event: AeroEvent) => void;
+
 class SessionEventHub {
   private readonly getHarness: () => Promise<StreamEventsHarness>;
 
   private readonly subscribers = new Set<Subscriber>();
+
+  /**
+   * Listeners that receive EVERY event, not just one session's. Used by
+   * background runtimes (goal loop) that must keep running even when no UI is
+   * connected. They also keep the upstream connection alive.
+   */
+  private readonly globalListeners = new Set<GlobalEventListener>();
 
   private upstreamController: AbortController | null = null;
   private upstreamTask: Promise<void> | null = null;
@@ -160,8 +169,32 @@ class SessionEventHub {
     return this.createIterable(subscriber);
   }
 
+  /**
+   * Subscribe to every event across all sessions. Returns an unsubscribe
+   * function. A global subscriber keeps the upstream connection alive so the
+   * loop survives with no UI attached.
+   */
+  subscribeAll(listener: GlobalEventListener): () => void {
+    this.cancelScheduledShutdown();
+
+    this.globalListeners.add(listener);
+
+    this.ensureUpstream();
+
+    return () => {
+      this.globalListeners.delete(listener);
+
+      if (this.subscribers.size === 0 && this.globalListeners.size === 0) {
+        this.scheduleShutdown();
+      }
+    };
+  }
+
   private ensureUpstream() {
-    if (this.subscribers.size === 0 || this.upstreamTask) {
+    if (
+      (this.subscribers.size === 0 && this.globalListeners.size === 0) ||
+      this.upstreamTask
+    ) {
       return;
     }
 
@@ -235,7 +268,10 @@ class SessionEventHub {
     this.upstreamController = controller;
 
     try {
-      while (!controller.signal.aborted && this.subscribers.size > 0) {
+      while (
+        !controller.signal.aborted &&
+        (this.subscribers.size > 0 || this.globalListeners.size > 0)
+      ) {
         // We're about to (re)connect — until `onConnected` fires we're
         // not "connected" for the purposes of new subscribers.
         this.upstreamConnected = false;
@@ -259,13 +295,19 @@ class SessionEventHub {
             reconnectDelay = RECONNECT_INITIAL_MS;
           }
 
-          if (controller.signal.aborted || this.subscribers.size === 0) {
+          if (
+            controller.signal.aborted ||
+            (this.subscribers.size === 0 && this.globalListeners.size === 0)
+          ) {
             break;
           }
 
           throw new Error('OpenCode global event stream ended unexpectedly');
         } catch (_error) {
-          if (controller.signal.aborted || this.subscribers.size === 0) {
+          if (
+            controller.signal.aborted ||
+            (this.subscribers.size === 0 && this.globalListeners.size === 0)
+          ) {
             break;
           }
 
@@ -296,7 +338,7 @@ class SessionEventHub {
 
       this.upstreamConnected = false;
 
-      if (this.subscribers.size === 0) {
+      if (this.subscribers.size === 0 && this.globalListeners.size === 0) {
         this.readyPromise = null;
         this.resolveReady = null;
         this.rejectReady = null;
@@ -340,6 +382,14 @@ class SessionEventHub {
   }
 
   private dispatch(event: AeroEvent) {
+    for (const listener of [...this.globalListeners]) {
+      try {
+        listener(event);
+      } catch {
+        // One background listener throwing must not starve the others.
+      }
+    }
+
     const sessionId = getEventSessionId(event);
 
     /**
@@ -399,7 +449,7 @@ class SessionEventHub {
 
     this.subscribers.delete(subscriber);
 
-    if (this.subscribers.size === 0) {
+    if (this.subscribers.size === 0 && this.globalListeners.size === 0) {
       this.scheduleShutdown();
     }
   }
@@ -412,7 +462,7 @@ class SessionEventHub {
     this.shutdownTimer = setTimeout(() => {
       this.shutdownTimer = null;
 
-      if (this.subscribers.size === 0) {
+      if (this.subscribers.size === 0 && this.globalListeners.size === 0) {
         this.stopUpstream();
       }
     }, IDLE_SHUTDOWN_GRACE_MS);

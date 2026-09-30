@@ -6,12 +6,18 @@ import { streamSSE } from 'hono/streaming';
 import { produce } from 'immer';
 import { z } from 'zod';
 
+import { sessionGoalRuntime } from '@/server/services/goal/runtime';
+import {
+  buildGoalIntroText,
+  createSessionGoal,
+} from '@/server/services/goal/store';
 import { getSessionEventHub } from '@/server/services/sessions/session-event-hub';
 import { expandMessageParts } from '@/server/services/sessions/session-message-part';
 import {
   listArchivedSessionsAcrossAdapters,
   listSessionsAcrossAdapters,
 } from '@/server/services/sessions/sessions-merger';
+import { getSetting, updateSetting } from '@/server/services/settings';
 import { createStandaloneWorkspace } from '@/server/storage/workspaces';
 import { SessionMetadata } from '@/server/types/opencode-sdk';
 import { groupMessages, withPagination } from '../helper';
@@ -738,12 +744,19 @@ const sessions = new Hono()
         Object.assign(draft, metadata);
       });
 
-      return c.json(
-        await harness.updateSessionMetadata({
-          sessionID: id,
-          metadata: merged,
-        }),
-      );
+      const updated = await harness.updateSessionMetadata({
+        sessionID: id,
+        metadata: merged,
+      });
+
+      // A goal create/edit/resume/pause/clear is a metadata patch, not a
+      // harness event, so the goal runtime is told directly. Skip the notify
+      // for unrelated metadata writes to avoid an extra session fetch.
+      if (metadata.aero && 'goal' in metadata.aero) {
+        void sessionGoalRuntime.notifyGoalChanged(id);
+      }
+
+      return c.json(updated);
     },
   )
 
@@ -920,11 +933,51 @@ const sessions = new Hono()
     async (c) => {
       const { id, harness, session } = await resolveSession(c);
       const body = c.req.valid('json');
-      const parts = await expandMessageParts(
+      let parts = await expandMessageParts(
         body.parts,
         session.workspace,
         harness,
       );
+
+      // Goal mode armed on this session: the prompt about to be sent becomes
+      // the objective. The goal metadata is written before dispatch so the
+      // runtime can never observe a prompt without its goal, and the armed
+      // flag is consumed so only this one prompt starts a goal.
+      const armed = await getSetting(['goalMode', id]).catch(() => false);
+      if (armed) {
+        const objective = parts
+          .map((part) =>
+            part.type === 'text' && typeof part.text === 'string'
+              ? part.text
+              : '',
+          )
+          .filter(Boolean)
+          .join('\n')
+          .trim();
+
+        if (objective) {
+          const goal = await createSessionGoal({
+            harness,
+            sessionId: id,
+            directory: session.workspace,
+            objective,
+          }).catch(() => null);
+
+          if (goal) {
+            parts = [
+              ...parts,
+              {
+                type: 'text',
+                text: buildGoalIntroText(goal.tokenBudget),
+                synthetic: true,
+              } as AeroPartUserMessage,
+            ];
+            await updateSetting(['goalMode', id], false).catch(() => undefined);
+            void sessionGoalRuntime.notifyGoalChanged(id);
+          }
+        }
+      }
+
       return c.json(
         harness.sendMessage(id, { ...body, parts }, session.workspace),
       );

@@ -1,5 +1,6 @@
-import { Button, Modal, Spinner, toast } from '@aero/ui';
+import { Button, cn, Modal, Skeleton, toast } from '@aero/ui';
 import {
+  ChevronLeft,
   CircleCheck,
   CircleExclamation,
   Clock,
@@ -12,17 +13,16 @@ import { Icon } from '@gravity-ui/uikit';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 
-import { AutomationEditor } from '@/app/features/automations/automation-editor';
+import { AutomationEditorDialog } from '@/app/features/automations/automation-editor';
 import {
-  type AutomationDraft,
   useAutomationEvents,
   useAutomations,
   useDeleteAutomation,
   useRunAutomation,
-  useUpsertAutomation,
 } from '@/app/hooks/api/automations';
 import { useWorkspacesCompact } from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
+import { useGlobalModalStore } from '@/app/providers';
 import type {
   AeroAutomation,
   AeroAutomationStatus,
@@ -44,13 +44,6 @@ function formatRelative(target: number): string {
   return formatter.format(Math.round(diff / day), 'day');
 }
 
-function formatClock(value: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 function statusMeta(status: AeroAutomationStatus): {
   labelKey: 'statusIdle' | 'statusRunning' | 'statusSuccess' | 'statusError';
   className: string;
@@ -64,17 +57,42 @@ function statusMeta(status: AeroAutomationStatus): {
   return { labelKey: 'statusIdle', className: 'text-muted' };
 }
 
+function AutomationCardSkeleton() {
+  return (
+    <div className='border-border rounded-lg border p-4'>
+      <div className='flex flex-col gap-2'>
+        <Skeleton className='h-3.5 w-40' />
+        <Skeleton className='h-3 w-56' />
+      </div>
+      <div className='mt-3 flex flex-wrap items-center gap-x-5 gap-y-2'>
+        <Skeleton className='h-3 w-28' />
+        <Skeleton className='h-3 w-28' />
+      </div>
+      <div className='mt-4 flex items-center justify-between gap-2'>
+        <Skeleton className='h-3 w-16' />
+        <div className='flex items-center gap-1.5'>
+          <Skeleton className='h-7 w-24 rounded-md' />
+          <Skeleton className='h-7 w-16 rounded-md' />
+          <Skeleton className='h-7 w-7 rounded-md' />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AutomationsPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  const { data: workspaceData } = useWorkspacesCompact();
+  const { data: workspaceData, isLoading: workspacesLoading } =
+    useWorkspacesCompact();
   const workspaces = useMemo(
     () => workspaceData?.pages.flatMap((page) => page.items) ?? [],
     [workspaceData],
   );
 
   const [workspaceId, setWorkspaceId] = useState<string>();
+  const [view, setView] = useState<'list' | 'detail'>('list');
   useEffect(() => {
     if (!workspaceId && workspaces[0]) {
       setWorkspaceId(workspaces[0].id);
@@ -86,12 +104,10 @@ export function AutomationsPage() {
   const { data: tasks, isLoading } = useAutomations(workspaceId);
   useAutomationEvents(workspaceId, Boolean(workspaceId));
 
-  const upsert = useUpsertAutomation(workspaceId);
+  const openModal = useGlobalModalStore((state) => state.openModal);
   const remove = useDeleteAutomation(workspaceId);
   const runNow = useRunAutomation(workspaceId);
 
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState<AeroAutomation | null>(null);
   const [confirming, setConfirming] = useState<AeroAutomation | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
 
@@ -103,26 +119,29 @@ export function AutomationsPage() {
   }, [tasks]);
 
   const openNew = () => {
-    setEditing(null);
-    setEditorOpen(true);
+    if (!workspaceId) return;
+    openModal({
+      children: (
+        <AutomationEditorDialog
+          workspaceId={workspaceId}
+          directory={workspace?.directory}
+          task={null}
+        />
+      ),
+    });
   };
 
   const openEdit = (task: AeroAutomation) => {
-    setEditing(task);
-    setEditorOpen(true);
-  };
-
-  const handleSave = async (draft: AutomationDraft) => {
-    try {
-      await upsert.mutateAsync(draft);
-      toast.success(t.automations.toastSaved);
-      setEditorOpen(false);
-    } catch (error) {
-      toast.danger(
-        error instanceof Error ? error.message : t.automations.toastSaveFailed,
-      );
-      throw error;
-    }
+    if (!workspaceId) return;
+    openModal({
+      children: (
+        <AutomationEditorDialog
+          workspaceId={workspaceId}
+          directory={workspace?.directory}
+          task={task}
+        />
+      ),
+    });
   };
 
   const handleDelete = async (task: AeroAutomation) => {
@@ -181,11 +200,22 @@ export function AutomationsPage() {
   };
 
   return (
-    <div className='relative h-full overflow-hidden'>
+    <div className='@container relative h-[calc(100svh-56px)] overflow-hidden'>
       <div className='flex h-full min-h-0'>
-        <aside className='border-border/60 flex w-60 flex-shrink-0 flex-col border-r'>
-          <div className='flex flex-1 flex-col gap-0.5 overflow-y-auto p-2'>
-            {workspaces.length === 0 ? (
+        <aside
+          className={cn(
+            'border-border/60 w-full flex-col border-r @xl:flex @xl:w-60 @xl:flex-shrink-0',
+            view === 'list' ? 'flex' : 'hidden',
+          )}
+        >
+          <div className='flex flex-1 flex-col gap-0.5 overflow-y-auto scrollbar-thin p-2'>
+            {workspacesLoading && workspaces.length === 0 ? (
+              <div className='flex flex-col gap-1'>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className='h-7 w-full rounded-md' />
+                ))}
+              </div>
+            ) : workspaces.length === 0 ? (
               <p className='text-muted px-2 py-2 text-sm'>
                 {t.automations.emptySelectWorkspace}
               </p>
@@ -194,12 +224,16 @@ export function AutomationsPage() {
                 <button
                   key={entry.id}
                   type='button'
-                  onClick={() => setWorkspaceId(entry.id)}
-                  className={`focus-visible:ring-ring flex w-full min-w-0 items-center rounded-md px-2 py-1.5 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${
+                  onClick={() => {
+                    setWorkspaceId(entry.id);
+                    setView('detail');
+                  }}
+                  className={cn(
+                    'focus-visible:ring-ring flex w-full min-w-0 items-center rounded-md px-2 py-1.5 text-left text-sm focus-visible:ring-2 focus-visible:outline-none',
                     workspaceId === entry.id
-                      ? 'bg-interactive-selection text-foreground'
-                      : 'text-muted hover:bg-interactive-hover/50 hover:text-foreground'
-                  }`}
+                      ? 'bg-interactive-selection text-muted @2xl:text-foreground'
+                      : 'text-muted hover:bg-interactive-hover/50 hover:text-foreground',
+                  )}
                 >
                   <span className='truncate'>
                     {entry.name || entry.directory}
@@ -210,35 +244,49 @@ export function AutomationsPage() {
           </div>
         </aside>
 
-        <main className='flex min-w-0 flex-1 flex-col'>
-          <div className='flex items-center justify-between px-6 pt-4 pb-2'>
-            <p className='text-muted min-w-0 truncate text-xs'>
+        <main
+          className={cn(
+            'min-w-0 flex-1 flex-col @xl:flex',
+            view === 'detail' ? 'flex' : 'hidden',
+          )}
+        >
+          <div className='flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-2 @xl:flex-nowrap @xl:px-6'>
+            <button
+              type='button'
+              onClick={() => setView('list')}
+              className='text-muted hover:text-foreground flex shrink-0 items-center gap-0.5 rounded-md text-xs transition-colors @xl:hidden'
+            >
+              <Icon data={ChevronLeft} className='size-4' />
+              {t.common.back}
+            </button>
+            <p className='text-lg @max-xl:ml-1 order-last w-full min-w-0 truncate @xl:text-muted @xl:text-xs @xl:order-none @xl:w-auto @xl:flex-1'>
               {workspace
                 ? workspace.name || workspace.directory
                 : t.automations.subtitle}
             </p>
             <Button
               size='sm'
-              variant='primary'
-              className='gap-1.5'
+              variant='outline'
+              className='shrink-0 gap-1.5'
               isDisabled={!workspaceId}
               onPress={openNew}
             >
-              <Icon data={Plus} size={14} />
+              <Icon data={Plus} className='size-3.5' />
               {t.automations.newAutomation}
             </Button>
           </div>
 
-          <div className='min-h-0 flex-1 overflow-y-auto px-6 py-4'>
+          <div className='min-h-0 flex-1 overflow-y-auto scrollbar-thin px-4 py-4 @xl:px-6'>
             <div className='mx-auto w-full max-w-3xl'>
               {!workspaceId ? (
                 <div className='border-border text-muted rounded-lg border border-dashed p-4 text-sm'>
                   {t.automations.emptySelectWorkspace}
                 </div>
               ) : isLoading ? (
-                <div className='text-muted flex items-center gap-2 text-sm'>
-                  <Spinner size='sm' />
-                  {t.automations.loading}
+                <div className='flex flex-col gap-2.5'>
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <AutomationCardSkeleton key={index} />
+                  ))}
                 </div>
               ) : sorted.length === 0 ? (
                 <div className='border-border text-muted rounded-lg border border-dashed p-4 text-sm'>
@@ -285,7 +333,7 @@ export function AutomationsPage() {
                             </span>
                             {isRunning ? (
                               <span className='text-warning inline-flex items-center gap-1'>
-                                <Spinner size='sm' />
+                                <span className='bg-warning size-1.5 shrink-0 animate-pulse rounded-full' />
                                 {t.automations.runningNow}
                               </span>
                             ) : task.state.lastRunAt ? (
@@ -331,7 +379,7 @@ export function AutomationsPage() {
                               isDisabled={isRunning}
                               onPress={() => handleRun(task)}
                             >
-                              <Icon data={Play} size={14} />
+                              <Icon data={Play} className='size-3.5' />
                               {t.automations.runNow}
                             </Button>
                             <Button
@@ -339,7 +387,7 @@ export function AutomationsPage() {
                               variant='outline'
                               onPress={() => openEdit(task)}
                             >
-                              <Icon data={Pencil} size={14} />
+                              <Icon data={Pencil} className='size-3.5' />
                               {t.automations.edit}
                             </Button>
                             <Button
@@ -349,7 +397,7 @@ export function AutomationsPage() {
                               aria-label={t.automations.delete}
                               onPress={() => setConfirming(task)}
                             >
-                              <Icon data={TrashBin} size={14} />
+                              <Icon data={TrashBin} className='size-3.5' />
                             </Button>
                           </div>
                         </div>
@@ -362,15 +410,6 @@ export function AutomationsPage() {
           </div>
         </main>
       </div>
-
-      <AutomationEditor
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        directory={workspace?.directory}
-        task={editing}
-        saving={upsert.isPending}
-        onSave={handleSave}
-      />
 
       <Modal
         isOpen={Boolean(confirming)}

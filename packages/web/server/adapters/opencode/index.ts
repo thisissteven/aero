@@ -511,6 +511,58 @@ export async function createOpencodeAdapter(): Promise<HarnessAdapter> {
       );
     },
 
+    async generateText({
+      providerID,
+      modelID,
+      prompt,
+      directory,
+      parentSessionID,
+      system,
+    }) {
+      return withOpencodeClientV2(async (client) => {
+        const hasModel = Boolean(providerID && modelID);
+        const child = unwrap(
+          await client.session.create({
+            directory,
+            title: 'Goal progress check',
+            ...(parentSessionID ? { parentID: parentSessionID } : {}),
+            ...(hasModel ? { model: { providerID, id: modelID } } : {}),
+          }),
+        );
+
+        const childId = child.id;
+
+        try {
+          const result = unwrap(
+            await client.session.prompt({
+              sessionID: childId,
+              directory,
+              ...(hasModel ? { model: { providerID, modelID } } : {}),
+              ...(system ? { system } : {}),
+              parts: [{ type: 'text', text: prompt }],
+            }),
+          );
+
+          const parts = Array.isArray(result?.parts) ? result.parts : [];
+
+          return parts
+            .map((part) =>
+              part.type === 'text' && typeof part.text === 'string'
+                ? part.text
+                : '',
+            )
+            .filter(Boolean)
+            .join('\n');
+        } finally {
+          try {
+            unwrap(await client.session.delete({ sessionID: childId }));
+          } catch {
+            // The audit already has its answer; a failed cleanup is harmless.
+          }
+        }
+      });
+    },
+
     async deleteSession(sessionID) {
       return await withOpencodeClientV2(async (client) =>
         unwrap(await client.session.delete({ sessionID })),

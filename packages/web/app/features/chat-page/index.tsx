@@ -20,6 +20,7 @@ import { FileAttachments } from '@/app/features/chat-page/chat-input/file-attach
 import { FileDropZone } from '@/app/features/chat-page/chat-input/file-attachments/file-drop-zone';
 import { ChatTocSection } from '@/app/features/chat-page/chat-toc';
 import { OpenParentSession } from '@/app/features/chat-page/open-parent-session';
+import { SessionGoalRow } from '@/app/features/chat-page/session-goal/session-goal-row';
 import { SessionNotFound } from '@/app/features/chat-page/session-not-found';
 import { OfflineWrapper } from '@/app/providers';
 import { useMainChatScrollStore } from '@/app/stores/chat-scroll-store';
@@ -114,6 +115,7 @@ export function ChatPage({
               <SessionDiff />
               <SessionTodos />
             </div>
+            <SessionGoalRow sessionId={sessionId} />
             <ChatInput isDisabled={notFound} sessionId={sessionId} />
           </div>
         </div>

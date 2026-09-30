@@ -15,6 +15,7 @@ import folderPickerRoutes from './routes/folder-picker';
 import fsRawRoutes from './routes/fs-raw';
 import gitRoutes from './routes/git/index';
 import githubRoutes from './routes/github/index';
+import goalRoutes from './routes/goals';
 import mcpRoutes from './routes/mcp';
 import poolRoutes from './routes/pool';
 import previewRoutes from './routes/preview';
@@ -45,6 +46,7 @@ const app = new Hono()
   .route('/system', systemRoutes)
   .route('/git', gitRoutes)
   .route('/github', githubRoutes)
+  .route('/goals', goalRoutes)
   .route('/capabilities', capabilityRoutes)
   .route('/mcp', mcpRoutes)
   .route('/providers', providerRoutes)

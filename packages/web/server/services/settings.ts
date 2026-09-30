@@ -6,12 +6,17 @@ import { SETTINGS_PATH } from '@/server/helper';
 
 export const settingsSchema = z.object({
   goalMode: z.record(z.string(), z.boolean()),
+  sessionGoalEnabled: z.boolean(),
   chatInputExpanded: z.record(z.string(), z.boolean()),
   permissionAutoAcceptSessions: z.record(z.string(), z.boolean()),
   recentModelVariants: z.record(z.string(), z.string()),
   hiddenModels: z.record(z.string(), z.array(z.string())),
   pinnedSessions: z.array(z.string()),
   statusPanelOrder: z.array(z.string()),
+
+  // Appearance / localization preferences, applied across the app.
+  timeFormat: z.enum(['auto', '12h', '24h']),
+  weekStartsOn: z.enum(['auto', 'sunday', 'monday', 'saturday']),
 
   // GitHub integration. Optional so an existing settings file stays valid;
   // empty strings mean "not configured" and fall through to the built-in
@@ -42,12 +47,15 @@ export type AeroSettings = z.infer<typeof settingsSchema>;
 
 export const DEFAULT_SETTINGS: AeroSettings = {
   goalMode: {},
+  sessionGoalEnabled: true,
   chatInputExpanded: {},
   permissionAutoAcceptSessions: {},
   recentModelVariants: {},
   hiddenModels: {},
   pinnedSessions: [],
   statusPanelOrder: [],
+  timeFormat: 'auto',
+  weekStartsOn: 'auto',
   githubClientId: '',
   githubScopes: '',
   ghCliDisabled: false,
