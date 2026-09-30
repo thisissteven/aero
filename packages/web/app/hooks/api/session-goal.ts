@@ -22,6 +22,7 @@ import {
   useSession,
 } from '@/app/hooks/api/sessions';
 import { useSetting } from '@/app/hooks/api/settings';
+import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 const createGoalId = (): string =>
   `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -38,7 +39,9 @@ export function useSessionGoalEnabled() {
 
 export function useSessionGoal(sessionId: string | null | undefined) {
   const resolved = sessionId ?? '';
-  const { data: session } = useSession(undefined, resolved);
+  // The new-session draft has no real id yet — never query it as a session.
+  const queryId = resolved === NEW_SESSION_PAGE_SESSION_ID ? '' : resolved;
+  const { data: session } = useSession(undefined, queryId);
   const enabled = useSessionGoalEnabled();
 
   return {

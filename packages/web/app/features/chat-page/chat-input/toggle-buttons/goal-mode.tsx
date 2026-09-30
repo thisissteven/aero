@@ -10,7 +10,6 @@ import {
 } from '@/app/hooks/api/session-goal';
 import { useGoalMode, useUpdateSetting } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
-import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 /**
  * Composer target button — the goal switch. With no live goal one tap arms
@@ -28,9 +27,7 @@ export function GoalModeToggleButton({ sessionId }: { sessionId: string }) {
 
   const armed = armedData?.value ?? false;
 
-  // Goals are created server-side at send time, keyed by the session id. The
-  // new-session draft has no real id yet, so arming there would be lost.
-  if (!enabled || !sessionId || sessionId === NEW_SESSION_PAGE_SESSION_ID) {
+  if (!enabled || !sessionId) {
     return null;
   }
 

@@ -7,8 +7,10 @@ import { usePromptInput } from '@/app/features/chat-page/chat-input/use-prompt-i
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useGitErrorCode } from '@/app/hooks/api/git';
 import { useCreateSession } from '@/app/hooks/api/sessions';
+import { useSetting, useUpdateSetting } from '@/app/hooks/api/settings';
 import { useI18n } from '@/app/hooks/i18n';
 import { useSessionId } from '@/app/providers/SessionIdProvider';
+import { NEW_SESSION_PAGE_SESSION_ID } from '@/server/shared';
 
 export function NewSessionPromptInputWrapper({
   children,
@@ -22,6 +24,12 @@ export function NewSessionPromptInputWrapper({
   const navigate = useNavigate();
 
   const { mutateAsync: createSession } = useCreateSession();
+
+  const { data: goalModeArmed } = useSetting([
+    'goalMode',
+    NEW_SESSION_PAGE_SESSION_ID,
+  ]);
+  const { mutateAsync: updateSetting } = useUpdateSetting();
 
   const state = useNewSessionStore((state) => state.state);
 
@@ -54,6 +62,17 @@ export function NewSessionPromptInputWrapper({
           },
         },
       );
+
+      // Goal mode armed on the draft: move the flag onto the real session id
+      // before the first prompt is sent, so the server creates the goal from
+      // that prompt.
+      if (goalModeArmed?.value) {
+        await updateSetting({ path: ['goalMode', session.id], value: true });
+        await updateSetting({
+          path: ['goalMode', NEW_SESSION_PAGE_SESSION_ID],
+          value: false,
+        });
+      }
 
       await handleSend(session.id, true);
 

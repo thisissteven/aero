@@ -5,8 +5,10 @@ import { HTTPException } from 'hono/http-exception';
 
 import { opencodePool } from '@/server/adapters/opencode/pool';
 import { initProxyConfig } from '@/server/proxy-loader';
+import { sessionGoalRuntime } from '@/server/services/goal/runtime';
 
 import activityRoutes from './routes/activity';
+import agentToolRoutes from './routes/agent-tool';
 import automationRoutes from './routes/automations';
 import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
@@ -37,6 +39,7 @@ initProxyConfig();
 const app = new Hono()
   .basePath('/api')
   .route('/activity', activityRoutes)
+  .route('/aero/agent-tool', agentToolRoutes)
   .route('/automations', automationRoutes)
   .route('/sessions', sessionRoutes)
   .route('/workspaces', workspaceRoutes)
@@ -61,6 +64,11 @@ const app = new Hono()
 // Ensure the pool is initialized before any incoming API request proceeds
 let poolInitPromise: Promise<void> | null = null;
 
+// Start the session-goal control loop once the OpenCode pool is up. This lives
+// here (not only in start.ts) so it also runs under the Vite dev server, which
+// imports this module directly. `start()` is idempotent.
+let goalRuntimeStarted = false;
+
 app.use('*', async (c, next) => {
   if (!poolInitPromise) {
     poolInitPromise = opencodePool.init();
@@ -74,6 +82,11 @@ app.use('*', async (c, next) => {
       { success: false, message: 'OpenCode pool unavailable' },
       503,
     );
+  }
+
+  if (!goalRuntimeStarted) {
+    goalRuntimeStarted = true;
+    void sessionGoalRuntime.start();
   }
 
   await next();

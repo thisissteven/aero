@@ -326,7 +326,18 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
   );
 }
 
-// Pre-initialize OpenCode server pool before opening Bun listener
+const DESIRED_PORT = Number(process.env.PORT) || 3000;
+
+const server = await listenWithRetry(DESIRED_PORT);
+
+console.log(`Server listening on http://localhost:${server.port}`);
+
+// The managed agent tool POSTs back into this listener, so its port must be
+// known before the OpenCode child is spawned (the child inherits it through
+// AERO_AGENT_TOOL_URL at process creation).
+opencodePool.setAgentToolBaseUrl(`http://127.0.0.1:${server.port}`);
+
+// Pre-initialize the OpenCode server pool now that the listener is bound.
 console.log('[start] Initializing OpenCode server pool...');
 try {
   await opencodePool.init();
@@ -354,12 +365,6 @@ try {
 } catch (err) {
   console.error('[start] Failed to start session goal runtime:', err);
 }
-
-const DESIRED_PORT = Number(process.env.PORT) || 3000;
-
-const server = await listenWithRetry(DESIRED_PORT);
-
-console.log(`Server listening on http://localhost:${server.port}`);
 
 const shutdown = async (signal: string) => {
   console.log(

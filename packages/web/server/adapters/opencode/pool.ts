@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
 import { execFileSync } from 'node:child_process';
+import { timingSafeEqual } from 'node:crypto';
 import { createServer as createNetServer } from 'node:net';
 import {
   createOpencodeClient as createClientV2,
@@ -9,7 +10,7 @@ import {
 
 import { installAeroPlugin } from '@/server/adapters/opencode/plugin';
 import { unwrap } from '@/server/adapters/opencode/unwrap';
-import { findAvailablePort } from '@/server/helper';
+import { AERO_PLUGIN_PATH, findAvailablePort } from '@/server/helper';
 
 export type OpencodeServerV2 = Awaited<ReturnType<typeof createServerV2>>;
 export type OpencodeClientV2 = ReturnType<typeof createClientV2>;
@@ -80,6 +81,14 @@ export class OpencodeServerPool<
   private activeToken = crypto.randomUUID();
 
   /**
+   * Base URL of Aero's own HTTP listener, published by start.ts once the
+   * listener is bound. The managed agent tool calls back into that listener,
+   * so the OpenCode child must learn it before it is spawned — this is why
+   * the pool is initialized after the server is listening.
+   */
+  private agentToolBaseUrl: string | null = null;
+
+  /**
    * Bumped every time `this.node` is replaced with a freshly booted
    * process — whether via a normal startup, `/restart`, or
    * `recoverNode`. Any session that existed on a prior generation's
@@ -113,7 +122,13 @@ export class OpencodeServerPool<
     this.initPromise = (async () => {
       try {
         const port = await findAvailablePort(this.basePort);
-        process.env.AERO_AGENT_TOOL_URL = `http://127.0.0.1:${port}/api/aero/agent-tool`;
+        // The callback lives on Aero's listener, not on this OpenCode port.
+        // start.ts publishes the real listener base URL before init; the
+        // process.env fallback only matters for non-server entrypoints.
+        const callbackBase =
+          this.agentToolBaseUrl ??
+          `http://127.0.0.1:${process.env.PORT ?? 3000}`;
+        process.env.AERO_AGENT_TOOL_URL = `${callbackBase.replace(/\/$/, '')}/api/aero/agent-tool`;
         process.env.AERO_AGENT_TOOL_TOKEN = this.activeToken;
 
         const server = await this.createServerFn({
@@ -154,6 +169,11 @@ export class OpencodeServerPool<
     return this.initPromise;
   }
 
+  /** Publish Aero's listener base URL before the OpenCode child is spawned. */
+  public setAgentToolBaseUrl(baseUrl: string): void {
+    this.agentToolBaseUrl = baseUrl;
+  }
+
   public async getNode(): Promise<PoolNode<TClient, TServer>> {
     if (this.shuttingDown) {
       throw new Error(
@@ -161,7 +181,7 @@ export class OpencodeServerPool<
       );
     }
 
-    if (!this.node || !this.node.isHealthy || this.node.isRecovering) {
+    if (!this.node || !this.node.isHealthy || !this.node.isRecovering) {
       void this.init();
       await sleep(200);
     }
@@ -207,10 +227,14 @@ export class OpencodeServerPool<
     }
   }
 
-  public async authorize(token: string): Promise<boolean> {
-    return token === this.activeToken;
+  public authorize(token: string): boolean {
+    if (!this.activeToken || typeof token !== 'string') return false;
+    const provided = Buffer.from(token);
+    const expected = Buffer.from(this.activeToken);
+    return (
+      provided.length === expected.length && timingSafeEqual(provided, expected)
+    );
   }
-
   /**
    * Monotonically increasing id for the currently running process.
    * Consumers that hold long-lived state tied to "the current
@@ -289,7 +313,7 @@ export const opencodePoolV2 = new OpencodeServerPool<
         permission: {
           websearch: 'allow',
         },
-        // plugin: [AERO_PLUGIN_PATH],
+        plugin: [AERO_PLUGIN_PATH],
       },
     });
   },
