@@ -1,8 +1,15 @@
-import { Button, cn, Popover, Separator, TextArea } from '@aero/ui';
+import { Button, cn, Popover, Separator, TextArea, toast } from '@aero/ui';
 import { Paperclip } from '@gravity-ui/icons';
 import type { RefObject } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  notesDocumentFromText,
+  notesTitleFromText,
+} from '@/app/components/chat-aside/notes/notes-content';
 import { useExternalPartsStore } from '@/app/features/chat-page/chat-input/external-parts-store';
+import { useCreateProjectNote } from '@/app/hooks/api/project-context';
+import { useSessionDirectory } from '@/app/hooks/api/sessions';
+import { useWorkspace } from '@/app/hooks/api/workspaces';
 import { useI18n } from '@/app/hooks/i18n';
 import { useCopyToClipboard } from '@/app/hooks/useCopyToClipboard';
 import { useKeyPress } from '@/app/hooks/useKeyPress';
@@ -37,12 +44,39 @@ export const SelectionPopover = React.memo(function SelectionPopover({
   const addChatQuote = useExternalPartsStore((s) => s.addChatQuote);
   const { copy } = useCopyToClipboard();
 
+  const directory = useSessionDirectory();
+  const { data: workspace } = useWorkspace(directory ?? '');
+  const createProjectNote = useCreateProjectNote(workspace?.id);
+
   const close = useCallback(() => {
     setSelection(null);
     setMode('actions');
     setComment('');
     window.getSelection()?.removeAllRanges();
   }, []);
+
+  const addToNotes = useCallback(
+    (text: string) => {
+      const workspaceId = workspace?.id;
+
+      if (!workspaceId) {
+        toast.danger(t.selectionPopover.addToNotesFailed);
+        return;
+      }
+
+      createProjectNote.mutate(
+        {
+          title: notesTitleFromText(text),
+          body: notesDocumentFromText(text),
+        },
+        {
+          onSuccess: () => toast.success(t.selectionPopover.addedToNotes),
+          onError: () => toast.danger(t.selectionPopover.addToNotesFailed),
+        },
+      );
+    },
+    [workspace?.id, createProjectNote, t],
+  );
 
   useKeyPress(
     'C',
@@ -213,7 +247,7 @@ export const SelectionPopover = React.memo(function SelectionPopover({
           placement={direction === 'backward' ? 'top' : 'bottom'}
           className={cn(
             'w-auto max-w-[calc(100vw-24px)] p-0',
-            mode === 'comment' ? 'rounded-xl' : '',
+            mode === 'comment' ? 'rounded-xl' : 'rounded-xl',
           )}
         >
           <Popover.Dialog className='p-0'>
@@ -244,7 +278,8 @@ export const SelectionPopover = React.memo(function SelectionPopover({
                     event.preventDefault();
                   }}
                   onPress={() => {
-                    // TODO: add to notes
+                    addToNotes(selection.text);
+                    close();
                   }}
                 >
                   {t.selectionPopover.addToNotes}

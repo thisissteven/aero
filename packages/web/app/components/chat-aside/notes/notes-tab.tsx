@@ -87,15 +87,15 @@ export function NotesTab({
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
-      <div className='border-separator flex shrink-0 items-center justify-end border-b px-3 py-2'>
+      <div className='border-separator flex shrink-0 items-center justify-end border-b pl-3 pr-2 py-2'>
         <Button
           size='sm'
           variant='ghost'
-          className='h-7 shrink-0 rounded-lg text-xs'
+          className='h-7 shrink-0 rounded-md px-2.5 text-xs'
           isPending={createNote.isPending}
           onPress={handleCreate}
         >
-          <Icon data={Plus} />
+          <Icon data={Plus} className='size-3.5' />
           {t.notesPanel.notes.new}
         </Button>
       </div>

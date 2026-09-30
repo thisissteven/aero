@@ -55,6 +55,7 @@
 @import "./components/file-tree.css";
 @import "./components/timeline.css";
 @import "./components/text-shimmer.css";
+@import "./components/toast.css";
 @import "./components/kanban.css";
 @import "./components/map.css";
 @import "./components/markdown.css";

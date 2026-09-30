@@ -55,7 +55,9 @@ export function CommandPaletteItem({
           ]
         : item.kind === 'skill'
           ? [item.skill.scope]
-          : [];
+          : item.kind === 'snippet'
+            ? [item.snippet.scope]
+            : [];
 
   return (
     <div

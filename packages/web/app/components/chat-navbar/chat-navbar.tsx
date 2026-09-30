@@ -41,6 +41,7 @@ export interface ChatNavbarProps {
 export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
   const isNew = activePage.kind === 'new';
   const isSessions = activePage.kind === 'sessions';
+  const isAutomations = activePage.kind === 'automations';
 
   return (
     <Navbar maxWidth='full' className='relative h-14 bg-surface/30'>
@@ -52,6 +53,7 @@ export function ChatNavbar({ activePage, isAsideExpanded }: ChatNavbarProps) {
         </Sidebar.Trigger>
         {isNew && <NewNavbarContent />}
         {isSessions && <SessionsNavbarContent />}
+        {isAutomations && <AutomationsNavbarContent />}
         <Navbar.Spacer />
         <OfflineAlert />
         <div className='flex items-center gap-2 max-md:hidden'>
@@ -94,6 +96,17 @@ function NewNavbarContent() {
     <NavbarContentPlaceholder
       h1={t.chatNavbar.newSession}
       span={t.chatNavbar.newSessionDescription}
+    />
+  );
+}
+
+function AutomationsNavbarContent() {
+  const { t } = useI18n();
+
+  return (
+    <NavbarContentPlaceholder
+      h1={t.automations.title}
+      span={t.automations.subtitle}
     />
   );
 }

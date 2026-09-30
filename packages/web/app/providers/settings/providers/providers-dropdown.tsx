@@ -77,7 +77,7 @@ export function ProviderDropdown() {
         </>
       }
       // Style the trigger to look like the input box in the image
-      triggerClassName='w-full justify-between px-3 max-w-[320px] h-9 font-normal bg-surface-secondary border border-separator rounded-md text-sm hover:bg-surface-secondary/80'
+      triggerClassName='w-full justify-between px-3 max-w-[320px] h-9 font-normal bg-surface border border-separator rounded-lg text-sm hover:bg-surface-secondary/80'
       searchValue={searchQuery}
       onSearchValueChange={setSearchQuery}
       searchPlaceholder={t.settingsProviders.searchProvider}

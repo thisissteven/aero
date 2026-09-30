@@ -1,0 +1,5 @@
+@layer components {
+  .toast {
+    @apply shadow-none border border-separator rounded-xl;
+  }
+}

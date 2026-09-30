@@ -120,7 +120,9 @@ export function ComposerCommandPalette({
             ? item.command.description
             : item.kind === 'skill'
               ? item.skill.description
-              : undefined;
+              : item.kind === 'snippet'
+                ? item.snippet.description || item.snippet.content
+                : undefined;
 
       if (!description) return;
 
@@ -283,7 +285,8 @@ export function ComposerCommandPalette({
     if (
       item.kind !== 'agent' &&
       item.kind !== 'command' &&
-      item.kind !== 'skill'
+      item.kind !== 'skill' &&
+      item.kind !== 'snippet'
     ) {
       hideTooltip();
       return;
@@ -324,8 +327,9 @@ export function ComposerCommandPalette({
   const palette = (
     <div
       ref={paletteRef}
+      data-react-aria-top-layer={portalTarget ? 'true' : undefined}
       className={cn(
-        'fixed z-50',
+        'fixed z-[60]',
         'max-w-[min(480px,calc(100vw-32px))] min-w-60',
         'border-separator rounded-xl border',
         'bg-overlay/80 text-overlay-foreground overflow-hidden backdrop-blur-sm',

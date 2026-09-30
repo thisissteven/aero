@@ -16,11 +16,7 @@ import {
   AeroSkillCompact,
   SendCommandInput,
 } from '@/server/services/harness/types';
-
-const SNIPPETS = (t: BaseTranslation) => [
-  { id: 'n1', label: t.composer.bugReport, value: 'bug-report' },
-  { id: 'n2', label: t.composer.reactComponent, value: 'react-component' },
-];
+import type { Snippet } from '@/server/services/snippets';
 
 export const COMPOSER_CLIPBOARD_MIME = 'application/x-aero-composer+json';
 
@@ -78,6 +74,7 @@ export type SearchItem =
   | (BaseSearchItem & {
       kind: 'snippet';
       group: 'SNIPPETS';
+      snippet: Snippet;
     });
 
 interface SearchData {
@@ -85,6 +82,7 @@ interface SearchData {
   agents: AeroAgentCompact[];
   commands: AeroCommandCompact[];
   skills: AeroSkillCompact[];
+  snippets: Snippet[];
 }
 
 export function cloneSegments(segments: ComposerSegment[]): ComposerSegment[] {
@@ -262,13 +260,21 @@ export function unifiedSearch(
   }
 
   if (trigger === '#') {
-    for (const snippet of SNIPPETS(t)) {
-      if (matches(snippet.value, q) || matches(snippet.label, q)) {
+    for (const snippet of data.snippets) {
+      const triggers = [snippet.name, ...snippet.aliases];
+
+      if (
+        triggers.some((trigger) => matches(trigger, q)) ||
+        matches(snippet.description, q)
+      ) {
         results.push({
-          ...snippet,
+          id: `snippet:${snippet.id}`,
+          label: `#${snippet.name}`,
+          value: snippet.name,
           kind: 'snippet',
           triggerChar: '#',
           group: 'SNIPPETS',
+          snippet,
         });
       }
     }

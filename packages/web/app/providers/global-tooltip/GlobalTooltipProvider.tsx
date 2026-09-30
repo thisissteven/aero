@@ -222,6 +222,7 @@ export function GlobalTooltip() {
     <div
       ref={tooltipRef}
       tabIndex={-1}
+      data-react-aria-top-layer
       onMouseEnter={() => {
         cancelHide();
         if (isInteractive) {
@@ -240,7 +241,9 @@ export function GlobalTooltip() {
         }
       }}
       className={cn(
-        'fixed z-40',
+        // Above the modal backdrop (z-50) and the composer palette (z-60) so
+        // description tooltips are never clipped behind a dialog.
+        'fixed z-[70]',
         'bg-overlay/60 border-separator rounded-lg border backdrop-blur-sm',
         'transition-[opacity,transform] duration-150 ease-out',
         wasOpen && isOpen && !snapPosition

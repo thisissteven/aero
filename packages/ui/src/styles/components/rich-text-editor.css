@@ -273,13 +273,11 @@
   }
 
   .rich-text-editor__bubble-menu {
-    border-radius: calc(var(--radius) * 3);
+    border-radius: calc(var(--radius) * 1);
     background-color: var(--overlay);
     padding: calc(var(--spacing, 0.25rem) * 1);
     --tw-shadow: var(--overlay-shadow);
-    box-shadow:
-      var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
-      var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    @apply border border-separator;
   }
 
   .rich-text-editor__bubble-menu-toolbar.toolbar {

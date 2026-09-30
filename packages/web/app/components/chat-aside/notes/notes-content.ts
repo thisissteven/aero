@@ -48,3 +48,18 @@ export function serializeNotesDocument(
 ): string {
   return isEmpty ? '' : JSON.stringify(document);
 }
+
+/** Build a persisted note body from a block of plain text. */
+export function notesDocumentFromText(value: string): string {
+  return value.trim() ? JSON.stringify(plainTextDocument(value)) : '';
+}
+
+/** First non-empty line of a block of text, trimmed and clamped. */
+export function notesTitleFromText(value: string, maxLength = 200): string {
+  const firstLine = value
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  return (firstLine ?? '').slice(0, maxLength);
+}

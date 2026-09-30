@@ -50,12 +50,12 @@ export function getChatSession(_: string) {
   return undefined;
 }
 
-export type ChatPageKind = 'new' | 'workspaces' | 'plugins' | 'sessions';
+export type ChatPageKind = 'new' | 'workspaces' | 'automations' | 'sessions';
 
 export type ChatActivePage =
   | { kind: 'new' }
   | { kind: 'workspaces' }
-  | { kind: 'plugins' }
+  | { kind: 'automations' }
   | { kind: 'sessions' };
 
 export function resolveChatActivePage(pathname: string): ChatActivePage {
@@ -68,7 +68,7 @@ export function resolveChatActivePage(pathname: string): ChatActivePage {
 
   if (firstSegment === 'new') return { kind: 'new' };
   if (firstSegment === 'workspaces') return { kind: 'workspaces' };
-  if (firstSegment === 'plugins') return { kind: 'plugins' };
+  if (firstSegment === 'automations') return { kind: 'automations' };
   if (firstSegment === 'sessions') return { kind: 'sessions' };
 
   return { kind: 'new' };

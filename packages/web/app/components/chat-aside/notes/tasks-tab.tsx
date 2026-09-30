@@ -3,7 +3,7 @@
 import { Button, Checkbox, cn, IconButton, Input, ProgressBar } from '@aero/ui';
 import { Flag, Grip, LayoutColumns, LayoutList, Plus } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { TaskBoard } from '@/app/components/chat-aside/notes/board-tab';
 import {
@@ -164,6 +164,8 @@ function TaskList({
     id: string;
     position: DropPosition;
   } | null>(null);
+  // Anchor for shift + click range toggling of the done checkbox.
+  const lastToggledIdRef = useRef<string | null>(null);
 
   const update = (next: AeroProjectTodo[]) => save.mutate(next);
 
@@ -184,7 +186,28 @@ function TaskList({
     setDraft('');
   };
 
-  const toggleTodo = (id: string, done: boolean) => {
+  const toggleTodo = (id: string, done: boolean, shift: boolean) => {
+    const anchor = lastToggledIdRef.current;
+    const from = shift && anchor ? todos.findIndex((t) => t.id === anchor) : -1;
+    const to = todos.findIndex((t) => t.id === id);
+
+    // Shift + click applies the clicked checkbox's new state to every task
+    // between the anchor and it (mirrors the sidebar's range selection).
+    if (from !== -1 && to !== -1) {
+      const [start, end] = from < to ? [from, to] : [to, from];
+      const range = new Set(todos.slice(start, end + 1).map((t) => t.id));
+      update(
+        todos.map((todo) =>
+          range.has(todo.id)
+            ? { ...todo, status: done ? 'done' : 'backlog' }
+            : todo,
+        ),
+      );
+      lastToggledIdRef.current = id;
+      return;
+    }
+
+    lastToggledIdRef.current = id;
     update(
       todos.map((todo) =>
         todo.id === id ? { ...todo, status: done ? 'done' : 'backlog' } : todo,
@@ -224,7 +247,7 @@ function TaskList({
   return (
     <div className='flex h-full min-h-0 flex-col'>
       <form
-        className='border-separator flex shrink-0 items-center gap-1.5 border-b px-3 py-2'
+        className='border-separator flex shrink-0 items-center gap-1.5 border-b px-2 py-2'
         onSubmit={(event) => {
           event.preventDefault();
           addTodo();
@@ -239,7 +262,6 @@ function TaskList({
         />
         <IconButton
           type='submit'
-          color='accent'
           aria-label={t.notesPanel.tasks.add}
           isDisabled={!draft.trim()}
         >
@@ -320,7 +342,7 @@ function TaskRow({
   canSendToCurrent: boolean;
   dragging: boolean;
   dropIndicator: DropPosition | null;
-  onToggle: (id: string, done: boolean) => void;
+  onToggle: (id: string, done: boolean, shift: boolean) => void;
   onSetPriority: (id: string, priority: AeroProjectTodoPriority) => void;
   onDelete: (id: string) => void;
   onSend: (target: SendTodoTarget) => void;
@@ -331,11 +353,12 @@ function TaskRow({
 }) {
   const { t } = useI18n();
   const done = todo.status === 'done';
+  const isShiftPressedRef = useRef(false);
 
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-2 rounded-lg py-1 pr-1 pl-0.5',
+        'group relative flex items-center gap-2 rounded-lg py-1 px-0.5',
         dragging && 'opacity-40',
       )}
       onDragOver={(event) => {
@@ -370,23 +393,37 @@ function TaskRow({
           onDragStart(todo.id);
         }}
         onDragEnd={onDragEnd}
-        className='text-muted shrink-0 cursor-grab rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing'
+        onClick={(event) => event.stopPropagation()}
+        className='text-muted shrink-0 cursor-grab rounded p-0.5 active:cursor-grabbing'
       >
         <Icon data={Grip} size={14} />
       </div>
 
-      <Checkbox
-        variant='secondary'
-        isSelected={done}
-        onChange={(isSelected) => onToggle(todo.id, isSelected)}
-        aria-label={todo.text}
+      <div
+        className='contents'
+        onPointerDownCapture={(event) => {
+          isShiftPressedRef.current = event.shiftKey;
+          if (event.shiftKey) event.preventDefault();
+        }}
+        onClick={(event) => event.stopPropagation()}
       >
-        <Checkbox.Content>
-          <Checkbox.Control>
-            <Checkbox.Indicator />
-          </Checkbox.Control>
-        </Checkbox.Content>
-      </Checkbox>
+        <Checkbox
+          variant='secondary'
+          isSelected={done}
+          onChange={(isSelected) => {
+            const shift = isShiftPressedRef.current;
+            isShiftPressedRef.current = false;
+            onToggle(todo.id, isSelected, shift);
+          }}
+          aria-label={todo.text}
+        >
+          <Checkbox.Content>
+            <Checkbox.Control>
+              <Checkbox.Indicator />
+            </Checkbox.Control>
+          </Checkbox.Content>
+        </Checkbox>
+      </div>
 
       <span
         aria-hidden
@@ -409,14 +446,16 @@ function TaskRow({
         {todo.text}
       </span>
 
-      <TaskActionsMenu
-        todo={todo}
-        canSendToCurrent={canSendToCurrent}
-        triggerClassName='opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100'
-        onSetPriority={(priority) => onSetPriority(todo.id, priority)}
-        onSend={onSend}
-        onDelete={() => onDelete(todo.id)}
-      />
+      <div className='contents' onClick={(event) => event.stopPropagation()}>
+        <TaskActionsMenu
+          todo={todo}
+          canSendToCurrent={canSendToCurrent}
+          triggerClassName=''
+          onSetPriority={(priority) => onSetPriority(todo.id, priority)}
+          onSend={onSend}
+          onDelete={() => onDelete(todo.id)}
+        />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Kbd, Sidebar } from '@aero/ui';
-import { Comment, Folder, Magnifier, PlugWire } from '@gravity-ui/icons';
+import { Clock, Comment, Folder, Magnifier } from '@gravity-ui/icons';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { memo, useTransition } from 'react';
 
@@ -99,17 +99,17 @@ export const SidebarContents = memo(function SidebarContents({
                 </Sidebar.MenuItem>
 
                 <Sidebar.MenuItem
-                  href='/plugins'
-                  id={`${idPrefix}-plugins`}
-                  isCurrent={href === '/plugins'}
-                  textValue='Plugins'
-                  onPress={() => handleNavigate('/plugins')}
+                  href='/automations'
+                  id={`${idPrefix}-automations`}
+                  isCurrent={href === '/automations'}
+                  textValue='Automations'
+                  onPress={() => handleNavigate('/automations')}
                 >
                   <Sidebar.MenuIcon>
-                    <PlugWire className='size-4' />
+                    <Clock className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
-                    {t.sidebar.plugins}
+                    {t.sidebar.automations}
                   </Sidebar.MenuLabel>
                 </Sidebar.MenuItem>
               </Sidebar.Menu>

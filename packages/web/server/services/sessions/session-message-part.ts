@@ -120,13 +120,14 @@ function normalizeFileParts(
 
 async function expandSnippetParts(
   parts: AeroPartUserMessage[],
+  directory: string,
 ): Promise<AeroPartUserMessage[]> {
   const refs = parts.filter(isSnippetRef);
   if (refs.length === 0) return parts;
 
   let byName: Map<string, { name: string; content: string }>;
   try {
-    const snippets = await listSnippets();
+    const snippets = await listSnippets(directory);
     byName = new Map(snippets.map((s) => [s.name, s]));
   } catch {
     // If we can't read the snippets dir, don't blow up the send —
@@ -201,7 +202,7 @@ export async function expandMessageParts(
 ): Promise<AeroPartUserMessage[]> {
   const deduped = keepFirstAgentPart(parts);
   const resolved = normalizeFileParts(deduped, directory);
-  const withSnippets = await expandSnippetParts(resolved);
+  const withSnippets = await expandSnippetParts(resolved, directory);
 
   const skillRefs = withSnippets.filter(isSkillRef);
 

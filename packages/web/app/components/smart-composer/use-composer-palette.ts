@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNewSessionStore } from '@/app/features/new-session-page/new-session-store';
 import { useCapabilities } from '@/app/hooks/api/capabilities';
 import { useSession } from '@/app/hooks/api/sessions';
+import { useSnippets } from '@/app/hooks/api/snippets';
 import { useFilesInDirectory } from '@/app/hooks/api/system';
 import { useI18n } from '@/app/hooks/i18n';
 import { useDebounce } from '@/app/hooks/useDebounce';
@@ -306,6 +307,8 @@ export function useComposerPalette({
     directory,
   });
 
+  const { data: snippets = [] } = useSnippets(directory);
+
   const detectTrigger = useCallback(() => {
     const editor = editorRef.current;
 
@@ -395,12 +398,13 @@ export function useComposerPalette({
             agents,
             commands,
             skills,
+            snippets,
           },
           sessionId,
           t,
         )
       : { groups: {}, flat: [] };
-  }, [activeTrigger, sessionId, capabilities, visibleFiles, t]);
+  }, [activeTrigger, sessionId, capabilities, visibleFiles, snippets, t]);
 
   const results = search.flat;
 

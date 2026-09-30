@@ -5,60 +5,67 @@ import { z } from 'zod';
 import {
   createSnippet,
   deleteSnippet,
-  getSnippet,
   listSnippets,
   updateSnippet,
 } from '@/server/services/snippets';
 
-const nameParamSchema = z.object({
-  name: z.string().min(1),
+const idParamSchema = z.object({
+  id: z.string().min(1),
 });
 
-const bodySchema = z.object({
-  content: z.string(),
+const listQuerySchema = z.object({
+  directory: z.string().optional(),
 });
+
+const createSchema = z.object({
+  name: z.string().min(1),
+  content: z.string(),
+  description: z.string().optional(),
+  aliases: z.array(z.string()).optional(),
+  scope: z.enum(['global', 'workspace']),
+  directory: z.string().optional(),
+});
+
+const updateSchema = createSchema.partial();
 
 const snippets = new Hono()
-  .get('/', async (c) => {
-    const snippets = await listSnippets();
-    return c.json(snippets);
+  // GET /api/snippets?directory=... -> global + workspace snippets for a directory
+  .get('/', zValidator('query', listQuerySchema), async (c) => {
+    const { directory } = c.req.valid('query');
+    const result = await listSnippets(directory);
+    return c.json(result);
   })
-  .get('/:name', zValidator('param', nameParamSchema), async (c) => {
-    const { name } = c.req.valid('param');
-    const snippet = await getSnippet(name);
-    if (!snippet) return c.json({ error: 'Snippet not found' }, 404);
-    return c.json(snippet);
-  })
-  .post(
-    '/:name',
-    zValidator('param', nameParamSchema),
-    zValidator('json', bodySchema),
-    async (c) => {
-      const { name } = c.req.valid('param');
-      const { content } = c.req.valid('json');
 
+  // POST /api/snippets
+  .post('/', zValidator('json', createSchema), async (c) => {
+    try {
+      const snippet = await createSnippet(c.req.valid('json'));
+      return c.json(snippet, 201);
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 400);
+    }
+  })
+
+  // PATCH /api/snippets/:id
+  .patch(
+    '/:id',
+    zValidator('param', idParamSchema),
+    zValidator('json', updateSchema),
+    async (c) => {
       try {
-        const snippet = await createSnippet(name, content);
-        return c.json(snippet, 201);
+        const { id } = c.req.valid('param');
+        const snippet = await updateSnippet(id, c.req.valid('json'));
+        return c.json(snippet);
       } catch (err) {
         return c.json({ error: (err as Error).message }, 400);
       }
     },
   )
-  .put(
-    '/:name',
-    zValidator('param', nameParamSchema),
-    zValidator('json', bodySchema),
-    async (c) => {
-      const { name } = c.req.valid('param');
-      const { content } = c.req.valid('json');
-      const snippet = await updateSnippet(name, content);
-      return c.json(snippet);
-    },
-  )
-  .delete('/:name', zValidator('param', nameParamSchema), async (c) => {
-    const { name } = c.req.valid('param');
-    await deleteSnippet(name);
+
+  // DELETE /api/snippets/:id
+  .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    const { id } = c.req.valid('param');
+    await deleteSnippet(id);
     return c.body(null, 204);
   });
 

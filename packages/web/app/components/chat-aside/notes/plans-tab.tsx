@@ -62,7 +62,7 @@ export function PlansTab({
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
-      <div className='border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2'>
+      <div className='border-separator flex shrink-0 items-center justify-between gap-2 border-b pl-3 pr-2 py-2'>
         <span className='text-muted min-w-0 truncate text-xs'>
           {t.notesPanel.plans.importHint}
         </span>
@@ -71,9 +71,9 @@ export function PlansTab({
           variant='ghost'
           onPress={() => fileInputRef.current?.click()}
           isPending={createPlan.isPending}
-          className='h-7 shrink-0 rounded-lg text-xs'
+          className='h-7 shrink-0 rounded-md px-2.5 text-xs'
         >
-          <Icon data={ArrowUpFromSquare} />
+          <Icon data={ArrowUpFromSquare} className='size-3.5' />
           {t.notesPanel.plans.import}
         </Button>
       </div>

@@ -2,10 +2,10 @@
 
 import { cn, Dropdown, Label, Separator } from '@aero/ui';
 import {
-  ArrowUpFromSquare,
-  CodeFork,
+  CircleTree,
   EllipsisVertical,
   Flag,
+  PaperPlane,
   Plus,
   TrashBin,
 } from '@gravity-ui/icons';
@@ -51,13 +51,13 @@ export function TaskActionsMenu({
       <Dropdown.Trigger
         aria-label={t.notesPanel.tasks.actions}
         className={cn(
-          'h-7 w-7 shrink-0 rounded-md [&_svg]:!size-3.5',
+          'h-7 w-7 shrink-0 rounded-md [&_svg]:!size-3.5 grid place-items-center text-muted hover:text-foreground/80 transition-colors',
           triggerClassName,
         )}
       >
         <Icon data={EllipsisVertical} />
       </Dropdown.Trigger>
-      <Dropdown.Popover className='w-56' placement='bottom end'>
+      <Dropdown.Popover className='min-w-56' placement='bottom end'>
         <Dropdown.Menu
           onAction={(key) => {
             const action = String(key);
@@ -100,7 +100,7 @@ export function TaskActionsMenu({
             textValue={t.notesPanel.tasks.sendToCurrent}
             isDisabled={!canSendToCurrent}
           >
-            <Icon data={ArrowUpFromSquare} />
+            <Icon data={PaperPlane} />
             <Label>{t.notesPanel.tasks.sendToCurrent}</Label>
           </Dropdown.Item>
           <Dropdown.Item id='new' textValue={t.notesPanel.tasks.sendToNew}>
@@ -111,7 +111,7 @@ export function TaskActionsMenu({
             id='worktree'
             textValue={t.notesPanel.tasks.sendToWorktree}
           >
-            <Icon data={CodeFork} />
+            <Icon data={CircleTree} />
             <Label>{t.notesPanel.tasks.sendToWorktree}</Label>
           </Dropdown.Item>
 

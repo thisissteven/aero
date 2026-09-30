@@ -18,6 +18,7 @@ import {
   handleBunSocketMessage,
   type WsLikeSocket,
 } from './lib/terminal/pty-session';
+import { automationsRuntime } from './services/automations/runtime';
 
 process.on('uncaughtException', (err: any) => {
   if (
@@ -336,6 +337,14 @@ try {
   console.error('[start] Failed to pre-warm OpenCode pool:', err);
 }
 
+// Start the automations scheduler once the OpenCode pool is available.
+try {
+  await automationsRuntime.start();
+  console.log('[start] Automations scheduler started');
+} catch (err) {
+  console.error('[start] Failed to start automations scheduler:', err);
+}
+
 const DESIRED_PORT = Number(process.env.PORT) || 3000;
 
 const server = await listenWithRetry(DESIRED_PORT);
@@ -349,6 +358,7 @@ const shutdown = async (signal: string) => {
 
   server.stop(true);
   try {
+    automationsRuntime.stop();
     await opencodePool.shutdown();
     console.log('[start] OpenCode pool shutdown cleanly.');
   } catch (err) {

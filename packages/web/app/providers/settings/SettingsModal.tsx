@@ -33,6 +33,7 @@ import { AppearanceView } from '@/app/providers/settings/appearance/appearance-v
 import { GeneralView } from '@/app/providers/settings/general/general-view';
 import { ProvidersView } from '@/app/providers/settings/providers/providers-view';
 import { ReloadOpencode } from '@/app/providers/settings/reload-opencode';
+import { SnippetsView } from '@/app/providers/settings/snippets/snippets-view';
 import { SettingsTab, useSettingsModalStore } from './settings-store';
 
 interface NavItem {
@@ -250,6 +251,7 @@ export function SettingsModal() {
     if (activeTab === 'general') return <GeneralView />;
     if (activeTab === 'appearance') return <AppearanceView />;
     if (activeTab === 'providers') return <ProvidersView />;
+    if (activeTab === 'snippets') return <SnippetsView />;
     return (
       <div className='text-muted flex w-full items-center justify-center p-8 text-sm'>
         {t.settings.contentFor(activeTab.replace('-', ' '))}{' '}

@@ -33,6 +33,7 @@
     "@tanstack/react-router": "^1.170.18",
     "@zumer/snapdom": "^2.24.16",
     "cheerio": "^1.2.0",
+    "cron-parser": "^4.9.0",
     "execa": "^10.0.1",
     "get-system-proxy": "^1.0.0",
     "ghostty-web": "^0.4.0",

@@ -32,7 +32,6 @@ export function KeyPressProvider() {
   );
 
   useKeyPress('b', () => toggleOpenRightPanel(), {
-    ignoreInputs: false,
     modifiers: { mod: true, shift: false },
   });
 

@@ -16,6 +16,12 @@ interface UseKeyPressOptions {
     alt?: boolean;
     shift?: boolean;
   };
+  /**
+   * Also treat the event as ignored when *any* input-like element currently has
+   * focus, not just `event.target`. Useful for non-`contentEditable` editors
+   * (e.g. ProseMirror / canvas based inputs).
+   */
+  checkActiveElement?: boolean;
 }
 
 export function useKeyPress(
@@ -28,6 +34,7 @@ export function useKeyPress(
     preventDefault = true,
     stopPropagation = true,
     modifiers = {},
+    checkActiveElement = false,
   } = options;
 
   useEffect(() => {
@@ -39,14 +46,22 @@ export function useKeyPress(
 
       // 2. Ignore inputs if user is typing
       if (ignoreInputs) {
-        const target = event.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.isContentEditable)
-        ) {
+        const isInput = (el: HTMLElement | null) =>
+          !!el &&
+          (el.tagName === 'INPUT' ||
+            el.tagName === 'TEXTAREA' ||
+            el.isContentEditable);
+
+        if (isInput(event.target as HTMLElement | null)) {
           return;
+        }
+
+        if (checkActiveElement) {
+          const active = document.activeElement as HTMLElement | null;
+          // activeElement is <body> when nothing is focused
+          if (active && active !== document.body && isInput(active)) {
+            return;
+          }
         }
       }
 
@@ -81,5 +96,6 @@ export function useKeyPress(
     preventDefault,
     stopPropagation,
     modifiers,
+    checkActiveElement,
   ]);
 }

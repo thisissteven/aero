@@ -42,8 +42,9 @@ export function MessageComposer({
     () => `message-composer:${crypto.randomUUID()}`,
     [],
   );
-  // Render the palette inside the enclosing modal dialog so it stacks above
-  // the dialog content and stays within its focus/dismiss scope.
+  // The palette is portaled to the body so the dialog's `overflow: clip`
+  // cannot cut it off. The palette marks itself as a react-aria top layer so
+  // the modal ignores interactions with it (no outside-dismiss, no aria-hide).
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   const composer = useSmartComposer({ editorRef, composerKey });
@@ -53,10 +54,7 @@ export function MessageComposer({
     const editor = editorRef.current;
     if (!editor) return;
 
-    setPortalTarget(
-      editor.closest<HTMLElement>('[data-slot="modal-dialog"]') ??
-        document.body,
-    );
+    setPortalTarget(document.body);
 
     replaceEditorContent(editor, defaultValue ?? []);
     composer.initialize();

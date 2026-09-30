@@ -23,12 +23,22 @@ export function usePromptInput({ isDisabled }: { isDisabled?: boolean }) {
     (state) => getComposerSession(state, sessionId).segments,
   );
 
-  useKeyPress('ArrowRight', () =>
-    useChatSettingsStore.getState().cycleVariant(1),
+  const noInputFocused = useMemo(() => ({ checkActiveElement: true }), []);
+
+  useKeyPress(
+    'ArrowRight',
+    () => {
+      useChatSettingsStore.getState().cycleVariant(1);
+    },
+    noInputFocused,
   );
 
-  useKeyPress('ArrowLeft', () =>
-    useChatSettingsStore.getState().cycleVariant(-1),
+  useKeyPress(
+    'ArrowLeft',
+    () => {
+      useChatSettingsStore.getState().cycleVariant(-1);
+    },
+    noInputFocused,
   );
 
   const [isAborting, setIsAborting] = useState(false);

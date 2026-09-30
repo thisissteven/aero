@@ -33,8 +33,10 @@
     @apply rounded-xl;
   }
 
-  .input--secondary {
-    @apply bg-default/60! backdrop-blur-sm;
+  .select__trigger,
+  .input,
+  .textarea {
+    @apply rounded-lg;
   }
 
   .select__popover {

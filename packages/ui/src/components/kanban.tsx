@@ -48,10 +48,11 @@ const mergeClassName = <T,>(
     ? (props: T) => cn(base, className(props)) ?? ''
     : (cn(base, className) ?? '');
 
-export interface KanbanRootProps extends Omit<
-  ComponentPropsWithRef<typeof ScrollShadow>,
-  'orientation' | 'size'
-> {
+export interface KanbanRootProps
+  extends Omit<
+    ComponentPropsWithRef<typeof ScrollShadow>,
+    'orientation' | 'size'
+  > {
   size?: KanbanSize;
 }
 export function KanbanRoot({
@@ -195,9 +196,8 @@ export function KanbanColumnCount({
   );
 }
 
-export interface KanbanCardListProps<
-  T extends object = object,
-> extends GridListProps<T> {}
+export interface KanbanCardListProps<T extends object = object>
+  extends GridListProps<T> {}
 export function KanbanCardList<T extends object = object>({
   children,
   className,
@@ -230,9 +230,8 @@ export function KanbanCardList<T extends object = object>({
   );
 }
 
-export interface KanbanCardProps<
-  T extends object = object,
-> extends GridListItemProps<T> {}
+export interface KanbanCardProps<T extends object = object>
+  extends GridListItemProps<T> {}
 export function KanbanCard<T extends object = object>({
   children,
   className,
@@ -373,6 +372,13 @@ export function useKanban<T extends object>({
 
 export interface UseKanbanColumnOptions {
   renderDropIndicator?: (target: ItemDropTarget) => ReactNode;
+  /**
+   * Resolves the keys to include when a card is dragged. Receives the keys the
+   * collection would drag by default (the pressed card, or the pressed column's
+   * selection) and may return a wider set so a selection spanning multiple
+   * columns can be moved together.
+   */
+  getDragKeys?: (fallbackKeys: Key[]) => Key[];
 }
 export interface UseKanbanColumnReturn<T extends object> {
   dragAndDropHooks: ReturnType<typeof useDragAndDrop<T>>['dragAndDropHooks'];
@@ -389,11 +395,13 @@ export function useKanbanColumn<T extends object>(
     [column, getColumn, list.items],
   );
   const renderDropIndicator = options?.renderDropIndicator;
+  const getDragKeys = options?.getDragKeys;
   const { dragAndDropHooks } = useDragAndDrop<T>({
     acceptedDragTypes: [dragType],
     getDropOperation: () => 'move',
     getItems(keys) {
-      return [...keys].map((key) => ({
+      const dragKeys = getDragKeys?.([...keys]) ?? [...keys];
+      return dragKeys.map((key) => ({
         [dragType]: String(key),
         'text/plain': String(key),
       }));

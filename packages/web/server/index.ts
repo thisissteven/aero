@@ -7,6 +7,7 @@ import { opencodePool } from '@/server/adapters/opencode/pool';
 import { initProxyConfig } from '@/server/proxy-loader';
 
 import activityRoutes from './routes/activity';
+import automationRoutes from './routes/automations';
 import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
 import discoveryRoutes from './routes/discovery';
@@ -35,6 +36,7 @@ initProxyConfig();
 const app = new Hono()
   .basePath('/api')
   .route('/activity', activityRoutes)
+  .route('/automations', automationRoutes)
   .route('/sessions', sessionRoutes)
   .route('/workspaces', workspaceRoutes)
   .route('/pool', poolRoutes)

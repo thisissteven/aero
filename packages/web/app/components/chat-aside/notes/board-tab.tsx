@@ -19,6 +19,7 @@ import {
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Key, Selection } from 'react-aria-components';
 
 import type { SendTodoTarget } from '@/app/components/chat-aside/notes/send-todo';
 import { TaskActionsMenu } from '@/app/components/chat-aside/notes/task-actions';
@@ -51,6 +52,53 @@ export function TaskBoard({
 }) {
   const save = useSaveProjectTodos(workspaceId);
 
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(
+    () => new Set<Key>(),
+  );
+
+  // Selected keys live above the columns so a ctrl/cmd selection can span
+  // boards. A ref mirrors them so the drag payload always reads the latest
+  // selection (it is resolved during the native dragstart event).
+  const selectedRef = useRef<Set<Key>>(new Set());
+  selectedRef.current =
+    selectedKeys === 'all'
+      ? new Set<Key>(todos.map((todo) => todo.id))
+      : selectedKeys;
+
+  const getDragKeys = useCallback((fallbackKeys: Key[]) => {
+    const selected = selectedRef.current;
+    // When the pressed card is part of the selection, drag the whole
+    // cross-column selection; otherwise drag only the pressed card.
+    return fallbackKeys.some((key) => selected.has(key))
+      ? [...selected]
+      : fallbackKeys;
+  }, []);
+
+  // Drop ids for tasks that no longer exist after an external update.
+  useEffect(() => {
+    setSelectedKeys((prev) => {
+      if (prev === 'all') return prev;
+      const valid = new Set(
+        [...prev].filter((key) => todos.some((todo) => todo.id === key)),
+      );
+      return valid.size === prev.size ? prev : valid;
+    });
+  }, [todos]);
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set<Key>()), []);
+
+  // Escape clears the selection while any card is selected.
+  useEffect(() => {
+    const hasSelection = selectedKeys === 'all' ? true : selectedKeys.size > 0;
+    if (!hasSelection) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') clearSelection();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedKeys, clearSelection]);
+
   const getColumn = useCallback((todo: AeroProjectTodo) => todo.status, []);
   const setColumn = useCallback(
     (todo: AeroProjectTodo, status: string): AeroProjectTodo => ({
@@ -82,8 +130,16 @@ export function TaskBoard({
   }, [items]);
 
   return (
-    <div className='flex h-full min-h-0 flex-col'>
-      <Kanban size='sm' className='min-h-0 flex-1'>
+    <div
+      className='flex h-full min-h-0 flex-col'
+      onClick={(event) => {
+        // Clicking anywhere that isn't a card clears the selection.
+        if (!(event.target as HTMLElement).closest('[data-key]')) {
+          clearSelection();
+        }
+      }}
+    >
+      <Kanban size='sm' className='scrollbar-thin min-h-0 flex-1'>
         {TODO_COLUMNS.map((column) => (
           <BoardColumn
             key={column}
@@ -91,6 +147,9 @@ export function TaskBoard({
             kanban={kanban}
             canSendToCurrent={canSendToCurrent}
             onSend={onSend}
+            selectedKeys={selectedKeys}
+            onSelectionChange={setSelectedKeys}
+            getDragKeys={getDragKeys}
           />
         ))}
       </Kanban>
@@ -103,11 +162,17 @@ function BoardColumn({
   kanban,
   canSendToCurrent,
   onSend,
+  selectedKeys,
+  onSelectionChange,
+  getDragKeys,
 }: {
   column: AeroProjectTodoStatus;
   kanban: UseKanbanReturn<AeroProjectTodo>;
   canSendToCurrent: boolean;
   onSend: (target: SendTodoTarget, text: string) => void;
+  selectedKeys: Selection;
+  onSelectionChange: (keys: Selection) => void;
+  getDragKeys: (fallbackKeys: Key[]) => Key[];
 }) {
   const { t } = useI18n();
   const { renderDropIndicator } = useKanbanCardPlaceholder({
@@ -115,6 +180,7 @@ function BoardColumn({
   });
   const { dragAndDropHooks, items } = useKanbanColumn(kanban, column, {
     renderDropIndicator,
+    getDragKeys,
   });
 
   const [composing, setComposing] = useState(false);
@@ -159,11 +225,16 @@ function BoardColumn({
       </Kanban.ColumnHeader>
 
       <Kanban.ColumnBody className='min-h-0'>
-        <Kanban.ScrollShadow className='min-h-0 flex-1'>
+        <Kanban.ScrollShadow className='scrollbar-thin min-h-0 flex-1'>
           <Kanban.CardList
             aria-label={t.notesPanel.board.columns[column]}
             dragAndDropHooks={dragAndDropHooks}
             items={items}
+            selectionMode='multiple'
+            selectionBehavior='replace'
+            shouldSelectOnPressUp
+            selectedKeys={selectedKeys}
+            onSelectionChange={onSelectionChange}
             renderEmptyState={() => (
               <span>{t.notesPanel.board.emptyColumn}</span>
             )}

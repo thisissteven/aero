@@ -922,7 +922,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
             {/* Note Editor Popover */}
             {tab.isInspecting && pendingSelection && editorPosition && (
               <div
-                className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-full border p-1.5 shadow-xl'
+                className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-xl border p-1.5 shadow-xl'
                 style={{
                   left: editorPosition.left,
                   top: editorPosition.top,

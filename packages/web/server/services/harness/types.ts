@@ -310,6 +310,58 @@ export interface AeroProjectPlanContent {
   content: string;
 }
 
+/** How an automation's next occurrence is computed. */
+export type AeroAutomationSchedule =
+  | { kind: 'daily'; times: string[]; timezone?: string }
+  | { kind: 'weekly'; weekdays: number[]; times: string[]; timezone?: string }
+  | { kind: 'once'; date: string; time: string; timezone?: string }
+  | { kind: 'cron'; cron: string; timezone?: string };
+
+export type AeroAutomationStatus = 'idle' | 'running' | 'success' | 'error';
+
+/** What an automation sends when it runs. */
+export interface AeroAutomationExecution {
+  prompt: string;
+  providerID: string;
+  modelID: string;
+  variant?: string;
+  agent?: string;
+  goalEnabled?: boolean;
+  goalTokenBudget?: number;
+  permissionAutoAccept?: boolean;
+}
+
+/** Persisted runtime state. Never written into a loop markdown file. */
+export interface AeroAutomationState {
+  createdAt: number;
+  updatedAt: number;
+  lastRunAt?: number;
+  nextRunAt?: number;
+  lastStatus?: AeroAutomationStatus;
+  lastError?: string;
+  lastDurationMs?: number;
+  lastSessionId?: string;
+  lastScheduledFor?: number;
+}
+
+export interface AeroAutomation {
+  id: string;
+  name: string;
+  enabled: boolean;
+  /** Absolute path of the `.agents/loops/*.md` file driving this task, when any. */
+  loopFile?: string;
+  schedule: AeroAutomationSchedule;
+  execution: AeroAutomationExecution;
+  state: AeroAutomationState;
+}
+
+export interface AeroAutomationStatusSummary {
+  hasEnabledAutomations: boolean;
+  hasRunningAutomations: boolean;
+  enabledAutomationsCount: number;
+  runningAutomationsCount: number;
+}
+
 export type AeroQuestions = QuestionRequest[];
 export type AeroPermissionRequest = PermissionRequest[];
 
