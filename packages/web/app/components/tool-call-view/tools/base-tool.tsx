@@ -31,6 +31,7 @@ export function BaseTool({
   status,
   error,
   icon,
+  iconNode,
   title,
   preview,
   previewType = 'text',
@@ -54,7 +55,8 @@ export function BaseTool({
   blockId: string;
   status: string;
   error?: string;
-  icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
+  icon?: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
+  iconNode?: ReactNode;
   title: string;
   preview?: ReactNode;
   previewType?: 'text' | 'path';
@@ -133,18 +135,24 @@ export function BaseTool({
             isDisabled={isDisabled}
           >
             <div className='flex min-w-0 flex-1 items-center gap-2'>
-              <div className='relative shrink-0'>
+              <div className='relative flex size-3 shrink-0 items-center justify-center'>
                 <Disclosure.Indicator className='size-3 -rotate-90 opacity-0 transition group-hover/tool:opacity-100 data-[expanded=true]:rotate-0 data-[expanded=true]:opacity-100' />
 
-                <Icon
-                  data={icon}
-                  className={cn(
-                    'absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0',
-                    'text-foreground/60',
-                    status === 'error' && 'text-danger',
-                  )}
-                  style={{ width: 12, height: 12 }}
-                />
+                {iconNode ? (
+                  <span className='absolute inset-0 flex items-center justify-center transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0'>
+                    {iconNode}
+                  </span>
+                ) : icon ? (
+                  <Icon
+                    data={icon}
+                    className={cn(
+                      'absolute inset-0 transition group-hover/tool:opacity-0 group-has-[svg[data-expanded=true]]/tool:opacity-0',
+                      'text-foreground/60',
+                      status === 'error' && 'text-danger',
+                    )}
+                    style={{ width: 12, height: 12 }}
+                  />
+                ) : null}
               </div>
 
               <span className='flex items-center justify-start gap-2 truncate'>

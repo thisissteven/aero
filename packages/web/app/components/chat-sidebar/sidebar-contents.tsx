@@ -1,5 +1,5 @@
 import { Kbd, Sidebar } from '@aero/ui';
-import { Clock, Comment, Folder, Magnifier } from '@gravity-ui/icons';
+import { Calendar, Comment, Folder, Magnifier } from '@gravity-ui/icons';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { memo, useTransition } from 'react';
 
@@ -106,7 +106,7 @@ export const SidebarContents = memo(function SidebarContents({
                   onPress={() => handleNavigate('/automations')}
                 >
                   <Sidebar.MenuIcon>
-                    <Clock className='size-4' />
+                    <Calendar className='size-4' />
                   </Sidebar.MenuIcon>
                   <Sidebar.MenuLabel className='-ml-1'>
                     {t.sidebar.automations}

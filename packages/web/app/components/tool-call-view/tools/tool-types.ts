@@ -171,3 +171,12 @@ export type SubagentPart = ToolPartBase & {
 };
 
 export type GenericToolPart = ToolPartBase;
+
+export type AeroToolPart = ToolPartBase & {
+  toolName: 'aero' | 'aero_web';
+  input: {
+    action?: string;
+    parameters?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+};

@@ -32,7 +32,7 @@ export const SessionTodos = memo(function SessionTodos() {
 
   if (tasksCompleted) {
     return (
-      <div className='px-2 py-1 w-fit flex items-center gap-1 text-sm rounded-lg border border-separator bg-surface'>
+      <div className='px-2 py-1 w-fit flex items-center gap-1 text-xs rounded-lg border border-separator bg-surface'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           {t.chatFeed.allTasksCompleted}
         </span>
@@ -43,7 +43,7 @@ export const SessionTodos = memo(function SessionTodos() {
 
   return (
     <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger className='focus-visible:ring-accent flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm  focus-visible:ring-2 focus-visible:outline-none border border-separator bg-surface w-fit'>
+      <Popover.Trigger className='focus-visible:ring-accent flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs  focus-visible:ring-2 focus-visible:outline-none border border-separator bg-surface w-fit'>
         <span className='pointer-events-none inline-block max-w-[180px] truncate align-middle'>
           {inProgress.length > 0
             ? inProgress[0].content

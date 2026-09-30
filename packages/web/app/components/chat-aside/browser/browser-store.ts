@@ -28,6 +28,18 @@ export type PreviewProxyState =
       message: string;
     };
 
+/** Layout width preset for the preview iframe. `fill` is the responsive default. */
+export type BrowserViewport = 'fill' | 'mobile' | 'tablet' | 'desktop';
+
+export const BROWSER_VIEWPORT_WIDTHS: Record<
+  Exclude<BrowserViewport, 'fill'>,
+  number
+> = {
+  mobile: 390,
+  tablet: 768,
+  desktop: 1280,
+};
+
 export interface BrowserTab {
   id: string;
   title: string;
@@ -73,6 +85,11 @@ export interface BrowserTab {
 
   isInspecting: boolean;
   hoverTarget: PreviewElementMetadata | null;
+
+  viewport: BrowserViewport;
+
+  /** Preview zoom factor (1 = 100%). */
+  zoom: number;
 
   proxyState: PreviewProxyState;
 
@@ -132,6 +149,10 @@ interface BrowserStoreActions {
 
   setHoverTarget: (id: string, value: PreviewElementMetadata | null) => void;
 
+  setViewport: (id: string, viewport: BrowserViewport) => void;
+
+  setZoom: (id: string, zoom: number) => void;
+
   updateTab: (id: string, patch: Partial<Pick<BrowserTab, 'title'>>) => void;
 }
 
@@ -163,6 +184,9 @@ function createTab(url = ''): BrowserTab {
 
     isInspecting: false,
     hoverTarget: null,
+
+    viewport: 'fill',
+    zoom: 1,
 
     proxyState: {
       status: 'idle',
@@ -521,6 +545,30 @@ export const useBrowserStore = create<BrowserStore>()(
                 ? {
                     ...tab,
                     hoverTarget: value,
+                  }
+                : tab,
+            ),
+          })),
+
+        setViewport: (id, viewport) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    viewport,
+                  }
+                : tab,
+            ),
+          })),
+
+        setZoom: (id, zoom) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    zoom: Math.min(3, Math.max(0.25, zoom)),
                   }
                 : tab,
             ),

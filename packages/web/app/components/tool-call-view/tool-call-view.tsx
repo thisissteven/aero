@@ -5,6 +5,8 @@ import { WriteToolView } from '@/app/components/tool-call-view/tools/write-tool'
 import type { AeroPart } from '@/server/services/harness/types';
 
 import {
+  AeroToolView,
+  AeroWebToolView,
   BashToolView,
   EditToolView,
   GenericToolView,
@@ -20,6 +22,7 @@ import {
   WebSearchToolView,
 } from './tools';
 import type {
+  AeroToolPart,
   BashPart,
   EditPart,
   GlobPart,
@@ -118,6 +121,13 @@ export const ToolCallView = memo(function ToolCallView({
 
     case 'task':
       return <SubagentToolView part={part as SubagentPart} {...props} />;
+
+    // Aero managed tools
+    case 'aero':
+      return <AeroToolView part={part as AeroToolPart} {...props} />;
+
+    case 'aero_web':
+      return <AeroWebToolView part={part as AeroToolPart} {...props} />;
 
     // Catch-all default tool view
     default:

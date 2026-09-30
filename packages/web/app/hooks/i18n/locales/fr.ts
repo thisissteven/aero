@@ -1219,6 +1219,18 @@ export const fr: BaseTranslation = {
     selectRunningService:
       'Sélectionnez un service en cours d’exécution pour lancer l’aperçu',
     connect: 'Se connecter',
+    menu: 'Options du navigateur',
+    viewportResponsive: 'Adaptatif',
+    viewportMobile: 'Mobile',
+    viewportTablet: 'Tablette',
+    viewportDesktop: 'Bureau',
+    zoomIn: 'Zoom avant',
+    zoomOut: 'Zoom arrière',
+    zoomReset: 'Réinitialiser le zoom',
+    clearCache: 'Vider le cache et recharger',
+    clearStorage: 'Effacer les cookies et le stockage',
+    copyUrl: "Copier l'URL de la page",
+    urlCopied: 'URL de la page copiée',
   },
 
   changesPanel: {

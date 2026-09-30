@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import {
   AutomationError,
+  type AutomationRunEvent,
   list,
   remove,
   run,
@@ -56,33 +57,62 @@ const automations = new Hono()
   // SSE stream of automation run events.
   .get('/events', (c) =>
     streamSSE(c, async (stream) => {
-      const controller = new AbortController();
-      stream.onAbort(() => controller.abort());
+      // Queue events and drain them from inside the stream's async context
+      // (same pattern as the session stream route) so writes are never made
+      // from an external callback/microtask.
+      const queue: AutomationRunEvent[] = [];
+      let wake: (() => void) | null = null;
 
       const unsubscribe = subscribe((event) => {
-        void stream
-          .writeSSE({ event: event.type, data: JSON.stringify(event) })
-          .catch(() => undefined);
+        queue.push(event);
+        const resolve = wake;
+        wake = null;
+        resolve?.();
       });
 
-      let lastWrite = Date.now();
-      const heartbeat = setInterval(() => {
-        if (controller.signal.aborted) return;
-        if (Date.now() - lastWrite < 25_000) return;
-        lastWrite = Date.now();
-        void stream
-          .writeSSE({ event: 'ping', data: '' })
-          .catch(() => undefined);
-      }, 25_000);
+      const controller = new AbortController();
+      stream.onAbort(() => {
+        controller.abort();
+        unsubscribe();
+        const resolve = wake;
+        wake = null;
+        resolve?.();
+      });
+
+      const HEARTBEAT_MS = 25_000;
 
       try {
         await stream.writeSSE({ event: 'ready', data: '' });
-        lastWrite = Date.now();
+        let lastWrite = Date.now();
+
         while (!controller.signal.aborted) {
-          await stream.sleep(1_000);
+          if (queue.length === 0) {
+            if (Date.now() - lastWrite >= HEARTBEAT_MS) {
+              await stream.writeSSE({ event: 'ping', data: '' });
+              lastWrite = Date.now();
+            }
+            await new Promise<void>((resolve) => {
+              const timer = setTimeout(() => {
+                wake = null;
+                resolve();
+              }, HEARTBEAT_MS);
+              wake = () => {
+                clearTimeout(timer);
+                resolve();
+              };
+            });
+            continue;
+          }
+
+          const event = queue.shift();
+          if (!event) continue;
+          await stream.writeSSE({
+            event: event.type,
+            data: JSON.stringify(event),
+          });
+          lastWrite = Date.now();
         }
       } finally {
-        clearInterval(heartbeat);
         unsubscribe();
         controller.abort();
       }

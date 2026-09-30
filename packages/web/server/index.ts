@@ -5,11 +5,13 @@ import { HTTPException } from 'hono/http-exception';
 
 import { opencodePool } from '@/server/adapters/opencode/pool';
 import { initProxyConfig } from '@/server/proxy-loader';
+import { automationsRuntime } from '@/server/services/automations/runtime';
 import { sessionGoalRuntime } from '@/server/services/goal/runtime';
 
 import activityRoutes from './routes/activity';
 import agentToolRoutes from './routes/agent-tool';
 import automationRoutes from './routes/automations';
+import browserControlRoutes from './routes/browser-control';
 import capabilityRoutes from './routes/capabilities';
 import configRoutes from './routes/config';
 import discoveryRoutes from './routes/discovery';
@@ -41,6 +43,7 @@ const app = new Hono()
   .route('/activity', activityRoutes)
   .route('/aero/agent-tool', agentToolRoutes)
   .route('/automations', automationRoutes)
+  .route('/browser-control', browserControlRoutes)
   .route('/sessions', sessionRoutes)
   .route('/workspaces', workspaceRoutes)
   .route('/pool', poolRoutes)
@@ -68,6 +71,7 @@ let poolInitPromise: Promise<void> | null = null;
 // here (not only in start.ts) so it also runs under the Vite dev server, which
 // imports this module directly. `start()` is idempotent.
 let goalRuntimeStarted = false;
+let automationsRuntimeStarted = false;
 
 app.use('*', async (c, next) => {
   if (!poolInitPromise) {
@@ -87,6 +91,13 @@ app.use('*', async (c, next) => {
   if (!goalRuntimeStarted) {
     goalRuntimeStarted = true;
     void sessionGoalRuntime.start();
+  }
+
+  // Same reasoning for the automations scheduler: dev imports this module
+  // directly, so start it here too (idempotent with start.ts).
+  if (!automationsRuntimeStarted) {
+    automationsRuntimeStarted = true;
+    void automationsRuntime.start();
   }
 
   await next();

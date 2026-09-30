@@ -1141,6 +1141,18 @@ export const zh: BaseTranslation = {
     activeLocalhostPorts: '活动的本地端口',
     selectRunningService: '选择要启动预览的服务',
     connect: '连接',
+    menu: '浏览器选项',
+    viewportResponsive: '自适应',
+    viewportMobile: '手机',
+    viewportTablet: '平板',
+    viewportDesktop: '桌面',
+    zoomIn: '放大',
+    zoomOut: '缩小',
+    zoomReset: '重置缩放',
+    clearCache: '清除缓存并重新加载',
+    clearStorage: '清除 Cookie 和存储',
+    copyUrl: '复制页面 URL',
+    urlCopied: '已复制页面 URL',
   },
 
   changesPanel: {

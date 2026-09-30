@@ -1,17 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Button, cn, Spinner, toast } from '@aero/ui';
+import {
+  Button,
+  cn,
+  Dropdown,
+  Label,
+  Separator,
+  Spinner,
+  toast,
+} from '@aero/ui';
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowsExpand,
   ArrowsRotateRight,
   ArrowUpRightFromSquare,
+  Check,
+  EllipsisVertical,
   LayoutHeaderCursor,
+  Minus,
   Paperclip,
+  Plus,
+  TrashBin,
 } from '@gravity-ui/icons';
 import { Icon } from '@gravity-ui/uikit';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { registerBrowserPaneController } from '@/app/components/chat-aside/browser/browser-agent-controller';
 import {
   CachedProxyTarget,
   formatAgentationContext,
@@ -31,15 +46,21 @@ import { useI18n } from '@/app/hooks/i18n';
 import { honoClient } from '@/app/lib';
 import { useOptionalSessionId } from '@/app/providers/SessionIdProvider';
 
-import { useBrowserActions, useBrowserTab } from './browser-store';
+import {
+  BROWSER_VIEWPORT_WIDTHS,
+  type BrowserViewport,
+  useBrowserActions,
+  useBrowserTab,
+} from './browser-store';
 
 interface BrowserPaneProps {
   tabId: string;
   active: boolean;
 }
 
-interface PendingCapture {
-  resolve: (result: { dataUrl: string; mime: string } | null) => void;
+interface PendingFrameRequest {
+  resolve: (value: any) => void;
+  reject: (error: Error) => void;
   timeout: number;
 }
 
@@ -48,7 +69,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
   const lastHoverTargetRef = useRef<PreviewSelection['target'] | null>(null);
   const bridgeReadyRef = useRef(false);
   const inspectAttemptRef = useRef(0);
-  const captureRequestsRef = useRef(new Map<string, PendingCapture>());
+  const pendingRequestsRef = useRef(new Map<string, PendingFrameRequest>());
 
   const tab = useBrowserTab(tabId);
   // New-session pages have no route session id yet; the composer stores its
@@ -71,6 +92,8 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     updateTab,
     setIframeHistoryState,
     goToHistory,
+    setViewport,
+    setZoom,
   } = useBrowserActions();
 
   const [iframeSrc, setIframeSrc] = useState('');
@@ -282,37 +305,90 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     [postToFrame],
   );
 
+  const waitForBridgeReady = useCallback(
+    (timeoutMs = 3000): Promise<boolean> => {
+      if (bridgeReadyRef.current) return Promise.resolve(true);
+
+      return new Promise((resolve) => {
+        const deadline = Date.now() + timeoutMs;
+
+        const tick = () => {
+          if (bridgeReadyRef.current) {
+            resolve(true);
+            return;
+          }
+
+          if (Date.now() >= deadline) {
+            resolve(false);
+            return;
+          }
+
+          window.setTimeout(tick, 100);
+        };
+
+        tick();
+      });
+    },
+    [],
+  );
+
+  const sendFrameRequest = useCallback(
+    async (
+      type: string,
+      payload: Record<string, any> = {},
+      timeoutMs = 15000,
+    ): Promise<any> => {
+      const ready = await waitForBridgeReady();
+
+      if (!ready || !bridgeReadyRef.current) {
+        throw new Error(
+          'The preview is not ready. The page may still be loading or has not been proxied.',
+        );
+      }
+
+      const requestId = `req_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2)}`;
+
+      return new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          pendingRequestsRef.current.delete(requestId);
+          reject(new Error(`Preview action timed out: ${type}`));
+        }, timeoutMs);
+
+        pendingRequestsRef.current.set(requestId, {
+          resolve,
+          reject,
+          timeout,
+        });
+
+        postToFrame({ type, requestId, ...payload });
+      });
+    },
+    [postToFrame, waitForBridgeReady],
+  );
+
   /**
    * Ask the bridge (inside the cross-origin iframe) to snapshot the visible
    * viewport. Resolves with null on timeout or when the bridge is unavailable,
    * so the annotation still works without an image.
    */
-  const requestCapture = useCallback((): Promise<{
+  const requestCapture = useCallback(async (): Promise<{
     dataUrl: string;
     mime: string;
   } | null> => {
-    return new Promise((resolve) => {
-      const frameWindow = iframeRef.current?.contentWindow;
+    try {
+      const result = await sendFrameRequest('capture', {}, 8000);
 
-      if (!frameWindow || !bridgeReadyRef.current) {
-        resolve(null);
-        return;
+      if (result?.dataUrl) {
+        return { dataUrl: result.dataUrl, mime: result.mime ?? 'image/png' };
       }
 
-      const requestId = `cap_${Date.now().toString(36)}_${Math.random()
-        .toString(36)
-        .slice(2)}`;
-
-      const timeout = window.setTimeout(() => {
-        captureRequestsRef.current.delete(requestId);
-        resolve(null);
-      }, 5000);
-
-      captureRequestsRef.current.set(requestId, { resolve, timeout });
-
-      postToFrame({ type: 'capture', requestId });
-    });
-  }, [postToFrame]);
+      return null;
+    } catch {
+      return null;
+    }
+  }, [sendFrameRequest]);
 
   // ---------------------------------------------------------------------------
   // Selection & Annotation Management
@@ -472,7 +548,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
   // Cleanup on unmount
   useEffect(() => {
-    const captureRequests = captureRequestsRef.current;
+    const pendingRequests = pendingRequestsRef.current;
 
     return () => {
       bridgeReadyRef.current = false;
@@ -480,11 +556,11 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
       setInspecting(tabId, false);
       setHoverTarget(tabId, null);
 
-      for (const pending of captureRequests.values()) {
+      for (const pending of pendingRequests.values()) {
         window.clearTimeout(pending.timeout);
-        pending.resolve(null);
+        pending.reject(new Error('The browser pane was closed'));
       }
-      captureRequests.clear();
+      pendingRequests.clear();
     };
   }, [setHoverTarget, setInspecting, tabId]);
 
@@ -656,13 +732,13 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         case 'capture-result': {
           const requestId =
             typeof data.requestId === 'string' ? data.requestId : '';
-          const pending = captureRequestsRef.current.get(requestId);
+          const pending = pendingRequestsRef.current.get(requestId);
 
           if (!pending) {
             break;
           }
 
-          captureRequestsRef.current.delete(requestId);
+          pendingRequestsRef.current.delete(requestId);
           window.clearTimeout(pending.timeout);
 
           if (data.dataUrl) {
@@ -672,6 +748,26 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
             });
           } else {
             pending.resolve(null);
+          }
+          break;
+        }
+
+        case 'action-result': {
+          const requestId =
+            typeof data.requestId === 'string' ? data.requestId : '';
+          const pending = pendingRequestsRef.current.get(requestId);
+
+          if (!pending) {
+            break;
+          }
+
+          pendingRequestsRef.current.delete(requestId);
+          window.clearTimeout(pending.timeout);
+
+          if (data.ok === true) {
+            pending.resolve(data.data);
+          } else {
+            pending.reject(new Error(data.error || 'Preview action failed'));
           }
           break;
         }
@@ -686,6 +782,16 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
           if (typeof data.title === 'string' && data.title) {
             updateTab(tabId, { title: data.title });
+          }
+          break;
+        }
+
+        case 'open-url': {
+          const nextUrl = typeof data.url === 'string' ? data.url : '';
+
+          if (nextUrl) {
+            setDraftUrl(tabId, nextUrl);
+            navigate(tabId, normalizeBrowserUrl(nextUrl));
           }
           break;
         }
@@ -751,7 +857,9 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     };
   }, [
     getCurrentUrlFromFrameUrl,
+    navigate,
     postInspectMode,
+    setDraftUrl,
     setHoverTarget,
     setIframeHistoryState,
     setLoading,
@@ -762,11 +870,103 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     updateTab,
   ]);
 
+  const handleHardReload = useCallback(async () => {
+    try {
+      await sendFrameRequest('clear-cache', {}, 6000);
+    } catch {
+      // The bridge may be unavailable; a plain reload still helps.
+    }
+    reload(tabId);
+    setLoading(tabId, true);
+  }, [reload, sendFrameRequest, setLoading, tabId]);
+
+  const handleClearStorage = useCallback(async () => {
+    try {
+      await sendFrameRequest('clear-storage', {}, 6000);
+    } catch {
+      // ignore — the reload below still resets the panel
+    }
+    previewProxyTargetCache.clear();
+    reload(tabId);
+    setLoading(tabId, true);
+  }, [reload, sendFrameRequest, setLoading, tabId]);
+
+  const handleOpenExternal = useCallback(() => {
+    const url = getExternalUrl();
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, [getExternalUrl]);
+
+  // Expose this pane to the agent bridge client so `aero_web` actions can drive
+  // the live preview. Registered for every tab; the client picks the active one.
+  useEffect(() => {
+    const controller = {
+      snapshot: (params: Record<string, any>) =>
+        sendFrameRequest('snapshot', params),
+      click: (params: Record<string, any>) => sendFrameRequest('click', params),
+      type: (params: Record<string, any>) => sendFrameRequest('type', params),
+      scroll: (params: Record<string, any>) =>
+        sendFrameRequest('scroll', params),
+      inspect: (params: Record<string, any>) =>
+        sendFrameRequest('inspect', params),
+      capture: async () => {
+        const capture = await requestCapture();
+        if (!capture) {
+          throw new Error('Failed to capture the page');
+        }
+        return {
+          ...capture,
+          pageUrl: tab?.url ?? '',
+          pageTitle: tab?.title ?? '',
+        };
+      },
+      clearCache: async () => {
+        await handleHardReload();
+        return { cleared: true };
+      },
+      clearStorage: async () => {
+        await handleClearStorage();
+        return { cleared: true };
+      },
+      back: async () => {
+        goBackInFrame();
+        return {};
+      },
+      forward: async () => {
+        goForwardInFrame();
+        return {};
+      },
+    };
+
+    return registerBrowserPaneController(tabId, controller);
+  }, [
+    tabId,
+    sendFrameRequest,
+    requestCapture,
+    goBackInFrame,
+    goForwardInFrame,
+    handleHardReload,
+    handleClearStorage,
+    tab?.url,
+    tab?.title,
+  ]);
+
   if (!tab) {
     return null;
   }
 
   const activeSelection = pendingSelection ?? selectionPreview;
+
+  const viewportWidth =
+    tab.viewport === 'fill' ? null : BROWSER_VIEWPORT_WIDTHS[tab.viewport];
+
+  const viewportItems: { value: BrowserViewport; label: string }[] = [
+    { value: 'fill', label: t.browser.viewportResponsive },
+    { value: 'mobile', label: t.browser.viewportMobile },
+    { value: 'tablet', label: t.browser.viewportTablet },
+    { value: 'desktop', label: t.browser.viewportDesktop },
+  ];
 
   return (
     <div
@@ -831,16 +1031,89 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
         <IconBtn
           disabled={!tab.currentUrl}
-          onClick={() => {
-            const url = getExternalUrl();
-            if (url) {
-              window.open(url, '_blank', 'noopener,noreferrer');
-            }
-          }}
+          onClick={handleOpenExternal}
           title={t.browser.openExternally}
         >
           <Icon data={ArrowUpRightFromSquare} size={14} />
         </IconBtn>
+
+        <Dropdown size='sm'>
+          <Dropdown.Trigger
+            aria-label={t.browser.menu}
+            className='text-muted hover:bg-surface-secondary hover:text-foreground inline-flex size-6 items-center justify-center rounded-md'
+          >
+            <Icon data={EllipsisVertical} size={14} />
+          </Dropdown.Trigger>
+          <Dropdown.Popover
+            className='w-56'
+            placement='bottom end'
+            crossOffset={6}
+          >
+            <Dropdown.Menu aria-label={t.browser.menu}>
+              {viewportItems.map((item) => (
+                <Dropdown.Item
+                  key={item.value}
+                  className='gap-1'
+                  onPress={() => setViewport(tabId, item.value)}
+                >
+                  <span className='flex size-3.5 items-center justify-center'>
+                    {tab.viewport === item.value && (
+                      <Icon data={Check} size={12} />
+                    )}
+                  </span>
+                  <Label>{item.label}</Label>
+                </Dropdown.Item>
+              ))}
+
+              <Separator className='my-0.5' />
+
+              <Dropdown.Item
+                className='gap-1'
+                shouldCloseOnSelect={false}
+                onPress={() => setZoom(tabId, tab.zoom + 0.1)}
+              >
+                <Icon data={Plus} size={14} />
+                <Label>{t.browser.zoomIn}</Label>
+              </Dropdown.Item>
+              <Dropdown.Item
+                className='gap-1'
+                shouldCloseOnSelect={false}
+                onPress={() => setZoom(tabId, tab.zoom - 0.1)}
+              >
+                <Icon data={Minus} size={14} />
+                <Label>{t.browser.zoomOut}</Label>
+              </Dropdown.Item>
+              <Dropdown.Item
+                className='gap-1'
+                shouldCloseOnSelect={false}
+                onPress={() => setZoom(tabId, 1)}
+              >
+                <Icon data={ArrowsExpand} size={14} />
+                <Label>{t.browser.zoomReset}</Label>
+                <span className='text-muted ml-auto text-xs tabular-nums'>
+                  {Math.round(tab.zoom * 100)}%
+                </span>
+              </Dropdown.Item>
+
+              <Separator className='my-0.5' />
+
+              <Dropdown.Item
+                className='gap-1'
+                onPress={() => void handleHardReload()}
+              >
+                <Icon data={ArrowsRotateRight} size={14} />
+                <Label>{t.browser.clearCache}</Label>
+              </Dropdown.Item>
+              <Dropdown.Item
+                className='gap-1'
+                onPress={() => void handleClearStorage()}
+              >
+                <Icon data={TrashBin} size={14} />
+                <Label>{t.browser.clearStorage}</Label>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
       </div>
 
       {/* Main Content Area */}
@@ -851,126 +1124,138 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         )}
       >
         {iframeSrc ? (
-          <div className='absolute inset-0'>
-            <iframe
-              key={`${iframeSrc}:${tab.reloadNonce}`}
-              ref={iframeRef}
-              src={iframeSrc}
-              title={t.browser.browserPreview}
-              className='absolute inset-0 h-full w-full border-0'
-              allow='clipboard-read; clipboard-write; fullscreen'
-              onLoad={() => setLoading(tabId, false)}
-            />
+          <div className='absolute inset-0 flex justify-center overflow-hidden'>
+            <div
+              className={cn(
+                'relative h-full',
+                viewportWidth && 'border-separator border-x',
+              )}
+              style={{
+                width: viewportWidth ? `${viewportWidth}px` : '100%',
+                maxWidth: '100%',
+                zoom: tab.zoom === 1 ? undefined : tab.zoom,
+              }}
+            >
+              <iframe
+                key={`${iframeSrc}:${tab.reloadNonce}`}
+                ref={iframeRef}
+                src={iframeSrc}
+                title={t.browser.browserPreview}
+                className='absolute inset-0 h-full w-full border-0'
+                allow='clipboard-read; clipboard-write; fullscreen'
+                onLoad={() => setLoading(tabId, false)}
+              />
 
-            {/* Annotation Overlays */}
-            {tab.isInspecting && (
-              <div className='pointer-events-none absolute inset-0'>
-                {/* Hover Target Overlay */}
-                {tab.hoverTarget && !pendingSelection && (
-                  <div
-                    className='border-accent bg-accent/15 absolute rounded-sm border-2'
-                    style={{
-                      left: tab.hoverTarget.bounds.x,
-                      top: tab.hoverTarget.bounds.y,
-                      width: tab.hoverTarget.bounds.width,
-                      height: tab.hoverTarget.bounds.height,
-                    }}
-                  >
-                    <div className='bg-default text-muted absolute -top-6 left-0 max-w-72 truncate rounded px-2 py-0.5 text-xs font-medium shadow'>
-                      <span className='text-foreground'>
-                        {tab.hoverTarget.tag}
-                      </span>
-                      {tab.hoverTarget.text && (
-                        <span>
-                          {' · '}
-                          {tab.hoverTarget.text}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Selection Box Overlay */}
-                {activeSelection?.bounds && (
-                  <div
-                    className='border-accent bg-accent/15 absolute rounded-sm border-2'
-                    style={{
-                      left: activeSelection.bounds.x,
-                      top: activeSelection.bounds.y,
-                      width: activeSelection.bounds.width,
-                      height: activeSelection.bounds.height,
-                    }}
-                  >
-                    {pendingSelection?.target && (
+              {/* Annotation Overlays */}
+              {tab.isInspecting && (
+                <div className='pointer-events-none absolute inset-0'>
+                  {/* Hover Target Overlay */}
+                  {tab.hoverTarget && !pendingSelection && (
+                    <div
+                      className='border-accent bg-accent/15 absolute rounded-sm border-2'
+                      style={{
+                        left: tab.hoverTarget.bounds.x,
+                        top: tab.hoverTarget.bounds.y,
+                        width: tab.hoverTarget.bounds.width,
+                        height: tab.hoverTarget.bounds.height,
+                      }}
+                    >
                       <div className='bg-default text-muted absolute -top-6 left-0 max-w-72 truncate rounded px-2 py-0.5 text-xs font-medium shadow'>
                         <span className='text-foreground'>
-                          {pendingSelection.target.tag}
+                          {tab.hoverTarget.tag}
                         </span>
-                        {pendingSelection.target.text && (
+                        {tab.hoverTarget.text && (
                           <span>
                             {' · '}
-                            {pendingSelection.target.text}
+                            {tab.hoverTarget.text}
                           </span>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Note Editor Popover */}
-            {tab.isInspecting && pendingSelection && editorPosition && (
-              <div
-                className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-xl border p-1.5 shadow-xl'
-                style={{
-                  left: editorPosition.left,
-                  top: editorPosition.top,
-                }}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <input
-                  autoFocus
-                  value={annotationNote}
-                  onChange={(event) => setAnnotationNote(event.target.value)}
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      createAnnotation();
-                    } else if (event.key === 'Escape') {
-                      event.preventDefault();
-                      clearSelection();
-                    }
-                  }}
-                  placeholder={t.browser.addNote}
-                  className='placeholder:text-muted min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm outline-none'
-                />
-
-                <Button
-                  isIconOnly
-                  type='button'
-                  aria-label={t.selectionPopover.submitComment}
-                  size='sm'
-                  isDisabled={isCapturing}
-                  onPress={createAnnotation}
-                >
-                  {isCapturing ? (
-                    <Spinner size='sm' color='current' />
-                  ) : (
-                    <Paperclip />
+                    </div>
                   )}
-                </Button>
-              </div>
-            )}
 
-            {/* Connecting Toast Indicator */}
-            {!bridgeReady && tab.isInspecting && (
-              <div className='border-separator bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
-                {t.browser.connectingToPreview}
-              </div>
-            )}
+                  {/* Selection Box Overlay */}
+                  {activeSelection?.bounds && (
+                    <div
+                      className='border-accent bg-accent/15 absolute rounded-sm border-2'
+                      style={{
+                        left: activeSelection.bounds.x,
+                        top: activeSelection.bounds.y,
+                        width: activeSelection.bounds.width,
+                        height: activeSelection.bounds.height,
+                      }}
+                    >
+                      {pendingSelection?.target && (
+                        <div className='bg-default text-muted absolute -top-6 left-0 max-w-72 truncate rounded px-2 py-0.5 text-xs font-medium shadow'>
+                          <span className='text-foreground'>
+                            {pendingSelection.target.tag}
+                          </span>
+                          {pendingSelection.target.text && (
+                            <span>
+                              {' · '}
+                              {pendingSelection.target.text}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Note Editor Popover */}
+              {tab.isInspecting && pendingSelection && editorPosition && (
+                <div
+                  className='border-separator bg-surface pointer-events-auto absolute flex w-80 items-center gap-1 rounded-xl border p-1.5 shadow-xl'
+                  style={{
+                    left: editorPosition.left,
+                    top: editorPosition.top,
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <input
+                    autoFocus
+                    value={annotationNote}
+                    onChange={(event) => setAnnotationNote(event.target.value)}
+                    onKeyDown={(event) => {
+                      event.stopPropagation();
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        createAnnotation();
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        clearSelection();
+                      }
+                    }}
+                    placeholder={t.browser.addNote}
+                    className='placeholder:text-muted min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm outline-none'
+                  />
+
+                  <Button
+                    isIconOnly
+                    type='button'
+                    aria-label={t.selectionPopover.submitComment}
+                    size='sm'
+                    isDisabled={isCapturing}
+                    onPress={createAnnotation}
+                  >
+                    {isCapturing ? (
+                      <Spinner size='sm' color='current' />
+                    ) : (
+                      <Paperclip />
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Connecting Toast Indicator */}
+              {!bridgeReady && tab.isInspecting && (
+                <div className='border-separator bg-default/95 text-muted pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md border px-3 py-1.5 text-xs shadow-lg'>
+                  {t.browser.connectingToPreview}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <LocalhostPorts

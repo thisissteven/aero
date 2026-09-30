@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 
 import { StatusAsidePanel } from '@/app/components/chat-aside/status-aside-panel';
-import { useRestoreSessionStreams } from '@/app/hooks/api/stream-event';
+import {
+  useEnsureSessionStreams,
+  useRestoreSessionStreams,
+} from '@/app/hooks/api/stream-event';
 
 import { ChatAsidePanel } from './chat-aside/chat-aside-panel';
 import { ConnectedChatAside } from './chat-aside/connected-chat-aside';
@@ -28,6 +31,7 @@ export function ChatShell({ children }: ChatShellProps) {
   );
 
   useRestoreSessionStreams();
+  useEnsureSessionStreams();
 
   return (
     <div className='flex h-screen w-screen overflow-hidden'>

@@ -20,6 +20,20 @@ export function buildBridgeScript(
 
   window.__aeroPreviewBridgeInstalled = true;
 
+  /*
+   * A service worker registered by the previewed app would serve its own
+   * app-shell cache for this origin and bypass the proxy, breaking requests
+   * and the bridge. Preview pages must not own a service worker.
+   */
+  try {
+    if ('serviceWorker' in navigator) {
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: undefined,
+        configurable: true,
+      });
+    }
+  } catch {}
+
   const SOURCE = 'aero-preview-bridge';
   const VERSION = 1;
   const TARGET_ORIGIN = ${serializedTargetOrigin};
@@ -814,6 +828,387 @@ export function buildBridgeScript(
    * ----------------------------------------------------------
    */
 
+  /*
+   * ----------------------------------------------------------
+   * Agent actions (snapshot / click / type / scroll / inspect)
+   * ----------------------------------------------------------
+   */
+
+  const respond = (requestId, ok, data, error) => {
+    post({
+      type: 'action-result',
+      requestId,
+      ok: ok === true,
+      ...(data !== undefined ? { data } : {}),
+      ...(error ? { error: String(error) } : {}),
+      ts: Date.now(),
+    });
+  };
+
+  const normalizeText = (value) =>
+    String(value || '')
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+  const isVisible = (element) => {
+    if (!element || !(element instanceof Element)) return false;
+
+    const rect = element.getBoundingClientRect();
+
+    if (rect.width <= 0 || rect.height <= 0) return false;
+
+    const style = window.getComputedStyle(element);
+
+    return (
+      style.visibility !== 'hidden' &&
+      style.display !== 'none' &&
+      style.opacity !== '0'
+    );
+  };
+
+  const findElement = (params) => {
+    const selector =
+      params && typeof params.selector === 'string'
+        ? params.selector.trim()
+        : '';
+
+    if (selector) {
+      let element = null;
+
+      try {
+        element = document.querySelector(selector);
+      } catch (error) {
+        throw new Error('Invalid selector: ' + selector);
+      }
+
+      if (element) return element;
+    }
+
+    const needle = normalizeText(params && params.text);
+
+    if (needle) {
+      const candidates = Array.from(
+        document.querySelectorAll(
+          'a,button,input,select,textarea,[role="button"],[role="link"],summary,label,[contenteditable="true"]',
+        ),
+      );
+
+      const match = candidates.find((element) => {
+        const haystack = normalizeText(
+          element.innerText ||
+            element.value ||
+            element.getAttribute('aria-label') ||
+            element.getAttribute('placeholder'),
+        );
+
+        return haystack === needle || haystack.indexOf(needle) !== -1;
+      });
+
+      if (match) return match;
+    }
+
+    return null;
+  };
+
+  const describeInteractive = (element) => {
+    const rect = element.getBoundingClientRect();
+
+    return {
+      tag: element.tagName.toLowerCase(),
+      selector: buildSelector(element),
+      text: clip(
+        element.innerText ||
+          element.value ||
+          element.getAttribute('aria-label') ||
+          '',
+        160,
+      ),
+      role: element.getAttribute('role') || undefined,
+      type: element.getAttribute('type') || undefined,
+      href: element.getAttribute('href') || undefined,
+      value:
+        typeof element.value === 'string'
+          ? clip(element.value, 80)
+          : undefined,
+      visible: isVisible(element),
+      bounds: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      },
+    };
+  };
+
+  const collectSnapshot = (params) => {
+    const selector =
+      params && typeof params.selector === 'string'
+        ? params.selector.trim()
+        : '';
+
+    if (selector) {
+      const element = document.querySelector(selector);
+
+      if (!element) throw new Error('No element matches: ' + selector);
+
+      return {
+        url: window.location.href,
+        title: document.title || '',
+        element: metadataForElement(element),
+      };
+    }
+
+    const interactive = Array.from(
+      document.querySelectorAll(
+        'a,button,input,select,textarea,[role="button"],[role="link"],[role="tab"],summary,label,[contenteditable="true"]',
+      ),
+    )
+      .slice(0, 250)
+      .map(describeInteractive);
+
+    return {
+      url: window.location.href,
+      title: document.title || '',
+      text: clip(document.body ? document.body.innerText : '', 6000),
+      interactive,
+    };
+  };
+
+  const performClick = (params) => {
+    const element = findElement(params);
+
+    if (!element) throw new Error('No element found to click');
+
+    try {
+      element.scrollIntoView({ block: 'center', inline: 'center' });
+    } catch {}
+
+    const selector = buildSelector(element);
+
+    element.click();
+
+    return {
+      selector,
+      text: clip(element.innerText || element.value || '', 160),
+    };
+  };
+
+  const setNativeValue = (element, value) => {
+    const prototype =
+      element instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+
+    if (descriptor && descriptor.set) {
+      descriptor.set.call(element, value);
+    } else {
+      element.value = value;
+    }
+  };
+
+  const performType = (params) => {
+    const element = findElement(params);
+
+    if (!element) throw new Error('No input found to type into');
+
+    const value = params && typeof params.value === 'string' ? params.value : '';
+
+    if (element.isContentEditable) {
+      element.focus();
+      element.textContent = value;
+    } else if ('value' in element) {
+      try {
+        setNativeValue(element, value);
+      } catch {
+        element.value = value;
+      }
+      element.focus();
+    } else {
+      throw new Error('Element cannot accept text');
+    }
+
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+
+    if (params && params.submit === true) {
+      element.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+        }),
+      );
+
+      const form = element.form;
+
+      if (form && typeof form.requestSubmit === 'function') {
+        try {
+          form.requestSubmit();
+        } catch {}
+      }
+    }
+
+    return { selector: buildSelector(element), value };
+  };
+
+  const performScroll = (params) => {
+    const selector =
+      params && typeof params.selector === 'string'
+        ? params.selector.trim()
+        : '';
+
+    if (selector) {
+      const element = document.querySelector(selector);
+
+      if (!element) throw new Error('No element matches: ' + selector);
+
+      element.scrollIntoView({ block: 'center' });
+
+      return { selector, scrollX: window.scrollX, scrollY: window.scrollY };
+    }
+
+    const direction = params && params.direction;
+    const step = Math.round(window.innerHeight * 0.8);
+
+    if (direction === 'top') {
+      window.scrollTo({ top: 0 });
+    } else if (direction === 'bottom') {
+      window.scrollTo({ top: document.body.scrollHeight });
+    } else if (direction === 'up') {
+      window.scrollBy({ top: -step });
+    } else {
+      window.scrollBy({ top: step });
+    }
+
+    return {
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      direction: direction || 'down',
+    };
+  };
+
+  const performInspect = (params) => {
+    const selector =
+      params && typeof params.selector === 'string'
+        ? params.selector.trim()
+        : '';
+
+    if (!selector) throw new Error('selector is required');
+
+    const element = document.querySelector(selector);
+
+    if (!element) throw new Error('No element matches: ' + selector);
+
+    const metadata = metadataForElement(element);
+
+    if (!metadata) throw new Error('Unable to inspect element');
+
+    const style = window.getComputedStyle(element);
+
+    return {
+      ...metadata,
+      computedStyle: {
+        display: style.display,
+        position: style.position,
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
+        margin: style.margin,
+        padding: style.padding,
+        width: style.width,
+        height: style.height,
+        border: style.border,
+        borderRadius: style.borderRadius,
+        zIndex: style.zIndex,
+        overflow: style.overflow,
+        textAlign: style.textAlign,
+      },
+    };
+  };
+
+  const clearSiteData = async (params) => {
+    const includeStorage = params && params.storage === true;
+
+    try {
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch {}
+
+    if (includeStorage) {
+      try {
+        localStorage.clear();
+      } catch {}
+
+      try {
+        sessionStorage.clear();
+      } catch {}
+
+      try {
+        document.cookie.split(';').forEach((cookie) => {
+          const name = cookie.split('=')[0].trim();
+
+          if (name) {
+            document.cookie =
+              name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+          }
+        });
+      } catch {}
+    }
+
+    return { cleared: true, storage: includeStorage };
+  };
+
+  const runAction = async (type, requestId, params) => {
+    try {
+      if (type === 'snapshot') {
+        respond(requestId, true, collectSnapshot(params));
+        return;
+      }
+
+      if (type === 'click') {
+        respond(requestId, true, performClick(params));
+        return;
+      }
+
+      if (type === 'type') {
+        respond(requestId, true, performType(params));
+        return;
+      }
+
+      if (type === 'scroll') {
+        respond(requestId, true, performScroll(params));
+        return;
+      }
+
+      if (type === 'inspect') {
+        respond(requestId, true, performInspect(params));
+        return;
+      }
+
+      if (type === 'clear-cache' || type === 'clear-storage') {
+        respond(
+          requestId,
+          true,
+          await clearSiteData({ storage: type === 'clear-storage' }),
+        );
+        return;
+      }
+
+      respond(requestId, false, undefined, 'Unsupported action: ' + type);
+    } catch (error) {
+      respond(requestId, false, undefined, (error && error.message) || error);
+    }
+  };
+
   window.addEventListener('message', (event) => {
     if (event.source !== window.parent) {
       return;
@@ -874,6 +1269,19 @@ export function buildBridgeScript(
 
     if (data.type === 'history-forward') {
       window.history.forward();
+      return;
+    }
+
+    if (
+      data.type === 'snapshot' ||
+      data.type === 'click' ||
+      data.type === 'type' ||
+      data.type === 'scroll' ||
+      data.type === 'inspect' ||
+      data.type === 'clear-cache' ||
+      data.type === 'clear-storage'
+    ) {
+      void runAction(data.type, data.requestId, data);
       return;
     }
 
@@ -1080,10 +1488,6 @@ export function buildBridgeScript(
         return;
       }
 
-      if (anchor.target && anchor.target !== '_self') {
-        return;
-      }
-
       const rawHref = anchor.getAttribute('href');
 
       if (
@@ -1097,7 +1501,22 @@ export function buildBridgeScript(
       try {
         const resolved = new URL(anchor.href, window.location.href);
 
+        if (!/^https?:$/.test(resolved.protocol)) {
+          return;
+        }
+
+        // Popups and cross-origin links are handed to the parent, which opens
+        // them as a fresh preview target so navigation between sites stays
+        // inside the built-in browser instead of escaping the proxy.
+        if (anchor.target && anchor.target !== '_self') {
+          event.preventDefault();
+          post({ type: 'open-url', url: resolved.toString() });
+          return;
+        }
+
         if (resolved.origin !== TARGET_ORIGIN) {
+          event.preventDefault();
+          post({ type: 'open-url', url: resolved.toString() });
           return;
         }
 
@@ -1206,13 +1625,20 @@ export function buildBridgeScript(
     const PreviewWebSocket = function (url, protocols) {
       try {
         const parsed = new URL(String(url), window.location.href);
+        const targetHost = new URL(TARGET_ORIGIN).host;
 
-        if (parsed.origin === TARGET_ORIGIN) {
+        // ws/wss origins do not match the https target origin string, so
+        // compare hosts. Sockets already pointed at the preview host are left
+        // alone; everything aimed at the upstream is moved onto the proxy.
+        if (
+          (parsed.protocol === 'ws:' || parsed.protocol === 'wss:') &&
+          parsed.host === targetHost
+        ) {
           const preview = new URL(window.location.href);
 
           parsed.hostname = preview.hostname;
           parsed.port = preview.port;
-          parsed.protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
+          parsed.protocol = preview.protocol === 'https:' ? 'wss:' : 'ws:';
 
           return protocols === undefined
             ? new NativeWebSocket(parsed.toString())

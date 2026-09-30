@@ -1199,6 +1199,18 @@ export const en = {
     activeLocalhostPorts: 'Active Localhost Ports',
     selectRunningService: 'Select a running service to launch preview',
     connect: 'Connect',
+    menu: 'Browser options',
+    viewportResponsive: 'Responsive',
+    viewportMobile: 'Mobile',
+    viewportTablet: 'Tablet',
+    viewportDesktop: 'Desktop',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    zoomReset: 'Reset zoom',
+    clearCache: 'Clear cache & reload',
+    clearStorage: 'Clear cookies & storage',
+    copyUrl: 'Copy page URL',
+    urlCopied: 'Page URL copied',
   },
 
   changesPanel: {

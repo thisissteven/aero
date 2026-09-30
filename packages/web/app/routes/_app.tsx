@@ -1,6 +1,7 @@
 import { FloatingLogger, ToastProvider } from '@aero/ui';
 import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
 import React from 'react';
+import { BrowserAgentClient } from '@/app/components/chat-aside/browser/browser-agent-client';
 import { ChatShell } from '@/app/components/chat-shell';
 import { usePoolReady } from '@/app/hooks/api/pool';
 import { I18nProvider, useI18n } from '@/app/hooks/i18n';
@@ -35,6 +36,7 @@ function AppLayout() {
           {import.meta.env.DEV && <FloatingLogger />}
           {import.meta.env.DEV && <DevConsole />}
           <RootSessionIdProvider>
+            <BrowserAgentClient />
             <ChatShell>
               <Outlet />
             </ChatShell>

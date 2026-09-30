@@ -101,7 +101,7 @@ export function AutomationsPage() {
 
   const workspace = workspaces.find((entry) => entry.id === workspaceId);
 
-  const { data: tasks, isLoading } = useAutomations(workspaceId);
+  const { data: tasks, isLoading, refetch } = useAutomations(workspaceId);
   useAutomationEvents(workspaceId, Boolean(workspaceId));
 
   const openModal = useGlobalModalStore((state) => state.openModal);
@@ -117,6 +117,21 @@ export function AutomationsPage() {
       return a.name.localeCompare(b.name);
     });
   }, [tasks]);
+
+  // The server flips a run to its terminal status once the spawned session goes
+  // idle/errors (and also emits `scheduled-task-ran` over SSE). Poll while a
+  // run is in flight so the row settles even if the event stream is delayed or
+  // unavailable.
+  const hasRunning = sorted.some(
+    (task) => (task.state.lastStatus ?? 'idle') === 'running',
+  );
+  useEffect(() => {
+    if (!hasRunning) return;
+    const timer = setInterval(() => {
+      void refetch();
+    }, 3_000);
+    return () => clearInterval(timer);
+  }, [hasRunning, refetch]);
 
   const openNew = () => {
     if (!workspaceId) return;
@@ -231,7 +246,7 @@ export function AutomationsPage() {
                   className={cn(
                     'focus-visible:ring-ring flex w-full min-w-0 items-center rounded-md px-2 py-1.5 text-left text-sm focus-visible:ring-2 focus-visible:outline-none',
                     workspaceId === entry.id
-                      ? 'bg-interactive-selection text-muted @2xl:text-foreground'
+                      ? 'bg-interactive-selection text-muted @xl:text-foreground'
                       : 'text-muted hover:bg-interactive-hover/50 hover:text-foreground',
                   )}
                 >

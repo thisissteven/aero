@@ -40,7 +40,7 @@ export const AeroPlugin = async () => ({
         const token = process.env.AERO_AGENT_TOOL_TOKEN
         const failure = (payload) => ({
           title,
-          output: JSON.stringify(payload),
+          output: JSON.stringify(payload, null, 2),
           metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: false } },
         })
         if (!endpoint || !token) {
@@ -72,7 +72,7 @@ export const AeroPlugin = async () => ({
               },
             },
           })
-          if (valid) return { title, output, metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: result.ok === true } } }
+          if (valid) return { title, output: JSON.stringify(result, null, 2), metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: result.ok === true } } }
           return failure({ schemaVersion: 1, ok: false, action: args.action, error: { message: "Aero returned an invalid response", kind: "runtime", status: response.status } })
         } catch (error) {
           if (context.abort.aborted) throw error
@@ -109,7 +109,7 @@ export const AeroPlugin = async () => ({
         const token = process.env.AERO_AGENT_TOOL_TOKEN
         const failure = (payload) => ({
           title,
-          output: JSON.stringify(payload),
+          output: JSON.stringify(payload, null, 2),
           metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: false } },
         })
         if (!endpoint || !token) {
@@ -141,7 +141,7 @@ export const AeroPlugin = async () => ({
               },
             },
           })
-          if (valid) return { title, output, metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: result.ok === true } } }
+          if (valid) return { title, output: JSON.stringify(result, null, 2), metadata: { aero: { schemaVersion: 1, action: args.action, description: title, ok: result.ok === true } } }
           return failure({ schemaVersion: 1, ok: false, action: args.action, error: { message: "Aero returned an invalid response", kind: "runtime", status: response.status } })
         } catch (error) {
           if (context.abort.aborted) throw error

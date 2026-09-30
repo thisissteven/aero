@@ -47,8 +47,10 @@ export interface PreviewBridgeMessage {
     | 'select'
     | 'selection-preview'
     | 'navigate-preview'
+    | 'open-url'
     | 'history-state'
-    | 'capture-result';
+    | 'capture-result'
+    | 'action-result';
 
   url?: string;
   title?: string;
@@ -65,6 +67,9 @@ export interface PreviewBridgeMessage {
   dataUrl?: string;
   mime?: string;
   error?: string;
+
+  ok?: boolean;
+  data?: unknown;
 
   ts?: number;
 }

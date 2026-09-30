@@ -1140,6 +1140,18 @@ export const zhTW: BaseTranslation = {
     activeLocalhostPorts: '使用中的 localhost 連接埠',
     selectRunningService: '選擇要啟動預覽的服務',
     connect: '連線',
+    menu: '瀏覽器選項',
+    viewportResponsive: '自適應',
+    viewportMobile: '手機',
+    viewportTablet: '平板',
+    viewportDesktop: '桌面',
+    zoomIn: '放大',
+    zoomOut: '縮小',
+    zoomReset: '重設縮放',
+    clearCache: '清除快取並重新載入',
+    clearStorage: '清除 Cookie 和儲存空間',
+    copyUrl: '複製頁面網址',
+    urlCopied: '已複製頁面網址',
   },
 
   changesPanel: {

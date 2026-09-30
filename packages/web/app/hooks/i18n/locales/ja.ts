@@ -1188,6 +1188,18 @@ export const ja: BaseTranslation = {
     activeLocalhostPorts: 'アクティブなlocalhostポート',
     selectRunningService: '実行中のサービスを選択してプレビューを起動',
     connect: '接続',
+    menu: 'ブラウザのオプション',
+    viewportResponsive: 'レスポンシブ',
+    viewportMobile: 'モバイル',
+    viewportTablet: 'タブレット',
+    viewportDesktop: 'デスクトップ',
+    zoomIn: 'ズームイン',
+    zoomOut: 'ズームアウト',
+    zoomReset: 'ズームをリセット',
+    clearCache: 'キャッシュを消去して再読み込み',
+    clearStorage: 'Cookie とストレージを消去',
+    copyUrl: 'ページ URL をコピー',
+    urlCopied: 'ページ URL をコピーしました',
   },
 
   changesPanel: {

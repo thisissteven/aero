@@ -1181,6 +1181,18 @@ export const id: BaseTranslation = {
     activeLocalhostPorts: 'Port Localhost Aktif',
     selectRunningService: 'Pilih layanan yang berjalan untuk membuka pratinjau',
     connect: 'Hubungkan',
+    menu: 'Opsi peramban',
+    viewportResponsive: 'Responsif',
+    viewportMobile: 'Seluler',
+    viewportTablet: 'Tablet',
+    viewportDesktop: 'Desktop',
+    zoomIn: 'Perbesar',
+    zoomOut: 'Perkecil',
+    zoomReset: 'Atur ulang zoom',
+    clearCache: 'Bersihkan cache & muat ulang',
+    clearStorage: 'Hapus cookie & penyimpanan',
+    copyUrl: 'Salin URL halaman',
+    urlCopied: 'URL halaman disalin',
   },
 
   changesPanel: {

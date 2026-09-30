@@ -8,7 +8,6 @@ import { buildBridgeScript } from './bridge-script';
 import {
   detectRewriteKind,
   rewritePreviewBody,
-  rewritePreviewCspHeader,
   rewritePreviewRedirectLocation,
 } from './rewrite';
 import { serveReservedPreviewAsset } from './snapdom-module';
@@ -48,7 +47,7 @@ function buildUpstreamUrl(
   return upstream;
 }
 
-function filterRequestHeaders(request: Headers): Headers {
+function filterRequestHeaders(request: Headers, upstream: URL): Headers {
   const result = new Headers();
 
   request.forEach((value, key) => {
@@ -72,29 +71,83 @@ function filterRequestHeaders(request: Headers): Headers {
   // holds them for the per-target preview origin, so they are the previewed
   // app's own credentials (not Aero's) and are required for its sessions to
   // work through the proxy.
-
   result.set('accept-encoding', 'identity');
+
+  // Rewrite the provenance headers to the upstream origin. Many sites reject a
+  // POST whose Origin does not match, and CSRF checks read Referer; because the
+  // browser sees only the preview origin, forwarding those unchanged would
+  // break logins and form submissions.
+  result.set('origin', upstream.origin);
+  result.set('referer', upstream.toString());
 
   return result;
 }
+
+// A cookie set for `example.com` would be dropped by the browser when it
+// arrives from `<id>.preview.localhost`. Strip the attributes that tie it to
+// the upstream host or require HTTPS, and normalise SameSite so the preview
+// origin can store and replay it.
+function rewriteSetCookie(cookie: string): string {
+  const parts = cookie.split(';');
+  const value = parts[0]?.trim() ?? '';
+
+  const attributes = parts
+    .slice(1)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((attribute) => {
+      const name = attribute.split('=')[0]?.trim().toLowerCase();
+      return name !== 'domain' && name !== 'secure' && name !== 'partitioned';
+    })
+    .map((attribute) => {
+      const [name, ...rest] = attribute.split('=');
+      if (
+        name?.trim().toLowerCase() === 'samesite' &&
+        rest.join('=').trim().toLowerCase() === 'none'
+      ) {
+        return 'SameSite=Lax';
+      }
+      return attribute;
+    });
+
+  if (
+    !attributes.some(
+      (attribute) => attribute.split('=')[0]?.trim().toLowerCase() === 'path',
+    )
+  ) {
+    attributes.unshift('Path=/');
+  }
+
+  return [value, ...attributes].join('; ');
+}
+
+const STRIPPED_RESPONSE_HEADERS = new Set([
+  'content-length',
+  'content-encoding',
+  'transfer-encoding',
+  'connection',
+  'keep-alive',
+  // Framing and isolation headers would stop the preview-origin iframe from
+  // rendering or talking to the bridge.
+  'x-frame-options',
+  'content-security-policy',
+  'content-security-policy-report-only',
+  'cross-origin-opener-policy',
+  'cross-origin-embedder-policy',
+  'cross-origin-resource-policy',
+  'permissions-policy',
+  'clear-site-data',
+  'set-cookie',
+  'strict-transport-security',
+  'report-to',
+  'reporting-endpoints',
+]);
 
 function copyResponseHeaders(source: Headers): Headers {
   const result = new Headers();
 
   source.forEach((value, key) => {
-    const lower = key.toLowerCase();
-
-    if (
-      lower === 'content-length' ||
-      lower === 'content-encoding' ||
-      lower === 'transfer-encoding' ||
-      lower === 'connection' ||
-      lower === 'keep-alive' ||
-      lower === 'x-frame-options' ||
-      lower === 'set-cookie' ||
-      lower === 'content-security-policy' ||
-      lower === 'content-security-policy-report-only'
-    ) {
+    if (STRIPPED_RESPONSE_HEADERS.has(key.toLowerCase())) {
       return;
     }
 
@@ -110,7 +163,7 @@ function copyResponseHeaders(source: Headers): Headers {
 
   if (setCookies && setCookies.length > 0) {
     for (const cookie of setCookies) {
-      result.append('set-cookie', cookie);
+      result.append('set-cookie', rewriteSetCookie(cookie));
     }
   }
 
@@ -151,6 +204,20 @@ function injectBridge(
   }
 
   return `${bridge}${html}`;
+}
+
+/**
+ * Remove tags that would block or break the proxied page: a meta CSP (the
+ * header is stripped, but a meta one survives) and Subresource Integrity
+ * attributes (rewritten CSS/JS no longer matches its original hash).
+ */
+function sanitizeProxiedHtml(html: string): string {
+  return html
+    .replace(
+      /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>\s*/gi,
+      '',
+    )
+    .replace(/\sintegrity\s*=\s*(["'])[^"']*\1/gi, '');
 }
 
 // Combines the incoming client request's own abort signal with the
@@ -210,7 +277,7 @@ async function fetchUpstream(
 
     const response = await fetch(upstream, {
       method: c.req.method,
-      headers: filterRequestHeaders(c.req.raw.headers),
+      headers: filterRequestHeaders(c.req.raw.headers, upstream),
       body: isGetOrHead(c.req.method) ? undefined : c.req.raw.body,
       duplex: 'half',
       redirect: 'manual',
@@ -753,22 +820,8 @@ export async function proxyRequest(
   if (rewriteKind === 'html') {
     const nonce = randomBytes(16).toString('base64');
 
-    const originalCsp = response.headers.get('content-security-policy');
-
-    if (originalCsp) {
-      const rewrittenCsp = rewritePreviewCspHeader(
-        originalCsp,
-        nonce,
-        previewOrigin,
-      );
-
-      if (rewrittenCsp) {
-        headers.set('content-security-policy', rewrittenCsp);
-      }
-    }
-
     const withBridge = injectBridge(
-      rewrittenBody,
+      sanitizeProxiedHtml(rewrittenBody),
       target.origin,
       previewOrigin,
       nonce,

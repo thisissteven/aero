@@ -10,6 +10,12 @@ import api from './index';
 import { resolveRoot } from './lib/fs-ws/fs-core';
 import { handleFsSocketMessage } from './lib/fs-ws/fs-ws-bun';
 import { getPreviewTarget } from './lib/preview/store';
+import {
+  extractPreviewIdFromHost,
+  extractPreviewIdFromPath,
+  extractPreviewRestPath,
+  resolvePreviewWebSocketUrl,
+} from './lib/preview/websocket';
 import { validateWebSocketRequest } from './lib/terminal/auth';
 import { AUTH_CONFIG } from './lib/terminal/config';
 import {
@@ -75,7 +81,14 @@ type FsSocketData = {
   root: string;
 };
 
-type SocketData = TerminalSocketData | FsSocketData;
+type PreviewWsSocketData = {
+  kind: 'preview-ws';
+  upstreamUrl: string;
+  upstream?: WebSocket;
+  pending: Array<string | ArrayBuffer | Uint8Array>;
+};
+
+type SocketData = TerminalSocketData | FsSocketData | PreviewWsSocketData;
 
 function adaptBunSocket(ws: ServerWebSocket<SocketData>): WsLikeSocket {
   return {
@@ -156,6 +169,52 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
 
         async fetch(req, server) {
           const url = new URL(req.url);
+
+          /*
+           * Preview WebSocket upgrade. Runs before the preview-host rewrite,
+           * which would otherwise consume the upgrade request as an HTTP GET.
+           */
+          if (
+            (req.headers.get('upgrade') ?? '').toLowerCase() === 'websocket'
+          ) {
+            const previewId =
+              extractPreviewIdFromHost(req.headers.get('host') ?? '') ??
+              extractPreviewIdFromPath(url.pathname);
+
+            if (previewId) {
+              const target = getPreviewTarget(previewId);
+
+              if (!target || target.kind !== 'http') {
+                return new Response('Preview target not found', {
+                  status: 404,
+                });
+              }
+
+              const restPath = extractPreviewIdFromPath(url.pathname)
+                ? extractPreviewRestPath(url.pathname, previewId)
+                : `${url.pathname}${url.search}`;
+
+              const upstreamUrl = resolvePreviewWebSocketUrl(
+                target,
+                restPath,
+                req.url,
+              );
+
+              if (!upstreamUrl) {
+                return new Response('Unsupported preview target', {
+                  status: 400,
+                });
+              }
+
+              const upgraded = server.upgrade(req, {
+                data: { kind: 'preview-ws', upstreamUrl, pending: [] },
+              });
+
+              return upgraded
+                ? undefined
+                : new Response('Upgrade failed', { status: 400 });
+            }
+          }
 
           /*
            * --------------------------------------------------
@@ -269,6 +328,50 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
 
         websocket: {
           open(ws) {
+            if (ws.data.kind === 'preview-ws') {
+              const data = ws.data;
+              const upstream = new WebSocket(data.upstreamUrl);
+
+              upstream.binaryType = 'arraybuffer';
+              data.upstream = upstream;
+
+              upstream.onopen = () => {
+                for (const queued of data.pending.splice(0)) {
+                  try {
+                    upstream.send(queued as never);
+                  } catch {
+                    // ignore
+                  }
+                }
+              };
+
+              upstream.onmessage = (event) => {
+                try {
+                  ws.send(event.data as never);
+                } catch {
+                  // ignore
+                }
+              };
+
+              upstream.onclose = () => {
+                try {
+                  ws.close();
+                } catch {
+                  // ignore
+                }
+              };
+
+              upstream.onerror = () => {
+                try {
+                  ws.close();
+                } catch {
+                  // ignore
+                }
+              };
+
+              return;
+            }
+
             if (ws.data.kind === 'fs') {
               // No session state to initialize — root lives on ws.data.
               return;
@@ -282,6 +385,23 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
           },
 
           message(ws, message) {
+            if (ws.data.kind === 'preview-ws') {
+              const data = ws.data;
+              const upstream = data.upstream;
+
+              if (upstream && upstream.readyState === WebSocket.OPEN) {
+                try {
+                  upstream.send(message as never);
+                } catch {
+                  // ignore
+                }
+              } else {
+                data.pending.push(message as never);
+              }
+
+              return;
+            }
+
             if (ws.data.kind === 'fs') {
               void handleFsSocketMessage(
                 adaptBunSocket(ws),
@@ -295,6 +415,15 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
           },
 
           close(ws) {
+            if (ws.data.kind === 'preview-ws') {
+              try {
+                ws.data.upstream?.close();
+              } catch {
+                // ignore
+              }
+              return;
+            }
+
             if (ws.data.kind === 'fs') {
               // No session state to tear down.
               return;

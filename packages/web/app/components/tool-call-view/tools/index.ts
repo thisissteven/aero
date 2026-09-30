@@ -1,3 +1,4 @@
+export * from './aero-tool';
 export * from './base-tool';
 export * from './bash-tool';
 export * from './edit-tool';

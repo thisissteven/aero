@@ -6,9 +6,12 @@
 // action allowlist is deliberately narrower than the full control surface:
 // session and worktree deletion and project-path registration are not exposed.
 
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+
 import { z } from 'zod';
 
-import { GET_ALL_LIMIT } from '@/server/helper';
+import { AERO_DIR, GET_ALL_LIMIT } from '@/server/helper';
 import type {
   AeroAutomation,
   AeroAutomationSchedule,
@@ -28,13 +31,14 @@ import {
   upsert as automationsUpsert,
 } from './automations';
 import type { AutomationInput } from './automations/store';
+import { hasBrowserClient, requestBrowserAction } from './browser-control';
 import { buildGoalIntroText, createSessionGoal } from './goal/store';
 import { getActiveAdapter } from './harness/registry';
 import { getSettings } from './settings';
 
 export const AGENT_TOOL_SCHEMA_VERSION = 1;
 
-export const AGENT_ACTIONS = [
+export const CONTROL_ACTIONS = [
   'projects.list',
   'models.list',
   'session.list',
@@ -50,9 +54,26 @@ export const AGENT_ACTIONS = [
   'schedule.toggle',
 ] as const;
 
+export const BROWSER_ACTIONS = [
+  'browser.open',
+  'browser.snapshot',
+  'browser.click',
+  'browser.type',
+  'browser.scroll',
+  'browser.back',
+  'browser.forward',
+  'browser.inspect',
+  'browser.capture',
+  'browser.resize',
+] as const;
+
+export const AGENT_ACTIONS = [...CONTROL_ACTIONS, ...BROWSER_ACTIONS] as const;
+
 export type AgentAction = (typeof AGENT_ACTIONS)[number];
+export type BrowserAction = (typeof BROWSER_ACTIONS)[number];
 
 const ACTION_SET = new Set<string>(AGENT_ACTIONS);
+const BROWSER_ACTION_SET = new Set<string>(BROWSER_ACTIONS);
 
 export type AgentToolErrorKind = 'usage' | 'runtime';
 
@@ -148,6 +169,14 @@ const paramsSchema = z.object({
   cron: z.string().optional(),
   timezone: z.string().optional(),
   disabled: z.boolean().optional(),
+  url: z.string().optional(),
+  selector: z.string().optional(),
+  text: z.string().optional(),
+  value: z.string().optional(),
+  submit: z.boolean().optional(),
+  direction: z.enum(['up', 'down', 'top', 'bottom']).optional(),
+  viewport: z.enum(['mobile', 'tablet', 'desktop', 'fill']).optional(),
+  label: z.string().optional(),
 });
 
 export type AgentToolParams = z.infer<typeof paramsSchema>;
@@ -423,12 +452,87 @@ async function settleDispatch(
   return result;
 }
 
+async function saveBrowserCapture(
+  data: unknown,
+  ctx: AgentToolRequestContext,
+): Promise<unknown> {
+  const record = (data ?? {}) as {
+    dataUrl?: string;
+    mime?: string;
+    pageUrl?: string;
+    pageTitle?: string;
+  };
+  const dataUrl = typeof record.dataUrl === 'string' ? record.dataUrl : '';
+
+  if (!dataUrl.startsWith('data:')) {
+    throw new AgentToolError('The browser returned no screenshot', 'runtime');
+  }
+
+  const comma = dataUrl.indexOf(',');
+  const header = dataUrl.slice(5, comma);
+  const base64 = dataUrl.slice(comma + 1);
+  const mime =
+    typeof record.mime === 'string'
+      ? record.mime
+      : header.split(';')[0] || 'image/png';
+  const ext =
+    mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png';
+
+  const directory = ctx.contextDirectory
+    ? join(ctx.contextDirectory, '.aero', 'captures')
+    : join(AERO_DIR, 'captures');
+  await mkdir(directory, { recursive: true });
+
+  const filePath = join(directory, `capture-${Date.now().toString(36)}.${ext}`);
+  await writeFile(filePath, Buffer.from(base64, 'base64'));
+
+  return {
+    path: filePath,
+    relativePath: ctx.contextDirectory
+      ? relative(ctx.contextDirectory, filePath)
+      : undefined,
+    directory: ctx.contextDirectory,
+    pageUrl: record.pageUrl,
+    pageTitle: record.pageTitle,
+    mime,
+  };
+}
+
+async function executeBrowserAction(
+  action: BrowserAction,
+  params: AgentToolParams,
+  ctx: AgentToolRequestContext,
+): Promise<unknown> {
+  if (!hasBrowserClient()) {
+    throw new AgentToolError(
+      'No Aero browser panel is connected. Open the Browser panel and try again.',
+      'runtime',
+    );
+  }
+
+  const data = await requestBrowserAction(
+    action,
+    params as Record<string, unknown>,
+    { signal: ctx.signal },
+  );
+
+  if (action === 'browser.capture') {
+    return saveBrowserCapture(data, ctx);
+  }
+
+  return data;
+}
+
 export async function executeAgentAction(
   action: AgentAction,
   params: AgentToolParams,
   ctx: AgentToolRequestContext,
   deps: AgentToolDeps = defaultDeps,
 ): Promise<unknown> {
+  if (BROWSER_ACTION_SET.has(action)) {
+    return executeBrowserAction(action as BrowserAction, params, ctx);
+  }
+
   switch (action) {
     case 'projects.list': {
       const adapter = await deps.adapter();

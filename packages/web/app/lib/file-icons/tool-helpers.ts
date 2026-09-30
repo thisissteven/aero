@@ -214,6 +214,20 @@ const TOOL_METADATA: Record<string, ToolMetadata> = {
     inputFields: [],
   },
 
+  aero: {
+    displayName: 'Aero',
+    category: 'system',
+    outputLanguage: 'json',
+    inputFields: [],
+  },
+
+  aero_web: {
+    displayName: 'Aero Browser',
+    category: 'web',
+    outputLanguage: 'json',
+    inputFields: [],
+  },
+
   plan_enter: {
     displayName: 'Plan Mode',
     category: 'ai',
