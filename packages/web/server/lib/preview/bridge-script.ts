@@ -611,21 +611,20 @@ export function buildBridgeScript(
       }
     } catch {}
 
-    const images = Array.from(document.images || []);
+    // Only wait for images that are still loading; already-complete images are
+    // read straight from the decoded image cache when snapDOM rasterizes.
+    const images = Array.from(document.images || []).filter(
+      (img) => !img.complete,
+    );
 
     await Promise.all(
-      images.map((img) => {
-        if (img.complete) {
-          return typeof img.decode === 'function'
-            ? img.decode().catch(() => {})
-            : Promise.resolve();
-        }
-
-        return new Promise((resolve) => {
-          img.addEventListener('load', resolve, { once: true });
-          img.addEventListener('error', resolve, { once: true });
-        });
-      }),
+      images.map(
+        (img) =>
+          new Promise((resolve) => {
+            img.addEventListener('load', resolve, { once: true });
+            img.addEventListener('error', resolve, { once: true });
+          }),
+      ),
     );
   };
 
@@ -769,10 +768,31 @@ export function buildBridgeScript(
     } catch {}
   };
 
+  /*
+   * snapDOM is imported once per document (the browser caches the module, but
+   * we memoize the promise too) and its resource pre-cache runs a single time.
+   * Re-running preCache on every capture re-scans the whole document and was a
+   * large part of capture latency.
+   */
+  let snapModulePromise = null;
+  let preCached = false;
+
+  const loadSnapModule = () => {
+    if (!snapModulePromise) {
+      snapModulePromise = import(RESERVED_MODULE_URL).catch((error) => {
+        snapModulePromise = null;
+        throw error;
+      });
+    }
+
+    return snapModulePromise;
+  };
+
   const captureRoot = (snap, root, dpr, fullPage) =>
     snap.toCanvas(root, {
       ...(fullPage ? {} : { clip: 'viewport' }),
       dpr,
+      fast: true,
       embedFonts: true,
       format: 'png',
     });
@@ -803,7 +823,7 @@ export function buildBridgeScript(
       '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';
 
     try {
-      const mod = await import(RESERVED_MODULE_URL);
+      const mod = await loadSnapModule();
       const snap = mod.snapdom || mod.default;
 
       if (!snap || typeof snap.toCanvas !== 'function') {
@@ -812,13 +832,17 @@ export function buildBridgeScript(
 
       document.head.appendChild(freeze);
 
-      if (typeof mod.preCache === 'function') {
+      if (typeof mod.preCache === 'function' && !preCached) {
+        preCached = true;
+
         try {
           await mod.preCache(document);
-        } catch {}
+        } catch {
+          // A failed pre-cache is not fatal; snapDOM still resolves resources.
+        }
       }
 
-      await withTimeout(waitForAssets(), 2500);
+      await withTimeout(waitForAssets(), 1200);
       await waitForPaint();
 
       const highlight = buildHighlightOverlay(resolveSelectionBounds());
@@ -1012,6 +1036,17 @@ export function buildBridgeScript(
     };
   };
 
+  const pageDimensions = () => {
+    const doc = document.documentElement;
+
+    return {
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      scrollWidth: doc ? doc.scrollWidth : window.innerWidth,
+      scrollHeight: doc ? doc.scrollHeight : window.innerHeight,
+    };
+  };
+
   const collectSnapshot = (params) => {
     const selector =
       params && typeof params.selector === 'string'
@@ -1026,6 +1061,7 @@ export function buildBridgeScript(
       return {
         url: window.location.href,
         title: document.title || '',
+        dimensions: pageDimensions(),
         element: metadataForElement(element),
       };
     }
@@ -1041,6 +1077,7 @@ export function buildBridgeScript(
     return {
       url: window.location.href,
       title: document.title || '',
+      dimensions: pageDimensions(),
       text: clip(document.body ? document.body.innerText : '', 6000),
       interactive,
     };

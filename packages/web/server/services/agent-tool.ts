@@ -179,6 +179,7 @@ const paramsSchema = z.object({
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
   dpr: z.number().positive().optional(),
+  fullPage: z.boolean().optional(),
   label: z.string().optional(),
 });
 

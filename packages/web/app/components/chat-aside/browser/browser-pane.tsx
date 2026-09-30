@@ -146,6 +146,10 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
   const [annotationNote, setAnnotationNote] = useState('');
   const [bridgeReady, setBridgeReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [screenshotKind, setScreenshotKind] = useState<
+    'frame' | 'fullPage' | null
+  >(null);
 
   const viewportContainerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -460,7 +464,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
       mime: string;
     } | null> => {
       try {
-        const result = await sendFrameRequest('capture', payload, 15_000);
+        const result = await sendFrameRequest('capture', payload, 20_000);
 
         if (result?.dataUrl) {
           return { dataUrl: result.dataUrl, mime: result.mime ?? 'image/png' };
@@ -991,9 +995,11 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
   const handleScreenshot = useCallback(
     async (fullPage: boolean) => {
-      if (!tab || tab.proxyState.status !== 'ready') {
+      if (!tab || tab.proxyState.status !== 'ready' || screenshotKind) {
         return;
       }
+
+      setScreenshotKind(fullPage ? 'fullPage' : 'frame');
 
       try {
         const capture = await requestCapture(
@@ -1008,9 +1014,12 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         toast.success(t.browser.screenshotCopied);
       } catch {
         toast.danger(t.browser.screenshotFailed);
+      } finally {
+        setScreenshotKind(null);
+        setMenuOpen(false);
       }
     },
-    [requestCapture, t, tab],
+    [requestCapture, screenshotKind, t, tab],
   );
 
   // Expose this pane to the agent bridge client so `aero_web` actions can drive
@@ -1029,25 +1038,36 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         const width = toDimension(params.width);
         const height = toDimension(params.height);
         const requestedDpr = toDpr(params.dpr);
+        const fullPage = params.fullPage === true;
 
-        const exact = Boolean(width && height);
+        /*
+         * Pin the layout viewport when a size is given so the page reflows
+         * before the snapshot. For a full-page capture only the width matters;
+         * the image height is the document's scroll height.
+         */
+        if (width || height) {
+          setCustomSize(tabId, {
+            width: width ?? tab?.customSize?.width ?? 1280,
+            height: height ?? tab?.customSize?.height ?? 900,
+          });
 
-        if (width && height) {
-          setCustomSize(tabId, { width, height });
-
-          // Let React commit the resize and the iframe reflow before the bridge
-          // snapshots its (now exact-size) viewport.
+          // Let React commit the resize and the iframe reflow.
           await new Promise<void>((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
           );
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          await new Promise((resolve) => setTimeout(resolve, 120));
         }
 
-        // When an exact size is requested, pin the raster scale to 1 so the
-        // image is exactly `width` x `height`, not multiplied by the host DPR.
-        const dpr = requestedDpr ?? (exact ? 1 : undefined);
+        // A full-page capture is not bound to the requested height, and an exact
+        // size should not be multiplied by the host DPR — pin the raster scale
+        // to 1 unless the caller asked for one.
+        const exact = Boolean(width && height);
+        const dpr = requestedDpr ?? (fullPage || exact ? 1 : undefined);
 
-        const capture = await requestCapture(dpr ? { dpr } : {});
+        const capture = await requestCapture({
+          ...(dpr ? { dpr } : {}),
+          ...(fullPage ? { fullPage: true } : {}),
+        });
 
         if (!capture) {
           throw new Error('Failed to capture the page');
@@ -1055,8 +1075,10 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
         return {
           ...capture,
-          ...(width && height ? { width, height } : {}),
+          ...(width ? { width } : {}),
+          ...(height ? { height } : {}),
           ...(dpr !== undefined ? { dpr } : {}),
+          ...(fullPage ? { fullPage: true } : {}),
           pageUrl: tab?.url ?? '',
           pageTitle: tab?.title ?? '',
         };
@@ -1195,7 +1217,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
           <Icon data={ArrowUpRightFromSquare} size={14} />
         </IconBtn>
 
-        <Dropdown size='sm'>
+        <Dropdown size='sm' isOpen={menuOpen} onOpenChange={setMenuOpen}>
           <Dropdown.Trigger
             aria-label={t.browser.menu}
             className='grid place-items-center h-7 w-7 rounded-md p-0 hover:bg-default'
@@ -1207,7 +1229,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
             placement='bottom end'
             crossOffset={6}
           >
-            <div className='border-separator flex items-center justify-between gap-2 border-b px-3 py-1.5'>
+            <div className='border-separator flex items-center justify-between gap-2 border-b py-1.5 pl-3 pr-1.5'>
               <span className='text-muted text-xs'>{t.browser.zoom}</span>
               <div className='flex items-center gap-1'>
                 <button
@@ -1256,17 +1278,31 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
               <Dropdown.Item
                 className='gap-1'
+                isDisabled={screenshotKind !== null}
+                shouldCloseOnSelect={false}
                 onPress={() => void handleScreenshot(false)}
               >
                 <Icon data={Frame} size={14} />
                 <Label>{t.browser.screenshotFrame}</Label>
+                {screenshotKind === 'frame' && (
+                  <span className='ml-auto flex items-center'>
+                    <Spinner size='sm' />
+                  </span>
+                )}
               </Dropdown.Item>
               <Dropdown.Item
                 className='gap-1'
+                isDisabled={screenshotKind !== null}
+                shouldCloseOnSelect={false}
                 onPress={() => void handleScreenshot(true)}
               >
                 <Icon data={Frames} size={14} />
                 <Label>{t.browser.screenshotFullPage}</Label>
+                {screenshotKind === 'fullPage' && (
+                  <span className='ml-auto flex items-center'>
+                    <Spinner size='sm' />
+                  </span>
+                )}
               </Dropdown.Item>
 
               <Separator className='my-0.5' />
