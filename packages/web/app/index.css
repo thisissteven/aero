@@ -70,14 +70,14 @@
     @apply bg-overlay/60! border-separator border shadow-none backdrop-blur-sm;
   }
 
-  .dropdown__popover {
-    @apply bg-overlay/60! border-separator border shadow-none! backdrop-blur-sm;
-  }
-
   .sheet__dialog,
   .modal__dialog {
     @apply border-separator dark:bg-overlay/60 border border-0 shadow-none dark:backdrop-blur-sm;
   }
+}
+
+.dropdown__popover {
+  @apply bg-overlay/60 border-separator border shadow-none! backdrop-blur-sm;
 }
 
 @font-face {

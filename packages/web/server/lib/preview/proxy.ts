@@ -7,11 +7,15 @@ import type { Context } from 'hono';
 import { buildBridgeScript } from './bridge-script';
 import {
   detectRewriteKind,
+  isBlockedExternalHost,
   rewritePreviewBody,
   rewritePreviewRedirectLocation,
 } from './rewrite';
-import { serveReservedPreviewAsset } from './snapdom-module';
-import type { PreviewTarget } from './store';
+import {
+  RESERVED_PREVIEW_PREFIX,
+  serveReservedPreviewAsset,
+} from './snapdom-module';
+import { getOrCreatePreviewTarget, type PreviewTarget } from './store';
 
 const UPSTREAM_TIMEOUT_MS = 20_000;
 
@@ -136,9 +140,15 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
   'cross-origin-embedder-policy',
   'cross-origin-resource-policy',
   'permissions-policy',
+  'feature-policy',
+  'origin-agent-cluster',
+  'x-permitted-cross-domain-policies',
   'clear-site-data',
   'set-cookie',
   'strict-transport-security',
+  'expect-ct',
+  'alt-svc',
+  'nel',
   'report-to',
   'reporting-endpoints',
 ]);
@@ -212,12 +222,17 @@ function injectBridge(
  * attributes (rewritten CSS/JS no longer matches its original hash).
  */
 function sanitizeProxiedHtml(html: string): string {
-  return html
-    .replace(
-      /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>\s*/gi,
-      '',
-    )
-    .replace(/\sintegrity\s*=\s*(["'])[^"']*\1/gi, '');
+  return (
+    html
+      .replace(
+        /<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>\s*/gi,
+        '',
+      )
+      .replace(/\sintegrity\s*=\s*(["'])[^"']*\1/gi, '')
+      // `_top` / `_parent` would navigate Aero's own window out of the app if
+      // the bridge were ever unavailable; keep every target inside the frame.
+      .replace(/\btarget\s*=\s*(["'])(?:_top|_parent)\1/gi, 'target="_self"')
+  );
 }
 
 // Combines the incoming client request's own abort signal with the
@@ -668,11 +683,86 @@ async function serveLocalFile(
   }
 }
 
+const EMBED_RESERVED_PATH = `${RESERVED_PREVIEW_PREFIX}embed`;
+
+function isLoopbackHostname(hostname: string): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local')
+  );
+}
+
+/**
+ * Reserved same-origin endpoint that turns an absolute URL into its own
+ * proxied preview target. The injected bridge rewrites cross-origin iframes to
+ * this path, so a third party's `frame-ancestors` / CSP is stripped by the
+ * proxy instead of blocking the frame (or letting it escape the built-in
+ * browser).
+ */
+function serveEmbedRedirect(c: Context, restPath: string): Response | null {
+  if (restPath !== EMBED_RESERVED_PATH) {
+    return null;
+  }
+
+  const requestUrl = new URL(c.req.url);
+
+  const raw = requestUrl.searchParams.get('url') ?? '';
+
+  let targetUrl: URL;
+
+  try {
+    targetUrl = new URL(raw);
+  } catch {
+    return c.text('Invalid embed url', 400);
+  }
+
+  if (targetUrl.protocol !== 'http:' && targetUrl.protocol !== 'https:') {
+    return c.text('Unsupported embed protocol', 400);
+  }
+
+  const hostname = targetUrl.hostname.toLowerCase();
+
+  if (!isLoopbackHostname(hostname) && isBlockedExternalHost(hostname)) {
+    return c.text('Refusing to proxy private or reserved address', 403);
+  }
+
+  const target = getOrCreatePreviewTarget(targetUrl.origin);
+
+  const protocol = requestUrl.protocol === 'https:' ? 'https' : 'http';
+  const port = requestUrl.port ? `:${requestUrl.port}` : '';
+
+  const location =
+    `${protocol}://${target.id}.preview.localhost${port}` +
+    `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location,
+      'cache-control': 'no-store',
+    },
+  });
+}
+
 export async function proxyRequest(
   c: Context,
   target: PreviewTarget,
   restPath: string,
 ): Promise<Response> {
+  /*
+   * The bridge's cross-origin embed redirector. Served by Aero itself.
+   */
+  const embed = serveEmbedRedirect(c, restPath);
+
+  if (embed) {
+    return embed;
+  }
+
   /*
    * Assets served by Aero itself (e.g. the snapDOM capture module the bridge
    * imports lazily). These never reach the upstream.

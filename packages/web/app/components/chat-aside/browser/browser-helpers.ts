@@ -63,6 +63,9 @@ export interface PreviewBridgeMessage {
   canGoBack?: boolean;
   canGoForward?: boolean;
 
+  /** `open-url` requests originating from a new-tab/window link. */
+  newTab?: boolean;
+
   requestId?: string;
   dataUrl?: string;
   mime?: string;

@@ -12,11 +12,12 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowsExpand,
   ArrowsRotateRight,
   ArrowUpRightFromSquare,
   Check,
   EllipsisVertical,
+  Frame,
+  Frames,
   LayoutHeaderCursor,
   Minus,
   Paperclip,
@@ -34,6 +35,7 @@ import {
   getCachedProxyTarget,
   isPreviewElementMetadata,
   normalizeBrowserUrl,
+  openUrl,
   PreviewBridgeMessage,
   PreviewSelection,
   PreviewSelectionPreview,
@@ -62,6 +64,45 @@ interface PendingFrameRequest {
   resolve: (value: any) => void;
   reject: (error: Error) => void;
   timeout: number;
+}
+
+function toDimension(value: unknown): number | null {
+  const size = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(size) || size <= 0) {
+    return null;
+  }
+
+  return Math.round(Math.min(size, 10_000));
+}
+
+function toDpr(value: unknown): number | null {
+  const dpr = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(dpr) || dpr <= 0) {
+    return null;
+  }
+
+  return Math.min(Math.max(dpr, 0.5), 4);
+}
+
+/**
+ * Copy a captured screenshot to the system clipboard as an image. Requires a
+ * secure context and a user gesture; the screenshot menu item provides both.
+ */
+async function copyImageToClipboard(
+  dataUrl: string,
+  mime: string,
+): Promise<void> {
+  if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+    throw new Error('Image clipboard is unavailable');
+  }
+
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const type = blob.type || mime || 'image/png';
+
+  await navigator.clipboard.write([new ClipboardItem({ [type]: blob })]);
 }
 
 export function BrowserPane({ tabId, active }: BrowserPaneProps) {
@@ -93,6 +134,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     setIframeHistoryState,
     goToHistory,
     setViewport,
+    setCustomSize,
     setZoom,
   } = useBrowserActions();
 
@@ -104,6 +146,9 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
   const [annotationNote, setAnnotationNote] = useState('');
   const [bridgeReady, setBridgeReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+
+  const viewportContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   // ---------------------------------------------------------------------------
   // Proxy Target Resolution
@@ -146,6 +191,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
           if (!cancelled) {
             setProxyState(tabId, { status: 'error', message });
+            setLoading(tabId, false);
           }
           return;
         }
@@ -174,6 +220,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
             status: 'error',
             message: error instanceof Error ? error.message : String(error),
           });
+          setLoading(tabId, false);
         }
       }
     })();
@@ -188,6 +235,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!tab || tab.proxyState.status !== 'ready') {
+      setIframeSrc('');
       return;
     }
 
@@ -233,6 +281,37 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     tab?.reloadNonce,
     tabId,
   ]);
+
+  /*
+   * Track the panel content box so an oversized custom viewport can be scaled
+   * down to fit for display while its layout size — and therefore any capture —
+   * stays exactly what the agent asked for.
+   */
+  useEffect(() => {
+    const element = viewportContainerRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const update = () => {
+      setContainerSize({
+        width: element.clientWidth,
+        height: element.clientHeight,
+      });
+    };
+
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [iframeSrc]);
 
   const isProxied = tab?.proxyState.status === 'ready';
 
@@ -373,22 +452,27 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
    * viewport. Resolves with null on timeout or when the bridge is unavailable,
    * so the annotation still works without an image.
    */
-  const requestCapture = useCallback(async (): Promise<{
-    dataUrl: string;
-    mime: string;
-  } | null> => {
-    try {
-      const result = await sendFrameRequest('capture', {}, 8000);
+  const requestCapture = useCallback(
+    async (
+      payload: Record<string, unknown> = {},
+    ): Promise<{
+      dataUrl: string;
+      mime: string;
+    } | null> => {
+      try {
+        const result = await sendFrameRequest('capture', payload, 15_000);
 
-      if (result?.dataUrl) {
-        return { dataUrl: result.dataUrl, mime: result.mime ?? 'image/png' };
+        if (result?.dataUrl) {
+          return { dataUrl: result.dataUrl, mime: result.mime ?? 'image/png' };
+        }
+
+        return null;
+      } catch {
+        return null;
       }
-
-      return null;
-    } catch {
-      return null;
-    }
-  }, [sendFrameRequest]);
+    },
+    [sendFrameRequest],
+  );
 
   // ---------------------------------------------------------------------------
   // Selection & Annotation Management
@@ -789,8 +873,15 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         case 'open-url': {
           const nextUrl = typeof data.url === 'string' ? data.url : '';
 
-          if (nextUrl) {
-            setDraftUrl(tabId, nextUrl);
+          if (!nextUrl) {
+            break;
+          }
+
+          setDraftUrl(tabId, nextUrl);
+
+          if (data.newTab === true) {
+            openUrl(nextUrl);
+          } else {
             navigate(tabId, normalizeBrowserUrl(nextUrl));
           }
           break;
@@ -898,6 +989,30 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     }
   }, [getExternalUrl]);
 
+  const handleScreenshot = useCallback(
+    async (fullPage: boolean) => {
+      if (!tab || tab.proxyState.status !== 'ready') {
+        return;
+      }
+
+      try {
+        const capture = await requestCapture(
+          fullPage ? { fullPage: true } : {},
+        );
+
+        if (!capture) {
+          throw new Error('The capture came back empty');
+        }
+
+        await copyImageToClipboard(capture.dataUrl, capture.mime);
+        toast.success(t.browser.screenshotCopied);
+      } catch {
+        toast.danger(t.browser.screenshotFailed);
+      }
+    },
+    [requestCapture, t, tab],
+  );
+
   // Expose this pane to the agent bridge client so `aero_web` actions can drive
   // the live preview. Registered for every tab; the client picks the active one.
   useEffect(() => {
@@ -910,13 +1025,38 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         sendFrameRequest('scroll', params),
       inspect: (params: Record<string, any>) =>
         sendFrameRequest('inspect', params),
-      capture: async () => {
-        const capture = await requestCapture();
+      capture: async (params: Record<string, unknown> = {}) => {
+        const width = toDimension(params.width);
+        const height = toDimension(params.height);
+        const requestedDpr = toDpr(params.dpr);
+
+        const exact = Boolean(width && height);
+
+        if (width && height) {
+          setCustomSize(tabId, { width, height });
+
+          // Let React commit the resize and the iframe reflow before the bridge
+          // snapshots its (now exact-size) viewport.
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
+        // When an exact size is requested, pin the raster scale to 1 so the
+        // image is exactly `width` x `height`, not multiplied by the host DPR.
+        const dpr = requestedDpr ?? (exact ? 1 : undefined);
+
+        const capture = await requestCapture(dpr ? { dpr } : {});
+
         if (!capture) {
           throw new Error('Failed to capture the page');
         }
+
         return {
           ...capture,
+          ...(width && height ? { width, height } : {}),
+          ...(dpr !== undefined ? { dpr } : {}),
           pageUrl: tab?.url ?? '',
           pageTitle: tab?.title ?? '',
         };
@@ -944,6 +1084,7 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
     tabId,
     sendFrameRequest,
     requestCapture,
+    setCustomSize,
     goBackInFrame,
     goForwardInFrame,
     handleHardReload,
@@ -960,6 +1101,23 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
   const viewportWidth =
     tab.viewport === 'fill' ? null : BROWSER_VIEWPORT_WIDTHS[tab.viewport];
+
+  /*
+   * An agent-set exact size lays the page out at that many CSS pixels
+   * regardless of the panel, then scale-to-fits for display. `transform`
+   * (unlike `zoom`) does not change the iframe's internal viewport, so a
+   * capture still comes back at the requested dimensions.
+   */
+  const customSize = tab.customSize;
+
+  const customScale =
+    customSize && containerSize.width > 0 && containerSize.height > 0
+      ? Math.min(
+          1,
+          containerSize.width / customSize.width,
+          containerSize.height / customSize.height,
+        )
+      : 1;
 
   const viewportItems: { value: BrowserViewport; label: string }[] = [
     { value: 'fill', label: t.browser.viewportResponsive },
@@ -1040,15 +1198,44 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         <Dropdown size='sm'>
           <Dropdown.Trigger
             aria-label={t.browser.menu}
-            className='text-muted hover:bg-surface-secondary hover:text-foreground inline-flex size-6 items-center justify-center rounded-md'
+            className='grid place-items-center h-7 w-7 rounded-md p-0 hover:bg-default'
           >
             <Icon data={EllipsisVertical} size={14} />
           </Dropdown.Trigger>
           <Dropdown.Popover
-            className='w-56'
+            className='w-56 !bg-overlay backdrop-blur-none'
             placement='bottom end'
             crossOffset={6}
           >
+            <div className='border-separator flex items-center justify-between gap-2 border-b px-3 py-1.5'>
+              <span className='text-muted text-xs'>{t.browser.zoom}</span>
+              <div className='flex items-center gap-1'>
+                <button
+                  type='button'
+                  aria-label={t.browser.zoomOut}
+                  className='text-muted hover:bg-default hover:text-foreground grid size-5 place-items-center rounded'
+                  onClick={() => setZoom(tabId, tab.zoom - 0.1)}
+                >
+                  <Icon data={Minus} size={12} />
+                </button>
+                <button
+                  type='button'
+                  aria-label={t.browser.zoomReset}
+                  className='text-foreground hover:bg-default min-w-10 rounded px-1 py-0.5 text-center text-xs tabular-nums'
+                  onClick={() => setZoom(tabId, 1)}
+                >
+                  {Math.round(tab.zoom * 100)}%
+                </button>
+                <button
+                  type='button'
+                  aria-label={t.browser.zoomIn}
+                  className='text-muted hover:bg-default hover:text-foreground grid size-5 place-items-center rounded'
+                  onClick={() => setZoom(tabId, tab.zoom + 0.1)}
+                >
+                  <Icon data={Plus} size={12} />
+                </button>
+              </div>
+            </div>
             <Dropdown.Menu aria-label={t.browser.menu}>
               {viewportItems.map((item) => (
                 <Dropdown.Item
@@ -1069,30 +1256,17 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
 
               <Dropdown.Item
                 className='gap-1'
-                shouldCloseOnSelect={false}
-                onPress={() => setZoom(tabId, tab.zoom + 0.1)}
+                onPress={() => void handleScreenshot(false)}
               >
-                <Icon data={Plus} size={14} />
-                <Label>{t.browser.zoomIn}</Label>
+                <Icon data={Frame} size={14} />
+                <Label>{t.browser.screenshotFrame}</Label>
               </Dropdown.Item>
               <Dropdown.Item
                 className='gap-1'
-                shouldCloseOnSelect={false}
-                onPress={() => setZoom(tabId, tab.zoom - 0.1)}
+                onPress={() => void handleScreenshot(true)}
               >
-                <Icon data={Minus} size={14} />
-                <Label>{t.browser.zoomOut}</Label>
-              </Dropdown.Item>
-              <Dropdown.Item
-                className='gap-1'
-                shouldCloseOnSelect={false}
-                onPress={() => setZoom(tabId, 1)}
-              >
-                <Icon data={ArrowsExpand} size={14} />
-                <Label>{t.browser.zoomReset}</Label>
-                <span className='text-muted ml-auto text-xs tabular-nums'>
-                  {Math.round(tab.zoom * 100)}%
-                </span>
+                <Icon data={Frames} size={14} />
+                <Label>{t.browser.screenshotFullPage}</Label>
               </Dropdown.Item>
 
               <Separator className='my-0.5' />
@@ -1124,17 +1298,34 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
         )}
       >
         {iframeSrc ? (
-          <div className='absolute inset-0 flex justify-center overflow-hidden'>
+          <div
+            ref={viewportContainerRef}
+            className='absolute inset-0 flex justify-center overflow-hidden'
+          >
             <div
               className={cn(
                 'relative h-full',
-                viewportWidth && 'border-separator border-x',
+                viewportWidth && !customSize && 'border-separator border-x',
               )}
-              style={{
-                width: viewportWidth ? `${viewportWidth}px` : '100%',
-                maxWidth: '100%',
-                zoom: tab.zoom === 1 ? undefined : tab.zoom,
-              }}
+              style={
+                customSize
+                  ? {
+                      position: 'absolute',
+                      top: 0,
+                      left: '50%',
+                      width: `${customSize.width}px`,
+                      height: `${customSize.height}px`,
+                      marginLeft: `${-customSize.width / 2}px`,
+                      transform:
+                        customScale !== 1 ? `scale(${customScale})` : undefined,
+                      transformOrigin: 'top center',
+                    }
+                  : {
+                      width: viewportWidth ? `${viewportWidth}px` : '100%',
+                      maxWidth: '100%',
+                      zoom: tab.zoom === 1 ? undefined : tab.zoom,
+                    }
+              }
             >
               <iframe
                 key={`${iframeSrc}:${tab.reloadNonce}`}
@@ -1142,7 +1333,8 @@ export function BrowserPane({ tabId, active }: BrowserPaneProps) {
                 src={iframeSrc}
                 title={t.browser.browserPreview}
                 className='absolute inset-0 h-full w-full border-0'
-                allow='clipboard-read; clipboard-write; fullscreen'
+                allow='clipboard-read; clipboard-write; fullscreen; autoplay; encrypted-media; picture-in-picture; web-share; geolocation; microphone; camera; midi; payment; usb; display-capture; accelerometer; gyroscope; magnetometer; xr-spatial-tracking'
+                allowFullScreen
                 onLoad={() => setLoading(tabId, false)}
               />
 

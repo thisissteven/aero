@@ -206,7 +206,20 @@ function collectSessionIds(queryClient: QueryClient): string[] {
   return [...ids];
 }
 
+/**
+ * Upper bound on concurrently held session streams. Browsers cap HTTP/1.1
+ * connections per origin at ~6; exceeding that starves every other fetch and
+ * makes the app appear frozen.
+ */
+const MAX_CONCURRENT_SESSION_STREAMS = 5;
+
 async function ensureSessionStream(sessionId: string) {
+  if (sessionStreamManager.has(sessionId)) {
+    return;
+  }
+
+  let shouldStream = true;
+
   try {
     const res = await $individualSession.status.$get({
       param: { id: sessionId },
@@ -222,9 +235,26 @@ async function ensureSessionStream(sessionId: string) {
       if (status && status.type !== 'idle') {
         useChatStore.getState().setStatus(sessionId, status, 'query');
       }
+
+      /*
+       * Only hold an open stream for a genuinely busy session. Opening one for
+       * every idle session that appears in the list exhausts the browser's
+       * per-origin connection pool and blocks all other requests. Idle
+       * sessions have no events to deliver, so the stream would just sit open.
+       */
+      shouldStream = status?.type === 'busy';
     }
   } catch {
-    // Non-fatal: the stream below still delivers future status events.
+    // Non-fatal: fall through and stream so we still receive future status
+    // events for a session that may have just started.
+  }
+
+  if (!shouldStream) {
+    return;
+  }
+
+  if (sessionStreamManager.size >= MAX_CONCURRENT_SESSION_STREAMS) {
+    return;
   }
 
   void sessionStreamManager.ensure({ sessionId });

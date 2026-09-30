@@ -319,7 +319,18 @@ async function listenWithRetry(basePort: number, maxAttempts = 10) {
                 });
           }
 
-          if (/^\/api\/sessions\/[^/]+\/stream$/.test(url.pathname)) {
+          /*
+           * Long-lived requests must not be killed by Bun's default 10s idle
+           * timeout. Session/automation SSE streams keep themselves alive with
+           * heartbeats, and the browser-control long-poll holds the request
+           * open for its own explicit deadline, so let them manage their own
+           * lifetime.
+           */
+          if (
+            /^\/api\/sessions\/[^/]+\/stream$/.test(url.pathname) ||
+            url.pathname === '/api/automations/events' ||
+            url.pathname === '/api/browser-control/poll'
+          ) {
             server.timeout(req, 0);
           }
 

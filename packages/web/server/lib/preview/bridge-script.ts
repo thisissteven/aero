@@ -10,7 +10,14 @@ export function buildBridgeScript(
   // Same-origin to the iframe: served by the proxy itself, not the upstream.
   const reservedModuleUrl = `${normalizedBasePath}/__aero_internal__/snapdom.mjs`;
 
+  // Same-origin redirector that turns an arbitrary absolute URL into its own
+  // proxied preview target. Used for cross-origin iframes so their framing and
+  // CSP headers are stripped by the proxy.
+  const embedUrl = `${normalizedBasePath}/__aero_internal__/embed`;
+
   const serializedReservedModuleUrl = JSON.stringify(reservedModuleUrl);
+
+  const serializedEmbedUrl = JSON.stringify(embedUrl);
 
   const script = `
 (() => {
@@ -24,12 +31,63 @@ export function buildBridgeScript(
    * A service worker registered by the previewed app would serve its own
    * app-shell cache for this origin and bypass the proxy, breaking requests
    * and the bridge. Preview pages must not own a service worker.
+   *
+   * Remove the capability outright so feature detection ('serviceWorker' in
+   * navigator) reports it as unsupported. Defining serviceWorker as undefined
+   * left the property present, so PWA libraries (e.g. Workbox) passed the guard
+   * and then crashed on navigator.serviceWorker.addEventListener.
    */
   try {
-    if ('serviceWorker' in navigator) {
+    try {
+      if (typeof Navigator !== 'undefined' && Navigator.prototype) {
+        delete Navigator.prototype.serviceWorker;
+      }
+    } catch {}
+
+    try {
+      delete navigator.serviceWorker;
+    } catch {}
+
+    let present = false;
+
+    try {
+      present = 'serviceWorker' in navigator;
+    } catch {}
+
+    /*
+     * If the runtime would not let us remove the capability, expose a benign
+     * stub instead. Registration is refused (a real worker would bypass the
+     * proxy) but the common container API exists, so callers never dereference
+     * an undefined serviceWorker.
+     */
+    if (present) {
+      const noop = () => {};
+      const registration = {
+        active: null,
+        installing: null,
+        waiting: null,
+        scope: '/',
+        update: () => Promise.resolve(),
+        unregister: () => Promise.resolve(true),
+        addEventListener: noop,
+        removeEventListener: noop,
+        dispatchEvent: () => false,
+      };
+
       Object.defineProperty(navigator, 'serviceWorker', {
-        value: undefined,
         configurable: true,
+        value: {
+          controller: null,
+          ready: Promise.resolve(registration),
+          addEventListener: noop,
+          removeEventListener: noop,
+          dispatchEvent: () => false,
+          register: () => Promise.resolve(registration),
+          getRegistration: () => Promise.resolve(registration),
+          getRegistrations: () => Promise.resolve([registration]),
+          onmessage: null,
+          oncontrollerchange: null,
+        },
       });
     }
   } catch {}
@@ -38,6 +96,7 @@ export function buildBridgeScript(
   const VERSION = 1;
   const TARGET_ORIGIN = ${serializedTargetOrigin};
   const RESERVED_MODULE_URL = ${serializedReservedModuleUrl};
+  const EMBED_URL = ${serializedEmbedUrl};
   const HISTORY_INDEX_KEY = '__aeroHistoryIndex';
 
   let inspectMode = false;
@@ -710,19 +769,31 @@ export function buildBridgeScript(
     } catch {}
   };
 
-  const captureRoot = (snap, root) =>
+  const captureRoot = (snap, root, dpr, fullPage) =>
     snap.toCanvas(root, {
-      clip: 'viewport',
-      dpr: window.devicePixelRatio || 1,
+      ...(fullPage ? {} : { clip: 'viewport' }),
+      dpr,
       embedFonts: true,
       format: 'png',
     });
 
-  const captureViewport = async (requestId) => {
+  const captureViewport = async (requestId, options) => {
     if (capturing) {
       post({ type: 'capture-result', requestId, error: 'capture-busy', ts: Date.now() });
       return;
     }
+
+    /*
+     * The parent can pin the raster scale to 1 so the image dimensions equal
+     * the iframe's layout viewport exactly, regardless of the host screen's
+     * devicePixelRatio.
+     */
+    const dpr =
+      options && typeof options.dpr === 'number' && options.dpr > 0
+        ? options.dpr
+        : window.devicePixelRatio || 1;
+
+    const fullPage = Boolean(options && options.fullPage);
 
     capturing = true;
 
@@ -770,7 +841,7 @@ export function buildBridgeScript(
             continue;
           }
 
-          const candidate = await captureRoot(snap, root);
+          const candidate = await captureRoot(snap, root, dpr, fullPage);
 
           if (!candidate) {
             continue;
@@ -1286,7 +1357,7 @@ export function buildBridgeScript(
     }
 
     if (data.type === 'capture') {
-      void captureViewport(data.requestId);
+      void captureViewport(data.requestId, data);
     }
   });
 
@@ -1505,29 +1576,47 @@ export function buildBridgeScript(
           return;
         }
 
-        // Popups and cross-origin links are handed to the parent, which opens
-        // them as a fresh preview target so navigation between sites stays
-        // inside the built-in browser instead of escaping the proxy.
+        const previewOrigin = getPreviewOrigin();
+
+        // A new tab/window: hand it to the parent, which opens its own preview
+        // tab so the site keeps rendering through the proxy.
         if (anchor.target && anchor.target !== '_self') {
           event.preventDefault();
-          post({ type: 'open-url', url: resolved.toString() });
+          post({
+            type: 'open-url',
+            url: resolved.toString(),
+            newTab: anchor.target === '_blank',
+          });
           return;
         }
 
-        if (resolved.origin !== TARGET_ORIGIN) {
+        // Absolute URL on the previewed origin: remap onto the preview host and
+        // navigate the frame.
+        if (resolved.origin === TARGET_ORIGIN) {
+          const previewUrl = toPreviewUrl(resolved.toString());
+
+          if (previewUrl === window.location.href) {
+            return;
+          }
+
           event.preventDefault();
-          post({ type: 'open-url', url: resolved.toString() });
+          window.location.assign(previewUrl);
           return;
         }
 
-        const previewUrl = toPreviewUrl(resolved.toString());
-
-        if (previewUrl === window.location.href) {
+        // Already on the preview host (relative / root-relative links).
+        // Let the browser navigate natively; the proxy handles the request and
+        // navigation stays inside the built-in browser. Intercepting here used
+        // to mistake every internal link for a cross-origin one and spawn a
+        // nested preview target for the preview host itself.
+        if (resolved.origin === previewOrigin) {
           return;
         }
 
+        // Genuinely cross-origin: open it as its own proxied preview target in
+        // the same tab instead of letting it escape to the real site.
         event.preventDefault();
-        window.location.assign(previewUrl);
+        post({ type: 'open-url', url: resolved.toString() });
       } catch {}
     },
     true,
@@ -1655,6 +1744,133 @@ export function buildBridgeScript(
     Object.setPrototypeOf(PreviewWebSocket, NativeWebSocket);
 
     window.WebSocket = PreviewWebSocket;
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * window.open / popups
+   * ----------------------------------------------------------
+   */
+
+  if (typeof window.open === 'function') {
+    const nativeOpen = window.open.bind(window);
+
+    window.open = function (url, name, features) {
+      try {
+        if (url) {
+          const resolved = new URL(String(url), window.location.href);
+
+          if (/^https?:$/.test(resolved.protocol)) {
+            post({ type: 'open-url', url: resolved.toString(), newTab: true });
+            return null;
+          }
+        }
+      } catch {}
+
+      return nativeOpen(url, name, features);
+    };
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * Cross-origin iframes
+   * ----------------------------------------------------------
+   *
+   * Same-origin frames are already rewritten to preview-relative URLs by the
+   * proxy. Cross-origin frames would otherwise load directly and be blocked by
+   * the third party's frame-ancestors / CSP, or escape the proxy entirely.
+   * Route them through the proxy's embed redirect so the response is rewritten
+   * with those headers stripped.
+   */
+
+  const toEmbedUrl = (value) => {
+    try {
+      const parsed = new URL(value, window.location.href);
+
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return value;
+      }
+
+      if (
+        parsed.origin === TARGET_ORIGIN ||
+        parsed.origin === getPreviewOrigin() ||
+        String(value).indexOf('__aero_internal__') !== -1
+      ) {
+        return value;
+      }
+
+      return EMBED_URL + '?url=' + encodeURIComponent(parsed.toString());
+    } catch {
+      return value;
+    }
+  };
+
+  const rewriteFrameElement = (element) => {
+    if (!element || typeof element.getAttribute !== 'function') {
+      return;
+    }
+
+    const tag = element.tagName;
+
+    if (tag !== 'IFRAME' && tag !== 'FRAME') {
+      return;
+    }
+
+    const src = element.getAttribute('src');
+
+    if (!src) {
+      return;
+    }
+
+    const next = toEmbedUrl(src);
+
+    if (next !== src) {
+      element.setAttribute('src', next);
+    }
+  };
+
+  const scanFrameElements = (root) => {
+    if (!root || root.nodeType !== 1) {
+      return;
+    }
+
+    rewriteFrameElement(root);
+
+    if (typeof root.querySelectorAll === 'function') {
+      const frames = root.querySelectorAll('iframe[src], frame[src]');
+
+      for (const frame of frames) {
+        rewriteFrameElement(frame);
+      }
+    }
+  };
+
+  if (typeof window.MutationObserver === 'function') {
+    try {
+      scanFrameElements(document.documentElement);
+
+      const frameObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'attributes') {
+            rewriteFrameElement(mutation.target);
+            continue;
+          }
+
+          for (const node of mutation.addedNodes) {
+            if (node && node.nodeType === 1) {
+              scanFrameElements(node);
+            }
+          }
+        }
+      });
+
+      frameObserver.observe(document.documentElement || document, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src'],
+      });
+    } catch {}
   }
 
   /*

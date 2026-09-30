@@ -36,6 +36,16 @@ function isViewport(value: unknown): value is BrowserViewport {
   );
 }
 
+function toSize(value: unknown): number | null {
+  const size = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(size) || size <= 0) {
+    return null;
+  }
+
+  return Math.round(Math.min(size, 10_000));
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function waitForController(tabId: string | null, timeoutMs = 4_000) {
@@ -76,11 +86,26 @@ async function runCommand(command: BrowserCommand): Promise<CommandOutcome> {
   }
 
   if (action === 'browser.resize') {
-    if (!isViewport(params.viewport)) {
-      return { ok: false, error: 'viewport is required' };
-    }
     useSidePanelStore.getState().setActiveNavItem('browser');
+
     const tabId = store.activeTabId ?? actions.addTab();
+
+    const width = toSize(params.width);
+    const height = toSize(params.height);
+
+    // An exact size (independent of the panel) takes precedence over presets.
+    if (width && height) {
+      actions.setCustomSize(tabId, { width, height });
+      return { ok: true, data: { tabId, width, height } };
+    }
+
+    if (!isViewport(params.viewport)) {
+      return {
+        ok: false,
+        error: 'viewport, or both width and height, is required',
+      };
+    }
+
     actions.setViewport(tabId, params.viewport);
     return { ok: true, data: { tabId, viewport: params.viewport } };
   }
@@ -171,7 +196,12 @@ export function BrowserAgentClient() {
           window.clearTimeout(timeout);
 
           if (stopped) return;
-          if (response.status === 204) continue;
+          if (response.status === 204) {
+            // Long-poll deadline elapsed with no command. Pause briefly so a
+            // server that answers immediately can never cause a tight loop.
+            await sleep(250);
+            continue;
+          }
 
           if (!response.ok) {
             await sleep(1_000);

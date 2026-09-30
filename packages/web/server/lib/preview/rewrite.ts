@@ -1,3 +1,5 @@
+import { RESERVED_PREVIEW_PREFIX } from './snapdom-module';
+
 export type RewriteKind = 'html' | 'css' | 'javascript';
 
 interface RewriteOptions {
@@ -30,6 +32,19 @@ function proxyPath(
   const base = normalizeProxyBase(options.proxyBasePath);
 
   return `${base || ''}${pathname}${search}${hash}`;
+}
+
+/**
+ * Same-origin proxy endpoint that redirects an arbitrary absolute URL to its
+ * own preview target. Cross-origin iframes are routed through it so the
+ * proxy can strip the third party's `frame-ancestors` / CSP.
+ */
+function embedPath(absoluteUrl: string, options: RewriteOptions): string {
+  const base = normalizeProxyBase(options.proxyBasePath);
+
+  return `${base}${RESERVED_PREVIEW_PREFIX}embed?url=${encodeURIComponent(
+    absoluteUrl,
+  )}`;
 }
 
 function rewriteAbsoluteSameOriginUrl(
@@ -178,6 +193,56 @@ function rewriteBaseTag(html: string, options: RewriteOptions): string {
   });
 }
 
+/**
+ * Route cross-origin iframes/frames through the embed redirector. Same-origin
+ * frames are already covered by the generic `src` pass above (which rewrites
+ * them to preview-relative paths); this only touches absolute URLs that point
+ * outside the previewed origin and would otherwise load directly, escaping the
+ * proxy and inheriting the third party's framing policy.
+ */
+function rewriteEmbeddedFrames(html: string, options: RewriteOptions): string {
+  return html.replace(
+    /<(iframe|frame)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi,
+    (match, tag: string, attributes: string) => {
+      const srcMatch = attributes.match(
+        /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
+      );
+
+      if (!srcMatch) {
+        return match;
+      }
+
+      const value = String(
+        srcMatch[1] ?? srcMatch[2] ?? srcMatch[3] ?? '',
+      ).trim();
+
+      if (!/^https?:\/\//i.test(value)) {
+        return match;
+      }
+
+      if (value.includes(RESERVED_PREVIEW_PREFIX)) {
+        return match;
+      }
+
+      let parsed: URL;
+
+      try {
+        parsed = new URL(value);
+      } catch {
+        return match;
+      }
+
+      if (parsed.origin === new URL(options.targetOrigin).origin) {
+        return match;
+      }
+
+      const nextSrc = embedPath(value, options);
+
+      return `<${tag}${attributes.replace(srcMatch[0], `src="${nextSrc}"`)}>`;
+    },
+  );
+}
+
 function rewriteHtml(html: string, options: RewriteOptions): string {
   let result = html;
 
@@ -225,6 +290,8 @@ function rewriteHtml(html: string, options: RewriteOptions): string {
       return `style=${quote}${rewritten}${quote}`;
     },
   );
+
+  result = rewriteEmbeddedFrames(result, options);
 
   return result;
 }

@@ -111,7 +111,7 @@ export function ChatPage({
             <FileAttachments />
             <BrowserAnnotationsPanel />
             <GithubLinksPanel />
-            <div className='flex flex-wrap gap-2 has-[>*]:mb-2 mx-2'>
+            <div className='flex flex-wrap gap-2 has-[>*]:mb-2 mx-2 @max-xl:flex-wrap-reverse'>
               <SessionDiff />
               <SessionTodos />
             </div>

@@ -79,7 +79,10 @@ const automations = new Hono()
         resolve?.();
       });
 
-      const HEARTBEAT_MS = 25_000;
+      // Keep-alive cadence matching the session stream. The route is exempt
+      // from Bun's idle timeout in `start.ts`, so this only needs to satisfy
+      // intermediary proxies.
+      const HEARTBEAT_MS = 10_000;
 
       try {
         await stream.writeSSE({ event: 'ready', data: '' });

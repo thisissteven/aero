@@ -326,6 +326,10 @@ class SessionStreamManager {
   has(sessionId: string) {
     return this.connections.has(sessionId);
   }
+
+  get size() {
+    return this.connections.size;
+  }
 }
 
 export const sessionStreamManager = new SessionStreamManager();

@@ -88,6 +88,14 @@ export interface BrowserTab {
 
   viewport: BrowserViewport;
 
+  /**
+   * Agent-set fixed layout size for the previewed page, in CSS pixels,
+   * independent of the panel. When set it overrides `viewport` so captures can
+   * be taken at an exact size (e.g. 2000x1000) no matter how small the panel is.
+   * `null` falls back to `viewport`.
+   */
+  customSize: { width: number; height: number } | null;
+
   /** Preview zoom factor (1 = 100%). */
   zoom: number;
 
@@ -151,6 +159,12 @@ interface BrowserStoreActions {
 
   setViewport: (id: string, viewport: BrowserViewport) => void;
 
+  /** Set or clear the agent-controlled exact layout size. */
+  setCustomSize: (
+    id: string,
+    size: { width: number; height: number } | null,
+  ) => void;
+
   setZoom: (id: string, zoom: number) => void;
 
   updateTab: (id: string, patch: Partial<Pick<BrowserTab, 'title'>>) => void;
@@ -187,6 +201,8 @@ function createTab(url = ''): BrowserTab {
 
     viewport: 'fill',
     zoom: 1,
+
+    customSize: null,
 
     proxyState: {
       status: 'idle',
@@ -557,6 +573,19 @@ export const useBrowserStore = create<BrowserStore>()(
                 ? {
                     ...tab,
                     viewport,
+                    customSize: null,
+                  }
+                : tab,
+            ),
+          })),
+
+        setCustomSize: (id, size) =>
+          set((state) => ({
+            tabs: state.tabs.map((tab) =>
+              tab.id === id
+                ? {
+                    ...tab,
+                    customSize: size,
                   }
                 : tab,
             ),

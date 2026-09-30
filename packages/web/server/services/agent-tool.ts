@@ -176,6 +176,9 @@ const paramsSchema = z.object({
   submit: z.boolean().optional(),
   direction: z.enum(['up', 'down', 'top', 'bottom']).optional(),
   viewport: z.enum(['mobile', 'tablet', 'desktop', 'fill']).optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  dpr: z.number().positive().optional(),
   label: z.string().optional(),
 });
 
@@ -461,6 +464,9 @@ async function saveBrowserCapture(
     mime?: string;
     pageUrl?: string;
     pageTitle?: string;
+    width?: number;
+    height?: number;
+    dpr?: number;
   };
   const dataUrl = typeof record.dataUrl === 'string' ? record.dataUrl : '';
 
@@ -494,6 +500,9 @@ async function saveBrowserCapture(
     directory: ctx.contextDirectory,
     pageUrl: record.pageUrl,
     pageTitle: record.pageTitle,
+    ...(typeof record.width === 'number' ? { width: record.width } : {}),
+    ...(typeof record.height === 'number' ? { height: record.height } : {}),
+    ...(typeof record.dpr === 'number' ? { dpr: record.dpr } : {}),
     mime,
   };
 }
